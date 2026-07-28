@@ -4,7 +4,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from "recharts";
 import {
-  Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers,
+  Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   Printer, RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor,
 } from "lucide-react";
@@ -867,6 +867,79 @@ function Card({ r, i, onOpen, reduced }) {
         <span className="dot" />
         <span className="fm">{trMonth(lang, r.month)}</span>
         {r.meeting && <><span className="dot" /><span className="fm">{trMeeting(lang, r.meeting)}</span></>}
+      </div>
+    </div>
+  );
+}
+
+/* ── إقرار قانوني — يظهر مرة واحدة فقط لكل زائر ── */
+const LEGAL_KEY = "owners-legal-consent-v1";
+const LEGAL_COPY = {
+  ar: {
+    eyebrow: "قبل ما تكمل",
+    title: "تنويه وإخلاء مسؤولية قانونية",
+    points: [
+      ["طبيعة المنصة", "هذه اللوحة هي مبادرة واجتهاد شخصي وودّي من ممثلي الملاك، ولا تُعد منصة رسمية أو متحدثًا رسميًا باسم أي جهة حكومية، خريطة طريق، أو الشركة المطوّرة."],
+      ["طبيعة البيانات", "كافة المعلومات والإحصائيات الواردة هي بيانات استرشادية منقولة كما هي من المطوّر العقاري أو من استبيانات الملاك، دون أدنى مسؤولية عن دقتها أو صحتها أو أي تغييرات قد تطرأ عليها مستقبلًا من قِبل المطوّر."],
+      ["نفي الصفة والمسؤولية", "لا يتحمّل ممثلو الملاك أي مسؤولية قانونية أو مالية أو إدارية ناتجة عن استخدام هذه البيانات، أو بناء أي قرارات عليها، أو عن أي ردود فعل أو إجراءات قد تتخذها أي جهة أو مطوّر تجاه ما يُنقل من مطالب أو استفسارات."],
+    ],
+    consent: "بالضغط على «أوافق»، فأنت تقرّ بعلمك التام بجميع ما ورد أعلاه وتوافق على إخلاء مسؤولية القائمين على اللوحة تمامًا.",
+    agree: "أوافق",
+  },
+  en: {
+    eyebrow: "Before you continue",
+    title: "Legal Notice & Disclaimer",
+    points: [
+      ["Nature of the Platform", "This dashboard is a personal, voluntary initiative by owner representatives. It is not an official platform or spokesperson on behalf of any government entity, project roadmap, or the developer company."],
+      ["Nature of the Data", "All information and statistics shown are indicative data, transferred as-is from the real estate developer or from owner surveys, with no responsibility for their accuracy, correctness, or any future changes made by the developer."],
+      ["Disclaimer of Role & Liability", "Owner representatives bear no legal, financial, or administrative liability arising from use of this data, decisions made based on it, or any response or action taken by any party or developer regarding demands or inquiries conveyed."],
+    ],
+    consent: "By clicking \u201cI Agree,\u201d you acknowledge full awareness of the above and agree to fully release the dashboard administrators from liability.",
+    agree: "I Agree",
+  },
+};
+
+function LegalDisclaimer() {
+  const { T } = useT();
+  const { lang } = useLang();
+  const [agreed, setAgreed] = useState(() => {
+    try { return localStorage.getItem(LEGAL_KEY) === "1"; } catch { return false; }
+  });
+  if (agreed) return null;
+  const c = LEGAL_COPY[lang];
+  const onAgree = () => {
+    try { localStorage.setItem(LEGAL_KEY, "1"); } catch { /* تجاهل */ }
+    setAgreed(true);
+  };
+  return (
+    <div className="ovl" style={{ zIndex: 90 }}>
+      <div className="sheet" style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
+        <div className="sheet-top" style={{ borderBottom: `1px solid ${T.line}` }}>
+          <div className="flex items-center gap-2">
+            <span style={{
+              width: 36, height: 36, borderRadius: 11, background: T.brass + "14",
+              display: "flex", alignItems: "center", justifyContent: "center", flex: "none",
+            }}>
+              <ShieldAlert size={17} color={T.brass} />
+            </span>
+            <div>
+              <div className="eyebrow">{c.eyebrow}</div>
+              <div className="sec-t" style={{ marginTop: 2 }}>{c.title}</div>
+            </div>
+          </div>
+        </div>
+        <div className="sheet-body">
+          {c.points.map(([label, body], i) => (
+            <div key={i} style={{ marginBottom: i < c.points.length - 1 ? 18 : 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: T.paper, marginBottom: 5 }}>{label}</div>
+              <p style={{ fontSize: 13, lineHeight: 1.9, color: T.muted, margin: 0 }}>{body}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: "18px 19px 22px", borderTop: `1px solid ${T.line}`, background: T.sunken }}>
+          <p style={{ fontSize: 11.5, lineHeight: 1.8, color: T.faint, margin: "0 0 14px" }}>{c.consent}</p>
+          <button onClick={onAgree} className="big-btn" style={{ marginTop: 0 }}>{c.agree}</button>
+        </div>
       </div>
     </div>
   );
@@ -1784,6 +1857,8 @@ export default function Dashboard() {
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 @media print{.no-print{display:none!important;}.dash{background:#fff;color:#000;}.card,.surf,.stats{box-shadow:none!important;}.tabs{position:static;}}
         `}</style>
+
+        <LegalDisclaimer />
 
         <div className="wrap">
           <header>
