@@ -872,8 +872,7 @@ function Card({ r, i, onOpen, reduced }) {
   );
 }
 
-/* ── إقرار قانوني — يظهر مرة واحدة فقط لكل زائر ── */
-const LEGAL_KEY = "owners-legal-consent-v1";
+/* ── إقرار قانوني — يظهر في كل زيارة، بدون تذكّر الموافقة ── */
 const LEGAL_COPY = {
   ar: {
     eyebrow: "قبل ما تكمل",
@@ -902,15 +901,10 @@ const LEGAL_COPY = {
 function LegalDisclaimer() {
   const { T } = useT();
   const { lang } = useLang();
-  const [agreed, setAgreed] = useState(() => {
-    try { return localStorage.getItem(LEGAL_KEY) === "1"; } catch { return false; }
-  });
+  const [agreed, setAgreed] = useState(false);
   if (agreed) return null;
   const c = LEGAL_COPY[lang];
-  const onAgree = () => {
-    try { localStorage.setItem(LEGAL_KEY, "1"); } catch { /* تجاهل */ }
-    setAgreed(true);
-  };
+  const onAgree = () => setAgreed(true);
   return (
     <div className="ovl" style={{ zIndex: 90 }}>
       <div className="sheet" style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
