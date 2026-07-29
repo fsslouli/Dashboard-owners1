@@ -1601,7 +1601,7 @@ export default function Dashboard() {
 
   const copySummary = async () => {
     const lines = [
-      L("سجل استفسارات الملاك — البورادا فيلا", "Owner Inquiries Log — Alborada Villas"),
+      L("سجل استفسارات الملاك", "Owner Inquiries Log"),
       data.updatedAt ? `${L("آخر تحديث:", "Last updated:")} ${fmtDate(data.updatedAt)}${data.label ? " — " + data.label : ""}` : "",
       "",
       `${L("الإجمالي:", "Total:")} ${ALL.length}`,
@@ -1859,7 +1859,7 @@ export default function Dashboard() {
             <div className="head">
               <div className="min-w-0">
                 <div className="eyebrow">{L("سجل الملاحظات والاستفسارات", "Notes & Inquiries Log")}</div>
-                <h1 className="disp h1">{L("استفسارات الملاك — البورادا فيلا", "Owner Inquiries — Alborada Villas")}</h1>
+                <h1 className="disp h1">{L("استفسارات الملاك", "Owner Inquiries")}</h1>
               </div>
               <div className="acts no-print">
                 <LangToggle />
