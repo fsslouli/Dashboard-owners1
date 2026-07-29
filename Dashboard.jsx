@@ -6,7 +6,7 @@ import {
 import {
   Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   Printer, RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
-  Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor,
+  Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
@@ -886,6 +886,50 @@ function Card({ r, i, onOpen, reduced }) {
   );
 }
 
+/* ── سجل إصدارات الموقع ──
+   ترقيم الإصدارات بنظام "رئيسي.فرعي" (Major.Minor)، مثل مواقع البرمجيات المعتادة:
+     • يرتفع الرقم الفرعي (مثل 1.1 → 1.2) عند أي دفعة تحديثات عادية: إصلاح مشاكل،
+       تحسينات، أو إضافة ميزة بسيطة — وهذا الغالب.
+     • يرتفع الرقم الرئيسي (مثل 1.x → 2.0) فقط عند تغيير جوهري كبير: إعادة تصميم
+       شاملة، أو إضافة قسم/خانة رئيسية جديدة للوحة.
+   عند كل تحديث كود مستقبلي على هذا الملف، يُضاف عنصر جديد بالأعلى برقم إصدار
+   تالٍ حسب القاعدة أعلاه — لا تُعاد كتابة أو حذف الإصدارات السابقة. */
+const CHANGELOG = [
+  {
+    version: "1.1",
+    dateAr: "29 يوليو 2026",
+    dateEn: "July 29, 2026",
+    ar: [
+      "إضافة زر تبديل اللغة (ع/EN) داخل نافذة الإقرار القانوني",
+      "حذف ملاحظة \u200f\"لم يُنشر تحديث بعد\"\u200f غير المفيدة من الصفحة الرئيسية وخانة تقدم التنفيذ",
+      "تصحيح عرض السنة والأرقام عند التبديل للغة الإنجليزية في خانة تقدم التنفيذ",
+      "تصحيح موقع خط الهدف داخل أشرطة تقدم التنفيذ ليطابق اتجاه الصفحة بالإنجليزية",
+      "تبسيط رأس الصفحة وتذييلها بحذف نصوص لا تضيف فائدة",
+      "إضافة رقم إصدار اللوحة وسجل التحديثات (هذه النافذة)",
+    ],
+    en: [
+      "Added a language toggle (ع/EN) inside the legal disclaimer window",
+      "Removed the unhelpful \"no update published yet\" notice from the main page and the Progress tab",
+      "Fixed year and number rendering when switching to English on the Progress tab",
+      "Fixed the target-line position inside progress bars to match page direction in English",
+      "Simplified the page header and footer by removing text that added no value",
+      "Added a dashboard version number and update log (this window)",
+    ],
+  },
+  {
+    version: "1.0",
+    dateAr: "—",
+    dateEn: "—",
+    ar: [
+      "الإصدار الأساسي للوحة: النظرة العامة، متابعة الملاحظات، تقدم التنفيذ، المخطط التفاعلي للفيلا، الوضع الفاتح/الداكن، ثنائية اللغة الكاملة",
+    ],
+    en: [
+      "Baseline release: Overview, Notes Board, Progress, the interactive villa plan, light/dark mode, and full bilingual support",
+    ],
+  },
+];
+const CURRENT_VERSION = CHANGELOG[0].version;
+
 /* ── إقرار قانوني — يظهر في كل زيارة، بدون تذكّر الموافقة ── */
 const LEGAL_COPY = {
   ar: {
@@ -948,6 +992,48 @@ function LegalDisclaimer() {
         <div style={{ padding: "18px 19px 22px", borderTop: `1px solid ${T.line}`, background: T.sunken }}>
           <p style={{ fontSize: 11.5, lineHeight: 1.8, color: T.faint, margin: "0 0 14px" }}>{c.consent}</p>
           <button onClick={onAgree} className="big-btn" style={{ marginTop: 0 }}>{c.agree}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChangelogSheet({ open, onClose }) {
+  const { T } = useT();
+  const { lang } = useLang();
+  const L = (ar, en) => (lang === "en" ? en : ar);
+  if (!open) return null;
+  return (
+    <div className="ovl" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
+        <div className="sheet-top">
+          <div className="flex items-center gap-2">
+            <span style={{
+              width: 36, height: 36, borderRadius: 11, background: T.brass + "14",
+              display: "flex", alignItems: "center", justifyContent: "center", flex: "none",
+            }}>
+              <History size={17} color={T.brass} />
+            </span>
+            <div className="sec-t">{L("سجل إصدارات الموقع", "Site Update Log")}</div>
+          </div>
+          <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
+        </div>
+        <div className="sheet-body">
+          {CHANGELOG.map((entry, i) => (
+            <div key={i} style={{ marginBottom: i < CHANGELOG.length - 1 ? 22 : 0 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>v{entry.version}</span>
+                <span className="mono" style={{ fontSize: 12, color: T.muted }}>
+                  {lang === "en" ? entry.dateEn : entry.dateAr}
+                </span>
+              </div>
+              <ul style={{
+                margin: 0, paddingInlineStart: 18, fontSize: 13, lineHeight: 1.9, color: T.paper,
+              }}>
+                {(lang === "en" ? entry.en : entry.ar).map((line, j) => (<li key={j}>{line}</li>))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -1289,7 +1375,6 @@ function ProgressTab({ reduced, data, loading }) {
 
   return (
     <>
-      <div className="eyebrow" style={{ marginBottom: 4 }}>{L("تقدّم التنفيذ الشهري · من ورقة KPIs", "Monthly execution progress · from the KPIs sheet")}</div>
       {(loading || data.updatedAt) && (
         <div className="stamp" style={{ marginBottom: 14 }}>
           <RefreshCw size={13} />
@@ -1491,6 +1576,7 @@ export default function Dashboard() {
   const [f, setF] = useState(EMPTY_F);
   const [sort, setSort] = useState("date");
   const [sel, setSel] = useState(null);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [limit, setLimit] = useState(12);
   const tabsRef = useRef(null);
   const [scrollPending, setScrollPending] = useState(false);
@@ -1877,12 +1963,12 @@ export default function Dashboard() {
           <header>
             <div className="head">
               <div className="min-w-0">
-                <div className="eyebrow">{L("سجل الملاحظات والاستفسارات", "Notes & Inquiries Log")}</div>
                 <h1 className="disp h1">{L("استفسارات الملاك", "Owner Inquiries")}</h1>
               </div>
               <div className="acts no-print">
                 <LangToggle />
                 <ThemeToggle />
+                <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> {L("سجل التحديثات", "Update Log")}</button>
                 <button className="icon-btn" onClick={copySummary}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L("تم النسخ", "Copied") : L("ملخص", "Summary")}</button>
                 <button className="icon-btn" onClick={() => window.print()}><Printer size={13} /> {L("طباعة", "Print")}</button>
               </div>
@@ -2185,13 +2271,17 @@ export default function Dashboard() {
             <ProgressTab reduced={reduced} data={pg} loading={pgLoading} />
           )}
 
-          <footer style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "space-between", fontSize: 11.5, color: T.faint }}>
-            <span>{L("المصدر: ملف استفسارات الملاك · تُقرأ أوراق الاستفسارات وتُدمج تلقائيًا", "Source: owner inquiries file · inquiry sheets are read and merged automatically")}</span>
-            <span className="mono">{ALL.length} {L("سجلاً", "records")}</span>
-          </footer>
+          <div className="no-print" style={{ textAlign: "center", marginTop: 28 }}>
+            <button className="mono" onClick={() => setChangelogOpen(true)} style={{
+              background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4,
+            }}>
+              v{CURRENT_VERSION}
+            </button>
+          </div>
         </div>
 
         <Sheet r={sel} onClose={() => setSel(null)} />
+        <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
       </div>
       </LangCtx.Provider>
     </ThemeCtx.Provider>
