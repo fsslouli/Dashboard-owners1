@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import {
   Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
-  Printer, RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
+  RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
 } from "lucide-react";
 
@@ -1970,7 +1970,6 @@ export default function Dashboard() {
                 <ThemeToggle />
                 <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> {L("سجل التحديثات", "Update Log")}</button>
                 <button className="icon-btn" onClick={copySummary}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L("تم النسخ", "Copied") : L("ملخص", "Summary")}</button>
-                <button className="icon-btn" onClick={() => window.print()}><Printer size={13} /> {L("طباعة", "Print")}</button>
               </div>
             </div>
 
