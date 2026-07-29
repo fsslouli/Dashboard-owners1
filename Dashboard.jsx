@@ -1300,7 +1300,7 @@ function ProgressTab({ reduced, data, loading }) {
         <div className="stats-top">
           <div>
             <div className="sec-t">{L("تقدم المشروع مقابل الهدف", "Project Progress vs. Target")}</div>
-            <div className="eyebrow" style={{ marginTop: 4 }}>{L("متوسط الإنجاز لكل البلوكات", "Average completion across all blocks")} · {trPGMonth(lang, MONTHS[mi])} ٢٠٢٦</div>
+            <div className="eyebrow" style={{ marginTop: 4 }}>{L("متوسط الإنجاز لكل البلوكات", "Average completion across all blocks")} · {trPGMonth(lang, MONTHS[mi])} {L("٢٠٢٦", "2026")}</div>
           </div>
           <div className="hero">
             <span className="hero-n mono">{cur.toFixed(2)}٪</span>
