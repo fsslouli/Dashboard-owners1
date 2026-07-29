@@ -898,6 +898,13 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.1.2",
+    dateAr: "29 يوليو 2026",
+    dateEn: "July 29, 2026",
+    ar: ["حذف عدّاد \u200f\"ملاحظة\"\u200f وعدّاد \u200f\"مهندسين\"\u200f من شريط المعلومات أعلى الصفحة، واستبدال عدّاد النماذج بذكر أسماء النماذج نفسها"],
+    en: ["Removed the \"notes\" and \"engineers\" counts from the top info bar, and replaced the models count with the actual model names"],
+  },
+  {
     version: "1.1.1",
     dateAr: "29 يوليو 2026",
     dateEn: "July 29, 2026",
@@ -1983,13 +1990,9 @@ export default function Dashboard() {
             </div>
 
             <div className="meta-line">
-              <span><span className="mono">{ALL.length}</span> {L("ملاحظة", "notes")}</span>
-              <span className="dot" />
               <span>{cats.months.length ? `${trMonth(lang, cats.months[0])} — ${trMonth(lang, cats.months[cats.months.length - 1])}` : "—"}</span>
               <span className="dot" />
-              <span><span className="mono">{cats.owners.length}</span> {L("مهندسين", "engineers")}</span>
-              <span className="dot" />
-              <span><span className="mono">{cats.models.length}</span> {L("نماذج", "models")}</span>
+              <span>{cats.models.map((m) => trModel(lang, m)).join(L("، ", ", "))}</span>
             </div>
 
             {(loading || data.updatedAt || newCount > 0) && (
