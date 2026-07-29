@@ -935,6 +935,7 @@ function LegalDisclaimer() {
               <div className="sec-t" style={{ marginTop: 2 }}>{c.title}</div>
             </div>
           </div>
+          <LangToggle />
         </div>
         <div className="sheet-body">
           {c.points.map(([label, body], i) => (
@@ -1286,12 +1287,13 @@ function ProgressTab({ reduced, data, loading }) {
   return (
     <>
       <div className="eyebrow" style={{ marginBottom: 4 }}>{L("تقدّم التنفيذ الشهري · من ورقة KPIs", "Monthly execution progress · from the KPIs sheet")}</div>
-      <div className="stamp" style={{ marginBottom: 14 }}>
-        <RefreshCw size={13} />
-        {loading ? L("يجري تحميل أحدث نسخة…", "Loading the latest version…")
-          : data.updatedAt ? <>{L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}</>
-            : L("النسخة الأساسية — لم يُنشر تحديث بعد.", "Base version — no update published yet.")}
-      </div>
+      {(loading || data.updatedAt) && (
+        <div className="stamp" style={{ marginBottom: 14 }}>
+          <RefreshCw size={13} />
+          {loading ? L("يجري تحميل أحدث نسخة…", "Loading the latest version…")
+            : <>{L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}</>}
+        </div>
+      )}
 
       {/* الحالة العامة مقابل الهدف */}
       <section className="surf" style={{ padding: "22px 20px", marginBottom: 14 }}>
@@ -1893,18 +1895,20 @@ export default function Dashboard() {
               <span><span className="mono">{cats.models.length}</span> {L("نماذج", "models")}</span>
             </div>
 
-            <div className="stamp">
-              <RefreshCw size={13} />
-              {loading ? L("يجري تحميل أحدث نسخة…", "Loading the latest version…")
-                : data.updatedAt
-                  ? <>{L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}</>
-                  : L("النسخة الأساسية — لم يُنشر تحديث بعد.", "Base version — no update published yet.")}
-              {newCount > 0 && (
-                <button className="chip" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
-                  <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
-                </button>
-              )}
-            </div>
+            {(loading || data.updatedAt || newCount > 0) && (
+              <div className="stamp">
+                {(loading || data.updatedAt) && <RefreshCw size={13} />}
+                {loading ? L("يجري تحميل أحدث نسخة…", "Loading the latest version…")
+                  : data.updatedAt
+                    ? <>{L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}</>
+                    : null}
+                {newCount > 0 && (
+                  <button className="chip" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
+                    <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
+                  </button>
+                )}
+              </div>
+            )}
           </header>
 
           {/* الخانات */}
