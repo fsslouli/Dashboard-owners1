@@ -95,6 +95,20 @@ const EN_TEXT = {
   71: { note: "Inquiry about the gauge (thickness) of electrical wiring used in all rooms, including each circuit's load capacity, and confirming compliance with expected loads per the Saudi Building Code (SBC 401).", reply: "" },
 };
 
+/* ── تتبّع "الجديد" — تاريخ آخر تعديل حقيقي على كل بند (إضافة، رد، أو تغيّر حالة).
+   يُحدَّث يدويًا عند كل تحديث بيانات فعلي؛ العلامة تختفي تلقائيًا بعد ٧ أيام من هذا التاريخ. */
+const CHANGED = {
+  65: "2026-07-29", 66: "2026-07-29", 67: "2026-07-29",
+  68: "2026-07-29", 69: "2026-07-29", 70: "2026-07-29", 71: "2026-07-29",
+};
+const CHANGE_WINDOW_DAYS = 7;
+function isRecentlyChanged(id) {
+  const d = CHANGED[id];
+  if (!d) return false;
+  const days = (Date.now() - new Date(d + "T00:00:00").getTime()) / 86400000;
+  return days >= 0 && days <= CHANGE_WINDOW_DAYS;
+}
+
 /* ── ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
 const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Low" };
 const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Rejected", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
@@ -1505,8 +1519,7 @@ export default function Dashboard() {
   }, []);
 
   const ALL = useMemo(() => {
-    const nk = new Set(data.newKeys || []);
-    return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: nk.has(dedupeKey(r)) }));
+    return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.id) }));
   }, [data]);
 
   const cats = useMemo(() => ({
@@ -1775,7 +1788,8 @@ export default function Dashboard() {
 .card-id{font-size:11.5px;color:${T.faint};}
 .card-sta{display:inline-flex;align-items:center;gap:5px;font-size:12px;margin-right:auto;}
 .tag{font-size:11px;color:${T.muted};}
-.tag-new{display:inline-flex;align-items:center;gap:3px;color:${T.sta["معتمدة"]};}
+.tag-new{display:inline-flex;align-items:center;gap:3px;color:${T.sta["معتمدة"]};animation:${reduced ? "none" : "tagPulse 2.4s ease-in-out infinite"};}
+@keyframes tagPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
 .tag-open{color:${T.brass};}
 .card-note{font-size:14.5px;line-height:1.95;color:${T.paper};margin-bottom:12px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
