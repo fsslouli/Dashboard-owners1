@@ -1279,7 +1279,10 @@ function ProgressTab({ reduced, data, loading }) {
     <div className="gbar">
       <div className="gbar-f" style={{ width: `${Math.min(100, (val / scale) * 100)}%`, background: color }} />
       {target != null && (
-        <span className="gbar-t" style={{ right: `${Math.min(100, (target / scale) * 100)}%`, background: T.paper }} />
+        <span className="gbar-t" style={{
+          [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
+          background: T.paper,
+        }} />
       )}
     </div>
   );
