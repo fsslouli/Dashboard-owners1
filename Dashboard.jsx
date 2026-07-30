@@ -1984,7 +1984,7 @@ export default function Dashboard() {
               <div className="acts no-print">
                 <LangToggle />
                 <ThemeToggle />
-                <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> {L("سجل التحديثات", "Update Log")}</button>
+                <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
                 <button className="icon-btn" onClick={copySummary}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L("تم النسخ", "Copied") : L("ملخص", "Summary")}</button>
               </div>
             </div>
