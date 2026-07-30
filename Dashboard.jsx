@@ -1,4 +1,28 @@
 import React, { useState, useMemo, useEffect, useRef, createContext, useContext } from "react";
+
+/* ── تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
+const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
+function logEvent(event_type, category, value, extra) {
+  try {
+    fetch(`${SUPABASE_URL}/rest/v1/logs`, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        event_type,
+        category: category != null ? String(category) : null,
+        value: value != null ? String(value) : null,
+        extra: extra != null ? String(extra) : null,
+      }),
+    }).catch(() => {});
+  } catch (e) {}
+}
 import * as XLSX from "xlsx";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
@@ -1598,6 +1622,34 @@ export default function Dashboard() {
   const [scrollPending, setScrollPending] = useState(false);
 
   useEffect(() => { const t = setTimeout(() => setBuilt(true), reduced ? 0 : 100); return () => clearTimeout(t); }, [reduced]);
+
+  /* تتبع صامت: زيارة عند التحميل */
+  useEffect(() => { logEvent("visit", null, null, null); }, []);
+
+  /* تتبع صامت: تبديل التبويب (يتجاهل التبويب الأول عند التحميل) */
+  const firstTabRef = useRef(true);
+  useEffect(() => {
+    if (firstTabRef.current) { firstTabRef.current = false; return; }
+    logEvent("tab", tab, null, null);
+  }, [tab]);
+
+  /* تتبع صامت: استخدام الفلاتر (يسجّل فقط الحقل الذي تغيّر فعليًا إلى قيمة) */
+  const prevFRef = useRef(EMPTY_F);
+  useEffect(() => {
+    Object.keys(f).forEach((k) => {
+      if (k === "q" || k === "fresh") return;
+      const v = f[k];
+      if (v !== prevFRef.current[k] && v !== null && v !== false && v !== "") {
+        logEvent("filter", k, v, null);
+      }
+    });
+    prevFRef.current = f;
+  }, [f]);
+
+  /* تتبع صامت: فتح تفاصيل استفسار */
+  useEffect(() => {
+    if (sel) logEvent("inquiry_open", sel.id, sel.pri, `${sel.model || ""} / ${sel.zone || sel.loc || ""}`);
+  }, [sel]);
 
   useEffect(() => {
     if (tab !== "notes" || !scrollPending) return;
