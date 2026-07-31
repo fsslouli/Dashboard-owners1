@@ -3,6 +3,12 @@ import React, { useState, useMemo, useEffect, useRef, createContext, useContext 
 /* ── تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
 const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
+/* رقم جلسة عشوائي مؤقت يتولّد مرة وحدة لكل تحميل صفحة — بدون أي معنى شخصي،
+   هدفه فقط تجميع أحداث نفس الزيارة ببعض لتقدير الوقت المقضي (تحليل كلي وليس فردي) */
+const SESSION_ID =
+  (typeof crypto !== "undefined" && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 function logEvent(event_type, category, value, extra) {
   try {
     fetch(`${SUPABASE_URL}/rest/v1/logs`, {
@@ -19,6 +25,7 @@ function logEvent(event_type, category, value, extra) {
         category: category != null ? String(category) : null,
         value: value != null ? String(value) : null,
         extra: extra != null ? String(extra) : null,
+        session_id: SESSION_ID,
       }),
     }).catch(() => {});
   } catch (e) {}
