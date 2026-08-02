@@ -1623,7 +1623,7 @@ export default function Dashboard() {
   const [pgLoading, setPgLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [f, setF] = useState(EMPTY_F);
-  const [sort, setSort] = useState("date");
+  const [sort, setSort] = useState("id");
   const [sel, setSel] = useState(null);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [limit, setLimit] = useState(12);
@@ -1708,7 +1708,7 @@ export default function Dashboard() {
   const openBoard = (patch = {}) => {
     const { __sort, ...filters } = patch;
     setF({ ...EMPTY_F, ...filters });
-    setSort(__sort || "date");
+    setSort(__sort || "id");
     setLimit(12);
     setTab("notes");
     setScrollPending(true);
@@ -1739,7 +1739,7 @@ export default function Dashboard() {
     else if (sort === "date") a.sort((x, y) => monthValue(y).localeCompare(monthValue(x)) || y.id - x.id);
     else if (sort === "open") a.sort((x, y) => x.closed - y.closed || rank(PRI_ORDER)(x.pri) - rank(PRI_ORDER)(y.pri));
     else if (sort === "new") a.sort((x, y) => (y.isNew ? 1 : 0) - (x.isNew ? 1 : 0) || x.id - y.id);
-    else a.sort((x, y) => x.id - y.id);
+    else a.sort((x, y) => y.id - x.id);
     return a;
   }, [rows, sort]);
 
@@ -2282,8 +2282,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-wrap items-center" style={{ gap: 8, marginTop: 12 }}>
-                  <Select value={sort} onChange={(v) => setSort(v || "date")} placeholder={L("ترتيب", "Sort")} icon={Hash}
-                    options={[{ v: "date", l: L("الأحدث أولاً", "Newest first") }, { v: "new", l: L("الجديد أولاً", "New first") }, { v: "pri", l: L("الأولوية أولاً", "Priority first") }, { v: "open", l: L("المفتوحة أولاً", "Open first") }, { v: "id", l: L("الرقم التسلسلي", "Sequence number") }]} />
+                  <Select value={sort} onChange={(v) => setSort(v || "id")} placeholder={L("ترتيب", "Sort")} icon={Hash}
+                    options={[{ v: "id", l: L("الأرقام: الأحدث أولاً", "Number: newest first") }, { v: "date", l: L("الأحدث أولاً (بالتاريخ)", "Newest first (by date)") }, { v: "new", l: L("الجديد أولاً", "New first") }, { v: "pri", l: L("الأولوية أولاً", "Priority first") }, { v: "open", l: L("المفتوحة أولاً", "Open first") }]} />
                   <Select value={f.pri} onChange={(v) => { setF((p) => ({ ...p, pri: v })); setLimit(12); }} placeholder={L("كل الأولويات", "All priorities")} icon={Layers} options={cats.pri.map((p) => ({ v: p, l: trPri(lang, p) }))} />
                   <Select value={f.model} onChange={(v) => { setF((p) => ({ ...p, model: v })); setLimit(12); }} placeholder={L("كل النماذج", "All models")} icon={Home}
                     options={cats.models.map((m) => ({ v: m, l: `${trModel(lang, m)} (${ALL.filter((r) => r.models.includes(m)).length})` }))} />
