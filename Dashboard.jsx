@@ -38,7 +38,7 @@ import {
   Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
-  LayoutGrid, Table,
+  LayoutGrid, Table, Laptop, Smartphone,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
@@ -714,6 +714,56 @@ function useViewMode() {
   return { view, setView: pick };
 }
 
+/* ── وضع متصفح سطح المكتب ──
+   يبدّل وسم viewport في الصفحة، فيرسم المتصفح الصفحة كاملة بعرض حاسب (1180px)
+   ويصغّرها لتناسب الشاشة — نفس مبدأ "طلب موقع الكمبيوتر" في سفاري.
+   كل استعلامات CSS تعمل كأنها على حاسب، والمستخدم يقدر يقرّب بأصبعيه.
+   لا يُعرض الزر أصلًا على جهاز عرضه الفعلي 1024px فأكثر لأنه بلا فائدة هناك. */
+const DESK_W = "width=1180";
+const MOBILE_VP = "width=device-width, initial-scale=1";
+function applyViewport(content) {
+  if (typeof document === "undefined") return;
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) {
+    m = document.createElement("meta");
+    m.setAttribute("name", "viewport");
+    document.head.appendChild(m);
+  }
+  m.setAttribute("content", content);
+}
+function useDesktopView() {
+  const [on, setOn] = useState(false);
+  const originalRef = useRef(null);
+
+  /* عرض الجهاز الفعلي — يُقرأ مرة واحدة قبل أي تغيير على viewport فلا يتأثر به */
+  const [smallDevice] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const sw = window.screen && window.screen.width ? window.screen.width : 9999;
+    const iw = window.innerWidth || 9999;
+    return Math.min(sw, iw) < 1024;
+  });
+
+  useEffect(() => {
+    const m = document.querySelector('meta[name="viewport"]');
+    originalRef.current = (m && m.getAttribute("content")) || MOBILE_VP;
+    /* إرجاع الوضع الأصلي عند مغادرة اللوحة */
+    return () => applyViewport(originalRef.current || MOBILE_VP);
+  }, []);
+
+  useEffect(() => {
+    if (originalRef.current === null) return;
+    applyViewport(on ? DESK_W : originalRef.current);
+  }, [on]);
+
+  const toggle = () => {
+    const next = !on;
+    setOn(next);
+    logEvent("filter", "desktop_view", next ? "on" : "off", null);
+  };
+
+  return { deskOn: on, toggleDesk: toggle, smallDevice };
+}
+
 function CountUp({ value, dur = 850, suffix = "" }) {
   const reduced = usePrefersReduced();
   const [n, setN] = useState(value);
@@ -1021,6 +1071,21 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.3.0",
+    dateAr: "5 أغسطس 2026",
+    dateEn: "August 5, 2026",
+    ar: [
+      "إضافة زر \u200f\"سطح المكتب\"\u200f في رأس الصفحة يحوّل الصفحة كاملة إلى عرض متصفح مكتبي — نفس مبدأ \u200f\"طلب موقع الكمبيوتر\"\u200f في المتصفح",
+      "عند تفعيله تُرسم الصفحة بعرض 1180 بكسل وتُصغَّر لتناسب الشاشة، ويمكن التقريب بالأصبعين، وتتحوّل النتائج تلقائيًا إلى عرض الجدول",
+      "الزر يتحوّل إلى \u200f\"عرض الجوال\"\u200f للرجوع، ولا يظهر إطلاقًا على الأجهزة التي عرضها الفعلي 1024 بكسل فأكثر لعدم الحاجة له",
+    ],
+    en: [
+      "Added a \"Desktop\" button in the page header that switches the whole page to a desktop browser layout — the same idea as \"Request Desktop Website\" in a browser",
+      "When active the page is laid out at 1180px and scaled to fit the screen, pinch-to-zoom works, and results switch to table view automatically",
+      "The button becomes \"Mobile view\" to switch back, and never appears on devices whose actual screen is 1024px or wider, where it serves no purpose",
+    ],
+  },
   {
     version: "1.2.0",
     dateAr: "5 أغسطس 2026",
@@ -1719,6 +1784,7 @@ export default function Dashboard() {
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
   const { view, setView } = useViewMode();
+  const { deskOn, toggleDesk, smallDevice } = useDesktopView();
   const L = (ar, en) => (lang === "en" ? en : ar);
   const T = THEMES[resolved];
 
@@ -2071,6 +2137,10 @@ export default function Dashboard() {
 .card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 .fm{font-size:11.5px;color:${T.muted};}
 
+/* زر وضع سطح المكتب — يبقى واضحًا وسهل الوصول والصفحة مصغّرة */
+.desk-btn{white-space:nowrap;flex:none;}
+.desk-btn[data-primary="1"]{box-shadow:${T.shadowUp};}
+
 /* عرض الجدول — الزر يجلس في نهاية سطر النتائج على كل الأجهزة */
 .res-row{min-height:34px;}
 .view-seg{margin-inline-start:auto;align-self:center;flex:none;}
@@ -2176,6 +2246,14 @@ export default function Dashboard() {
               <div className="acts no-print">
                 <LangToggle />
                 <ThemeToggle />
+                {smallDevice && (
+                  <button className="icon-btn desk-btn" onClick={toggleDesk}
+                    data-primary={deskOn ? "1" : undefined}
+                    aria-pressed={deskOn ? "true" : "false"}>
+                    {deskOn ? <Smartphone size={13} /> : <Laptop size={13} />}
+                    {deskOn ? L("عرض الجوال", "Mobile view") : L("سطح المكتب", "Desktop")}
+                  </button>
+                )}
                 <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
                 <button className="icon-btn" onClick={copySummary}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L("تم النسخ", "Copied") : L("ملخص", "Summary")}</button>
               </div>
