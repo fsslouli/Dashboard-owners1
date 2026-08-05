@@ -38,6 +38,7 @@ import {
   Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
+  LayoutGrid, Table,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
@@ -672,6 +673,47 @@ function useLangMode() {
   return { lang, setLang: pick };
 }
 
+/* ── شكل عرض النتائج: بطاقات أو جدول ──
+   الافتراضي "تلقائي": بطاقات على الجوال، وجدول على الشاشات 1024px فأعلى.
+   الزر متاح على كل الأجهزة — أول ضغطة تثبّت اختيار المستخدم ويتجاوز الافتراضي،
+   فمن يبغى "وضع سطح المكتب" على جواله يقدر يختاره بنفسه. */
+const VKEY = "owners-inquiries-view";
+const WIDE_Q = "(min-width: 1024px)";
+function useViewMode() {
+  const [pref, setPref] = useState("auto");
+  /* تُقرأ فورًا عند أول رسم حتى لا تومض البطاقات ثم يظهر الجدول على الحاسب */
+  const [wide, setWide] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia ? window.matchMedia(WIDE_Q).matches : false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(WIDE_Q);
+    setWide(mq.matches);
+    const h = (e) => setWide(e.matches);
+    mq.addEventListener?.("change", h);
+    return () => mq.removeEventListener?.("change", h);
+  }, []);
+
+  useEffect(() => {
+    if (!hasStore()) return;
+    let alive = true;
+    window.storage.get(VKEY, false)
+      .then((r) => { if (alive && r && ["auto", "cards", "table"].includes(r.value)) setPref(r.value); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  /* التسجيل هنا فقط — عند ضغط المستخدم على الزر، وليس عند تغيّر حجم الشاشة */
+  const pick = (v) => {
+    setPref(v);
+    logEvent("filter", "view", v, null);
+    if (hasStore()) { try { window.storage.set(VKEY, v, false); } catch { /* تجاهل */ } }
+  };
+
+  /* الافتراضي يتبع حجم الشاشة، والاختيار اليدوي يتجاوزه على أي جهاز */
+  const view = pref === "auto" ? (wide ? "table" : "cards") : pref;
+  return { view, setView: pick };
+}
+
 function CountUp({ value, dur = 850, suffix = "" }) {
   const reduced = usePrefersReduced();
   const [n, setN] = useState(value);
@@ -884,6 +926,55 @@ function LangToggle() {
   );
 }
 
+function ViewToggle({ view, setView }) {
+  const { T } = useT();
+  const { lang } = useLang();
+  const opts = lang === "en"
+    ? [["cards", LayoutGrid, "Card view"], ["table", Table, "Table view"]]
+    : [["cards", LayoutGrid, "عرض بطاقات"], ["table", Table, "عرض جدول"]];
+  return (
+    <div className="seg view-seg no-print" role="group" aria-label={lang === "en" ? "Results layout" : "شكل عرض النتائج"}>
+      {opts.map(([v, Ic, title]) => (
+        <button key={v} onClick={() => setView(v)} title={title} aria-label={title}
+          className="seg-b" data-on={view === v ? "1" : "0"}
+          style={view === v ? { background: T.brass, color: T.onAccent } : undefined}>
+          <Ic size={13} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Row({ r, onOpen }) {
+  const { T } = useT();
+  const { lang } = useLang();
+  const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
+  const pc = T.pri[r.pri] || T.muted;
+  const open = () => onOpen(r);
+  return (
+    <tr className="trow" tabIndex={0} onClick={open}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}>
+      <td className="mono td-id">{String(r.id).padStart(2, "0")}</td>
+      <td className="td-nw">
+        <span className="td-sta" style={{ color: sc }}><StaIcon s={r.sta} />{trSta(lang, r.sta)}</span>
+      </td>
+      <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
+      <td className="td-note">
+        <span className="td-note-t">{trNote(lang, r)}</span>
+        {(r.isNew || !r.closed) && (
+          <span className="td-tags">
+            {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
+            {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
+          </span>
+        )}
+      </td>
+      <td className="td-m">{trLoc(lang, r.loc)}</td>
+      <td className="td-m">{trScope(lang, r.model)}</td>
+      <td className="td-m">{trMonth(lang, r.month)}</td>
+    </tr>
+  );
+}
+
 function Card({ r, i, onOpen, reduced }) {
   const { T } = useT();
   const { lang } = useLang();
@@ -930,6 +1021,21 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.2.0",
+    dateAr: "5 أغسطس 2026",
+    dateEn: "August 5, 2026",
+    ar: [
+      "إضافة زر تبديل شكل عرض النتائج (بطاقات / جدول) في نهاية سطر \u200f\"النتائج\"\u200f داخل خانة متابعة الملاحظات",
+      "الزر متاح على كل الأجهزة: الافتراضي بطاقات على الجوال وجدول على الشاشات 1024 بكسل فأكثر، ومن يريد وضع سطح المكتب على جواله يختاره بنفسه ويبقى مثبتًا",
+      "في عرض الجدول على الشاشات الصغيرة يتم التمرير أفقيًا داخل إطار الجدول وحده دون تصغير الصفحة",
+    ],
+    en: [
+      "Added a results layout toggle (cards / table) at the end of the \"Results\" line inside the Notes Board tab",
+      "Available on every device: cards by default on phones and table on screens 1024px and wider, and anyone who wants the desktop layout on their phone can select it and it stays selected",
+      "On small screens the table scrolls horizontally inside its own frame without shrinking the page",
+    ],
+  },
   {
     version: "1.1.2",
     dateAr: "29 يوليو 2026",
@@ -1612,6 +1718,7 @@ export default function Dashboard() {
   const reduced = usePrefersReduced();
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
+  const { view, setView } = useViewMode();
   const L = (ar, en) => (lang === "en" ? en : ar);
   const T = THEMES[resolved];
 
@@ -1964,6 +2071,30 @@ export default function Dashboard() {
 .card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 .fm{font-size:11.5px;color:${T.muted};}
 
+/* عرض الجدول — الزر يجلس في نهاية سطر النتائج على كل الأجهزة */
+.res-row{min-height:34px;}
+.view-seg{margin-inline-start:auto;align-self:center;flex:none;}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tbl-wrap::-webkit-scrollbar{height:8px;}
+.tbl-wrap::-webkit-scrollbar-track{background:transparent;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:${T.faint}55;border-radius:4px;}
+.tbl{width:100%;min-width:760px;border-collapse:collapse;font-family:inherit;}
+.tbl th{text-align:start;font-weight:500;font-size:11.5px;color:${T.muted};
+  padding:14px 14px;border-bottom:1px solid ${T.line};white-space:nowrap;}
+.trow{cursor:pointer;transition:background .16s;}
+.trow:hover{background:${T.sunken};}
+.trow:focus-visible{outline:2px solid ${T.brass};outline-offset:-2px;}
+.trow td{padding:13px 14px;border-bottom:1px solid ${T.lineSoft};vertical-align:top;font-size:13px;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.td-id{width:46px;}
+.tbl td.td-id{font-size:11.5px;color:${T.faint};}
+.td-nw{white-space:nowrap;}
+.td-sta{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;}
+.tbl td.td-note{min-width:300px;color:${T.paper};line-height:1.85;}
+.td-note-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.td-tags{display:flex;align-items:center;gap:8px;margin-top:7px;}
+.tbl td.td-m{font-size:11.5px;color:${T.muted};white-space:nowrap;}
+
 .zrow{display:block;width:100%;text-align:start;padding:9px 11px;border-radius:11px;cursor:pointer;
   font-family:inherit;background:transparent;border:none;transition:background .16s;}
 .zrow:hover{background:${T.sunken};}
@@ -2310,10 +2441,11 @@ export default function Dashboard() {
                 )}
               </section>
 
-              <div className="flex items-baseline" style={{ gap: 8, marginBottom: 14 }}>
+              <div className="flex items-baseline res-row" style={{ gap: 8, marginBottom: 14 }}>
                 <span className="sec-t">{L("النتائج", "Results")}</span>
                 <span className="mono" style={{ color: T.brass, fontSize: 15 }}>{rows.length}</span>
                 {rows.length !== ALL.length && <span style={{ fontSize: 12, color: T.muted }}>{L(`من ${ALL.length}`, `of ${ALL.length}`)}</span>}
+                <ViewToggle view={view} setView={setView} />
               </div>
 
               {rows.length === 0 ? (
@@ -2324,9 +2456,30 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <>
-                  <div className="cards">
-                    {sorted.slice(0, limit).map((r, i) => <Card key={`${r.id}-${i}`} r={r} i={i} onOpen={setSel} reduced={reduced} />)}
-                  </div>
+                  {view === "table" ? (
+                    <div className="surf tbl-wrap">
+                      <table className="tbl">
+                        <thead>
+                          <tr>
+                            <th className="td-id">#</th>
+                            <th>{L("الحالة", "Status")}</th>
+                            <th>{L("الأولوية", "Priority")}</th>
+                            <th>{L("الملاحظة", "Note")}</th>
+                            <th>{L("الموقع", "Location")}</th>
+                            <th>{L("النموذج", "Model")}</th>
+                            <th>{L("الشهر", "Month")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sorted.slice(0, limit).map((r, i) => <Row key={`${r.id}-${i}`} r={r} onOpen={setSel} />)}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="cards">
+                      {sorted.slice(0, limit).map((r, i) => <Card key={`${r.id}-${i}`} r={r} i={i} onOpen={setSel} reduced={reduced} />)}
+                    </div>
+                  )}
                   {limit < sorted.length && (
                     <div className="no-print" style={{ textAlign: "center", marginTop: 18 }}>
                       <button className="icon-btn" onClick={() => setLimit((l) => l + 16)}>
