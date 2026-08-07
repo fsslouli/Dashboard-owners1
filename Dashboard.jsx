@@ -1138,6 +1138,19 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.4.3",
+    dateAr: "7 أغسطس 2026",
+    dateEn: "August 7, 2026",
+    ar: [
+      "إصلاح تشوّه شكل الحروف بخط العنوان الزخرفي \u200f\"Reem Kufi\"\u200f عند فتح الصفحة لأول مرة — كان المتصفح يرسم النص بخط بديل مؤقت قبل اكتمال تحميل الخط الأصلي مما يشوّه الحروف العربية للحظة",
+      "الآن ينتظر المتصفح تحميل الخط كاملًا قبل رسم العنوان، فيظهر بشكله الصحيح من أول لحظة بدون أي تشوّه أو حاجة لتحديث الصفحة",
+    ],
+    en: [
+      "Fixed distorted lettering in the decorative \"Reem Kufi\" heading font on first page load — the browser was painting the text with a temporary fallback font before the real font finished loading, briefly garbling the Arabic shaping",
+      "The browser now waits for the font to fully load before painting the heading, so it renders correctly from the first frame without needing a page refresh",
+    ],
+  },
+  {
     version: "1.4.2",
     dateAr: "7 أغسطس 2026",
     dateEn: "August 7, 2026",
@@ -2203,7 +2216,8 @@ export default function Dashboard() {
       <LangCtx.Provider value={{ lang, setLang }}>
       <div dir={lang === "ar" ? "rtl" : "ltr"} className="dash" style={{ minHeight: "100%" }}>
         <style>{`
-@import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400..600&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400..600&display=block');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 .dash{font-family:'IBM Plex Sans Arabic',system-ui,'Segoe UI',Tahoma,sans-serif;-webkit-font-smoothing:antialiased;
   background:${T.bg};color:${T.paper};transition:background .3s ease,color .3s ease;}
