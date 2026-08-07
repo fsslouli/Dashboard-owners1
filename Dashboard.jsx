@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, createCon
 /* ── تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
 const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
+const TELEGRAM_URL = "https://t.me/+JNw2Vd_HS2o0YmY0";
 /* رقم جلسة عشوائي مؤقت يتولّد مرة وحدة لكل تحميل صفحة — بدون أي معنى شخصي،
    هدفه فقط تجميع أحداث نفس الزيارة ببعض لتقدير الوقت المقضي (تحليل كلي وليس فردي) */
 const SESSION_ID =
@@ -39,6 +40,14 @@ import {
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone,
 } from "lucide-react";
+
+/* أيقونة تليجرام الرسمية (غير متوفرة في lucide-react) */
+const TelegramIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="120" cy="120" r="120" fill="#27A7E7" />
+    <path d="M54 118.5l125-48.2c5.8-2.2 10.9 1.4 9 10l-21.3 100.4c-1.6 7.4-6 9.2-12.1 5.7l-33.5-24.7-16.2 15.6c-1.8 1.8-3.3 3.3-6.7 3.3l2.4-34.2 62.3-56.3c2.7-2.4-.6-3.7-4.2-1.3l-77 48.5-33.2-10.4c-7.2-2.3-7.4-7.2 1.5-10.4z" fill="#fff" />
+  </svg>
+);
 
 /* ═══════════════════════════════════════════════════════════
    نسخة أساسية مدمجة — تعمل فورًا بدون رفع أي ملف.
@@ -939,6 +948,17 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.5.1",
+    dateAr: "8 أغسطس 2026",
+    dateEn: "August 8, 2026",
+    ar: [
+      "زر \u200f\"مجتمع الملاك\"\u200f جديد بأعلى اللوحة (بأيقونة تليجرام) يفتح رابط مجموعة الملاك مباشرة في تبويب جديد",
+    ],
+    en: [
+      "New \"Owners Community\" button at the top of the dashboard (with Telegram icon) opens the owners group link directly in a new tab",
+    ],
+  },
   {
     version: "1.5.0",
     dateAr: "7 أغسطس 2026",
@@ -2193,23 +2213,24 @@ export default function Dashboard() {
               <span>{cats.models.map((m) => trModel(lang, m)).join(L("، ", ", "))}</span>
             </div>
 
-            {(loading || data.updatedAt || newCount > 0) && (
-              <div className="stamp">
-                {loading ? (
-                  <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
-                ) : data.updatedAt ? (
-                  <>
-                    <RefreshCw size={13} />
-                    {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
-                  </>
-                ) : null}
-                {newCount > 0 && (
-                  <button className="chip chip-glow" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
-                    <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="stamp">
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="chip" style={{ textDecoration: "none" }}>
+                <TelegramIcon size={13} /> {L("مجتمع الملاك", "Owners Community")}
+              </a>
+              {loading ? (
+                <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
+              ) : data.updatedAt ? (
+                <>
+                  <RefreshCw size={13} />
+                  {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
+                </>
+              ) : null}
+              {newCount > 0 && (
+                <button className="chip chip-glow" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
+                  <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
+                </button>
+              )}
+            </div>
           </header>
 
           {/* الخانات */}
