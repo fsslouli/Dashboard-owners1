@@ -675,6 +675,20 @@ function usePrefersReduced() {
   return r;
 }
 
+/* ── يكشف دخول/خروج عنصر من نطاق الشاشة أثناء التمرير — يُستخدم لإعادة تشغيل تعبئة الأشرطة ── */
+function useInView(threshold = 0.3) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [threshold]);
+  return [ref, inView];
+}
+
 /* ── الوضع التلقائي: يتبع إعداد الجهاز ويتغيّر معه فورًا ── */
 function useThemeMode() {
   const [mode, setMode] = useState("light");
@@ -1679,19 +1693,25 @@ function ProgressTab({ reduced, data, loading }) {
   const stalled = blocks.filter((r) => mi > 0 && r.v[mi] != null && r.v[mi - 1] != null && Math.abs(r.v[mi] - r.v[mi - 1]) < 0.2);
   const grouped = ["p1", "p2", "p3", "p4"].map((k) => ({ k, rows: blocks.filter((r) => r.ph === k) }));
 
-  const Bar = ({ val, color, target }) => (
-    <div className="gbar">
-      {val != null && (
-        <div className="gbar-f" style={{ width: `${Math.min(100, (val / scale) * 100)}%`, background: color }} />
-      )}
-      {target != null && (
-        <span className="gbar-t" style={{
-          [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
-          background: T.paper,
-        }} />
-      )}
-    </div>
-  );
+  const Bar = ({ val, color, target }) => {
+    const [ref, inView] = useInView(0.35);
+    const show = reduced || inView; /* بدون حركة النظام: يظهر مباشرة بدون انتظار السكرول */
+    const w = val != null ? `${Math.min(100, (val / scale) * 100)}%` : "0%";
+    return (
+      <div className="gbar" ref={ref}>
+        {val != null && (
+          <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
+            style={{ width: show ? w : "0%", background: color }} />
+        )}
+        {target != null && (
+          <span className="gbar-t" style={{
+            [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
+            background: T.paper,
+          }} />
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -2357,7 +2377,11 @@ export default function Dashboard() {
 
 /* تقدم التنفيذ */
 .gbar{position:relative;height:10px;border-radius:999px;background:${T.sunken};overflow:hidden;}
-.gbar-f{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.2,.7,.3,1);}
+.gbar-f{height:100%;border-radius:999px;transition:width 1.1s cubic-bezier(.22,.9,.34,1);position:relative;overflow:hidden;}
+.gbar-f::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:40%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);opacity:0;}
+.gbar-f.in-view::after{animation:gbarShimmer 1.1s ease-in-out .35s 1;}
+@keyframes gbarShimmer{0%{left:-40%;opacity:1;}90%{opacity:1;}100%{left:110%;opacity:0;}}
 .gbar-t{position:absolute;top:-3px;width:2px;height:16px;border-radius:1px;opacity:.55;}
 .gmeta{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:12.5px;color:${T.muted};}
 .gm{display:inline-flex;align-items:baseline;gap:5px;}
