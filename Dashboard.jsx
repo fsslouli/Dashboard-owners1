@@ -589,13 +589,16 @@ function useDesktopView() {
   return { deskOn: on, toggleDesk: toggle, smallDevice };
 }
 
-function CountUp({ value, dur = 850, suffix = "" }) {
+function CountUp({ value, dur = 850, suffix = "", onScroll = false }) {
   const reduced = usePrefersReduced();
-  const [n, setN] = useState(value);
-  const prev = useRef(value);
+  const [ref, inView] = useInView(0.35);
+  const [n, setN] = useState(onScroll && !reduced ? 0 : value);
+  const prev = useRef(onScroll && !reduced ? 0 : value);
   useEffect(() => {
     if (reduced) { setN(value); prev.current = value; return; }
-    const from = prev.current, to = value, t0 = performance.now();
+    /* وضع السكرول: يبدأ من صفر عند كل ظهور، ويعود لصفر عند الخروج من الشاشة */
+    if (onScroll && !inView) { setN(0); prev.current = 0; return; }
+    const from = onScroll ? 0 : prev.current, to = value, t0 = performance.now();
     let raf;
     const tick = (t) => {
       const p = Math.min(1, (t - t0) / dur);
@@ -604,8 +607,26 @@ function CountUp({ value, dur = 850, suffix = "" }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, dur, reduced]);
-  return <span className="mono">{n}{suffix}</span>;
+  }, [value, dur, reduced, onScroll, inView]);
+  return <span className="mono" ref={onScroll ? ref : undefined}>{n}{suffix}</span>;
+}
+
+/* ── رقم يقفز قفزة صغيرة عند تغيّر قيمته — لتوضيح تغيّر عدد النتائج بعد الفلترة ── */
+function TickNum({ value }) {
+  const reduced = usePrefersReduced();
+  const [shown, setShown] = useState(value);
+  const [bump, setBump] = useState(false);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (value === prev.current) return;
+    prev.current = value;
+    if (reduced) { setShown(value); return; }
+    setBump(true);
+    const t1 = setTimeout(() => setShown(value), 150);
+    const t2 = setTimeout(() => setBump(false), 460);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [value, reduced]);
+  return <span className={`mono tick-n${bump ? " bump" : ""}`}>{shown}</span>;
 }
 
 /* ═══ مخطط الفيلا — كتل مصمتة بلا خطوط أو نقوش ═══ */
@@ -722,7 +743,7 @@ function VillaPlan({ counts, active, onPick, built }) {
 function Chip({ on, onClick, children, color, count }) {
   const { T } = useT();
   return (
-    <button onClick={onClick} className="chip"
+    <button onClick={onClick} className="chip" data-on={on ? "1" : "0"}
       style={on ? { borderColor: (color || T.brass) + "00", color: T.onAccent, background: color || T.brass } : undefined}>
       {children}{count != null && <span className="mono chip-n">{count}</span>}
     </button>
@@ -850,17 +871,39 @@ function Row({ r, onOpen }) {
   );
 }
 
+/* ── شريط توزيع الحالات — ينمو من صفر عند دخوله الشاشة ── */
+function StatusBar({ cats, overview, staC, trSta, lang, openBoard, L }) {
+  const reduced = usePrefersReduced();
+  const [ref, inView] = useInView(0.4);
+  const grow = reduced || inView;
+  return (
+    <div className="bar" ref={ref} role="img" aria-label={L("توزيع القرارات", "Decision breakdown")}>
+      {cats.sta.map((s) => {
+        const n = overview.byS[s] || 0;
+        if (!n) return null;
+        return <div key={s} className="bar-s" title={`${trSta(lang, s)} — ${n}`} onClick={() => openBoard({ sta: s })}
+          style={{ flex: grow ? n : 0, background: staC(s) }} />;
+      })}
+    </div>
+  );
+}
+
 function Card({ r, i, onOpen, reduced }) {
   const { T } = useT();
   const { lang } = useLang();
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
   const pc = T.pri[r.pri] || T.muted;
-  const open = () => onOpen(r);
+  const [pulsed, setPulsed] = useState(false);
+  const open = () => {
+    if (!reduced) { setPulsed(false); requestAnimationFrame(() => setPulsed(true)); }
+    onOpen(r);
+  };
   return (
     <div role="button" tabIndex={0} onClick={open}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
-      className="card" style={{
-        animation: reduced ? "none" : `rise .4s cubic-bezier(.2,.7,.3,1) ${Math.min(i, 12) * 30}ms both`,
+      onAnimationEnd={(e) => { if (e.animationName === "pulseFlash") setPulsed(false); }}
+      className={`card pulse-host${pulsed ? " pulsed" : ""}`} style={{
+        animation: reduced ? "none" : `rise .4s cubic-bezier(.2,.7,.3,1) ${Math.min(i, 12) * 45}ms both`,
         borderRightColor: pc,
       }}>
       <div className="card-top">
@@ -896,6 +939,33 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.5.0",
+    dateAr: "7 أغسطس 2026",
+    dateEn: "August 7, 2026",
+    ar: [
+      "الأرقام الرئيسية (إجمالي الملاحظات، توزيع الحالات، المفتوحة والمقفلة، نسبة الاعتماد) صارت تعدّ تصاعديًا من صفر كل مرة تدخل الشاشة أثناء التمرير",
+      "شريط توزيع الحالات ينمو من صفر عند ظهوره، بنفس روح أشرطة تقدّم التنفيذ",
+      "صف حلقات جديد أعلى المراحل بخانة تقدم التنفيذ: ملخص بصري سريع يرتسم تدريجيًا، بنفس ألوان المتقدّم والمتأخّر — والأشرطة التفصيلية تحته كما هي بلا تغيير",
+      "وميض خفيف يمر على بطاقة الاستفسار لحظة الضغط عليها، ولوحة التفاصيل تنزلق من أسفل الشاشة بالكامل بدل الظهور المفاجئ",
+      "توهج هادئ ينبض حول شارة \u200f\"الجديد\"\u200f، ونبضة صغيرة تكبّر الفلتر المختار عند اختياره",
+      "عدد النتائج يقفز قفزة صغيرة عند تغيّره بعد الفلترة، وانتقال ناعم عند التبديل بين عرض البطاقات والجدول",
+      "زر \u200f\"ملخص\"\u200f صار يعرض شريطًا أخضر ينزلق داخله عند نجاح النسخ بدل تغيير الأيقونة فقط",
+      "أثناء تحميل أحدث نسخة، يظهر هيكل رمادي متحرك بدل النص — مع بقاء كل البيانات ظاهرة ولا تُخفى",
+      "تنظيف إضافي: حذف بقايا تنسيقات CSS غير مستخدمة تبقّت من تنظيف الإصدار السابق",
+    ],
+    en: [
+      "Key figures (total notes, status breakdown, open and closed counts, approval rate) now count up from zero each time they enter the screen while scrolling",
+      "The status breakdown bar grows from zero when it appears, matching the execution progress bars",
+      "A new ring row above the phases in the Progress tab: a quick visual summary that draws in gradually, using the same ahead/behind colors — the detailed bars below remain unchanged",
+      "A soft flash sweeps across an inquiry card the moment it's tapped, and the detail sheet now slides up fully from the bottom of the screen instead of appearing abruptly",
+      "A gentle glow pulses around the \"New\" badge, and a small bounce scales up the selected filter chip",
+      "The results count bounces slightly when it changes after filtering, and switching between card and table views now transitions smoothly",
+      "The \"Summary\" button now shows a green bar sliding up inside it on a successful copy, instead of only swapping the icon",
+      "While loading the latest version, an animated gray placeholder replaces the text — all data stays visible and is never hidden",
+      "Additional cleanup: removed leftover unused CSS rules remaining from the previous version's cleanup",
+    ],
+  },
   {
     version: "1.4.4",
     dateAr: "7 أغسطس 2026",
@@ -1211,6 +1281,39 @@ function Sheet({ r, onClose }) {
 }
 
 /* ═══ خانة تقدم التنفيذ ═══ */
+/* ── حلقات المراحل — ملخص بصري سريع، ترتسم تدريجيًا عند دخولها الشاشة ── */
+function PhaseRings({ phases, mi, tgt, ahead, behind, muted, sunken, lang }) {
+  const reduced = usePrefersReduced();
+  const [ref, inView] = useInView(0.3);
+  const draw = reduced || inView;
+  const R = 26, C = 2 * Math.PI * R;
+  return (
+    <div className="rings" ref={ref}>
+      {phases.map((p) => {
+        const v = p.v[mi];
+        const g = v == null || tgt == null ? null : v - tgt;
+        const col = g == null ? muted : g >= 0 ? ahead : behind;
+        const pct = v == null ? 0 : Math.max(0, Math.min(100, v));
+        return (
+          <div key={p.key} className="ring-i">
+            <svg width="62" height="62" viewBox="0 0 62 62" className="ring-s">
+              <circle cx="31" cy="31" r={R} fill="none" strokeWidth="6" stroke={sunken} />
+              <circle cx="31" cy="31" r={R} fill="none" strokeWidth="6" stroke={col} strokeLinecap="round"
+                className="ring-fg" strokeDasharray={C}
+                strokeDashoffset={draw ? C * (1 - pct / 100) : C} />
+              <text x="31" y="31" textAnchor="middle" dominantBaseline="central"
+                fontSize="12.5" fill={col} className="mono" transform="rotate(90 31 31)">
+                {v == null ? "—" : Math.round(v)}
+              </text>
+            </svg>
+            <div className="ring-l">{trPGLabel(lang, p.label)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ProgressTab({ reduced, data, loading }) {
   const { T } = useT();
   const { lang } = useLang();
@@ -1290,13 +1393,14 @@ function ProgressTab({ reduced, data, loading }) {
 
   return (
     <>
-      {(loading || data.updatedAt) && (
+      {loading ? (
+        <div className="skel skel-line" style={{ width: 210, height: 14, marginBottom: 16 }} />
+      ) : data.updatedAt ? (
         <div className="stamp" style={{ marginBottom: 14 }}>
           <RefreshCw size={13} />
-          {loading ? L("يجري تحميل أحدث نسخة…", "Loading the latest version…")
-            : <>{L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}</>}
+          {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
         </div>
-      )}
+      ) : null}
 
       {/* الحالة العامة مقابل الهدف */}
       <section className="surf" style={{ padding: "22px 20px", marginBottom: 14 }}>
@@ -1418,6 +1522,8 @@ function ProgressTab({ reduced, data, loading }) {
         <div className="eyebrow" style={{ marginTop: 4, marginBottom: 16 }}>
           {L("مقابل هدف", "Against")} {mFull(mi)} {L("", "target")} <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span> — {L("الخط الرأسي يمثّل الهدف", "the vertical line marks the target")}
         </div>
+        <PhaseRings phases={PHASES.filter((p) => p.key !== "total")} mi={mi} tgt={tgt}
+          ahead={ahead} behind={behind} muted={T.muted} sunken={T.sunken} lang={lang} />
         {PHASES.filter((p) => p.key !== "total").map((p) => {
           const v = p.v[mi];
           const g = v == null || tgt == null ? null : +(v - tgt).toFixed(2);
@@ -1741,7 +1847,7 @@ export default function Dashboard() {
     }
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      setCopied(true); setTimeout(() => setCopied(false), 2200);
+      setCopied(true); setTimeout(() => setCopied(false), 1650);
     } catch { /* المتصفح منع النسخ */ }
   };
 
@@ -1762,8 +1868,6 @@ export default function Dashboard() {
 @media(min-width:768px){.wrap{padding:30px 28px 56px;}}
 
 .surf{background:${T.surface};border-radius:18px;box-shadow:${T.shadow};}
-.p-body{font-size:14px;line-height:1.95;color:${T.paper};margin:0 0 4px;}
-.p-small{font-size:11.5px;line-height:1.9;color:${T.muted};margin:10px 0 0;}
 .eyebrow{font-size:11.5px;color:${T.muted};}
 .sec-t{font-family:'Reem Kufi',sans-serif;font-size:16.5px;color:${T.paper};}
 .sec-lbl{font-size:11.5px;color:${T.muted};margin-bottom:9px;}
@@ -1797,6 +1901,60 @@ export default function Dashboard() {
 .tab-panel{animation:tabFadeIn .3s ease both;}
 @keyframes tabFadeIn{from{opacity:0;}to{opacity:1;}}
 
+/* ═══ إيفكتات v1.5.0 ═══ */
+
+/* نبضة عند فتح استفسار — وميض لوني خفيف يمر على البطاقة */
+.pulse-host{position:relative;overflow:hidden;}
+.pulse-host::after{content:"";position:absolute;inset:0;background:${T.brass};opacity:0;
+  pointer-events:none;border-radius:inherit;}
+.pulse-host.pulsed::after{animation:pulseFlash .55s ease-out;}
+@keyframes pulseFlash{0%{opacity:.16;}100%{opacity:0;}}
+
+/* توهج شارة "الجديد" */
+.chip-glow{animation:badgeGlow 2.6s ease-in-out infinite;}
+@keyframes badgeGlow{
+  0%,100%{box-shadow:0 0 0 0 transparent;}
+  50%{box-shadow:0 0 0 4px ${T.brass}26;}
+}
+
+/* انتقال بطاقات ↔ جدول */
+.view-swap{animation:viewIn .3s cubic-bezier(.22,.9,.34,1) both;}
+@keyframes viewIn{from{opacity:0;transform:scale(.985);}to{opacity:1;transform:scale(1);}}
+
+/* هيكل تحميل (Skeleton) */
+.skel{background:linear-gradient(90deg,${T.sunken} 25%,${T.surface} 50%,${T.sunken} 75%);
+  background-size:200% 100%;animation:skelSlide 1.3s infinite;border-radius:8px;}
+@keyframes skelSlide{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.skel-line{height:12px;margin-bottom:9px;}
+
+/* رسم الحلقات تدريجيًا (الدائرة + حلقات المراحل) */
+.ring-fg{transition:stroke-dashoffset 1.25s cubic-bezier(.22,.9,.34,1);}
+.rings{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;
+  padding-bottom:18px;border-bottom:1px solid ${T.lineSoft};}
+.ring-i{text-align:center;flex:0 0 auto;width:74px;}
+.ring-s{transform:rotate(-90deg);}
+.ring-l{font-size:10.5px;color:${T.muted};margin-top:2px;line-height:1.4;}
+
+/* تأكيد النسخ — شريط ينزلق داخل الزر */
+.copy-host{position:relative;overflow:hidden;}
+.copy-ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;
+  background:${T.sta["معتمدة"]};color:#fff;font-size:12.5px;transform:translateY(100%);pointer-events:none;}
+.copy-ok.show{animation:copyUp 1.6s cubic-bezier(.22,.9,.34,1) both;}
+@keyframes copyUp{
+  0%{transform:translateY(100%);}
+  14%,78%{transform:translateY(0);}
+  100%{transform:translateY(-100%);}
+}
+
+/* نبض الفلتر المختار */
+.chip{transition:all .22s cubic-bezier(.22,.9,.34,1);}
+.chip[data-on="1"]{transform:scale(1.04);}
+
+/* قفزة الرقم عند تغيّره */
+.tick-n{display:inline-block;}
+.tick-n.bump{animation:tickBump .45s cubic-bezier(.22,.9,.34,1);}
+@keyframes tickBump{0%{transform:translateY(0);}35%{transform:translateY(-6px);opacity:.5;}100%{transform:translateY(0);}}
+
 /* حالة السجل */
 .stats{padding:22px 20px;margin-bottom:14px;}
 .stats-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
@@ -1804,7 +1962,7 @@ export default function Dashboard() {
 .hero-n{font-size:44px;font-weight:600;line-height:1;color:${T.paper};}
 .hero-k{font-size:13px;color:${T.muted};}
 .bar{display:flex;height:12px;border-radius:999px;overflow:hidden;gap:2px;background:${T.sunken};}
-.bar-s{cursor:pointer;transition:opacity .2s ease,flex .5s cubic-bezier(.2,.7,.3,1);}
+.bar-s{cursor:pointer;transition:opacity .2s ease,flex 1.1s cubic-bezier(.22,.9,.34,1);}
 .legend{display:grid;grid-template-columns:1fr;gap:2px;margin-top:16px;}
 @media(min-width:620px){.legend{grid-template-columns:repeat(2,1fr);gap:2px 20px;}}
 .lg{display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;border-radius:10px;
@@ -1872,21 +2030,8 @@ export default function Dashboard() {
 .wide-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;padding:13px;
   border-radius:13px;border:1px solid ${T.line};background:${T.surface};color:${T.brass};font-size:13.5px;font-family:inherit;cursor:pointer;transition:.18s;}
 .wide-btn:hover{border-color:${T.brass};background:${T.brass}0F;}
-.link-btn{display:inline-flex;align-items:center;gap:6px;margin-top:16px;background:none;border:none;color:${T.muted};
-  font-size:12px;cursor:pointer;font-family:inherit;}
-.link-btn:hover{color:${T.brass};}
-.file-in{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
 
-.warn{display:flex;align-items:flex-start;gap:9px;margin-top:16px;padding:12px 14px;border-radius:12px;
-  background:${T.sta["تم الرفض"]}1A;color:${T.sta["تم الرفض"]};font-size:12.5px;line-height:1.8;}
-.ok-box{display:flex;align-items:center;gap:9px;padding:13px 15px;border-radius:12px;
-  background:${T.sta["معتمدة"]}1A;color:${T.sta["معتمدة"]};font-size:13px;}
 .note-box{margin-top:14px;padding:12px 14px;border-radius:12px;background:${T.sunken};color:${T.muted};font-size:12px;line-height:1.85;}
-.pv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
-.pv{background:${T.sunken};border-radius:13px;padding:15px 10px;text-align:center;}
-.pv-n{font-size:25px;font-weight:600;}
-.pv-hot{color:${T.brass};}
-.pv-k{font-size:11.5px;color:${T.muted};margin-top:3px;}
 
 .stamp{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px;color:${T.muted};
   background:${T.sunken};border-radius:13px;padding:11px 15px;margin-top:16px;}
@@ -2009,7 +2154,8 @@ export default function Dashboard() {
 
 @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fade{from{opacity:0;}to{opacity:1;}}
-@keyframes up{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+@keyframes up{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
+@media(min-width:640px){@keyframes up{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 @media print{.no-print{display:none!important;}.dash{background:#fff;color:#000;}.card,.surf,.stats{box-shadow:none!important;}.tabs{position:static;}}
         `}</style>
@@ -2034,7 +2180,10 @@ export default function Dashboard() {
                   </button>
                 )}
                 <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
-                <button className="icon-btn" onClick={copySummary}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L("تم النسخ", "Copied") : L("ملخص", "Summary")}</button>
+                <button className="icon-btn copy-host" onClick={copySummary}>
+                  <Copy size={13} /> {L("ملخص", "Summary")}
+                  {copied && <span className="copy-ok show"><Check size={13} /> {L("تم النسخ", "Copied")}</span>}
+                </button>
               </div>
             </div>
 
@@ -2046,13 +2195,16 @@ export default function Dashboard() {
 
             {(loading || data.updatedAt || newCount > 0) && (
               <div className="stamp">
-                {(loading || data.updatedAt) && <RefreshCw size={13} />}
-                {loading ? L("يجري تحميل أحدث نسخة…", "Loading the latest version…")
-                  : data.updatedAt
-                    ? <>{L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}</>
-                    : null}
+                {loading ? (
+                  <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
+                ) : data.updatedAt ? (
+                  <>
+                    <RefreshCw size={13} />
+                    {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
+                  </>
+                ) : null}
                 {newCount > 0 && (
-                  <button className="chip" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
+                  <button className="chip chip-glow" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
                     <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
                   </button>
                 )}
@@ -2088,19 +2240,12 @@ export default function Dashboard() {
                     <div className="eyebrow" style={{ marginTop: 4 }}>{L("توزيع القرارات على كامل السجل", "Decision breakdown across the full record")}</div>
                   </div>
                   <div className="hero">
-                    <span className="hero-n mono"><CountUp value={overview.tot} /></span>
+                    <span className="hero-n mono"><CountUp value={overview.tot} onScroll /></span>
                     <span className="hero-k">{L("ملاحظة", "notes")}</span>
                   </div>
                 </div>
 
-                <div className="bar" role="img" aria-label={L("توزيع القرارات", "Decision breakdown")}>
-                  {cats.sta.map((s) => {
-                    const n = overview.byS[s] || 0;
-                    if (!n) return null;
-                    return <div key={s} className="bar-s" title={`${trSta(lang, s)} — ${n}`} onClick={() => openBoard({ sta: s })}
-                      style={{ flex: n, background: staC(s) }} />;
-                  })}
-                </div>
+                <StatusBar cats={cats} overview={overview} staC={staC} trSta={trSta} lang={lang} openBoard={openBoard} L={L} />
 
                 <div className="legend">
                   {cats.sta.map((s) => {
@@ -2110,8 +2255,8 @@ export default function Dashboard() {
                       <button key={s} className="lg" onClick={() => openBoard({ sta: s })}>
                         <span className="lg-d" style={{ background: staC(s) }} />
                         <span className="lg-l">{trSta(lang, s)}</span>
-                        <span className="lg-n mono">{n}</span>
-                        <span className="lg-p mono">{pct}٪</span>
+                        <span className="lg-n mono"><CountUp value={n} onScroll dur={900} /></span>
+                        <span className="lg-p mono"><CountUp value={pct} onScroll dur={900} suffix="٪" /></span>
                       </button>
                     );
                   })}
@@ -2119,12 +2264,12 @@ export default function Dashboard() {
 
                 <div className="stats-foot">
                   <button className="ff" onClick={() => openBoard({ open: true })}>
-                    <span className="mono">{openCount}</span> {L("ما زالت مفتوحة", "still open")}
+                    <CountUp value={openCount} onScroll dur={900} /> {L("ما زالت مفتوحة", "still open")}
                   </button>
                   <span className="dot" />
-                  <span className="ff-static"><span className="mono">{overview.tot - openCount}</span> {L("مقفلة", "closed")}</span>
+                  <span className="ff-static"><CountUp value={overview.tot - openCount} onScroll dur={900} /> {L("مقفلة", "closed")}</span>
                   <span className="dot" />
-                  <span className="ff-static">{L("نسبة الاعتماد من المحسوم", "Approval rate of decided items")} <span className="mono">{overview.rate}٪</span></span>
+                  <span className="ff-static">{L("نسبة الاعتماد من المحسوم", "Approval rate of decided items")} <CountUp value={overview.rate} onScroll dur={900} suffix="٪" /></span>
                 </div>
               </section>
 
@@ -2301,7 +2446,7 @@ export default function Dashboard() {
 
               <div className="flex items-baseline res-row" style={{ gap: 8, marginBottom: 14 }}>
                 <span className="sec-t">{L("النتائج", "Results")}</span>
-                <span className="mono" style={{ color: T.brass, fontSize: 15 }}>{rows.length}</span>
+                <span style={{ color: T.brass, fontSize: 15 }}><TickNum value={rows.length} /></span>
                 {rows.length !== ALL.length && <span style={{ fontSize: 12, color: T.muted }}>{L(`من ${ALL.length}`, `of ${ALL.length}`)}</span>}
                 <ViewToggle view={view} setView={setView} />
               </div>
@@ -2315,7 +2460,7 @@ export default function Dashboard() {
               ) : (
                 <>
                   {view === "table" ? (
-                    <div className="surf tbl-wrap">
+                    <div className="surf tbl-wrap view-swap" key="v-table">
                       <table className="tbl">
                         <thead>
                           <tr>
@@ -2334,7 +2479,7 @@ export default function Dashboard() {
                       </table>
                     </div>
                   ) : (
-                    <div className="cards">
+                    <div className="cards view-swap" key="v-cards">
                       {sorted.slice(0, limit).map((r, i) => <Card key={`${r.id}-${i}`} r={r} i={i} onOpen={setSel} reduced={reduced} />)}
                     </div>
                   )}
