@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, createContext, useContext } from "react";
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, createContext, useContext } from "react";
 
 /* ── تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
 const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
@@ -1138,6 +1138,34 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.4.2",
+    dateAr: "7 أغسطس 2026",
+    dateEn: "August 7, 2026",
+    ar: [
+      "شريط التبويبات الرئيسي (نظرة عامة / متابعة الملاحظات / تقدم التنفيذ) صار له انتقال ناعم: تلاشي خفيف لمحتوى التبويب الجديد، ومؤشر رفيع بلون الهوية ينزلق تحت التبويب النشط",
+      "المؤشر يحسب موضعه تلقائيًا حسب اتجاه اللغة (عربي/إنجليزي) وحجم الشاشة، بما في ذلك وضع سطح المكتب",
+    ],
+    en: [
+      "The main tab bar (Overview / Notes Board / Progress) now has a smooth transition: a soft fade for the new tab's content, and a thin accent-colored indicator that slides under the active tab",
+      "The indicator auto-calculates its position based on language direction (Arabic/English) and screen size, including desktop mode",
+    ],
+  },
+  {
+    version: "1.4.1",
+    dateAr: "7 أغسطس 2026",
+    dateEn: "August 7, 2026",
+    ar: [
+      "خانة \u200f\"تقدم التنفيذ\"\u200f فقط: أشرطة التقدّم (الإجمالي، المراحل، والبلوكات) صارت تفضى وتتعبى من جديد كل مرة تدخل نطاق الشاشة أثناء التمرير، مع لمعة ناعمة تمر عليها بعد اكتمال التعبئة",
+      "لون الشريط لم يتغيّر: أخضر للمتقدّم، أحمر للمتأخّر، رمادي بلا بيانات — نفس المنطق السابق تمامًا",
+      "إعداد \u200f\"تقليل الحركة\"\u200f بالجهاز مُحترَم بالكامل: الأشرطة تظهر فورًا بدون انتظار سكرول لمن يفعّله",
+    ],
+    en: [
+      "\"Progress\" tab only: progress bars (total, phases, and blocks) now empty out and re-fill each time they enter the screen while scrolling, with a soft shimmer sweep once the fill completes",
+      "Bar color is unchanged: green for ahead, red for behind, gray for no data — identical to the previous logic",
+      "The device's \"reduce motion\" setting is fully respected: bars appear instantly with no scroll wait for those who enable it",
+    ],
+  },
+  {
     version: "1.4.0",
     dateAr: "5 أغسطس 2026",
     dateEn: "August 5, 2026",
@@ -1975,7 +2003,23 @@ export default function Dashboard() {
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [limit, setLimit] = useState(12);
   const tabsRef = useRef(null);
+  const indicatorRef = useRef(null);
   const [scrollPending, setScrollPending] = useState(false);
+
+  /* موضع مؤشر التبويب النشط المتحرك — يُحدَّث عند تبديل التبويب أو اللغة أو تغيّر حجم الشاشة */
+  useLayoutEffect(() => {
+    const position = () => {
+      const nav = tabsRef.current, ind = indicatorRef.current;
+      if (!nav || !ind) return;
+      const active = nav.querySelector('.tab[data-on="1"]');
+      if (!active) return;
+      ind.style.width = `${active.offsetWidth}px`;
+      ind.style.left = `${active.offsetLeft}px`;
+    };
+    position();
+    window.addEventListener("resize", position);
+    return () => window.removeEventListener("resize", position);
+  }, [tab, lang]);
 
   useEffect(() => { const t = setTimeout(() => setBuilt(true), reduced ? 0 : 100); return () => clearTimeout(t); }, [reduced]);
 
@@ -2198,6 +2242,12 @@ export default function Dashboard() {
 .tab[data-on="1"]{background:${T.brass};border-color:${T.brass};color:${T.onAccent};box-shadow:${T.shadow};}
 .tab-n{font-size:11.5px;padding:2px 8px;border-radius:999px;background:${T.sunken};color:${T.muted};}
 .tab[data-on="1"] .tab-n{background:rgba(255,255,255,.22);color:${T.onAccent};}
+.tab-indicator{position:absolute;bottom:4px;height:3px;border-radius:3px;background:${T.brass};
+  transition:left .32s cubic-bezier(.22,.9,.34,1),width .32s cubic-bezier(.22,.9,.34,1);pointer-events:none;}
+
+/* تلاشي هادئ عند تبديل محتوى التبويب */
+.tab-panel{animation:tabFadeIn .3s ease both;}
+@keyframes tabFadeIn{from{opacity:0;}to{opacity:1;}}
 
 /* حالة السجل */
 .stats{padding:22px 20px;margin-bottom:14px;}
@@ -2477,10 +2527,11 @@ export default function Dashboard() {
               onClick={() => setTab("progress")}>
               {L("تقدم التنفيذ", "Progress")}
             </button>
+            <span className="tab-indicator" ref={indicatorRef} />
           </nav>
 
           {tab === "overview" && (
-            <>
+            <div className="tab-panel">
               {/* حالة السجل */}
               <section className="surf stats">
                 <div className="stats-top">
@@ -2645,11 +2696,11 @@ export default function Dashboard() {
                   })}
                 </div>
               </section>
-            </>
+            </div>
           )}
 
           {tab === "notes" && (
-            <div>
+            <div className="tab-panel">
               {/* أدوات لوحة المتابعة */}
               <section className="surf no-print" style={{ padding: 18, marginBottom: 16 }}>
                 <div className="relative" style={{ marginBottom: 14 }}>
@@ -2752,7 +2803,9 @@ export default function Dashboard() {
           )}
 
           {tab === "progress" && (
-            <ProgressTab reduced={reduced} data={pg} loading={pgLoading} />
+            <div className="tab-panel">
+              <ProgressTab reduced={reduced} data={pg} loading={pgLoading} />
+            </div>
           )}
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 28 }}>
