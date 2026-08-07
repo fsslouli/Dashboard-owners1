@@ -30,7 +30,6 @@ function logEvent(event_type, category, value, extra) {
     }).catch(() => {});
   } catch (e) {}
 }
-import * as XLSX from "xlsx";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from "recharts";
@@ -290,7 +289,6 @@ function zoneOf(loc) {
 
 /* ── التاريخ ── */
 const MONTH_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-const monLabel = (m) => (/^\d{4}-\d{2}$/.test(m || "") ? `${MONTH_AR[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}` : m || "—");
 const fmtDate = (iso) => {
   try { const d = new Date(iso); return `${d.getDate()} ${MONTH_AR[d.getMonth()]} ${d.getFullYear()}`; }
   catch { return ""; }
@@ -302,7 +300,6 @@ const BASE = RAW.map((r) => ({
   answered: !!r[5], owner: OWN[r[6]], month: MON[r[7]], closed: !!r[8],
   meeting: r[9] ? "الاجتماع الثالث" : null, note: r[10], reply: r[11],
 }));
-const dedupeKey = (rec) => norm(rec.note).slice(0, 55);
 
 /* ═══════════════════════════════════════════════════════════
    تقدم التنفيذ — من ورقة KPIs في ملف «تقدم الوحدة والمراحل»
@@ -399,244 +396,6 @@ const PG_NOTE_EN = "Block 23: no new data for May or June, so the last recorded 
 const trPGMonth = (lang, m) => { const i = MONTH_AR.indexOf(m); return lang === "en" && i >= 0 ? MONTH_EN_LABEL[i] : m; };
 const trPGLabel = (lang, v) => (lang === "en" ? PG_LABEL_EN[v] || v : v);
 const trPGPNote = (lang, v) => (lang === "en" ? PG_PNOTE_EN[v] || v : v);
-
-/* ═══════════════════════════════════════════════════════════
-   قارئ ملف تقدم التنفيذ (KPIs) — يكتشف صفوف الأشهر وعمود العناوين
-   تلقائيًا بدل الاعتماد على أرقام صفوف ثابتة، فيتحمّل إضافة بلوك أو تعديل ترتيب.
-   ═══════════════════════════════════════════════════════════ */
-const MONTH_EN = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-
-function pgMonthIndex(v) {
-  const n = norm(v);
-  const ei = MONTH_EN.indexOf(n);
-  if (ei >= 0) return ei;
-  return MONTH_AR.findIndex((m) => norm(m) === n);
-}
-
-/* يستخرج مجموعة أرقام البلوكات من نص العنوان بين قوسين، مثل (1-5) أو (22 و23) */
-function pgScope(label) {
-  const m = String(label || "").match(/\(([^)]*)\)/);
-  if (!m) return new Set();
-  const inner = m[1];
-  const nums = [...inner.matchAll(/\d+/g)].map((x) => +x[0]);
-  if (inner.includes("-") && nums.length === 2) {
-    const [a, b] = nums;
-    return new Set(Array.from({ length: b - a + 1 }, (_, i) => a + i));
-  }
-  return new Set(nums);
-}
-
-function parseKPIFromAOA(aoa) {
-  const R = aoa.length, C = Math.max(0, ...aoa.map((r) => r.length));
-
-  /* ١) تحديد صفوف رؤوس الأشهر: أول تتابع أعمدة متجاورة (٣ فأكثر) بأسماء أشهر */
-  const monthHeaderRows = [];
-  for (let r = 0; r < R; r++) {
-    const hits = [];
-    for (let c = 0; c < C; c++) {
-      const mi = pgMonthIndex(aoa[r]?.[c]);
-      if (mi >= 0) hits.push([c, mi]);
-    }
-    if (hits.length < 3) continue;
-    const grp = [hits[0]];
-    for (let i = 1; i < hits.length; i++) {
-      if (hits[i][0] === grp[grp.length - 1][0] + 1) grp.push(hits[i]); else break;
-    }
-    if (grp.length >= 3) monthHeaderRows.push({ r, grp });
-  }
-  if (!monthHeaderRows.length) throw new Error("لم يُعثر على جدول بأعمدة أشهر في هذا الملف.");
-
-  /* ٢) لكل رأس أشهر: يوجد عمود العناوين بالبحث عن كلمة «مرحلة» أو «بلوك» في الصفوف القريبة أعلاه */
-  const findLabelCol = (mr, monthCols) => {
-    for (let r = mr; r >= Math.max(0, mr - 3); r--) {
-      for (let c = 0; c < C; c++) {
-        if (monthCols.has(c)) continue;
-        const n = norm(aoa[r]?.[c]);
-        if (!n) continue;
-        if (n.includes("مرحله")) return { col: c, kind: "phase" };
-        if (n.includes("بلوك")) return { col: c, kind: "block" };
-      }
-    }
-    return null;
-  };
-
-  const tables = monthHeaderRows.map(({ r, grp }) => {
-    const monthCols = new Set(grp.map(([c]) => c));
-    const found = findLabelCol(r, monthCols);
-    if (!found) return null;
-    const rowsOut = [];
-    let rr = r + 1;
-    while (rr < R && rr < r + 60) {
-      const lab = aoa[rr]?.[found.col];
-      const vals = grp.map(([c]) => aoa[rr]?.[c]);
-      const allEmpty = lab == null && vals.every((v) => v == null);
-      if (allEmpty) break;
-      if (lab != null) {
-        const pairs = grp.map(([c, mi], i) => [mi, vals[i]]).sort((a, b) => a[0] - b[0]);
-        const v = pairs.map(([, val]) => (typeof val === "number" ? (val <= 1 ? +(val * 100).toFixed(2) : +val.toFixed(2)) : null));
-        rowsOut.push({ label: lab, v });
-      }
-      rr++;
-    }
-    const months = grp.map(([, mi]) => mi).sort((a, b) => a - b).map((mi) => MONTH_AR[mi]);
-    return { kind: found.kind, endRow: rr, months, rows: rowsOut };
-  }).filter(Boolean);
-
-  const phaseTable = tables.find((t) => t.kind === "phase");
-  const blockTable = tables.find((t) => t.kind === "block");
-  if (!phaseTable || !blockTable) throw new Error("الملف لا يحتوي جدولَي المراحل والبلوكات المتوقَّعين.");
-
-  const months = phaseTable.months;
-  const targetRow = phaseTable.rows.find((r) => norm(r.label).includes("هدف"));
-  const target = targetRow ? targetRow.v : months.map(() => null);
-  const phases = phaseTable.rows.filter((r) => r !== targetRow).map((r, i) => ({
-    key: norm(r.label).includes("اجمالي") ? "total" : `p${i}`,
-    label: String(r.label).replace(/\([^)]*\)/, "").trim(),
-    note: (String(r.label).match(/\(([^)]*)\)/) || [, ""])[1],
-    scope: pgScope(r.label),
-    v: r.v,
-  }));
-  const total = phases.find((p) => p.key === "total") || phases[0];
-  const namedPhases = phases.filter((p) => p.key !== "total" && p.scope.size > 0);
-
-  const blocks = blockTable.rows.map((r) => {
-    const b = Number(r.label);
-    const owner = namedPhases.find((p) => p.scope.has(b));
-    return { b, ph: owner ? owner.key : "other", v: r.v };
-  }).filter((r) => Number.isFinite(r.b));
-
-  /* ٣) ملاحظة نصية بعد الجدولين إن وُجدت (مثل شرح ترحيل قيمة بلوك) */
-  let note = "";
-  for (let r = blockTable.endRow; r < Math.min(R, blockTable.endRow + 6); r++) {
-    for (let c = 0; c < C; c++) {
-      const v = aoa[r]?.[c];
-      if (typeof v === "string" && v.trim().length > 15) { note = v.trim(); break; }
-    }
-    if (note) break;
-  }
-
-  const phaseName = {};
-  namedPhases.forEach((p) => (phaseName[p.key] = p.label));
-
-  return {
-    months, target,
-    phases: namedPhases.map((p) => ({ key: p.key, label: p.label, note: p.note, v: p.v })),
-    blocks, note, phaseName,
-  };
-}
-
-function parseKPIWorkbook(buf) {
-  const wb = XLSX.read(buf, { cellDates: false });
-  const sheetName = wb.SheetNames.find((n) => norm(n).includes("kpi")) || wb.SheetNames[0];
-  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: null });
-  return parseKPIFromAOA(aoa);
-}
-
-function parseKPICSVText(text) {
-  const wb = XLSX.read(text, { type: "string", cellDates: false });
-  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null });
-  return parseKPIFromAOA(aoa);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   قارئ ملف الإكسل — يكتشف صف العناوين ويتجاهل الأوراق الأخرى
-   ═══════════════════════════════════════════════════════════ */
-const FIELD_RULES = [
-  ["model", ["نوع النموذج", "النموذج"]],
-  ["loc", ["موقع"]],
-  ["pri", ["اولوي"]],
-  ["replyStatus", ["حاله الرد"]],
-  ["sta", ["حاله المقترح"]],
-  ["closed", ["الاغلاق"]],
-  ["owner", ["صاحب"]],
-  ["monthText", ["(نص)"]],
-  ["month", ["شهر"]],
-  ["reply", ["الرد علي"]],
-  ["note", ["الملاحظه"]],
-];
-
-function toMonth(v) {
-  if (v == null || v === "") return "";
-  if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, "0")}`;
-  const s = String(v).trim();
-  const m = s.match(/(\d{4})[-/](\d{1,2})/);
-  if (m) return `${m[1]}-${String(+m[2]).padStart(2, "0")}`;
-  return s;
-}
-
-function parseWorkbookFromWB(wb) {
-  const out = [];
-  const sheetsUsed = [];
-  const skipped = [];
-
-  wb.SheetNames.forEach((name) => {
-    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
-    let hdrIdx = -1;
-    for (let i = 0; i < Math.min(aoa.length, 12); i++) {
-      const cells = (aoa[i] || []).map((c) => norm(c));
-      let hits = 0;
-      FIELD_RULES.forEach(([, targets]) => {
-        if (cells.some((c) => c && targets.some((t) => c.includes(t)))) hits++;
-      });
-      if (hits >= 5) { hdrIdx = i; break; }
-    }
-    if (hdrIdx === -1) { skipped.push(name); return; }
-
-    const hdr = (aoa[hdrIdx] || []).map((c) => norm(c));
-    const col = {};
-    const taken = new Set();
-    hdr.forEach((c, i) => { if (c === "م") { col.id = i; taken.add(i); } });
-    FIELD_RULES.forEach(([field, targets]) => {
-      for (let i = 0; i < hdr.length; i++) {
-        if (taken.has(i) || !hdr[i]) continue;
-        if (targets.some((t) => hdr[i].includes(t))) { col[field] = i; taken.add(i); break; }
-      }
-    });
-    if (col.note == null) { skipped.push(name); return; }
-
-    const meeting = /اجتماع/.test(name) ? name.replace(/^استفسارات\s*/, "").trim() : null;
-    let n = 0;
-    for (let i = hdrIdx + 1; i < aoa.length; i++) {
-      const row = aoa[i] || [];
-      const note = row[col.note];
-      if (note == null || String(note).trim() === "") continue;
-      const g = (f) => (col[f] != null && row[col[f]] != null ? String(row[col[f]]).trim() : "");
-      out.push({
-        id: col.id != null && row[col.id] != null ? Number(row[col.id]) || ++n : ++n,
-        model: g("model") || "غير محدد",
-        loc: g("loc") || "غير محدد",
-        pri: g("pri") || "غير محدد",
-        sta: g("sta") || "غير محدد",
-        answered: !/بانتظار|لم يتم/.test(norm(g("replyStatus"))),
-        owner: g("owner") || "غير محدد",
-        month: (col.monthText != null && g("monthText")) || toMonth(col.month != null ? row[col.month] : null),
-        closed: norm(g("closed")).includes("مقفل"),
-        meeting,
-        note: String(note).trim(),
-        reply: g("reply"),
-      });
-    }
-    sheetsUsed.push({ name, meeting });
-  });
-
-  // إزالة التكرار — يُعتمد آخر ظهور لنفس الملاحظة لأنه غالبًا التعديل الأحدث
-  const seen = new Map();
-  out.forEach((r) => {
-    const k = dedupeKey(r);
-    const prevMeeting = seen.get(k)?.meeting;
-    seen.set(k, { ...r, meeting: r.meeting || prevMeeting || null });
-  });
-  const records = [...seen.values()].map((r, i) => ({ ...r, id: r.id || i + 1 }));
-  return { records, sheetsUsed, skipped };
-}
-
-function parseWorkbook(buf) {
-  return parseWorkbookFromWB(XLSX.read(buf, { cellDates: true }));
-}
-
-function parseInquiriesCSVText(text) {
-  return parseWorkbookFromWB(XLSX.read(text, { type: "string", cellDates: true }));
-}
 
 /* ── الترتيب المنطقي ── */
 const rank = (order) => (v) => { const i = order.indexOf(v); return i === -1 ? order.length + 1 : i; };
@@ -1138,6 +897,21 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.4.4",
+    dateAr: "7 أغسطس 2026",
+    dateEn: "August 7, 2026",
+    ar: [
+      "تنظيف داخلي فقط: حذف كود غير مستخدم إطلاقًا من الواجهة (~480 سطر، ١٧٪ من حجم الملف) — لوحتا رفع تحديث كانتا معطّلتين تمامًا مع محرك قراءة ملفات Excel/CSV المرتبط بهما، ودوال مساعدة صارت بلا استخدام بعد إزالتهما",
+      "شمل الحذف أيضًا استيراد مكتبة خارجية (xlsx) لم تعد مستخدمة أبدًا في أي مكان بالتطبيق",
+      "لا يوجد أي تغيير في الشكل أو السلوك أو البيانات الظاهرة للمستخدم — الملف الناتج مطابق حرفيًا للسابق فيما يخص كل الأجزاء الحية، تم التحقق بمقارنة سطر بسطر",
+    ],
+    en: [
+      "Internal cleanup only: removed ~480 lines (17% of the file) of code with zero references from the live UI — two update-upload panels that were fully disconnected, along with the Excel/CSV parsing engine that only fed them, and helper functions left unused once those were removed",
+      "Also removed an external library import (xlsx) that was no longer used anywhere in the app",
+      "No change to appearance, behavior, or data shown to users — the resulting file is byte-identical to the previous one for every live code path, verified with a line-by-line diff",
+    ],
+  },
+  {
     version: "1.4.3",
     dateAr: "7 أغسطس 2026",
     dateEn: "August 7, 2026",
@@ -1430,246 +1204,6 @@ function Sheet({ r, onClose }) {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══ لوحة التحديث ═══ */
-function UpdatePanel({ onClose, onPublished, current }) {
-  const [stage, setStage] = useState("pick");
-  const [msg, setMsg] = useState("");
-  const [preview, setPreview] = useState(null);
-  const [label, setLabel] = useState("");
-  const fileRef = useRef(null);
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const buf = await file.arrayBuffer();
-      const { records, sheetsUsed, skipped } = parseWorkbook(buf);
-      if (!records.length) {
-        setStage("error");
-        setMsg("لم يُعثر على أي ملاحظات في هذا الملف. تأكد أنه ملف استفسارات الملاك.");
-        return;
-      }
-      const oldKeys = new Set((current || []).map(dedupeKey));
-      const newKeys = records.map(dedupeKey).filter((k) => !oldKeys.has(k));
-      setPreview({ records, sheetsUsed, skipped, newKeys, fileName: file.name });
-      setStage("preview");
-    } catch {
-      setStage("error");
-      setMsg("تعذّرت قراءة الملف. تأكد أنه بصيغة ‎.xlsx‎ وغير محمي بكلمة مرور.");
-    }
-  };
-
-  const publish = async () => {
-    setStage("saving");
-    try {
-      const at = new Date().toISOString();
-      await saveShared({ updatedAt: at, label: label.trim(), records: preview.records, newKeys: preview.newKeys });
-      setStage("done");
-      onPublished({ records: preview.records, newKeys: preview.newKeys, updatedAt: at, label: label.trim() });
-    } catch (err) {
-      setStage("error");
-      setMsg(err.message || "تعذّر النشر.");
-    }
-  };
-
-  const restore = async () => { await clearShared(); onPublished(null); onClose(); };
-
-  return (
-    <div className="ovl" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="sheet-top">
-          <span className="sheet-id">تحديث البيانات</span>
-          <button onClick={onClose} className="icon-btn" aria-label="إغلاق"><X size={16} /></button>
-        </div>
-        <div className="sheet-body">
-          {stage === "pick" && (
-            <>
-              <p className="p-body">
-                ارفع أحدث نسخة من ملف استفسارات الملاك. تُقرأ كل أوراق الاستفسارات وتُدمج تلقائيًا،
-                وتُحذف البنود المكررة مع اعتماد آخر تعديل.
-              </p>
-              <label className="big-btn" style={{ position: "relative", overflow: "hidden" }}>
-                <Upload size={16} /> اختر ملف ‎.xlsx‎
-                <input ref={fileRef} type="file" className="file-in" onChange={handleFile}
-                  accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream" />
-              </label>
-              <div className="note-box">
-                لو لم تُفتح نافذة اختيار الملف على الجوال، افتح رابط اللوحة من متصفح (Safari أو Chrome) بدل التطبيق —
-                بعض التطبيقات تمنع اختيار الملفات داخل الصفحات المدمجة.
-              </div>
-              {!hasStore() && (
-                <div className="warn"><AlertTriangle size={14} /> التخزين المشترك غير متاح هنا — سيظهر التحديث لك فقط في هذه الجلسة.</div>
-              )}
-              <button className="link-btn" onClick={restore}><RotateCcw size={12} /> استعادة النسخة الأصلية</button>
-            </>
-          )}
-
-          {stage === "preview" && preview && (
-            <>
-              <div className="sec-lbl">ملخّص الملف</div>
-              <div className="pv-grid">
-                <div className="pv"><div className="pv-n mono">{preview.records.length}</div><div className="pv-k">ملاحظة</div></div>
-                <div className="pv"><div className="pv-n mono pv-hot">{preview.newKeys.length}</div><div className="pv-k">جديدة</div></div>
-                <div className="pv"><div className="pv-n mono">{preview.sheetsUsed.length}</div><div className="pv-k">ورقة مقروءة</div></div>
-              </div>
-              <p className="p-small">
-                الأوراق المقروءة: {preview.sheetsUsed.map((s) => s.name).join(" · ")}
-                {preview.skipped.length > 0 && <><br />تم تجاهل: {preview.skipped.join(" · ")}</>}
-              </p>
-              <div className="sec-lbl" style={{ marginTop: 20 }}>وسم التحديث (اختياري)</div>
-              <input className="srch" value={label} onChange={(e) => setLabel(e.target.value)}
-                placeholder="مثال: بعد اجتماع 12 يوليو" style={{ padding: "10px 13px" }} />
-              {hasStore() && (
-                <div className="note-box">
-                  عند النشر تُحفظ النسخة في مساحة مشتركة ويراها كل من يفتح رابط اللوحة.
-                </div>
-              )}
-              <button className="big-btn" onClick={publish}><Check size={16} /> نشر التحديث للملاك</button>
-              <button className="link-btn" onClick={() => setStage("pick")}><ArrowLeft size={12} /> اختيار ملف آخر</button>
-            </>
-          )}
-
-          {stage === "saving" && <p className="p-body">يجري النشر…</p>}
-
-          {stage === "done" && (
-            <>
-              <div className="ok-box"><Check size={16} /> تم النشر. اللوحة الآن تعرض أحدث نسخة لكل من يفتح الرابط.</div>
-              <button className="big-btn" onClick={onClose}>إغلاق</button>
-            </>
-          )}
-
-          {stage === "error" && (
-            <>
-              <div className="warn"><AlertTriangle size={14} /> {msg}</div>
-              <button className="big-btn" onClick={() => setStage("pick")}><RotateCcw size={14} /> المحاولة مجددًا</button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══ لوحة تحديث تقدم التنفيذ (KPIs) ═══ */
-function UpdatePanelKPI({ onClose, onPublished }) {
-  const [stage, setStage] = useState("pick");
-  const [msg, setMsg] = useState("");
-  const [preview, setPreview] = useState(null);
-  const [label, setLabel] = useState("");
-  const fileRef = useRef(null);
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const buf = await file.arrayBuffer();
-      const parsed = parseKPIWorkbook(buf);
-      if (!parsed.phases.length || !parsed.blocks.length) {
-        setStage("error");
-        setMsg("لم يُعثر على جدولَي المراحل والبلوكات في هذا الملف. تأكد أنه ملف تقدم الوحدة والمراحل.");
-        return;
-      }
-      setPreview({ ...parsed, fileName: file.name });
-      setStage("preview");
-    } catch (err) {
-      setStage("error");
-      setMsg(err.message || "تعذّرت قراءة الملف. تأكد أنه بصيغة ‎.xlsx‎ وغير محمي بكلمة مرور.");
-    }
-  };
-
-  const publish = async () => {
-    setStage("saving");
-    try {
-      const at = new Date().toISOString();
-      const payload = { months: preview.months, target: preview.target, phases: preview.phases, blocks: preview.blocks, note: preview.note, phaseName: preview.phaseName, updatedAt: at, label: label.trim() };
-      await saveShared(payload, PGKEY);
-      setStage("done");
-      onPublished(payload);
-    } catch (err) {
-      setStage("error");
-      setMsg(err.message || "تعذّر النشر.");
-    }
-  };
-
-  const restore = async () => { await clearShared(PGKEY); onPublished(null); onClose(); };
-
-  return (
-    <div className="ovl" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="sheet-top">
-          <span className="sheet-id">تحديث تقدم التنفيذ</span>
-          <button onClick={onClose} className="icon-btn" aria-label="إغلاق"><X size={16} /></button>
-        </div>
-        <div className="sheet-body">
-          {stage === "pick" && (
-            <>
-              <p className="p-body">
-                ارفع أحدث نسخة من ملف تقدم الوحدة والمراحل (ورقة KPIs). يُكتشف جدول المراحل وجدول البلوكات
-                تلقائيًا مهما تغيّر عدد الصفوف أو ترتيبها.
-              </p>
-              <label className="big-btn" style={{ position: "relative", overflow: "hidden" }}>
-                <Upload size={16} /> اختر ملف ‎.xlsx‎
-                <input ref={fileRef} type="file" className="file-in" onChange={handleFile}
-                  accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream" />
-              </label>
-              <div className="note-box">
-                لو لم تُفتح نافذة اختيار الملف على الجوال، افتح رابط اللوحة من متصفح (Safari أو Chrome) بدل التطبيق.
-              </div>
-              {!hasStore() && (
-                <div className="warn"><AlertTriangle size={14} /> التخزين المشترك غير متاح هنا — سيظهر التحديث لك فقط في هذه الجلسة.</div>
-              )}
-              <button className="link-btn" onClick={restore}><RotateCcw size={12} /> استعادة النسخة الأصلية</button>
-            </>
-          )}
-
-          {stage === "preview" && preview && (
-            <>
-              <div className="sec-lbl">ملخّص الملف</div>
-              <div className="pv-grid">
-                <div className="pv"><div className="pv-n mono">{preview.months.length}</div><div className="pv-k">أشهر</div></div>
-                <div className="pv"><div className="pv-n mono">{preview.phases.length}</div><div className="pv-k">مراحل</div></div>
-                <div className="pv"><div className="pv-n mono pv-hot">{preview.blocks.length}</div><div className="pv-k">بلوك</div></div>
-              </div>
-              <p className="p-small">
-                الأشهر: {preview.months.join(" · ")}
-                {preview.blocks.some((b) => b.ph === "other") && (
-                  <><br />تنبيه: بعض البلوكات لم تنطبق على نطاق أي مرحلة مذكور في عناوين الجدول.</>
-                )}
-              </p>
-              <div className="sec-lbl" style={{ marginTop: 20 }}>وسم التحديث (اختياري)</div>
-              <input className="srch" value={label} onChange={(e) => setLabel(e.target.value)}
-                placeholder="مثال: تحديث يوليو" style={{ padding: "10px 13px" }} />
-              {hasStore() && (
-                <div className="note-box">
-                  عند النشر تُحفظ النسخة في مساحة مشتركة ويراها كل من يفتح رابط اللوحة.
-                </div>
-              )}
-              <button className="big-btn" onClick={publish}><Check size={16} /> نشر التحديث للملاك</button>
-              <button className="link-btn" onClick={() => setStage("pick")}><ArrowLeft size={12} /> اختيار ملف آخر</button>
-            </>
-          )}
-
-          {stage === "saving" && <p className="p-body">يجري النشر…</p>}
-
-          {stage === "done" && (
-            <>
-              <div className="ok-box"><Check size={16} /> تم النشر. خانة تقدم التنفيذ تعرض الآن أحدث نسخة لكل من يفتح الرابط.</div>
-              <button className="big-btn" onClick={onClose}>إغلاق</button>
-            </>
-          )}
-
-          {stage === "error" && (
-            <>
-              <div className="warn"><AlertTriangle size={14} /> {msg}</div>
-              <button className="big-btn" onClick={() => setStage("pick")}><RotateCcw size={14} /> المحاولة مجددًا</button>
-            </>
-          )}
         </div>
       </div>
     </div>
