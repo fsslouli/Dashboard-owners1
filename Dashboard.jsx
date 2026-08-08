@@ -1,6 +1,26 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, createContext, useContext } from "react";
 
-/* ── تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
+/* ═══════════════════════════════════════════════════════════
+   فهرس الملف — لتسهيل القراءة والتعديل المستقبلي.
+   ابحث عن العنوان بين ═══ للقفز مباشرة للقسم.
+
+   ١. التتبع الصامت (Supabase)                    — السطر التالي
+   ٢. البيانات الثابتة (نماذج، مواقع، سجل الملاحظات RAW)
+   ٣. الترجمة (عربي/إنجليزي) لكل المفردات الثابتة
+   ٤. نظام الألوان (فاتح/داكن) والسياقات (Theme/Lang)
+   ٥. أدوات نص عربي، تحليل النماذج، ومناطق المخطط
+   ٦. تقدّم التنفيذ — بيانات KPI والخطة الخطّية
+   ٧. الترتيب المنطقي والتخزين المشترك (window.storage)
+   ٨. الخطافات المخصّصة (Hooks): ثيم، لغة، عرض، سطح مكتب...
+   ٩. عناصر صغيرة قابلة لإعادة الاستخدام (عدّادات، رقاقات، أيقونات)
+   ١٠. سجل الإصدارات (CHANGELOG)
+   ١١. الإقرار القانوني ولوحة سجل التحديثات
+   ١٢. لوحة تفاصيل الاستفسار (Sheet)
+   ١٣. تبويب تقدّم التنفيذ (ProgressTab)
+   ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── ١. تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
 const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
 const TELEGRAM_URL = "https://t.me/+JNw2Vd_HS2o0YmY0";
@@ -37,7 +57,7 @@ import {
 import {
   Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
-  Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
+  RefreshCw, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
   ChevronLeft, ChevronRight, ArrowUp, SlidersHorizontal,
 } from "lucide-react";
@@ -54,6 +74,7 @@ const TelegramIcon = ({ size = 13 }) => (
    نسخة أساسية مدمجة — تعمل فورًا بدون رفع أي ملف.
    يستبدلها التحديث المنشور عند وجوده.
    ═══════════════════════════════════════════════════════════ */
+/* ── ٢. البيانات الثابتة: قوائم مرجعية، ثم سجل الملاحظات RAW ── */
 const MODELS = ["جميع النماذج", "جميع النماذج عدا امانيثير", "أورورا", "امانيثير و آلبا", "البا و امانيثير"];
 const LOCS = ["كامل الفيلا", "الدور الأول", "الدور الأرضي", "دورات المياه", "السطح", "الشارع", "الدرج", "غير محدد", "المطبخ", "المطبخ ودورات المياه", "كامل الفيلا (بين الفلل المتلاصقة)", "الدور الأرضي والأول", "موقع الخزان", "الحوش الخلفي (الدور الأرضي)", "الحوش الخلفي (الدور الأرضي) والسطح"];
 const PRI_ORDER = ["عالية جدًا", "عالية", "متوسطة", "عادية"];
@@ -152,7 +173,7 @@ function isRecentlyChanged(id) {
   return days >= 0 && days <= CHANGE_WINDOW_DAYS;
 }
 
-/* ── ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
+/* ── ٣. ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
 const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Low" };
 const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Rejected", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
 const MODEL_EN = { "امانيثير": "Amanither", "اورورا": "Aurora", "البادا": "Bada", "البا": "Alba" };
@@ -194,7 +215,7 @@ const trNote = (lang, r) => (lang === "en" ? (EN_TEXT[r.id]?.note || r.note) : r
 const trReply = (lang, r) => (lang === "en" ? (EN_TEXT[r.id]?.reply || r.reply) : r.reply);
 
 /* ═══════════════════════════════════════════════════════════
-   نظامان للألوان — فاتح للنهار وداكن لليل.
+   ٤. نظام الألوان (Theme) — فاتح للنهار وداكن لليل.
    الفلسفة: فصل بالمسافات والارتفاع، لا بالخطوط.
    ═══════════════════════════════════════════════════════════ */
 const THEMES = {
@@ -230,6 +251,7 @@ const useT = () => useContext(ThemeCtx);
 const LangCtx = createContext({ lang: "ar", setLang: () => {} });
 const useLang = () => useContext(LangCtx);
 
+/* ── ٥. أدوات نص عربي، تحليل النماذج، ومناطق المخطط ── */
 const hashPick = (s, arr) => arr[Math.abs([...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0)) % arr.length];
 
 /* ── نص عربي: توحيد للبحث والمطابقة ── */
@@ -312,7 +334,7 @@ const BASE = RAW.map((r) => ({
 }));
 
 /* ═══════════════════════════════════════════════════════════
-   تقدم التنفيذ — من ورقة KPIs في ملف «تقدم الوحدة والمراحل»
+   ٦. تقدم التنفيذ — من ورقة KPIs في ملف «تقدم الوحدة والمراحل»
    جدولان: متوسط تقدم المراحل مقابل الهدف، وتقدم كل بلوك.
    ═══════════════════════════════════════════════════════════ */
 const PG_MONTHS = ["فبراير", "مارس", "أبريل", "مايو", "يونيو"];
@@ -408,6 +430,7 @@ const trPGLabel = (lang, v) => (lang === "en" ? PG_LABEL_EN[v] || v : v);
 const trPGPNote = (lang, v) => (lang === "en" ? PG_PNOTE_EN[v] || v : v);
 
 /* ── الترتيب المنطقي ── */
+/* ── ٧. الترتيب المنطقي والتخزين المشترك (window.storage) ── */
 const rank = (order) => (v) => { const i = order.indexOf(v); return i === -1 ? order.length + 1 : i; };
 const uniqSorted = (arr, order) => [...new Set(arr)].filter(Boolean).sort((a, b) => rank(order)(a) - rank(order)(b) || a.localeCompare(b, "ar"));
 
@@ -421,17 +444,7 @@ async function loadShared(key = SKEY) {
   try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }
   catch { return null; }
 }
-async function saveShared(payload, key = SKEY) {
-  if (!hasStore()) throw new Error("التخزين المشترك غير متاح في هذه البيئة.");
-  const r = await window.storage.set(key, JSON.stringify(payload), true);
-  if (!r) throw new Error("تعذّر حفظ التحديث.");
-  return r;
-}
-async function clearShared(key = SKEY) {
-  if (!hasStore()) return;
-  try { await window.storage.delete(key, true); } catch { /* لا يوجد ما يُحذف */ }
-}
-
+/* ── ٨. الخطافات المخصّصة (Hooks) ── */
 function usePrefersReduced() {
   const [r, setR] = useState(false);
   useEffect(() => {
@@ -623,6 +636,7 @@ function useDesktopView() {
   return { deskOn: on, toggleDesk: toggle, smallDevice };
 }
 
+/* ── ٩. عناصر صغيرة قابلة لإعادة الاستخدام ── */
 function CountUp({ value, dur = 850, suffix = "", onScroll = false }) {
   const reduced = usePrefersReduced();
   const [ref, inView] = useInView(0.35);
@@ -963,7 +977,7 @@ function Card({ r, i, onOpen, reduced }) {
   );
 }
 
-/* ── سجل إصدارات الموقع ──
+/* ── ١٠. سجل إصدارات الموقع (CHANGELOG) ──
    ترقيم الإصدارات بنظام "رئيسي.فرعي.تصحيحي" (Major.Minor.Patch)، مثل مواقع البرمجيات المعتادة:
      • يرتفع الرقم التصحيحي (مثل 1.1.1 → 1.1.2) مع أي تعديل صغير: إصلاح مشكلة،
        حذف/تعديل عنصر بسيط، تحسين نص أو تصميم — وهذا الغالب، يشمل أغلب الطلبات اليومية.
@@ -974,6 +988,19 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.7.2",
+    dateAr: "8 أغسطس 2026",
+    dateEn: "August 8, 2026",
+    ar: [
+      "حذف كود غير مستخدم إطلاقًا من الواجهة",
+      "إعادة تنظيم الملف بفهرس وعناوين أقسام أوضح لتسهيل التعديل مستقبلاً",
+    ],
+    en: [
+      "Removed code with zero references from the live UI",
+      "Reorganized the file with a table of contents and clearer section headers",
+    ],
+  },
   {
     version: "1.7.1",
     dateAr: "8 أغسطس 2026",
@@ -1260,6 +1287,7 @@ const LEGAL_COPY = {
   },
 };
 
+/* ── ١١. الإقرار القانوني ولوحة سجل التحديثات ── */
 function LegalDisclaimer() {
   const { T } = useT();
   const { lang } = useLang();
@@ -1345,6 +1373,7 @@ function ChangelogSheet({ open, onClose }) {
   );
 }
 
+/* ── ١٢. لوحة تفاصيل الاستفسار (Sheet) ── */
 function Sheet({ r, navList, onJump, onClose }) {
   const { T } = useT();
   const { lang } = useLang();
@@ -1508,7 +1537,7 @@ function Sheet({ r, navList, onJump, onClose }) {
   );
 }
 
-/* ═══ خانة تقدم التنفيذ ═══ */
+/* ── ١٣. تبويب تقدّم التنفيذ (ProgressTab) ── */
 /* ── حلقات المراحل — ملخص بصري سريع، ترتسم تدريجيًا عند دخولها الشاشة ── */
 function PhaseRings({ phases, mi, tgt, ahead, behind, muted, sunken, lang }) {
   const reduced = usePrefersReduced();
@@ -1859,7 +1888,7 @@ function ProgressTab({ reduced, data, loading }) {
   );
 }
 
-/* ═══════════════ اللوحة ═══════════════ */
+/* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 const EMPTY_F = { q: "", zone: null, pri: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false };
 
 export default function Dashboard() {
