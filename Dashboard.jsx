@@ -830,7 +830,7 @@ function ThemeToggle() {
   return (
     <div className="seg" role="group" aria-label={lang === "en" ? "Dashboard appearance" : "مظهر اللوحة"}>
       {opts.map(([m, Ic, title]) => (
-        <button key={m} onClick={() => setMode(m)} title={title} aria-label={title}
+        <button key={m} onClick={() => { if (m !== mode) logEvent("filter", "theme", m, null); setMode(m); }} title={title} aria-label={title}
           className="seg-b" data-on={mode === m ? "1" : "0"}
           style={mode === m ? { background: T.brass, color: T.onAccent } : undefined}>
           <Ic size={13} />
@@ -846,7 +846,7 @@ function LangToggle() {
   return (
     <div className="seg" role="group" aria-label="Language / اللغة">
       {[["ar", "ع"], ["en", "EN"]].map(([l, label]) => (
-        <button key={l} onClick={() => setLang(l)} title={l === "ar" ? "العربية" : "English"}
+        <button key={l} onClick={() => { if (l !== lang) logEvent("filter", "lang", l, null); setLang(l); }} title={l === "ar" ? "العربية" : "English"}
           className="seg-b seg-b-txt" data-on={lang === l ? "1" : "0"}
           style={lang === l ? { background: T.brass, color: T.onAccent } : undefined}>
           {label}
@@ -974,6 +974,17 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.7.1",
+    dateAr: "8 أغسطس 2026",
+    dateEn: "August 8, 2026",
+    ar: [
+      "تحسينات تقنية داخلية على رصد الأداء",
+    ],
+    en: [
+      "Internal technical improvements to performance monitoring",
+    ],
+  },
   {
     version: "1.7.0",
     dateAr: "8 أغسطس 2026",
@@ -1345,8 +1356,17 @@ function Sheet({ r, navList, onJump, onClose }) {
   const idx = r && navList ? navList.findIndex((x) => x.id === r.id) : -1;
   const hasPrev = idx > 0;
   const hasNext = idx >= 0 && idx < (navList ? navList.length - 1 : -1);
-  const goPrev = () => hasPrev && onJump(navList[idx - 1]);
-  const goNext = () => hasNext && onJump(navList[idx + 1]);
+  /* تتبع صامت: التنقّل سابق/تالي بين الاستفسارات (بالزر أو بالسحب أو بالسهم) */
+  const goPrev = () => {
+    if (!hasPrev) return;
+    logEvent("nav", r.id, "prev", navList[idx - 1]?.id ?? null);
+    onJump(navList[idx - 1]);
+  };
+  const goNext = () => {
+    if (!hasNext) return;
+    logEvent("nav", r.id, "next", navList[idx + 1]?.id ?? null);
+    onJump(navList[idx + 1]);
+  };
 
   useEffect(() => {
     if (!r) return;
@@ -2127,6 +2147,7 @@ export default function Dashboard() {
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
       setCopied(true); setTimeout(() => setCopied(false), 1650);
+      logEvent("click", "copy_summary", null, null);
     } catch { /* المتصفح منع النسخ */ }
   };
 
@@ -2508,7 +2529,7 @@ export default function Dashboard() {
                     {deskOn ? L("عرض الجوال", "Mobile view") : L("سطح المكتب", "Desktop")}
                   </button>
                 )}
-                <button className="icon-btn" onClick={() => setChangelogOpen(true)}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
+                <button className="icon-btn" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
                 <button className="icon-btn copy-host" onClick={copySummary}>
                   <Copy size={13} /> {L("ملخص", "Summary")}
                   {copied && <span className="copy-ok show"><Check size={13} /> {L("تم النسخ", "Copied")}</span>}
@@ -2523,7 +2544,7 @@ export default function Dashboard() {
             </div>
 
             <div className="stamp">
-              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="chip" style={{ textDecoration: "none" }}>
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="chip" style={{ textDecoration: "none" }} onClick={() => logEvent("click", "telegram", null, null)}>
                 <TelegramIcon size={13} /> {L("مجتمع الملاك", "Owners Community")}
               </a>
               {loading ? (
@@ -2846,7 +2867,7 @@ export default function Dashboard() {
           )}
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 28 }}>
-            <button className="mono" onClick={() => setChangelogOpen(true)} style={{
+            <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }} style={{
               background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4,
             }}>
               v{CURRENT_VERSION}
@@ -2860,7 +2881,7 @@ export default function Dashboard() {
         {showTop && (
           <button
             className="top-fab no-print"
-            onClick={() => window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })}
+            onClick={() => { logEvent("click", "back_to_top", null, null); window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); }}
             aria-label={L("رجوع للأعلى", "Back to top")}
           >
             <ArrowUp size={18} />
