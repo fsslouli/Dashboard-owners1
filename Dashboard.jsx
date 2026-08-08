@@ -940,6 +940,7 @@ function Card({ r, i, onOpen, reduced }) {
         animation: reduced ? "none" : `rise .4s cubic-bezier(.2,.7,.3,1) ${Math.min(i, 12) * 45}ms both`,
         borderRightColor: pc,
       }}>
+      <span className="card-wm mono" aria-hidden="true">{r.id}</span>
       <div className="card-top">
         <span className="mono card-id">{String(r.id).padStart(2, "0")}</span>
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
@@ -973,6 +974,25 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.7.0",
+    dateAr: "8 أغسطس 2026",
+    dateEn: "August 8, 2026",
+    ar: [
+      "تصغير خفيف للبطاقة عند الضغط عليها",
+      "رقم الاستفسار كعلامة مائية باهتة داخل كل بطاقة",
+      "خط تقدّم تمرير رفيع أعلى الصفحة",
+      "زجاجية تدريجية على شريط الخانات الملتصق عند التمرير",
+      "تصحيح عنوان تبويب المتصفح",
+    ],
+    en: [
+      "Subtle scale-down effect on card tap",
+      "Faint watermark of the inquiry number inside each card",
+      "Thin scroll-progress line at the top of the page",
+      "Progressive glass effect on the sticky tab bar while scrolling",
+      "Fixed the browser tab title",
+    ],
+  },
   {
     version: "1.6.0",
     dateAr: "8 أغسطس 2026",
@@ -1853,6 +1873,7 @@ export default function Dashboard() {
   const [stickyBar, setStickyBar] = useState(false);
   const [showTop, setShowTop] = useState(false);
   const loadMoreRef = useRef(null);
+  const progressRef = useRef(null);
 
   /* موضع مؤشر التبويب النشط المتحرك — يُحدَّث عند تبديل التبويب أو اللغة أو تغيّر حجم الشاشة */
   useLayoutEffect(() => {
@@ -1882,13 +1903,17 @@ export default function Dashboard() {
     return () => obs.disconnect();
   }, [tab]);
 
-  /* زر "رجوع للأعلى" العائم — يظهر بعد تمرير محسوس لأسفل الصفحة */
+  /* زر "رجوع للأعلى" العائم، خط تقدّم التمرير، وزجاجية شريط الخانات — كلها من نفس مستمع التمرير لتفادي إعادة رسم زائدة */
   useEffect(() => {
     let raf = null;
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
-        setShowTop(window.scrollY > 520);
+        const y = window.scrollY;
+        setShowTop(y > 520);
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        if (progressRef.current) progressRef.current.style.width = `${max > 0 ? Math.min(100, (y / max) * 100) : 0}%`;
+        if (tabsRef.current) tabsRef.current.classList.toggle("tabs-glass", y > 8);
         raf = null;
       });
     };
@@ -1900,6 +1925,11 @@ export default function Dashboard() {
 
   /* تتبع صامت: زيارة عند التحميل */
   useEffect(() => { logEvent("visit", null, null, null); }, []);
+
+  /* عنوان تبويب المتصفح — يتبع اللغة المختارة بدل الاسم الافتراضي للمشروع */
+  useEffect(() => {
+    if (typeof document !== "undefined") document.title = L("استفسارات الملاك", "Owner Inquiries");
+  }, [lang]);
 
   /* تتبع صامت: تبديل التبويب (يتجاهل التبويب الأول عند التحميل) */
   const firstTabRef = useRef(true);
@@ -2135,8 +2165,10 @@ export default function Dashboard() {
 
 /* خانات التنقّل */
 .tabs{position:sticky;top:0;z-index:20;display:flex;gap:6px;padding:10px 16px;margin:18px -16px 16px;
-  background:${T.bg};}
+  background:${T.bg};transition:background .25s ease,backdrop-filter .25s ease,box-shadow .25s ease;}
+.tabs.tabs-glass{background:${T.bg}CC;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
 @media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;}}
+.scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
 .tab{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
   background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;}
 .tab:hover{color:${T.paper};}
@@ -2297,20 +2329,23 @@ export default function Dashboard() {
 
 .cards{display:grid;grid-template-columns:1fr;gap:11px;}
 @media(min-width:900px){.cards{grid-template-columns:repeat(2,1fr);}}
-.card{text-align:start;padding:17px 18px;border-radius:16px;background:${T.surface};box-shadow:${T.shadow};
+.card{position:relative;overflow:hidden;text-align:start;padding:17px 18px;border-radius:16px;background:${T.surface};box-shadow:${T.shadow};
   border-right:3px solid transparent;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease;}
 .card:hover{transform:translateY(-2px);box-shadow:${T.shadowUp};}
+.card:active{transform:scale(.97);box-shadow:${T.shadowUp};}
 .card:focus-visible{outline:2px solid ${T.brass};outline-offset:2px;}
-.card-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;}
+.card-wm{position:absolute;bottom:-16px;inset-inline-start:10px;font-size:64px;font-weight:700;line-height:1;
+  color:${T.paper};opacity:${resolved === "dark" ? 0.05 : 0.045};pointer-events:none;z-index:0;}
+.card-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;position:relative;z-index:1;}
 .card-id{font-size:11.5px;color:${T.faint};}
 .card-sta{display:inline-flex;align-items:center;gap:5px;font-size:12px;margin-right:auto;}
 .tag{font-size:11px;color:${T.muted};}
 .tag-new{display:inline-flex;align-items:center;gap:3px;color:${T.sta["معتمدة"]};animation:${reduced ? "none" : "tagPulse 2.4s ease-in-out infinite"};}
 @keyframes tagPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
 .tag-open{color:${T.brass};}
-.card-note{font-size:14.5px;line-height:1.95;color:${T.paper};margin-bottom:12px;
+.card-note{position:relative;z-index:1;font-size:14.5px;line-height:1.95;color:${T.paper};margin-bottom:12px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.card-foot{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 .fm{font-size:11.5px;color:${T.muted};}
 
 /* لوحة هدف الشهر الحالي — تتقدّم مع التقويم */
@@ -2451,6 +2486,8 @@ export default function Dashboard() {
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 @media print{.no-print{display:none!important;}.dash{background:#fff;color:#000;}.card,.surf,.stats{box-shadow:none!important;}.tabs{position:static;}}
         `}</style>
+
+        <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
 
         <LegalDisclaimer />
 
