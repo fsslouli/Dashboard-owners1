@@ -38,7 +38,7 @@ import {
   Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
-  LayoutGrid, Table, Laptop, Smartphone,
+  LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
 } from "lucide-react";
 
 /* أيقونة تليجرام الرسمية (غير متوفرة في lucide-react) */
@@ -949,6 +949,21 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.5.2",
+    dateAr: "8 أغسطس 2026",
+    dateEn: "August 8, 2026",
+    ar: [
+      "زر \u200f\"مشاركة الاستفسار\"\u200f جديد داخل لوحة تفاصيل كل استفسار — ينسخ رابطًا مباشرًا لهذا الاستفسار تحديدًا مع تأكيد بصري (شريط أخضر ينزلق) بنفس أسلوب زر \u200f\"ملخص\"\u200f",
+      "الرابط المنسوخ يفتح اللوحة على نفس الاستفسار مباشرة عند لصقه ومشاركته لأي شخص",
+      "زرّا \u200f\"لايك\"\u200f و\u200f\"ديسلايك\"\u200f جديدان بجانب زر \u200f\"مشاركة\"\u200f داخل نفس اللوحة — أيقونتا يد واضحتان بدون أي عدّاد ظاهر بالواجهة",
+    ],
+    en: [
+      "New \"Share Inquiry\" button inside each inquiry's detail sheet — copies a direct link to that specific inquiry with a visual confirmation (sliding green bar), matching the existing \"Summary\" button style",
+      "The copied link opens the dashboard directly on that same inquiry when pasted and shared with anyone",
+      "New \"Like\" and \"Dislike\" buttons next to the \"Share\" button in the same sheet — clear thumb icons with no visible counter on screen",
+    ],
+  },
+  {
     version: "1.5.1",
     dateAr: "8 أغسطس 2026",
     dateEn: "August 8, 2026",
@@ -1254,14 +1269,38 @@ function Sheet({ r, onClose }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [feedback, setFeedback] = useState(null); // "up" | "down" | null — محلي فقط للعرض، لا يُقرأ من القاعدة
   useEffect(() => {
     if (!r) return;
     const h = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [r, onClose]);
+  useEffect(() => { setShareCopied(false); setFeedback(null); }, [r]);
   if (!r) return null;
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?note=${r.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (e) {
+      /* بيئات بدون Clipboard API (نادر) — نتجاهل بصمت، النسخ اليدوي يبقى ممكنًا من شريط العنوان */
+    }
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 1650);
+    logEvent("share", r.id, r.pri, `${r.model || ""} / ${r.zone || r.loc || ""}`);
+  };
+
+  /* لايك/ديسلايك — تُسجَّل بصمت في Supabase (event_type = "feedback")، بدون عرض أي عدّاد
+     بالواجهة؛ تُستخرج لاحقًا عند الحاجة عبر استعلام على جدول public.logs */
+  const handleFeedback = (dir) => {
+    const next = feedback === dir ? null : dir; // ضغطة ثانية على نفس الاختيار تلغيه محليًا فقط
+    setFeedback(next);
+    if (next) logEvent("feedback", r.id, dir, `${r.model || ""} / ${r.zone || r.loc || ""}`);
+  };
+
   return (
     <div className="ovl" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
@@ -1293,6 +1332,36 @@ function Sheet({ r, onClose }) {
                 <span className="meta-v">{v}</span>
               </div>
             ))}
+          </div>
+
+          <div className="sheet-fb-row">
+            <button
+              className="fb-btn fb-up"
+              data-on={feedback === "up" ? "1" : "0"}
+              onClick={() => handleFeedback("up")}
+              aria-pressed={feedback === "up"}
+              aria-label={L("مفيد", "Helpful")}
+            >
+              <ThumbsUp size={19} strokeWidth={2.3} />
+            </button>
+            <button
+              className="fb-btn fb-down"
+              data-on={feedback === "down" ? "1" : "0"}
+              onClick={() => handleFeedback("down")}
+              aria-pressed={feedback === "down"}
+              aria-label={L("غير مفيد", "Not helpful")}
+            >
+              <ThumbsDown size={19} strokeWidth={2.3} />
+            </button>
+
+            <button className="wide-btn share-host" style={{ margin: 0, flex: 1 }} onClick={handleShare}>
+              <Share2 size={14} /> {L("مشاركة الاستفسار", "Share Inquiry")}
+              {shareCopied && (
+                <span className="copy-ok show">
+                  <Check size={13} /> {L("تم نسخ الرابط", "Link copied")}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1754,6 +1823,17 @@ export default function Dashboard() {
     return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.id) }));
   }, [data]);
 
+  /* فتح استفسار محدد تلقائيًا عند الوصول عبر رابط مشاركة (?note=ID) — مرة واحدة فقط بعد اكتمال تحميل البيانات */
+  const deepLinkRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkRef.current || loading || !ALL.length) return;
+    const noteId = new URLSearchParams(window.location.search).get("note");
+    if (!noteId) return;
+    deepLinkRef.current = true;
+    const found = ALL.find((r) => String(r.id) === String(noteId));
+    if (found) setSel(found);
+  }, [ALL, loading]);
+
   const cats = useMemo(() => ({
     pri: uniqSorted(ALL.map((r) => r.pri), PRI_ORDER),
     sta: uniqSorted(ALL.map((r) => r.sta), STA_ORDER),
@@ -1957,6 +2037,16 @@ export default function Dashboard() {
 
 /* تأكيد النسخ — شريط ينزلق داخل الزر */
 .copy-host{position:relative;overflow:hidden;}
+.share-host{position:relative;overflow:hidden;}
+
+/* صف لايك/ديسلايك + مشاركة أسفل تفاصيل الاستفسار */
+.sheet-fb-row{display:flex;align-items:stretch;gap:8px;margin-top:16px;}
+.fb-btn{flex:none;width:46px;display:flex;align-items:center;justify-content:center;
+  border-radius:11px;border:1px solid ${T.line};background:${T.sunken};color:${T.muted};
+  cursor:pointer;transition:.18s;}
+.fb-btn:hover{color:${T.paper};border-color:${T.faint};}
+.fb-up[data-on="1"]{background:${T.sta["معتمدة"]}29;border-color:${T.sta["معتمدة"]};color:${T.sta["معتمدة"]};}
+.fb-down[data-on="1"]{background:${T.sta["تم الرفض"]}29;border-color:${T.sta["تم الرفض"]};color:${T.sta["تم الرفض"]};}
 .copy-ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;
   background:${T.sta["معتمدة"]};color:#fff;font-size:12.5px;transform:translateY(100%);pointer-events:none;}
 .copy-ok.show{animation:copyUp 1.6s cubic-bezier(.22,.9,.34,1) both;}
