@@ -39,6 +39,7 @@ import {
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   Upload, RefreshCw, AlertTriangle, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
+  ChevronLeft, ChevronRight, ArrowUp, SlidersHorizontal,
 } from "lucide-react";
 
 /* أيقونة تليجرام الرسمية (غير متوفرة في lucide-react) */
@@ -455,6 +456,30 @@ function useInView(threshold = 0.3) {
     return () => io.disconnect();
   }, [threshold]);
   return [ref, inView];
+}
+
+/* ── زر رجوع الجهاز يقفل اللوحة المفتوحة بدل مغادرة الصفحة كاملة ──
+   عند فتح اللوحة نضيف محطة تاريخ وهمية؛ زر الرجوع يستهلكها ويغلق اللوحة فقط.
+   إغلاق اللوحة بالطرق العادية (زر X، النقر خارجها) يستهلك نفس المحطة تلقائيًا
+   حتى لا تتراكم محطات فارغة في السجل. */
+function useBackClose(isOpen, onClose) {
+  const pushedRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !pushedRef.current) {
+      window.history.pushState({ ...(window.history.state || {}), __sheet: true }, "");
+      pushedRef.current = true;
+    } else if (!isOpen && pushedRef.current) {
+      pushedRef.current = false;
+      if (window.history.state && window.history.state.__sheet) window.history.back();
+    }
+  }, [isOpen]);
+  useEffect(() => {
+    const onPop = () => {
+      if (pushedRef.current) { pushedRef.current = false; onClose(); }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [onClose]);
 }
 
 /* ── الوضع التلقائي: يتبع إعداد الجهاز ويتغيّر معه فورًا ── */
@@ -949,6 +974,29 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.6.0",
+    dateAr: "8 أغسطس 2026",
+    dateEn: "August 8, 2026",
+    ar: [
+      "مشاركة الاستفسار عبر نافذة المشاركة الأصلية بالجهاز (واتساب، تليجرام، رسائل...)",
+      "زر رجوع الجهاز يقفل لوحة التفاصيل أو سجل الإصدارات بدل الخروج من الصفحة",
+      "تنقّل سابق/تالي بين الاستفسارات داخل اللوحة، بالأزرار أو بسحب الإصبع",
+      "البحث يقبل رقم الاستفسار مباشرة",
+      "شريط فلاتر مصغّر يلتصق أعلى الشاشة عند التمرير بلوحة المتابعة",
+      "زر \u200f\"رجوع للأعلى\"\u200f عائم",
+      "تحميل الملاحظات الإضافية تلقائي عند التمرير، بدل زر \u200f\"عرض المزيد\"\u200f",
+    ],
+    en: [
+      "Share Inquiry now opens the device's native share sheet (WhatsApp, Telegram, Messages...)",
+      "Device back button closes the detail sheet or update log instead of leaving the page",
+      "Previous/next navigation between inquiries inside the sheet, via buttons or swipe",
+      "Search now accepts an inquiry number directly",
+      "Compact filter bar sticks to the top while scrolling the Notes Board",
+      "Floating \"Back to top\" button",
+      "Loading more notes is now automatic on scroll, replacing the \"Show more\" button",
+    ],
+  },
+  {
     version: "1.5.2",
     dateAr: "8 أغسطس 2026",
     dateEn: "August 8, 2026",
@@ -1227,6 +1275,7 @@ function ChangelogSheet({ open, onClose }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
+  useBackClose(open, onClose);
   if (!open) return null;
   return (
     <div className="ovl" onClick={onClose}>
@@ -1265,24 +1314,62 @@ function ChangelogSheet({ open, onClose }) {
   );
 }
 
-function Sheet({ r, onClose }) {
+function Sheet({ r, navList, onJump, onClose }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
   const [shareCopied, setShareCopied] = useState(false);
   const [feedback, setFeedback] = useState(null); // "up" | "down" | null — محلي فقط للعرض، لا يُقرأ من القاعدة
+  useBackClose(!!r, onClose);
+
+  const idx = r && navList ? navList.findIndex((x) => x.id === r.id) : -1;
+  const hasPrev = idx > 0;
+  const hasNext = idx >= 0 && idx < (navList ? navList.length - 1 : -1);
+  const goPrev = () => hasPrev && onJump(navList[idx - 1]);
+  const goNext = () => hasNext && onJump(navList[idx + 1]);
+
   useEffect(() => {
     if (!r) return;
-    const h = (e) => e.key === "Escape" && onClose();
+    const h = (e) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowUp") goPrev();
+      else if (e.key === "ArrowDown") goNext();
+    };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [r, onClose]);
+  }, [r, onClose, idx, navList]);
   useEffect(() => { setShareCopied(false); setFeedback(null); }, [r]);
+
+  /* سحب أفقي فوق اللوحة للتنقّل للاستفسار السابق/التالي بنفس ترتيب القائمة المفتوحة منها */
+  const touchRef = useRef(null);
+  const onTouchStart = (e) => { touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e) => {
+    const start = touchRef.current;
+    touchRef.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (dx < 0) goNext(); else goPrev();
+  };
+
   if (!r) return null;
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
 
   const handleShare = async () => {
     const url = `${window.location.origin}${window.location.pathname}?note=${r.id}`;
+    const shareData = { title: L("استفسارات الملاك", "Owner Inquiries"), text: trNote(lang, r), url };
+    if (navigator.share) {
+      try {
+        if (!navigator.canShare || navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          logEvent("share", r.id, r.pri, `${r.model || ""} / ${r.zone || r.loc || ""}`);
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") return; // المستخدم أغلق نافذة المشاركة — لا حاجة لأي إجراء إضافي
+      }
+    }
     try {
       await navigator.clipboard.writeText(url);
     } catch (e) {
@@ -1303,14 +1390,26 @@ function Sheet({ r, onClose }) {
 
   return (
     <div className="ovl" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="sheet" onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} role="dialog" aria-modal="true">
         <div className="sheet-top">
           <div className="flex items-center gap-2">
             <span className="mono sheet-id">{L("ملاحظة", "Note")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
-          <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
+          <div className="flex items-center gap-2">
+            {navList && (
+              <div className="sheet-nav">
+                <button onClick={goPrev} disabled={!hasPrev} className="icon-btn sheet-nav-b" aria-label={L("السابق", "Previous")}>
+                  {lang === "ar" ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+                </button>
+                <button onClick={goNext} disabled={!hasNext} className="icon-btn sheet-nav-b" aria-label={L("التالي", "Next")}>
+                  {lang === "ar" ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+                </button>
+              </div>
+            )}
+            <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
+          </div>
         </div>
         <div className="sheet-body">
           <div className="sec-lbl">{L("الملاحظة والحل المقترح", "Note & Proposed Solution")}</div>
@@ -1742,17 +1841,25 @@ export default function Dashboard() {
   const [f, setF] = useState(EMPTY_F);
   const [sort, setSort] = useState("id");
   const [sel, setSel] = useState(null);
+  const [navList, setNavList] = useState(null);
+  const openRecord = (r, list) => { setSel(r); setNavList(list || null); };
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [limit, setLimit] = useState(12);
   const tabsRef = useRef(null);
   const indicatorRef = useRef(null);
   const [scrollPending, setScrollPending] = useState(false);
+  const [tabsH, setTabsH] = useState(0);
+  const filtersRef = useRef(null);
+  const [stickyBar, setStickyBar] = useState(false);
+  const [showTop, setShowTop] = useState(false);
+  const loadMoreRef = useRef(null);
 
   /* موضع مؤشر التبويب النشط المتحرك — يُحدَّث عند تبديل التبويب أو اللغة أو تغيّر حجم الشاشة */
   useLayoutEffect(() => {
     const position = () => {
       const nav = tabsRef.current, ind = indicatorRef.current;
       if (!nav || !ind) return;
+      setTabsH(nav.offsetHeight);
       const active = nav.querySelector('.tab[data-on="1"]');
       if (!active) return;
       ind.style.width = `${active.offsetWidth}px`;
@@ -1762,6 +1869,32 @@ export default function Dashboard() {
     window.addEventListener("resize", position);
     return () => window.removeEventListener("resize", position);
   }, [tab, lang]);
+
+  /* شريط الفلاتر المصغّر: يظهر بعد تجاوز صندوق الفلاتر الكامل أثناء التمرير لأسفل في لوحة المتابعة */
+  useEffect(() => {
+    if (tab !== "notes") { setStickyBar(false); return; }
+    const el = filtersRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      setStickyBar(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    }, { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [tab]);
+
+  /* زر "رجوع للأعلى" العائم — يظهر بعد تمرير محسوس لأسفل الصفحة */
+  useEffect(() => {
+    let raf = null;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        setShowTop(window.scrollY > 520);
+        raf = null;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
 
   useEffect(() => { const t = setTimeout(() => setBuilt(true), reduced ? 0 : 100); return () => clearTimeout(t); }, [reduced]);
 
@@ -1860,6 +1993,11 @@ export default function Dashboard() {
   const set = (k, v) => { setF((p) => ({ ...p, [k]: p[k] === v ? (typeof v === "boolean" ? !v : null) : v })); setLimit(12); };
   const reset = () => { setF(EMPTY_F); setLimit(12); };
   const nq = useMemo(() => norm(f.q.trim()), [f.q]);
+  /* رقم الاستفسار: يقبل أرقامًا عربية أو إنجليزية، مع أو بدون # — يبحث بالتطابق التام على المعرّف */
+  const nqId = useMemo(() => {
+    const raw = f.q.trim().replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).replace(/^#/, "");
+    return /^\d+$/.test(raw) ? Number(raw) : null;
+  }, [f.q]);
 
   const match = useMemo(() => (r, skip = {}) => {
     if (!skip.zone && f.zone && r.zone !== f.zone) return false;
@@ -1871,9 +2009,9 @@ export default function Dashboard() {
     if (f.meeting && r.meeting !== f.meeting) return false;
     if (f.open && r.closed) return false;
     if (f.fresh && !r.isNew) return false;
-    if (nq && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.sta}`).includes(nq)) return false;
+    if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.sta}`).includes(nq)) return false;
     return true;
-  }, [f, nq]);
+  }, [f, nq, nqId]);
 
   const rows = useMemo(() => ALL.filter((r) => match(r)), [ALL, match]);
 
@@ -1886,6 +2024,17 @@ export default function Dashboard() {
     else a.sort((x, y) => y.id - x.id);
     return a;
   }, [rows, sort]);
+
+  /* تحميل تلقائي: يزيد الحد المعروض عند اقتراب نهاية القائمة من الشاشة أثناء التمرير */
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el || tab !== "notes") return;
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) setLimit((l) => (l < sorted.length ? l + 16 : l));
+    }, { rootMargin: "700px 0px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [tab, sorted.length, limit]);
 
   /* النظرة العامة تعرض السجل كامل دائمًا — بلا تأثير من فلاتر لوحة المتابعة */
   const overview = useMemo(() => {
@@ -2262,6 +2411,39 @@ export default function Dashboard() {
 .brow-v{width:58px;flex:none;text-align:left;font-size:13px;font-weight:600;color:${T.paper};}
 .brow-d{width:56px;flex:none;text-align:left;font-size:11.5px;}
 
+/* ═══ إيفكتات v1.6.0 ═══ */
+
+/* تنقّل سابق/تالي أعلى لوحة تفاصيل الاستفسار */
+.sheet-nav{display:inline-flex;align-items:center;gap:4px;padding:2px;border-radius:11px;background:${T.sunken};}
+.sheet-nav-b{border:none;background:transparent;padding:7px;}
+.sheet-nav-b:disabled{opacity:.32;cursor:default;}
+.sheet-nav-b:disabled:hover{color:${T.muted};}
+
+/* شريط الفلاتر المصغّر — يلتصق أسفل شريط الخانات عند تجاوز صندوق الفلاتر الكامل */
+.mini-bar{position:sticky;z-index:19;display:flex;align-items:center;gap:10px;padding:10px 16px;margin:0 -16px 16px;
+  background:${T.bg};border-bottom:1px solid ${T.lineSoft};animation:stickIn .22s cubic-bezier(.22,.9,.34,1) both;}
+@media(min-width:768px){.mini-bar{padding:10px 28px;margin:0 -28px 16px;}}
+.mini-bar-jump{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;border:1px solid ${T.line};
+  background:${T.surface};color:${T.paper};font-size:12px;font-family:inherit;cursor:pointer;flex:none;}
+.mini-bar-jump:hover{border-color:${T.brass};}
+.mini-bar-n{background:${T.brass};color:${T.onAccent};font-size:10px;padding:1px 6px;border-radius:999px;}
+.mini-bar-res{font-size:12px;color:${T.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mini-bar-clear{display:inline-flex;align-items:center;gap:5px;margin-inline-start:auto;padding:7px 12px;border-radius:999px;
+  border:none;background:${T.brass}1A;color:${T.brass};font-size:12px;font-family:inherit;cursor:pointer;flex:none;}
+.mini-bar-clear:hover{background:${T.brass}2E;}
+@keyframes stickIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+
+/* تحميل تلقائي عند نهاية القائمة */
+.load-sentinel{height:1px;}
+.all-shown{text-align:center;margin-top:20px;font-size:12px;color:${T.faint};}
+
+/* زر "رجوع للأعلى" العائم */
+.top-fab{position:fixed;bottom:22px;inset-inline-end:18px;width:44px;height:44px;border-radius:50%;border:1px solid ${T.line};
+  background:${T.surface};color:${T.brass};box-shadow:${T.shadowUp};display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:40;animation:fade .2s ease both;}
+.top-fab:hover{filter:brightness(1.05);}
+@media(min-width:640px){.top-fab{bottom:28px;}}
+
 @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fade{from{opacity:0;}to{opacity:1;}}
 @keyframes up{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
@@ -2341,6 +2523,22 @@ export default function Dashboard() {
             <span className="tab-indicator" ref={indicatorRef} />
           </nav>
 
+          {tab === "notes" && stickyBar && (
+            <div className="mini-bar no-print" style={{ top: tabsH }}>
+              <button className="mini-bar-jump" onClick={() => filtersRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })}>
+                <SlidersHorizontal size={13} />
+                <span>{L("الفلاتر", "Filters")}</span>
+                {activeChips.length > 0 && <span className="mono mini-bar-n">{activeChips.length}</span>}
+              </button>
+              <span className="mini-bar-res">
+                <TickNum value={rows.length} /> {rows.length !== ALL.length ? L(`من ${ALL.length}`, `of ${ALL.length}`) : L("نتيجة", "results")}
+              </span>
+              {activeChips.length > 0 && (
+                <button className="mini-bar-clear" onClick={reset}><RotateCcw size={12} /> {L("مسح", "Clear")}</button>
+              )}
+            </div>
+          )}
+
           {tab === "overview" && (
             <div className="tab-panel">
               {/* حالة السجل */}
@@ -2390,7 +2588,7 @@ export default function Dashboard() {
                 <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>{L("آخر ما أُضيف أو جرى عليه رد", "Most recently added or replied to")}</div>
                 <div className="latest">
                   {latest.map((r) => (
-                    <button key={r.id} className="lrow" onClick={() => setSel(r)}>
+                    <button key={r.id} className="lrow" onClick={() => openRecord(r, latest)}>
                       <span className="lrow-d" style={{ background: staC(r.sta) }} />
                       <span className="lrow-t">
                         <span className="lrow-n">{trNote(lang, r)}</span>
@@ -2506,7 +2704,7 @@ export default function Dashboard() {
           {tab === "notes" && (
             <div className="tab-panel">
               {/* أدوات لوحة المتابعة */}
-              <section className="surf no-print" style={{ padding: 18, marginBottom: 16 }}>
+              <section ref={filtersRef} className="surf no-print" style={{ padding: 18, marginBottom: 16 }}>
                 <div className="relative" style={{ marginBottom: 14 }}>
                   <Search size={17} style={{ position: "absolute", right: lang === "ar" ? 14 : "auto", left: lang === "ar" ? "auto" : 14, top: 14, color: T.faint }} />
                   <input className="srch" value={f.q} placeholder={L("ابحث في نص الملاحظة أو الرد…", "Search note or reply text…")}
@@ -2585,22 +2783,20 @@ export default function Dashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {sorted.slice(0, limit).map((r, i) => <Row key={`${r.id}-${i}`} r={r} onOpen={setSel} />)}
+                          {sorted.slice(0, limit).map((r, i) => <Row key={`${r.id}-${i}`} r={r} onOpen={(rec) => openRecord(rec, sorted)} />)}
                         </tbody>
                       </table>
                     </div>
                   ) : (
                     <div className="cards view-swap" key="v-cards">
-                      {sorted.slice(0, limit).map((r, i) => <Card key={`${r.id}-${i}`} r={r} i={i} onOpen={setSel} reduced={reduced} />)}
+                      {sorted.slice(0, limit).map((r, i) => <Card key={`${r.id}-${i}`} r={r} i={i} onOpen={(rec) => openRecord(rec, sorted)} reduced={reduced} />)}
                     </div>
                   )}
-                  {limit < sorted.length && (
-                    <div className="no-print" style={{ textAlign: "center", marginTop: 18 }}>
-                      <button className="icon-btn" onClick={() => setLimit((l) => l + 16)}>
-                        <ArrowLeft size={13} /> {L(`عرض ${Math.min(16, sorted.length - limit)} ملاحظة إضافية`, `Show ${Math.min(16, sorted.length - limit)} more notes`)}
-                      </button>
-                    </div>
-                  )}
+                  {limit < sorted.length ? (
+                    <div ref={loadMoreRef} className="no-print load-sentinel" aria-hidden="true" />
+                  ) : sorted.length > 12 ? (
+                    <div className="no-print all-shown">{L("تم عرض كل النتائج", "All results shown")}</div>
+                  ) : null}
                 </>
               )}
             </div>
@@ -2621,8 +2817,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Sheet r={sel} onClose={() => setSel(null)} />
+        <Sheet r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} />
         <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+
+        {showTop && (
+          <button
+            className="top-fab no-print"
+            onClick={() => window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })}
+            aria-label={L("رجوع للأعلى", "Back to top")}
+          >
+            <ArrowUp size={18} />
+          </button>
+        )}
       </div>
       </LangCtx.Provider>
     </ThemeCtx.Provider>
