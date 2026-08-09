@@ -1035,6 +1035,17 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.7.5",
+    dateAr: "9 أغسطس 2026",
+    dateEn: "August 9, 2026",
+    ar: [
+      "تحسين شكل شريط الخانات على الجوال — صف منظّم بدل التفاف عشوائي",
+    ],
+    en: [
+      "Improved the mobile tabs layout — a clean grid instead of a messy wrap",
+    ],
+  },
+  {
     version: "1.7.4",
     dateAr: "9 أغسطس 2026",
     dateEn: "August 9, 2026",
@@ -2337,19 +2348,22 @@ export default function Dashboard() {
 .seg-b-txt{width:auto;padding:0 10px;font-size:11.5px;font-weight:600;font-family:inherit;}
 
 /* خانات التنقّل */
-.tabs{position:sticky;top:0;z-index:20;display:flex;gap:6px;padding:10px 16px;margin:18px -16px 16px;
+.tabs{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;margin:18px -16px 16px;
   background:${T.bg};transition:background .25s ease,backdrop-filter .25s ease,box-shadow .25s ease;}
 .tabs.tabs-glass{background:${T.bg}CC;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
-@media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;}}
+@media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;}}
 .scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
-.tab{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
-  background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;}
+.tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
+  background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;
+  flex:1 1 calc(50% - 3px);text-align:center;}
+@media(min-width:768px){.tab{flex:none;}}
 .tab:hover{color:${T.paper};}
 .tab[data-on="1"]{background:${T.brass};border-color:${T.brass};color:${T.onAccent};box-shadow:${T.shadow};}
 .tab-n{font-size:11.5px;padding:2px 8px;border-radius:999px;background:${T.sunken};color:${T.muted};}
 .tab[data-on="1"] .tab-n{background:rgba(255,255,255,.22);color:${T.onAccent};}
-.tab-indicator{position:absolute;bottom:4px;height:3px;border-radius:3px;background:${T.brass};
+.tab-indicator{display:none;position:absolute;bottom:4px;height:3px;border-radius:3px;background:${T.brass};
   transition:left .32s cubic-bezier(.22,.9,.34,1),width .32s cubic-bezier(.22,.9,.34,1);pointer-events:none;}
+@media(min-width:768px){.tab-indicator{display:block;}}
 
 /* تلاشي هادئ عند تبديل محتوى التبويب */
 .tab-panel{animation:tabFadeIn .3s ease both;}
