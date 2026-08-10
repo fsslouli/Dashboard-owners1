@@ -83,41 +83,99 @@ const OWN = ["م/محمد عبدالمعطي", "م/رواحه", "غير محدد
 const MON = ["2026-05", "2026-07", "2025-12", "2025-05", "2026-03", "", "2026-08"];
 
 /* ── مستندات المخططات (تبويب "المخططات والمستندات") ── */
+/* ── مصدر المخططات: صور WebP مقصوصة لكل دور/واجهة على حدة (تجربة جوال أفضل من PDF) ── */
+const DOC_BASE = "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/";
+const P = (f, ar, en) => ({ f, ar, en });
+
 const DOCS = [
   {
     id: "master",
     nameAr: "المخطط الرئيسي", nameEn: "Master Plan",
-    subAr: "يوضّح توزيع البلوكات الكامل للمشروع", subEn: "Full block layout of the project",
-    url: "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/Abd.pdf",
+    subAr: "توزيع البلوكات وأرقام القطع", subEn: "Block layout and plot numbers",
     color: null,
+    cover: "cover-master.webp",
+    pdf: "Abd.pdf",
+    pages: [P("master-01-siteplan.webp", "المخطط الرئيسي", "Site Plan")],
   },
   {
     id: "amanecer",
     nameAr: "آمانيثير", nameEn: "Amanecer",
-    subAr: "مخطط نموذج الفيلا", subEn: "Villa model plan",
-    url: "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/Amanithir.pdf",
+    subAr: "تاون هاوس · 259.77 م²", subEn: "Townhouse · 259.77 sqm",
     color: "red",
+    cover: "cover-amanecer.webp",
+    pdf: "Amanithir.pdf",
+    pages: [
+      P("amanecer-01-exterior.webp", "الواجهة الخارجية", "Exterior"),
+      P("amanecer-02-ground.webp", "الطابق الأرضي", "Ground Floor"),
+      P("amanecer-03-first.webp", "الطابق الأول", "First Floor"),
+      P("amanecer-04-second.webp", "الطابق الثاني", "Second Floor"),
+      P("amanecer-05-gf-dwg.webp", "الأرضي — تنفيذي", "Ground — Drawing"),
+      P("amanecer-06-ff-dwg.webp", "الأول — تنفيذي", "First — Drawing"),
+      P("amanecer-07-penthouse-dwg.webp", "الملحق — تنفيذي", "Penthouse — Drawing"),
+      P("amanecer-08-roof-dwg.webp", "السطح — تنفيذي", "Roof — Drawing"),
+      P("amanecer-09-elevations.webp", "الواجهات", "Elevations"),
+      P("amanecer-10-sections.webp", "القطاعات", "Sections"),
+    ],
   },
   {
     id: "alba",
     nameAr: "ألبا", nameEn: "Alba",
-    subAr: "مخطط نموذج الفيلا", subEn: "Villa model plan",
-    url: "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/Alaba.pdf",
+    subAr: "فيلا شبه متصلة · 275.71 م²", subEn: "Semi-detached · 275.71 sqm",
     color: "yellow",
+    cover: "cover-alba.webp",
+    pdf: "Alaba.pdf",
+    pages: [
+      P("alba-01-exterior.webp", "الواجهة الخارجية", "Exterior"),
+      P("alba-02-ground.webp", "الطابق الأرضي", "Ground Floor"),
+      P("alba-03-first.webp", "الطابق الأول", "First Floor"),
+      P("alba-04-second.webp", "الطابق الثاني", "Second Floor"),
+      P("alba-05-gf-dwg.webp", "الأرضي — تنفيذي", "Ground — Drawing"),
+      P("alba-06-ff-dwg.webp", "الأول — تنفيذي", "First — Drawing"),
+      P("alba-07-penthouse-dwg.webp", "الملحق — تنفيذي", "Penthouse — Drawing"),
+      P("alba-08-roof-dwg.webp", "السطح — تنفيذي", "Roof — Drawing"),
+      P("alba-09-elevations.webp", "الواجهات", "Elevations"),
+      P("alba-10-sections.webp", "القطاعات", "Sections"),
+    ],
   },
   {
     id: "aurora",
     nameAr: "أورورا", nameEn: "Aurora",
-    subAr: "مخطط نموذج الفيلا", subEn: "Villa model plan",
-    url: "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/Aourora.pdf",
+    subAr: "فيلا مستقلة · 290.85 م²", subEn: "Detached villa · 290.85 sqm",
     color: "green",
+    cover: "cover-aurora.webp",
+    pdf: "Aourora.pdf",
+    pages: [
+      P("aurora-01-exterior.webp", "الواجهة الخارجية", "Exterior"),
+      P("aurora-02-ground.webp", "الطابق الأرضي", "Ground Floor"),
+      P("aurora-03-first.webp", "الطابق الأول", "First Floor"),
+      P("aurora-04-second.webp", "الطابق الثاني", "Second Floor"),
+      P("aurora-05-gf-dwg.webp", "الأرضي — تنفيذي", "Ground — Drawing"),
+      P("aurora-06-ff-dwg.webp", "الأول — تنفيذي", "First — Drawing"),
+      P("aurora-07-penthouse-dwg.webp", "الملحق — تنفيذي", "Penthouse — Drawing"),
+      P("aurora-08-roof-dwg.webp", "السطح — تنفيذي", "Roof — Drawing"),
+      P("aurora-09-elevations.webp", "الواجهات", "Elevations"),
+      P("aurora-10-sections.webp", "القطاعات", "Sections"),
+    ],
   },
   {
     id: "albada",
     nameAr: "البدا", nameEn: "Albada",
-    subAr: "مخطط نموذج الفيلا", subEn: "Villa model plan",
-    url: "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/Albada.pdf",
+    subAr: "فيلا مستقلة · 323.72 م²", subEn: "Detached villa · 323.72 sqm",
     color: "blue",
+    cover: "cover-albada.webp",
+    pdf: "Albada.pdf",
+    pages: [
+      P("albada-01-exterior.webp", "الواجهة الخارجية", "Exterior"),
+      P("albada-02-ground.webp", "الطابق الأرضي", "Ground Floor"),
+      P("albada-03-first.webp", "الطابق الأول", "First Floor"),
+      P("albada-04-second.webp", "الطابق الثاني", "Second Floor"),
+      P("albada-05-gf-dwg.webp", "الأرضي — تنفيذي", "Ground — Drawing"),
+      P("albada-06-ff-dwg.webp", "الأول — تنفيذي", "First — Drawing"),
+      P("albada-07-penthouse-dwg.webp", "الملحق — تنفيذي", "Penthouse — Drawing"),
+      P("albada-08-roof-dwg.webp", "السطح — تنفيذي", "Roof — Drawing"),
+      P("albada-09-elevations.webp", "الواجهات", "Elevations"),
+      P("albada-10-sections.webp", "القطاعات", "Sections"),
+    ],
   },
 ];
 const DOC_COLORS = {
@@ -1035,6 +1093,21 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.7.6",
+    dateAr: "10 أغسطس 2026",
+    dateEn: "August 10, 2026",
+    ar: [
+      "عارض مخططات جديد بملء الشاشة مع تكبير بالإصبعين أو بنقرتين",
+      "تقسيم كل مخطط إلى لوحات مسمّاة: الأدوار، الواجهات، القطاعات",
+      "بطاقات المخططات صارت بصور مصغّرة ومساحة كل نموذج",
+    ],
+    en: [
+      "New full-screen plan viewer with pinch or double-tap zoom",
+      "Each plan split into named sheets: floors, elevations, sections",
+      "Plan cards now show a thumbnail and each model's area",
+    ],
+  },
+  {
     version: "1.7.5",
     dateAr: "9 أغسطس 2026",
     dateEn: "August 9, 2026",
@@ -1452,54 +1525,212 @@ function ChangelogSheet({ open, onClose }) {
   );
 }
 
-/* ── لوحة عرض ملف مخطط (PDF) داخل الموقع — تفتح كجزء من اللوحة، لا كرابط خارجي مباشر ── */
+/* ── عارض المخططات — ملء الشاشة، تكبير بالإصبعين/نقرتين، تنقّل بين الصفحات ── */
 function DocViewerSheet({ doc, onClose }) {
-  const { T, resolved } = useT();
+  const { resolved } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
+  const [idx, setIdx] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [z, setZ] = useState({ s: 1, x: 0, y: 0 });
+  const stageRef = useRef(null);
+  const chipsRef = useRef(null);
+  const natRef = useRef({ w: 4, h: 3 });
+  const ptrs = useRef(new Map());
+  const ges = useRef(null);
+  const lastTap = useRef(0);
   useBackClose(!!doc, onClose);
-  if (!doc) return null;
-  const accent = doc.color ? DOC_COLORS[resolved][doc.color] : T.brass;
+
+  useEffect(() => {
+    if (!doc) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [doc]);
+
+  const docId = doc ? doc.id : null;
+  const pages = doc ? doc.pages : [];
+  const page = pages[idx] || null;
+
+  useEffect(() => { setIdx(0); }, [docId]);
+  useEffect(() => { setZ({ s: 1, x: 0, y: 0 }); setLoaded(false); }, [docId, idx]);
+
+  useEffect(() => {
+    if (!docId || !pages[idx]) return;
+    logEvent("nav", "doc_page", `${docId}:${idx + 1}`, null);
+    [idx - 1, idx + 1].forEach((i) => {
+      if (i >= 0 && i < pages.length) { const im = new window.Image(); im.src = DOC_BASE + pages[i].f; }
+    });
+    const el = chipsRef.current && chipsRef.current.querySelector(".dvw-chip.on");
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [docId, idx]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "ArrowRight") setIdx((i) => Math.min(pages.length - 1, i + 1));
+      else if (e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
+    };
+    if (doc) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [doc, pages.length]);
+
+  if (!doc || !page) return null;
+
+  const box = () => {
+    const el = stageRef.current;
+    const cw = el ? el.clientWidth : 1, ch = el ? el.clientHeight : 1;
+    const n = natRef.current;
+    const k = Math.min(cw / n.w, ch / n.h);
+    return { w: n.w * k, h: n.h * k, cw, ch };
+  };
+  const clamp = (st) => {
+    const b = box();
+    const mx = Math.max(0, (b.w * st.s - b.cw) / 2);
+    const my = Math.max(0, (b.h * st.s - b.ch) / 2);
+    return { s: st.s, x: Math.min(mx, Math.max(-mx, st.x)), y: Math.min(my, Math.max(-my, st.y)) };
+  };
+  const rel = (e) => {
+    const el = stageRef.current; if (!el) return { x: 0, y: 0 };
+    const r = el.getBoundingClientRect();
+    return { x: e.clientX - r.left - r.width / 2, y: e.clientY - r.top - r.height / 2 };
+  };
+  const zoomAt = (p, target) => {
+    if (target <= 1) return setZ({ s: 1, x: 0, y: 0 });
+    const u = { x: (p.x - z.x) / z.s, y: (p.y - z.y) / z.s };
+    setZ(clamp({ s: target, x: p.x - target * u.x, y: p.y - target * u.y }));
+  };
+  const go = (d) => setIdx((i) => Math.max(0, Math.min(pages.length - 1, i + d)));
+
+  const onDown = (e) => {
+    if (stageRef.current && stageRef.current.setPointerCapture) {
+      try { stageRef.current.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    ptrs.current.set(e.pointerId, rel(e));
+    if (ptrs.current.size === 1) {
+      const p = rel(e);
+      const now = Date.now();
+      if (now - lastTap.current < 300) {
+        lastTap.current = 0; ges.current = null;
+        zoomAt(p, z.s > 1.2 ? 1 : 2.6);
+        return;
+      }
+      lastTap.current = now;
+      ges.current = { mode: "pan", p0: p, t0: { ...z }, swipe: 0 };
+    } else if (ptrs.current.size === 2) {
+      const v = [...ptrs.current.values()];
+      ges.current = {
+        mode: "pinch",
+        d0: Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1,
+        m0: { x: (v[0].x + v[1].x) / 2, y: (v[0].y + v[1].y) / 2 },
+        t0: { ...z },
+      };
+    }
+  };
+  const onMove = (e) => {
+    if (!ptrs.current.has(e.pointerId)) return;
+    ptrs.current.set(e.pointerId, rel(e));
+    const g = ges.current; if (!g) return;
+    if (g.mode === "pinch" && ptrs.current.size >= 2) {
+      const v = [...ptrs.current.values()];
+      const d = Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1;
+      const m = { x: (v[0].x + v[1].x) / 2, y: (v[0].y + v[1].y) / 2 };
+      const s = Math.min(6, Math.max(1, g.t0.s * (d / g.d0)));
+      const k = s / g.t0.s;
+      setZ(clamp({ s, x: m.x - k * (g.m0.x - g.t0.x), y: m.y - k * (g.m0.y - g.t0.y) }));
+    } else if (g.mode === "pan") {
+      const p = rel(e);
+      const dx = p.x - g.p0.x, dy = p.y - g.p0.y;
+      if (g.t0.s > 1.01) setZ(clamp({ s: g.t0.s, x: g.t0.x + dx, y: g.t0.y + dy }));
+      else g.swipe = dx;
+    }
+  };
+  const onUp = (e) => {
+    ptrs.current.delete(e.pointerId);
+    const g = ges.current;
+    if (g && g.mode === "pan" && ptrs.current.size === 0 && g.t0.s <= 1.01 && Math.abs(g.swipe) > 55) {
+      go(g.swipe < 0 ? 1 : -1);
+    }
+    if (ptrs.current.size === 0) ges.current = null;
+    else if (ptrs.current.size === 1) {
+      const v = [...ptrs.current.values()];
+      ges.current = { mode: "pan", p0: v[0], t0: { ...z }, swipe: 0 };
+    }
+  };
+  const onWheel = (e) => {
+    if (!e.ctrlKey && Math.abs(e.deltaY) < 4) return;
+    if (e.cancelable) e.preventDefault();
+    zoomAt(rel(e), Math.min(6, Math.max(1, z.s * (e.deltaY < 0 ? 1.15 : 0.87))));
+  };
+
+  const zoomed = z.s > 1.01;
+  const Prev = lang === "en" ? ChevronLeft : ChevronRight;
+  const Next = lang === "en" ? ChevronRight : ChevronLeft;
+
   return (
-    <div className="ovl" onClick={onClose}>
-      <div className="sheet doc-view" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720 }} role="dialog" aria-modal="true">
-        <div className="sheet-top">
-          <div className="flex items-center gap-2">
-            <span style={{
-              width: 36, height: 36, borderRadius: 11, background: accent + "14",
-              display: "flex", alignItems: "center", justifyContent: "center", flex: "none",
-            }}>
-              <FileText size={17} color={accent} />
-            </span>
-            <div>
-              <div className="sec-t">{L(doc.nameAr, doc.nameEn)}</div>
-              <div className="eyebrow" style={{ marginTop: 2 }}>{L(doc.subAr, doc.subEn)}</div>
-            </div>
-          </div>
-          <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
+    <div className="dvw" role="dialog" aria-modal="true">
+      <div className="dvw-top">
+        <button onClick={onClose} className="dvw-ico" aria-label={L("إغلاق", "Close")}><X size={17} /></button>
+        <div className="dvw-title">
+          <div className="dvw-name">{L(doc.nameAr, doc.nameEn)}</div>
+          <div className="dvw-page">{L(page.ar, page.en)} · {idx + 1}/{pages.length}</div>
         </div>
-        <div className="sheet-body doc-view-body">
-          <a
-            className="doc-view-open"
-            href={doc.url} target="_blank" rel="noopener noreferrer"
-            onClick={() => logEvent("nav", "doc_open_external", doc.id, null)}
-            style={{ background: accent }}
-          >
-            <ExternalLink size={14} /> {L("فتح في المتصفح / تنزيل", "Open in browser / Download")}
-          </a>
-          <div className="doc-view-frame-wrap">
-            <iframe
-              src={doc.url}
-              title={L(doc.nameAr, doc.nameEn)}
-              className="doc-view-frame"
-            />
+        {zoomed && (
+          <button onClick={() => setZ({ s: 1, x: 0, y: 0 })} className="dvw-ico" aria-label={L("إعادة الضبط", "Reset")}>
+            <RotateCcw size={15} />
+          </button>
+        )}
+      </div>
+
+      <div
+        className="dvw-stage" ref={stageRef}
+        onPointerDown={onDown} onPointerMove={onMove}
+        onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
+      >
+        {!loaded && <span className="dvw-spin" />}
+        <img
+          key={page.f}
+          className="dvw-img"
+          src={DOC_BASE + page.f}
+          alt={L(page.ar, page.en)}
+          draggable={false}
+          onLoad={(e) => {
+            natRef.current = { w: e.target.naturalWidth || 4, h: e.target.naturalHeight || 3 };
+            setLoaded(true);
+          }}
+          style={{
+            transform: `translate(${z.x}px, ${z.y}px) scale(${z.s})`,
+            transition: ges.current ? "none" : "transform .2s ease-out",
+            opacity: loaded ? 1 : 0,
+          }}
+        />
+      </div>
+
+      <div className="dvw-bot">
+        {pages.length > 1 && (
+          <div className="dvw-nav">
+            <button className="dvw-ico" onClick={() => go(-1)} disabled={idx === 0} aria-label={L("السابق", "Previous")}>
+              <Prev size={16} />
+            </button>
+            <div className="dvw-chips" ref={chipsRef}>
+              {pages.map((p, i) => (
+                <button key={p.f} className={`dvw-chip${i === idx ? " on" : ""}`} onClick={() => setIdx(i)}>
+                  {L(p.ar, p.en)}
+                </button>
+              ))}
+            </div>
+            <button className="dvw-ico" onClick={() => go(1)} disabled={idx === pages.length - 1} aria-label={L("التالي", "Next")}>
+              <Next size={16} />
+            </button>
           </div>
-          <p className="doc-view-hint">
-            {L(
-              "إذا لم تظهر المعاينة أعلاه على جهازك، استخدم زر الفتح/التنزيل بالأعلى.",
-              "If the preview above doesn't load on your device, use the Open/Download button above."
-            )}
-          </p>
+        )}
+        <div className="dvw-foot">
+          <span>{L("قرّب بإصبعين أو انقر مرتين للتكبير", "Pinch or double-tap to zoom")}</span>
+          <a
+            href={DOC_BASE + doc.pdf} target="_blank" rel="noopener noreferrer"
+            onClick={() => logEvent("nav", "doc_open_external", doc.id, null)}
+          >
+            <ExternalLink size={12} /> {L("الملف الأصلي PDF", "Original PDF")}
+          </a>
         </div>
       </div>
     </div>
@@ -2671,25 +2902,49 @@ export default function Dashboard() {
 .doc-disclaimer{display:flex;gap:9px;align-items:flex-start;background:${T.brass}0F;border:1px solid ${T.brass}33;
   border-radius:13px;padding:11px 13px;margin-bottom:16px;font-size:12px;color:${T.muted};line-height:1.8;}
 .doc-disclaimer svg{flex-shrink:0;margin-top:1px;color:${T.brass};}
-.doc-list{display:flex;flex-direction:column;gap:10px;}
-.doc-card{display:flex;align-items:center;gap:12px;background:${T.surface};border:1px solid ${T.line};
-  border-inline-start:4px solid ${T.brass};border-radius:15px;padding:13px 14px;box-shadow:${T.shadow};}
-.doc-icon{width:40px;height:40px;border-radius:11px;background:${T.sunken};display:flex;align-items:center;
-  justify-content:center;flex:none;}
-.doc-info{flex:1;min-width:0;}
-.doc-name{font-size:14px;font-weight:600;color:${T.paper};}
-.doc-sub{font-size:11.5px;color:${T.muted};margin-top:2px;}
-.doc-btn{flex:none;border:none;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600;
-  font-family:inherit;color:${T.onAccent};cursor:pointer;}
-.doc-btn:hover{filter:brightness(1.06);}
+.doc-list{display:grid;grid-template-columns:1fr;gap:11px;}
+.doc-card{display:flex;align-items:center;gap:13px;width:100%;text-align:start;background:${T.surface};
+  border:1px solid ${T.line};border-inline-start:4px solid ${T.brass};border-radius:16px;padding:11px 13px;
+  box-shadow:${T.shadow};font-family:inherit;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.doc-card:active{transform:scale(.985);}
+.doc-thumb{width:62px;height:62px;border-radius:13px;overflow:hidden;flex:none;background:${T.sunken};
+  border:1px solid ${T.line};}
+.doc-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.doc-info{flex:1;min-width:0;display:block;}
+.doc-name{display:block;font-size:14.5px;font-weight:600;color:${T.paper};}
+.doc-sub{display:block;font-size:11.5px;color:${T.muted};margin-top:3px;}
+.doc-meta{font-size:11px;color:${T.faint};margin-top:5px;display:flex;align-items:center;gap:5px;}
+.doc-go{flex:none;color:${T.faint};display:flex;align-items:center;}
 
-.doc-view-body{display:flex;flex-direction:column;gap:12px;}
-.doc-view-open{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px;border-radius:12px;
-  color:${T.onAccent};font-size:13.5px;font-weight:600;text-decoration:none;}
-.doc-view-frame-wrap{border:1px solid ${T.line};border-radius:13px;overflow:hidden;background:${T.sunken};
-  height:min(62vh,560px);}
-.doc-view-frame{width:100%;height:100%;border:none;display:block;}
-.doc-view-hint{font-size:11.5px;color:${T.faint};text-align:center;margin:0;line-height:1.7;}
+.dvw{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;
+  background:${resolved === "dark" ? "#050C10" : "#0C1519"};animation:fade .18s ease;}
+.dvw-top{display:flex;align-items:center;gap:11px;padding:calc(9px + env(safe-area-inset-top)) 12px 9px;
+  background:rgba(0,0,0,.34);flex:none;}
+.dvw-title{flex:1;min-width:0;}
+.dvw-name{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dvw-page{font-size:11.5px;color:rgba(255,255,255,.6);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dvw-ico{border:none;background:rgba(255,255,255,.13);color:#fff;width:35px;height:35px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font-family:inherit;}
+.dvw-ico:disabled{opacity:.28;cursor:default;}
+.dvw-stage{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;
+  display:flex;align-items:center;justify-content:center;}
+.dvw-img{width:100%;height:100%;object-fit:contain;display:block;transform-origin:center center;
+  user-select:none;-webkit-user-select:none;-webkit-user-drag:none;}
+.dvw-spin{position:absolute;width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.22);
+  border-top-color:#fff;animation:dvwspin .8s linear infinite;}
+@keyframes dvwspin{to{transform:rotate(360deg);}}
+.dvw-bot{background:rgba(0,0,0,.34);padding:9px 10px calc(9px + env(safe-area-inset-bottom));flex:none;}
+.dvw-nav{display:flex;align-items:center;gap:8px;}
+.dvw-chips{flex:1;min-width:0;display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none;}
+.dvw-chips::-webkit-scrollbar{display:none;}
+.dvw-chip{flex:none;border:1px solid rgba(255,255,255,.17);background:rgba(255,255,255,.07);
+  color:rgba(255,255,255,.72);font-family:inherit;font-size:11.5px;padding:7px 12px;border-radius:999px;
+  cursor:pointer;white-space:nowrap;}
+.dvw-chip.on{background:#fff;color:#0C1519;border-color:#fff;font-weight:600;}
+.dvw-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;
+  font-size:11px;color:rgba(255,255,255,.5);}
+.dvw-foot a{display:inline-flex;align-items:center;gap:5px;color:rgba(255,255,255,.72);text-decoration:none;
+  border:1px solid rgba(255,255,255,.17);border-radius:999px;padding:5px 11px;flex:none;}
 
 @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fade{from{opacity:0;}to{opacity:1;}}
@@ -3086,21 +3341,27 @@ export default function Dashboard() {
               <div className="doc-list">
                 {DOCS.map((doc) => {
                   const accent = doc.color ? DOC_COLORS[resolved][doc.color] : T.brass;
+                  const Go = lang === "en" ? ChevronRight : ChevronLeft;
                   return (
-                    <div key={doc.id} className="doc-card" style={{ borderInlineStartColor: accent }}>
-                      <span className="doc-icon" style={{ color: accent }}><FileText size={19} /></span>
-                      <div className="doc-info">
-                        <div className="doc-name">{L(doc.nameAr, doc.nameEn)}</div>
-                        <div className="doc-sub">{L(doc.subAr, doc.subEn)}</div>
-                      </div>
-                      <button
-                        className="doc-btn"
-                        style={{ background: accent }}
-                        onClick={() => { logEvent("nav", "doc_open", doc.id, null); setDocView(doc); }}
-                      >
-                        {L("فتح", "Open")}
-                      </button>
-                    </div>
+                    <button
+                      key={doc.id}
+                      className="doc-card"
+                      style={{ borderInlineStartColor: accent }}
+                      onClick={() => { logEvent("nav", "doc_open", doc.id, null); setDocView(doc); }}
+                    >
+                      <span className="doc-thumb" style={{ borderColor: accent + "55" }}>
+                        <img src={DOC_BASE + doc.cover} alt="" loading="lazy" />
+                      </span>
+                      <span className="doc-info">
+                        <span className="doc-name">{L(doc.nameAr, doc.nameEn)}</span>
+                        <span className="doc-sub">{L(doc.subAr, doc.subEn)}</span>
+                        <span className="doc-meta" style={{ color: accent }}>
+                          <FileText size={11} />
+                          {doc.pages.length} {L(doc.pages.length === 1 ? "لوحة" : "لوحات", doc.pages.length === 1 ? "sheet" : "sheets")}
+                        </span>
+                      </span>
+                      <span className="doc-go"><Go size={17} /></span>
+                    </button>
                   );
                 })}
               </div>
