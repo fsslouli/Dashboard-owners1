@@ -1362,5 +1362,43 @@
   "reply_en": "",
   "content_hash": "4634d25501ef",
   "last_modified": "2026-08-09"
+ },
+ {
+  "id": 74,
+  "model": "جميع النماذج",
+  "loc": "الدرج",
+  "pri": "متوسطة",
+  "status": "قيد الدراسة",
+  "answered": false,
+  "owner": "غير محدد",
+  "month": "",
+  "closed": false,
+  "meetings": [
+   "الاجتماع الرابع"
+  ],
+  "note": "يوجد فراغ مثلث الشكل في زاوية السقف الجبسي المعلق أسفل بطن الدرج المائل، لم يتم إقفاله ضمن استراكشر الجبس بورد المركب. الحل المقترح: تزويدنا بالتفصيل الإنشائي المعتمد لإقفال هذه الزاوية (بلوك إنشائي أم لوح جبس بورد)، مع التأكيد على استمرارية العزل عند نقطة التقاء السقف المائل بالسقف الأفقي وعدم ترك الفراغ مكشوفاً بشكل دائم.",
+  "reply": "",
+  "note_en": "There is a triangular gap in the corner of the suspended gypsum ceiling under the sloped staircase soffit that hasn't been closed off within the installed gypsum board structure. Proposed solution: provide the approved construction detail for closing this corner (structural block or gypsum board panel), confirming insulation continuity where the sloped ceiling meets the horizontal ceiling, and not leaving the gap permanently exposed.",
+  "reply_en": "",
+  "content_hash": "c4febc2ceb08",
+  "last_modified": "2026-08-11"
+ },
+ {
+  "id": 75,
+  "model": "جميع النماذج",
+  "loc": "الشارع",
+  "pri": "متوسطة",
+  "status": "قيد الدراسة",
+  "answered": true,
+  "owner": "م/إبراهيم (مالك)",
+  "month": "",
+  "closed": true,
+  "meetings": [],
+  "note": "استفسار عن نوع الكيبل المستخدم في تمديد التغذية الكهربائية للحي.",
+  "reply": "حسب اللوحة الظاهرة على الكيبل الميداني، كيبل ELLTAL CABLE COMPANY، موصل ألمنيوم (AL)، عزل XLPE، غلاف PVC، مقطع 4×70 مم² تقريباً، جهد تشغيل 0.6/1kV، وهو كيبل توزيع منخفض الجهد (LV) نمطي لتغذية الأحياء السكنية من المحولات إلى لوحات التوزيع الفرعية، وليس تغذية داخلية لوحدة سكنية واحدة.",
+  "note_en": "Inquiry about the type of cable used for the neighborhood's electrical supply extension.",
+  "reply_en": "Per the label on the field cable: ELLTAL CABLE COMPANY, aluminum (AL) conductor, XLPE insulation, PVC sheath, cross-section approximately 4x70 mm2, operating voltage 0.6/1kV — a standard low-voltage (LV) distribution cable feeding residential neighborhoods from transformers to sub-distribution panels, not an internal supply cable for a single unit.",
+  "content_hash": "52f5c5b98fea",
+  "last_modified": "2026-08-11"
  }
 ]
