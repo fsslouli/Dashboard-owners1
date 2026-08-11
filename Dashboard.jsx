@@ -23,7 +23,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, createCon
 /* ── ١. تتبع صامت للزيارات وسلوك الملاك (Supabase) ── */
 const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
-const TELEGRAM_URL = "https://t.me/+JNw2Vd_HS2o0YmY0";
+const TELEGRAM_URL = "https://t.me/+thhB4M36VkFkYjZk";
 /* رقم جلسة عشوائي مؤقت يتولّد مرة وحدة لكل تحميل صفحة — بدون أي معنى شخصي،
    هدفه فقط تجميع أحداث نفس الزيارة ببعض لتقدير الوقت المقضي (تحليل كلي وليس فردي) */
 const SESSION_ID =
