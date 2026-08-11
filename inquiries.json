@@ -1367,7 +1367,7 @@
   "id": 74,
   "model": "جميع النماذج",
   "loc": "الدرج",
-  "pri": "متوسطة",
+  "pri": "عالية",
   "status": "قيد الدراسة",
   "answered": false,
   "owner": "غير محدد",
@@ -1376,11 +1376,11 @@
   "meetings": [
    "الاجتماع الرابع"
   ],
-  "note": "يوجد فراغ مثلث الشكل في زاوية السقف الجبسي المعلق أسفل بطن الدرج المائل، لم يتم إقفاله ضمن استراكشر الجبس بورد المركب. الحل المقترح: تزويدنا بالتفصيل الإنشائي المعتمد لإقفال هذه الزاوية (بلوك إنشائي أم لوح جبس بورد)، مع التأكيد على استمرارية العزل عند نقطة التقاء السقف المائل بالسقف الأفقي وعدم ترك الفراغ مكشوفاً بشكل دائم.",
+  "note": "يوجد فراغ مثلث الشكل في زاوية السقف الجبسي المعلق أسفل بطن الدرج المائل، لم يتم إقفاله ضمن استراكشر الجبس بورد المركب. وعدم إقفال هذا الفراغ بالبلوك الإنشائي قد يؤدي إلى ضعف العزل الصوتي، وقد يتسبب في تسرب المياه أثناء أعمال الغسيل، كما قد يتسبب في حدوث انتفاخات بالجبس بورد نتيجة غسيل البلاط، مع احتمال تأثر جبس سقف الدور السفلي أيضاً. الحل المقترح: تزويدنا بالتفصيل الإنشائي المعتمد لإقفال هذه الزاوية (بلوك إنشائي أم لوح جبس بورد)، مع التأكيد على استمرارية العزل عند نقطة التقاء السقف المائل بالسقف الأفقي وعدم ترك الفراغ مكشوفاً بشكل دائم.",
   "reply": "",
-  "note_en": "There is a triangular gap in the corner of the suspended gypsum ceiling under the sloped staircase soffit that hasn't been closed off within the installed gypsum board structure. Proposed solution: provide the approved construction detail for closing this corner (structural block or gypsum board panel), confirming insulation continuity where the sloped ceiling meets the horizontal ceiling, and not leaving the gap permanently exposed.",
+  "note_en": "There is a triangular gap in the corner of the suspended gypsum ceiling under the sloped staircase soffit that hasn't been closed off within the installed gypsum board structure. Leaving this gap unclosed with a structural block may weaken sound insulation, cause water leakage during washing, lead to gypsum board swelling from tile washing, and could also affect the ceiling gypsum of the floor below. Proposed solution: provide the approved construction detail for closing this corner (structural block or gypsum board panel), confirming insulation continuity where the sloped ceiling meets the horizontal ceiling, and not leaving the gap permanently exposed.",
   "reply_en": "",
-  "content_hash": "c4febc2ceb08",
+  "content_hash": "c3bcdee875e9",
   "last_modified": "2026-08-11"
  },
  {
