@@ -1420,5 +1420,23 @@
     "reply_en": "The request to modify the living room's gypsum ceiling design into one that could be split in the future was rejected, due to its negative effect on the overall aesthetics of the gypsum ceiling design. The design will be approved as implemented in the show villa (a single continuous piece), without modification.",
     "content_hash": "258a6e037c78",
     "last_modified": "2026-08-13"
+  },
+  {
+    "id": 77,
+    "model": "جميع النماذج",
+    "loc": "الحوش الخلفي (الأرضي)",
+    "pri": "عالية",
+    "status": "قيد الدراسة",
+    "answered": false,
+    "owner": null,
+    "month": null,
+    "closed": false,
+    "meetings": [],
+    "note": "بالإشارة إلى الاستفسارين رقم (٦٣) و(٦٤): تحديد مقاس الماسورة جاء بردٍّ غير قاطع (٣-٤ بوصة)، واعتماد الميل فقط -دون قياس ميداني موثّق- كمبرر لعدم تركيب رداد أو غرفة تفتيش. يُطلب: تحديد القطر الفعلي المنفَّذ بدقة، تزويد الملاك بقياس الميل التنفيذي فعلياً، ودراسة إضافة فتحة فيضان احتياطية بسور الحوش الخلفي",
+    "reply": null,
+    "note_en": "Referring to inquiries No. (63) and (64): the pipe diameter was answered inconclusively (3-4 inches), and the slope alone was cited -without documented field measurement- as justification for not installing a cleanout or inspection chamber. Requested: precisely determine the actual installed diameter, provide owners with the actual executed slope measurement, and study adding a backup overflow opening in the back yard wall.",
+    "reply_en": null,
+    "content_hash": "f494253c37c6",
+    "last_modified": "2026-08-14"
   }
 ]
