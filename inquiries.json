@@ -529,7 +529,7 @@
     "status": "قيد الدراسة",
     "answered": true,
     "owner": "م/محمد عبدالمعطي",
-    "month": "2026-07",
+    "month": "2026-08",
     "closed": false,
     "meetings": [
       "الاجتماع الرابع"
@@ -675,7 +675,7 @@
     "status": "معتمدة",
     "answered": true,
     "owner": "م/محمد عبدالمعطي",
-    "month": "2026-07",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الرابع"
@@ -928,20 +928,20 @@
     "model": "جميع النماذج",
     "loc": "الدور الأرضي",
     "pri": "متوسطة",
-    "status": "معتمدة",
+    "status": "تم الرفض",
     "answered": true,
     "owner": "م/محمد عبدالمعطي",
-    "month": "2026-07",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الثالث"
     ],
     "note": "تصميم الجبس بورد بالصالة قطعة واحدة كاملة — طُلب سابقًا تعديله بنفس تصميم المجلس ولم يُعتمد، والآن يجري تعديله بما يسمح مستقبلاً بفصل الصالة لغرفتين عند الحاجة",
-    "reply": "تم اعتماد تعديل تصميم الجبس بالصالة بما يسهّل فصلها لغرفتين مستقبلاً",
+    "reply": "تم رفض تعديل تصميم الجبس بورد بالصالة إلى تصميم قابل للفصل مستقبلاً، نظراً لتأثيره السلبي على الشكل الجمالي العام لتصميم السقف الجبسي، وسيُعتمد التصميم كما هو منفّذ في فيلا العرض (قطعة واحدة كاملة) دون تعديل.",
     "note_en": "The gypsum ceiling design in the living room (sala) is a single continuous piece — a previous request to match the majlis design was not approved, and it is now being revised to allow the living room to be split into two rooms in the future if needed.",
-    "reply_en": "Approved: modifying the living room's gypsum ceiling design to make it easier to divide it into two rooms in the future.",
-    "content_hash": "f9f56aa51295",
-    "last_modified": null
+    "reply_en": "The request to modify the gypsum board design in the living room to a future-separable design was rejected, due to its negative impact on the overall aesthetic of the ceiling design. The design will be approved as executed in the show villa (one complete piece) without modification.",
+    "content_hash": "258a6e037c78",
+    "last_modified": "2026-08-20"
   },
   {
     "id": 53,
@@ -1152,8 +1152,8 @@
     "pri": "متوسطة",
     "status": "معتمدة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الرابع"
@@ -1172,8 +1172,8 @@
     "pri": "عالية",
     "status": "معتمدة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الرابع"
@@ -1192,8 +1192,8 @@
     "pri": "عالية",
     "status": "معتمدة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الرابع"
@@ -1212,8 +1212,8 @@
     "pri": "عالية",
     "status": "قيد الدراسة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": false,
     "meetings": [
       "الاجتماع الرابع"
@@ -1232,8 +1232,8 @@
     "pri": "عالية",
     "status": "معتمدة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الرابع"
@@ -1252,8 +1252,8 @@
     "pri": "متوسطة",
     "status": "تم الرفض",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": true,
     "meetings": [
       "الاجتماع الرابع"
@@ -1272,8 +1272,8 @@
     "pri": "عالية",
     "status": "قيد الدراسة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": false,
     "meetings": [
       "الاجتماع الرابع"
@@ -1292,8 +1292,8 @@
     "pri": "عالية",
     "status": "قيد الدراسة",
     "answered": true,
-    "owner": "غير محدد",
-    "month": "2026-07",
+    "owner": "م/محمد عبدالمعطي",
+    "month": "2026-08",
     "closed": false,
     "meetings": [
       "الاجتماع الرابع"
@@ -1312,7 +1312,7 @@
     "pri": "متوسطة",
     "status": "معتمدة",
     "answered": true,
-    "owner": "أبو سلطان",
+    "owner": "أبو سلطان (مالك)",
     "month": "2026-08",
     "closed": true,
     "meetings": [],
@@ -1350,7 +1350,7 @@
     "pri": "عالية",
     "status": "قيد الدراسة",
     "answered": true,
-    "owner": "غير محدد",
+    "owner": "م/محمد عبدالمعطي",
     "month": "2026-08",
     "closed": false,
     "meetings": [
@@ -1370,7 +1370,7 @@
     "pri": "عالية",
     "status": "معتمدة",
     "answered": true,
-    "owner": "غير محدد",
+    "owner": "م/محمد عبدالمعطي",
     "month": "2026-08",
     "closed": true,
     "meetings": [
@@ -1427,16 +1427,52 @@
     "loc": "الحوش الخلفي (الأرضي)",
     "pri": "عالية",
     "status": "قيد الدراسة",
+    "answered": true,
+    "owner": "المهندس الميكانيكي للمشروع",
+    "month": "2026-08",
+    "closed": false,
+    "meetings": [],
+    "note": "يُطلب رفع مقاس ماسورة تصريف الحوش الخلفي إلى ٤ بوصة، نظراً لعدم وجود غرفة تفتيش أو رداد ضمن التنفيذ الحالي",
+    "reply": "تمت مناقشة الموضوع مع المهندس الميكانيكي للمشروع بحضور ممثل الملاك، وتبيّن وجود تحدٍ فني يتمثل في صعوبة تكبير قطر الأنبوب الحالي نظراً لمحدودية الارتفاع المتاح وسماكة اللبشة الخرسانية. وأشار المهندس إلى وجود حوض زراعي بالحوش الخلفي يستوعب جزءاً من مياه التصريف، إلا أنه تم التأكيد على ضرورة إيجاد حل بديل ومستدام لا يقتصر على الامتصاص الطبيعي فقط. وعليه، تم اقتراح إضافة خط تصريف ثانٍ في الحوش الخلفي لتوزيع الحمل بين الخطين، على أن تُعاد دراسة الموضوع مع الاستشاري الهندسي لاختيار الحل الأنسب واعتماده",
+    "note_en": "A request to increase the back yard drainage pipe diameter to 4 inches, given the absence of an inspection chamber or cleanout in the current execution.",
+    "reply_en": "The issue was discussed with the project mechanical engineer in the presence of an owner representative. A technical challenge was identified: enlarging the current pipe diameter is difficult due to limited available height and the thickness of the concrete raft. The engineer noted a planting bed in the back yard absorbs part of the drainage water, but confirmed the need for a sustainable solution beyond natural absorption alone. A second drainage line in the back yard was proposed to split the load between both lines, pending further review with the engineering consultant to select and approve the best solution.",
+    "content_hash": "a4fefd15d528",
+    "last_modified": "2026-08-20"
+  },
+  {
+    "id": 78,
+    "model": "جميع النماذج",
+    "loc": "كامل الفيلا",
+    "pri": "عالية جدًا",
+    "status": "قيد الدراسة",
     "answered": false,
     "owner": null,
     "month": null,
     "closed": false,
     "meetings": [],
-    "note": "يُطلب رفع مقاس ماسورة تصريف الحوش الخلفي إلى ٤ بوصة، نظراً لعدم وجود غرفة تفتيش أو رداد ضمن التنفيذ الحالي",
+    "note": "استفساراً عن تفاصيل عرض \"الكاش باك\" المُعلن عنه للمشترين خلال معرض سيتي سكيب، من حيث طبيعة الاستفادة منه (مبلغ نقدي يُعاد للمشتري لاحقاً، أو خصم مباشر، أو ميزة أخرى)، والجهة التي تعاقدت معها الشركة المطوّرة لتنفيذ هذا العرض، وآلية الاستفادة منه وشروطه",
     "reply": null,
-    "note_en": "A request to increase the back yard drainage pipe diameter to 4 inches, given the absence of an inspection chamber or cleanout in the current execution.",
+    "note_en": "A request for details on the \"cash back\" offer announced to buyers during the Cityscape exhibition, regarding the nature of the benefit (a cash amount refunded later, a direct discount, or another feature), the party the developer contracted with to implement the offer, and its mechanism and terms.",
     "reply_en": null,
-    "content_hash": "86841cb10ec5",
-    "last_modified": "2026-08-14"
+    "content_hash": "dc4272b4d201",
+    "last_modified": "2026-08-20"
+  },
+  {
+    "id": 79,
+    "model": "جميع النماذج",
+    "loc": "كامل الفيلا",
+    "pri": "عالية جدًا",
+    "status": "قيد الدراسة",
+    "answered": false,
+    "owner": null,
+    "month": null,
+    "closed": false,
+    "meetings": [],
+    "note": "استفساراً عن وجود عرض أو ميزة خاصة للملاك الذين تمت عملية الشراء لديهم عن طريق معرض \"ريستاكس\"، وتوضيح ما إذا كانت هذه الميزة تشمل جميع من اشترى عبر هذا المعرض بغض النظر عن قناة التواصل الأولى، وذلك للتأكد من استحقاق الاستفادة منها من عدمه",
+    "reply": null,
+    "note_en": "A request to clarify whether a special offer or benefit exists for owners who purchased through the \"Restacks\" exhibition, and whether it applies to everyone who bought through that exhibition regardless of their initial contact channel, in order to confirm eligibility.",
+    "reply_en": null,
+    "content_hash": "be56c0b7011a",
+    "last_modified": "2026-08-20"
   }
 ]
