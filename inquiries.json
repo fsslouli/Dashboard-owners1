@@ -1474,5 +1474,23 @@
     "reply_en": null,
     "content_hash": "be56c0b7011a",
     "last_modified": "2026-08-20"
+  },
+  {
+    "id": 80,
+    "model": "جميع النماذج",
+    "loc": "الشارع",
+    "pri": "متوسطة",
+    "status": "معتمدة",
+    "answered": true,
+    "owner": "أبو سلطان (مالك)",
+    "month": "2026-08",
+    "closed": true,
+    "meetings": [],
+    "note": "استفساراً عن آلية تمديد كوابل الاتصالات (الإنترنت) بالمشروع، وهل تم تجهيز البنية التحتية اللازمة لذلك",
+    "reply": "تم الاطلاع ميدانياً اليوم على أنابيب تأسيس الألياف البصرية (Microducts) الخاصة بالمشروع، وتبيّن أنها جاهزة ومُمدَّدة ضمن البنية التحتية، بحيث يتم لاحقاً تمرير كوابل الإنترنت (الألياف البصرية) من خلالها دون الحاجة لأي أعمال حفر أو تكسير إضافية",
+    "note_en": "An inquiry about the mechanism for running telecom (internet) cables across the project, and whether the necessary infrastructure has been prepared for that.",
+    "reply_en": "A field inspection was conducted today of the project's fiber-optic infrastructure ducts (microducts), confirming they are ready and already laid within the infrastructure, so internet (fiber-optic) cables can later be pulled through them without any additional excavation or demolition work.",
+    "content_hash": "0be7c55437cb",
+    "last_modified": "2026-08-20"
   }
 ]
