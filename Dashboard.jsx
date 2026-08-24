@@ -2213,6 +2213,35 @@ function PublicSite() {
   const [docView, setDocView] = useState(null);
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
+
+  /* تحديث لحظي: يجيب البيانات الحية من قاعدة البيانات، ويشترك بالتغييرات الفورية
+     (Supabase Realtime) — أي تعديل يسويه الأدمن (مزامنة إكسل أو يدوي) ينعكس هنا
+     تلقائيًا بدون ما يحتاج الزائر يحدّث الصفحة. لو فشل الاتصال أو الجدول فاضي،
+     يبقى الموقع شغّال بالنسخة الأساسية (BASE) بدون أي انقطاع. */
+  useEffect(() => {
+    const mapRow = (r) => ({
+      id: r.id, model: r.model, loc: r.loc, pri: r.pri, sta: r.status,
+      answered: !!r.answered, owner: r.owner, month: r.month,
+      closed: r.closed === "نعم" || r.closed === true,
+      meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
+      note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
+      last_modified: r.last_modified,
+    });
+    const fetchLive = async () => {
+      try {
+        const { data: rows, error } = await supabase.from("inquiries").select("*").order("id");
+        if (error || !rows || !rows.length) return;
+        setData((d) => ({ ...d, records: rows.map(mapRow) }));
+      } catch {}
+    };
+    fetchLive();
+    const channel = supabase
+      .channel("public-inquiries-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "inquiries" }, fetchLive)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const [loading, setLoading] = useState(true);
   const [pg, setPg] = useState(PG_BASE);
   const [pgLoading, setPgLoading] = useState(true);
@@ -3485,6 +3514,21 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const [form, setForm] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [applying, setApplying] = useState(false);
+  const [backups, setBackups] = useState([]);
+  const [restoring, setRestoring] = useState(null);
+  const loadBackups = () => supabase.from("data_backups").select("*").order("created_at", { ascending: false }).then(({ data }) => setBackups(data || []));
+  useEffect(() => { loadBackups(); }, []);
+  const restoreBackup = async (b) => {
+    setRestoring(b.id);
+    await supabase.from("inquiries").delete().neq("id", -1);
+    if ((b.inquiries || []).length) await supabase.from("inquiries").insert(b.inquiries.map(({ updated_at, ...r }) => r));
+    await supabase.from("progress").delete().neq("month", "");
+    if ((b.progress || []).length) await supabase.from("progress").insert(b.progress);
+    log("استرجاع نسخة احتياطية", b.label);
+    flashToast("تم الاسترجاع بنجاح");
+    setRestoring(null);
+    refreshInquiries(); refreshProgress();
+  };
 
   const guessTarget = (name) => { const n = name.toLowerCase(); if (n.includes("تقدم") || n.includes("progress")) return "progress"; return "inquiries"; };
   const downloadTemplate = () => {
@@ -3539,6 +3583,19 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     setApplying(true);
     let count = 0;
     try {
+      // نسخة احتياطية تلقائية قبل أي تعديل — نحتفظ بآخر نسختين فقط غير النسخة الجديدة
+      const { data: backupInq } = await supabase.from("inquiries").select("*");
+      const { data: backupProg } = await supabase.from("progress").select("*");
+      await supabase.from("data_backups").insert({
+        label: `قبل مزامنة بتاريخ ${fmtAdminDate(new Date())}`,
+        inquiries: backupInq || [], progress: backupProg || [],
+      });
+      const { data: allBackups } = await supabase.from("data_backups").select("id").order("created_at", { ascending: false });
+      if (allBackups && allBackups.length > 2) {
+        const idsToDelete = allBackups.slice(2).map((b) => b.id);
+        await supabase.from("data_backups").delete().in("id", idsToDelete);
+      }
+
       for (const res of diffResults) {
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
@@ -3582,6 +3639,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       log("مزامنة بيانات", `تم اعتماد ${count} عنصر عبر ${diffResults.length} شيت`);
       await refreshInquiries(); await refreshProgress();
       flashToast(`تم تحديث الموقع بالكامل — ${count} عنصر`);
+      loadBackups();
       setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]);
     } catch (err) {
       flashToast("صار خطأ أثناء الحفظ — تأكد إن جداول Supabase مجهّزة (setup-supabase.sql)");
@@ -3625,6 +3683,26 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
         </div>
       </div>
+
+      {backups.length > 0 && (
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><History size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>نسخ احتياطية</span></div>
+          <p style={{ fontSize: 12, color: T.muted, margin: "4px 0 12px", lineHeight: 1.7 }}>تُؤخذ تلقائيًا قبل كل مزامنة إكسل — يُحتفظ بآخر نسختين فقط. لو صار خطأ بمزامنة، ترجع بضغطة وحدة.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {backups.map((b) => (
+              <div key={b.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 10, padding: "10px 12px" }}>
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>{b.label}</div>
+                  <div style={{ fontSize: 11, color: T.muted }}>{(b.inquiries || []).length} استفسار · {(b.progress || []).length} صف تقدّم</div>
+                </div>
+                <button onClick={() => restoreBackup(b)} disabled={restoring === b.id} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.brass}55`, color: T.brass, borderRadius: 9, padding: "7px 12px", fontSize: 11.5, fontWeight: 600, cursor: restoring === b.id ? "wait" : "pointer" }}>
+                  <RefreshCw size={12} /> {restoring === b.id ? "جارٍ الاسترجاع..." : "استرجاع هذي النسخة"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {sheets && !diffResults && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
@@ -3799,12 +3877,32 @@ function AAnalyticsTab({ flashToast, canExport }) {
   const uniqueSessions = new Set(filtered.map((e) => e.session_id)).size;
 
   const exportExcel = () => {
-    const summary = ADMIN_EVENT_TYPES.map((t) => ({ "نوع الحدث": t.label, "العدد": filtered.filter((e) => e.event_type === t.key).length }));
-    const raw = filtered.map((e) => ({ "نوع الحدث": ADMIN_EVENT_TYPES.find((t) => t.key === e.event_type)?.label || e.event_type, "تصنيف": e.category ?? "", "قيمة": e.value ?? "", "الجلسة": e.session_id, "التاريخ": fmtAdminDate(e.created_at) }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "ملخص");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "سجل تفصيلي");
-    XLSX.writeFile(wb, `تقرير-الزيارات-${from}_${to}.xlsx`); flashToast("تم تصدير التقرير");
+
+    // ورقة الملخص الشامل — أول ورقة تفتح، نظرة سريعة على كل شي
+    const uniqueSessionsAll = new Set(filtered.map((e) => e.session_id)).size;
+    const summaryRows = [
+      { "البند": "الفترة", "القيمة": `${from} إلى ${to}` },
+      { "البند": "إجمالي الأحداث", "القيمة": filtered.length },
+      { "البند": "زوّار مميّزون بالفترة", "القيمة": uniqueSessionsAll },
+      { "البند": "تاريخ إصدار التقرير", "القيمة": fmtAdminDate(new Date()) },
+      {},
+      { "البند": "نوع الحدث", "القيمة": "العدد" },
+      ...ADMIN_EVENT_TYPES.map((t) => ({ "البند": t.label, "القيمة": filtered.filter((e) => e.event_type === t.key).length })),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows, { skipHeader: true }), "ملخص شامل");
+
+    // ورقة مستقلة لكل نوع حدث فيه بيانات
+    ADMIN_EVENT_TYPES.forEach((t) => {
+      const rows = filtered.filter((e) => e.event_type === t.key);
+      if (!rows.length) return;
+      const sheetRows = rows.map((e) => ({ "تصنيف": e.category ?? "", "قيمة": e.value ?? "", "الجلسة": e.session_id, "التاريخ والوقت": fmtAdminDate(e.created_at) }));
+      const safeName = t.label.replace(/[\\/*?:"\[\]]/g, "").slice(0, 28); // حد أقصى لاسم الورقة بإكسل
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheetRows), safeName);
+    });
+
+    XLSX.writeFile(wb, `تقرير-الزيارات-${from}_${to}.xlsx`);
+    flashToast("تم تصدير التقرير — كل نوع بورقة مستقلة + ملخص شامل");
   };
 
   return (
