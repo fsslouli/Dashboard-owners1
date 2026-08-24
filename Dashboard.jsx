@@ -3900,6 +3900,8 @@ function AAuditLogTab() {
 function AUsersTab({ profile, flashToast, log }) {
   const T = THEMES.light;
   const [members, setMembers] = useState([]); const [editingId, setEditingId] = useState(null); const [form, setForm] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState(null); // { name, email, password, perms }
   const load = () => supabase.from("profiles").select("*").then(({ data }) => setMembers(data || []));
   useEffect(() => { load(); }, []);
   const startEdit = (m) => { setEditingId(m.id); setForm({ ...m }); };
@@ -3909,13 +3911,27 @@ function AUsersTab({ profile, flashToast, log }) {
     log("تعديل صلاحيات عضو", `${form.name} — ${form.perms.length} صلاحية`);
     flashToast("تم حفظ الصلاحيات"); setEditingId(null); setForm(null); load();
   };
+  const startCreate = () => setNewUser({ name: "", email: "", password: "", perms: [] });
+  const toggleNewPerm = (key) => setNewUser((f) => ({ ...f, perms: f.perms.includes(key) ? f.perms.filter((p) => p !== key) : [...f.perms, key] }));
+  const createUser = async () => {
+    if (!newUser.email.trim() || newUser.password.length < 6) { flashToast("لازم بريد صحيح وكلمة مرور ٦ أحرف فأكثر"); return; }
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke("admin-invite-user", {
+      body: { email: newUser.email.trim(), password: newUser.password, name: newUser.name.trim() || newUser.email.trim(), perms: newUser.perms },
+    });
+    setCreating(false);
+    if (error || data?.error) { flashToast(data?.error || "تعذّر إنشاء الحساب"); return; }
+    log("إضافة عضو جديد", `${newUser.name || newUser.email} — ${newUser.perms.length} صلاحية`);
+    flashToast("تم إنشاء الحساب — يقدر يدخل فورًا بنفس البريد وكلمة المرور");
+    setNewUser(null); load();
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ background: "#B8790F14", border: "1px solid #B8790F33", borderRadius: 14, padding: "12px 14px", fontSize: 12, color: "#8A6318", lineHeight: 1.8 }}>
-        إضافة عضو جديد بالكامل (بريد وكلمة مرور) تصير من Supabase Dashboard → Authentication → Add user، لأن إنشاء حساب دخول حقيقي ما يصير بأمان من واجهة الموقع. بعد ما تنشئه هناك، يظهر هنا تلقائيًا وتقدر تحدد صلاحياته.
-      </div>
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><Users size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>أعضاء لوحة الإدارة</span></div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Users size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>أعضاء لوحة الإدارة</span></div>
+          <button onClick={startCreate} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "8px 13px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}><UserPlus size={14} /> إضافة عضو جديد</button>
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
           {members.map((u) => (
             <div key={u.id} style={{ background: T.sunken, borderRadius: 12, padding: 12 }}>
@@ -3942,6 +3958,30 @@ function AUsersTab({ profile, flashToast, log }) {
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={save} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
             <button onClick={() => { setEditingId(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+          </div>
+        </div>
+      )}
+      {newUser && (
+        <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>إضافة عضو جديد بالكامل</div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}><label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>الاسم</label><input value={newUser.name} onChange={(e) => setNewUser((f) => ({ ...f, name: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.sunken }} /></div>
+            <div style={{ flex: 1 }}><label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>البريد الإلكتروني</label><input type="email" value={newUser.email} onChange={(e) => setNewUser((f) => ({ ...f, email: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.sunken }} /></div>
+          </div>
+          <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>كلمة مرور مبدئية (يقدر يغيّرها بعدين)</label>
+          <input type="text" value={newUser.password} onChange={(e) => setNewUser((f) => ({ ...f, password: e.target.value }))} placeholder="٦ أحرف على الأقل" style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 10, border: `1px solid ${T.line}`, marginBottom: 14, fontSize: 13, background: T.sunken }} />
+          <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 8 }}>الصلاحيات</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {ADMIN_PERMISSIONS.map((p) => { const on = newUser.perms.includes(p.key); const Icon = p.icon; return (
+              <button key={p.key} onClick={() => toggleNewPerm(p.key)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: "pointer" }}>
+                <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
+                <Icon size={14} color={on ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: on ? T.paper : T.muted }}>{p.label}</span>
+              </button>
+            );})}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={createUser} disabled={creating} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: creating ? "wait" : "pointer", opacity: creating ? .7 : 1 }}><UserPlus size={15} /> {creating ? "جارٍ الإنشاء..." : "إنشاء الحساب"}</button>
+            <button onClick={() => setNewUser(null)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
           </div>
         </div>
       )}
