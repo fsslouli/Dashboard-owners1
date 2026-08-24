@@ -3313,11 +3313,16 @@ function PublicSite() {
             </div>
           )}
 
-          <div className="no-print" style={{ textAlign: "center", marginTop: 28 }}>
+          <div className="no-print" style={{ textAlign: "center", marginTop: 28, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
             <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }} style={{
               background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4,
             }}>
               v{CURRENT_VERSION}
+            </button>
+            <button className="mono" onClick={() => { logEvent("click", "admin_login", null, null); window.location.hash = "admin"; }} style={{
+              background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4,
+            }}>
+              <ShieldCheck size={12} /> {L("دخول الإدارة", "Admin login")}
             </button>
           </div>
         </div>
