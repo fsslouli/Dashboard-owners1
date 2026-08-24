@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, createContext, useContext } from "react";
 import INQUIRIES_DATA from "./inquiries.json";
+import { createClient } from "@supabase/supabase-js";
+import * as XLSX from "xlsx";
 
 /* ═══════════════════════════════════════════════════════════
    فهرس الملف — لتسهيل القراءة والتعديل المستقبلي.
@@ -25,6 +27,9 @@ import INQUIRIES_DATA from "./inquiries.json";
 const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
 const TELEGRAM_URL = "https://t.me/+thhB4M36VkFkYjZk";
+/* عميل Supabase الحقيقي — يُستخدم بلوحة الإدارة (تسجيل الدخول + قراءة/كتابة البيانات).
+   نفس الرابط والمفتاح العام أعلاه، آمنين للنشر بالمتصفح طالما RLS مفعّلة (راجع setup-supabase.sql) */
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /* رقم جلسة عشوائي مؤقت يتولّد مرة وحدة لكل تحميل صفحة — بدون أي معنى شخصي،
    هدفه فقط تجميع أحداث نفس الزيارة ببعض لتقدير الوقت المقضي (تحليل كلي وليس فردي) */
 const SESSION_ID =
@@ -61,6 +66,12 @@ import {
   RefreshCw, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
   ChevronLeft, ChevronRight, ArrowUp, SlidersHorizontal, FileText, ExternalLink,
+} from "lucide-react";
+/* أيقونات إضافية للوحة الإدارة فقط */
+import {
+  LogIn, LogOut, Upload, Download, Star, ShieldCheck, FileSpreadsheet,
+  PlusCircle, Pencil, MinusCircle, Lock, BarChart3, Eye, Filter,
+  MousePointerClick, Tag, Trash2, UserPlus, ListPlus,
 } from "lucide-react";
 
 /* أيقونة تليجرام الرسمية (غير متوفرة في lucide-react) */
@@ -2189,7 +2200,7 @@ function ProgressTab({ reduced, data, loading }) {
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 const EMPTY_F = { q: "", zone: null, pri: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false };
 
-export default function Dashboard() {
+function PublicSite() {
   const reduced = usePrefersReduced();
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
@@ -3329,3 +3340,700 @@ export default function Dashboard() {
     </ThemeCtx.Provider>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ١٥. لوحة الإدارة الحقيقية — متصلة بـ Supabase فعليًا (Auth + قراءة/كتابة).
+   تعمل بعد تشغيل setup-supabase.sql وإنشاء أول حساب أدمن (راجع الملف).
+   مرتبطة بنفس عميل supabase المُعرَّف بالأعلى بالسطر ٢٦.
+   ═══════════════════════════════════════════════════════════ */
+
+const ADMIN_PERMISSIONS = [
+  { key: "sync_data", label: "مزامنة وتعديل بيانات الاستفسارات (إكسل أو يدويًا)", icon: FileSpreadsheet },
+  { key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
+  { key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
+  { key: "view_analytics", label: "عرض الزيارات والتحليلات", icon: BarChart3 },
+  { key: "export_data", label: "تصدير التقارير كإكسل", icon: Download },
+  { key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
+  { key: "manage_users", label: "تعديل صلاحيات أعضاء آخرين", icon: Users },
+];
+const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "status", "owner", "month", "note", "note_en", "reply", "closed"];
+const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)" };
+const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا" };
+const ADMIN_TARGETS = [
+  { key: "inquiries", label: "الاستفسارات", fields: INQ_FIELDS_ADMIN, keyField: "id" },
+  { key: "progress", label: "تقدّم التنفيذ", fields: ["planned", "actual"], keyField: "month" },
+  { key: "ignore", label: "تجاهل هذا الشيت", fields: [], keyField: null },
+];
+const ADMIN_EVENT_TYPES = [
+  { key: "visit", label: "زيارات", icon: Eye },
+  { key: "tab", label: "تنقّل بين التبويبات", icon: Layers },
+  { key: "filter", label: "استخدام الفلاتر", icon: Filter },
+  { key: "inquiry_open", label: "فتح استفسار", icon: FileText },
+  { key: "share", label: "مشاركة", icon: Share2 },
+  { key: "feedback", label: "إعجاب / عدم إعجاب", icon: ThumbsUp },
+  { key: "doc_open", label: "فتح مستند/مخطط", icon: FileText },
+  { key: "click", label: "نقرات عامة", icon: MousePointerClick },
+];
+
+function fmtAdminDate(v) { const d = typeof v === "string" ? new Date(v) : v; return d.toLocaleString("ar-SA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+function isoAdminDate(d) { return d.toISOString().slice(0, 10); }
+
+/* جلسة الدخول الحقيقية */
+function useSupaAuth() {
+  const [session, setSession] = useState(undefined); // undefined=يتحقق، null=غير مسجّل
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return session;
+}
+
+function AdminLogin() {
+  const [email, setEmail] = useState(""); const [pass, setPass] = useState("");
+  const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
+  const T = THEMES.light;
+  const submit = async (e) => {
+    e.preventDefault(); setErr(""); setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    setBusy(false);
+    if (error) setErr("بيانات الدخول غير صحيحة، أو الحساب غير مفعّل بعد.");
+  };
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui, sans-serif" }} dir="rtl">
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: 360, background: T.surface, borderRadius: 20, border: `1px solid ${T.line}`, padding: "36px 28px", boxShadow: T.shadowUp }}>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: T.brass + "16", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}><ShieldCheck size={24} color={T.brass} /></div>
+        <h1 style={{ textAlign: "center", fontSize: 18, fontWeight: 700, margin: "0 0 4px" }}>دخول لوحة الإدارة</h1>
+        <p style={{ textAlign: "center", fontSize: 12.5, color: T.muted, margin: "0 0 26px" }}>مخصص لفريق تمثيل الملاك فقط</p>
+        <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>البريد الإلكتروني</label>
+        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="admin@example.com" style={{ width: "100%", boxSizing: "border-box", padding: "11px 13px", borderRadius: 11, border: `1px solid ${T.line}`, marginBottom: 14, fontSize: 14, outline: "none", background: T.sunken }} />
+        <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>كلمة المرور</label>
+        <input value={pass} onChange={(e) => setPass(e.target.value)} type="password" placeholder="••••••••" style={{ width: "100%", boxSizing: "border-box", padding: "11px 13px", borderRadius: 11, border: `1px solid ${T.line}`, marginBottom: 6, fontSize: 14, outline: "none", background: T.sunken }} />
+        {err && <div style={{ fontSize: 12, color: "#C0392B", marginBottom: 10 }}>{err}</div>}
+        <button type="submit" disabled={busy} style={{ width: "100%", marginTop: 16, padding: "12px 0", borderRadius: 12, border: "none", background: T.brass, color: "#fff", fontSize: 14.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}><LogIn size={16} /> {busy ? "جارٍ الدخول..." : "دخول"}</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "center", marginTop: 18, fontSize: 11, color: T.faint }}><Lock size={11} /> الحسابات تُنشأ من لوحة Supabase فقط</div>
+      </form>
+    </div>
+  );
+}
+
+/* أدوات مساعدة عامة لواجهة الإدارة */
+function ABadge({ kind, children }) {
+  const T = THEMES.light;
+  const map = { add: { bg: "#1E8E5A14", fg: "#1E8E5A", icon: PlusCircle }, change: { bg: "#B8790F14", fg: "#B8790F", icon: Pencil }, missing: { bg: "#C0392B14", fg: "#C0392B", icon: MinusCircle } };
+  const { bg, fg, icon: Icon } = map[kind];
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, color: fg, fontSize: 11.5, fontWeight: 600, padding: "3px 9px", borderRadius: 999 }}><Icon size={12} /> {children}</span>;
+}
+function ASegmented({ options, value, onChange }) {
+  const T = THEMES.light;
+  return <div style={{ display: "flex", background: T.sunken, borderRadius: 10, padding: 3, gap: 2 }}>{options.map((o) => (<button key={o.value} onClick={() => onChange(o.value)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600, background: value === o.value ? T.brass : "transparent", color: value === o.value ? "#fff" : T.muted }}>{o.label}</button>))}</div>;
+}
+function ALocked({ text }) {
+  const T = THEMES.light;
+  return <div style={{ background: T.surface, border: `1px dashed ${T.line}`, borderRadius: 16, padding: 30, textAlign: "center" }}><ShieldAlert size={22} color={T.faint} style={{ marginBottom: 8 }} /><div style={{ fontSize: 13, color: T.muted }}>{text}</div></div>;
+}
+function afieldInput(label, value, onChange, opts) {
+  const T = THEMES.light;
+  return (
+    <div key={label}>
+      <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>{label}</label>
+      {opts ? (<select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }}>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</select>)
+        : (<input value={value || ""} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />)}
+    </div>
+  );
+}
+function findNewValuesAdmin(rows, categories) {
+  const found = []; const seen = new Set();
+  categories.forEach((cat) => {
+    const columnKey = cat.locked ? cat.key : cat.label;
+    rows.forEach((row) => {
+      const raw = row[columnKey]; if (raw == null || raw === "") return;
+      String(raw).split(",").map((s) => s.trim()).filter(Boolean).forEach((val) => {
+        if (!(cat.values || []).includes(val)) { const sig = cat.key + "::" + val; if (!seen.has(sig)) { seen.add(sig); found.push({ categoryKey: cat.key, categoryLabel: cat.label, value: val }); } }
+      });
+    });
+  });
+  return found;
+}
+function findNewColumnsAdmin(rows, categories) {
+  const known = new Set(["id", ...INQ_FIELDS_ADMIN]);
+  categories.forEach((c) => known.add(c.locked ? c.key : c.label));
+  const colValues = {};
+  rows.forEach((row) => Object.keys(row).forEach((col) => {
+    if (known.has(col)) return;
+    const val = row[col]; if (val == null || val === "") return;
+    (colValues[col] = colValues[col] || new Set()).add(String(val).trim());
+  }));
+  return Object.entries(colValues).map(([column, set]) => ({ column, values: [...set] }));
+}
+
+/* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
+function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, log }) {
+  const T = THEMES.light;
+  const fileRef = useRef(null);
+  const [sheets, setSheets] = useState(null);
+  const [mapping, setMapping] = useState({});
+  const [diffResults, setDiffResults] = useState(null);
+  const [newValues, setNewValues] = useState([]);
+  const [newColumns, setNewColumns] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [applying, setApplying] = useState(false);
+
+  const guessTarget = (name) => { const n = name.toLowerCase(); if (n.includes("تقدم") || n.includes("progress")) return "progress"; return "inquiries"; };
+  const downloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inquiries.map(({ urgent, updated_at, ...r }) => r)), "الاستفسارات");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(progress), "تقدم_التنفيذ");
+    XLSX.writeFile(wb, "قالب-البيانات.xlsx");
+  };
+  const handleFile = (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: "array" });
+        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "" }); });
+        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: "merge" }; });
+        setSheets(parsed); setMapping(initMap); setDiffResults(null); setNewValues([]); setNewColumns([]);
+      } catch { flashToast("تعذّرت قراءة الملف"); }
+    };
+    reader.readAsArrayBuffer(file); e.target.value = "";
+  };
+  const runCompare = () => {
+    const results = []; let scanRows = [];
+    Object.entries(mapping).forEach(([sheetName, cfg]) => {
+      if (cfg.target === "ignore") return;
+      const rows = sheets[sheetName]; const cfgTarget = ADMIN_TARGETS.find((t) => t.key === cfg.target);
+      const current = cfg.target === "inquiries" ? inquiries : progress; const keyField = cfgTarget.keyField;
+      if (cfg.mode === "replace") { results.push({ sheetName, target: cfg.target, mode: "replace", newRows: rows, removedCount: current.length }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
+      const currentByKey = new Map(current.map((r) => [String(r[keyField]), r]));
+      const incomingKeys = new Set(); const added = []; const changed = [];
+      rows.forEach((row) => {
+        const k = String(row[keyField] ?? "").trim(); if (!k) return; incomingKeys.add(k);
+        const cur = currentByKey.get(k);
+        if (!cur) { added.push(row); return; }
+        const fdiffs = cfgTarget.fields.filter((f) => String(row[f] ?? "") !== String(cur[f] ?? ""));
+        if (fdiffs.length) changed.push({ key: k, row, cur, fieldDiffs: fdiffs });
+      });
+      const missing = current.filter((r) => !incomingKeys.has(String(r[keyField])));
+      results.push({ sheetName, target: cfg.target, mode: "merge", added, changed, missing, keyField });
+      if (cfg.target === "inquiries") scanRows = scanRows.concat(added, changed.map((c) => c.row));
+    });
+    setDiffResults(results);
+    setNewValues(findNewValuesAdmin(scanRows, categories).map((f) => ({ ...f, decision: "skip" })));
+    setNewColumns(findNewColumnsAdmin(scanRows, categories).map((f) => ({ ...f, decision: "skip" })));
+  };
+  const setValueDecision = (sig, decision) => setNewValues((prev) => prev.map((v) => (v.categoryKey + "::" + v.value === sig ? { ...v, decision } : v)));
+  const decideAllValues = (decision) => setNewValues((prev) => prev.map((v) => ({ ...v, decision })));
+  const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
+  const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
+
+  const applyAll = async () => {
+    setApplying(true);
+    let count = 0;
+    try {
+      for (const res of diffResults) {
+        if (res.target === "inquiries") {
+          if (res.mode === "replace") {
+            await supabase.from("inquiries").delete().neq("id", -1);
+            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
+            if (rows.length) await supabase.from("inquiries").insert(rows);
+            count += rows.length;
+          } else {
+            for (const { key, row } of res.changed) {
+              const patch = Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined));
+              await supabase.from("inquiries").update(patch).eq("id", Number(key));
+            }
+            const newRows = res.added.map((row) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false }));
+            if (newRows.length) await supabase.from("inquiries").insert(newRows);
+            count += res.added.length + res.changed.length;
+          }
+        } else if (res.target === "progress") {
+          if (res.mode === "replace") {
+            await supabase.from("progress").delete().neq("month", "");
+            if (res.newRows.length) await supabase.from("progress").insert(res.newRows);
+            count += res.newRows.length;
+          } else {
+            for (const { key, row } of res.changed) await supabase.from("progress").update({ planned: row.planned, actual: row.actual }).eq("month", key);
+            if (res.added.length) await supabase.from("progress").insert(res.added);
+            count += res.added.length + res.changed.length;
+          }
+        }
+      }
+      const addVals = newValues.filter((v) => v.decision === "add");
+      const addCols = newColumns.filter((c) => c.decision === "add");
+      for (const v of addVals) {
+        const cat = categories.find((c) => c.key === v.categoryKey);
+        if (cat) await supabase.from("filter_categories").update({ values: [...(cat.values || []), v.value] }).eq("key", cat.key);
+      }
+      for (const c of addCols) {
+        await supabase.from("filter_categories").insert({ key: `custom-col-${Date.now()}-${c.column}`, label: c.column, locked: false, values: c.values });
+      }
+      if (addVals.length || addCols.length) await refreshCategories();
+      if (addVals.length) log("إضافة قيم فلترة تلقائيًا", addVals.map((v) => `${v.value} → ${v.categoryLabel}`).join("، "));
+      addCols.forEach((c) => log("إنشاء فئة فلترة من عمود جديد", `"${c.column}" بقيم: ${c.values.join("، ")}`));
+      log("مزامنة بيانات", `تم اعتماد ${count} عنصر عبر ${diffResults.length} شيت`);
+      await refreshInquiries(); await refreshProgress();
+      flashToast(`تم تحديث الموقع بالكامل — ${count} عنصر`);
+      setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]);
+    } catch (err) {
+      flashToast("صار خطأ أثناء الحفظ — تأكد إن جداول Supabase مجهّزة (setup-supabase.sql)");
+    }
+    setApplying(false);
+  };
+
+  const toggleUrgent = async (r) => {
+    await supabase.from("inquiries").update({ urgent: !r.urgent }).eq("id", r.id);
+    log("تعديل وسم عاجل", `تبديل الحالة على الاستفسار #${r.id}`);
+    refreshInquiries();
+  };
+  const startAdd = () => { setEditing("new"); setForm({ ...ADMIN_BLANK_INQ }); };
+  const startEdit = (r) => { setEditing(r.id); setForm({ ...r }); };
+  const saveForm = async () => {
+    if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return; }
+    if (editing === "new") {
+      const nextId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
+      await supabase.from("inquiries").insert({ ...form, id: nextId, urgent: false });
+      log("إضافة استفسار يدويًا", `#${nextId} — ${form.note.slice(0, 40)}`); flashToast("تمت الإضافة");
+    } else {
+      await supabase.from("inquiries").update(form).eq("id", editing);
+      log("تعديل استفسار يدويًا", `#${editing} — ${form.note.slice(0, 40)}`); flashToast("تم الحفظ");
+    }
+    setEditing(null); setForm(null); refreshInquiries();
+  };
+  const confirmDelete = async (r) => {
+    await supabase.from("inquiries").delete().eq("id", r.id);
+    log("حذف استفسار يدويًا", `#${r.id} — ${(r.note || "").slice(0, 40)}`);
+    flashToast("تم الحذف"); setConfirmDeleteId(null); refreshInquiries();
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><FileSpreadsheet size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>مزامنة من ملف إكسل</span></div>
+        <p style={{ fontSize: 12.5, color: T.muted, margin: "4px 0 14px", lineHeight: 1.7 }}>حدد لكل شيت وش يمثّل، وراجع الفروقات قبل الاعتماد — التغييرات تُكتب مباشرة بقاعدة البيانات.</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button onClick={() => fileRef.current?.click()} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Upload size={15} /> رفع ملف إكسل</button>
+          <button onClick={downloadTemplate} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", color: T.brass, border: `1px solid ${T.brass}55`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Download size={15} /> تنزيل قالب</button>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
+        </div>
+      </div>
+
+      {sheets && !diffResults && (
+        <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>حدد كل شيت يمثّل إيش</div>
+          <p style={{ fontSize: 12, color: T.muted, margin: "0 0 14px" }}>لقينا {Object.keys(sheets).length} شيت.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {Object.keys(sheets).map((name) => (
+              <div key={name} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontSize: 13, fontWeight: 700 }}>{name}</span><span style={{ fontSize: 11, color: T.faint }}>{sheets[name].length} صف</span></div>
+                <ASegmented value={mapping[name]?.target} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], target: v } }))} options={ADMIN_TARGETS.map((t) => ({ value: t.key, label: t.label }))} />
+                {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <button onClick={runCompare} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><RefreshCw size={14} /> متابعة ومقارنة</button>
+            <button onClick={() => setSheets(null)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+          </div>
+        </div>
+      )}
+
+      {diffResults && (
+        <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>نتيجة المقارنة — راجعها قبل الاعتماد</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {diffResults.map((res) => (
+              <div key={res.sheetName}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8, color: T.muted }}>شيت "{res.sheetName}" ← {ADMIN_TARGETS.find((t) => t.key === res.target).label}</div>
+                {res.mode === "replace" ? (
+                  <div style={{ background: "#C0392B14", borderRadius: 9, padding: "10px 12px", fontSize: 12.5, color: "#C0392B" }}>⚠️ سيُحذف {res.removedCount} ويُستبدل بـ {res.newRows.length} جديد.</div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {res.added.length === 0 && res.changed.length === 0 && res.missing.length === 0 ? <span style={{ fontSize: 12.5, color: T.muted }}>لا فرق.</span> : <>
+                      {res.added.length > 0 && <ABadge kind="add">{res.added.length} جديد</ABadge>}
+                      {res.changed.length > 0 && <ABadge kind="change">{res.changed.length} تغيّر</ABadge>}
+                      {res.missing.length > 0 && <ABadge kind="missing">{res.missing.length} ناقص</ABadge>}
+                    </>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {newValues.length > 0 && (
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px dashed ${T.line}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}><Sparkles size={15} color={T.brass} /><span style={{ fontSize: 13, fontWeight: 700 }}>قيم جديدة داخل فلاتر موجودة</span></div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <button onClick={() => decideAllValues("add")} style={{ fontSize: 11.5, background: "#1E8E5A14", color: "#1E8E5A", border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: إضافة</button>
+                <button onClick={() => decideAllValues("skip")} style={{ fontSize: 11.5, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: تجاهل</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {newValues.map((v) => { const sig = v.categoryKey + "::" + v.value; return (
+                  <div key={sig} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 10, padding: "8px 12px" }}>
+                    <span style={{ fontSize: 12.5 }}><b>{v.value}</b> <span style={{ color: T.faint }}>← {v.categoryLabel}</span></span>
+                    <ASegmented value={v.decision} onChange={(d) => setValueDecision(sig, d)} options={[{ value: "add", label: "إضافة كفلتر" }, { value: "skip", label: "تجاهل" }]} />
+                  </div>
+                );})}
+              </div>
+            </div>
+          )}
+
+          {newColumns.length > 0 && (
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px dashed ${T.line}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}><ListPlus size={15} color={T.brass} /><span style={{ fontSize: 13, fontWeight: 700 }}>أعمدة جديدة كليًا بالملف</span></div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <button onClick={() => decideAllCols("add")} style={{ fontSize: 11.5, background: "#1E8E5A14", color: "#1E8E5A", border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: إنشاء فئة</button>
+                <button onClick={() => decideAllCols("skip")} style={{ fontSize: 11.5, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: تجاهل</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {newColumns.map((c) => (
+                  <div key={c.column} style={{ background: T.sunken, borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700 }}>{c.column} <span style={{ color: T.faint, fontWeight: 500 }}>({c.values.length} قيمة)</span></span>
+                      <ASegmented value={c.decision} onChange={(d) => setColDecision(c.column, d)} options={[{ value: "add", label: "إنشاء فئة" }, { value: "skip", label: "تجاهل" }]} />
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{c.values.slice(0, 8).map((v) => <span key={v} style={{ fontSize: 11, background: T.surface, borderRadius: 999, padding: "2px 8px", border: `1px solid ${T.line}` }}>{v}</span>)}{c.values.length > 8 && <span style={{ fontSize: 11, color: T.faint }}>+{c.values.length - 8}</span>}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <button onClick={applyAll} disabled={applying} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: applying ? "wait" : "pointer", opacity: applying ? .7 : 1 }}><Check size={15} /> {applying ? "جارٍ الحفظ..." : "اعتماد كل شي"}</button>
+            <button onClick={() => { setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}><X size={15} /> تجاهل الكل</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>الاستفسارات الحالية ({inquiries.length})</span>
+          <button onClick={startAdd} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}><PlusCircle size={13} /> إضافة يدويًا</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {[...inquiries].sort((a, b) => a.id - b.id).map((r) => (
+            <div key={r.id} style={{ background: T.sunken, borderRadius: 12, padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button disabled={!canFlag} onClick={() => toggleUrgent(r)} style={{ flexShrink: 0, background: r.urgent ? "#B8790F" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
+                  <Star size={14} color={r.urgent ? "#fff" : T.faint} fill={r.urgent ? "#fff" : "none"} />
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8 }}><span style={{ color: T.faint, fontWeight: 700 }}>#{r.id}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.note}</span></div>
+                  <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}</div>
+                </div>
+                <button onClick={() => startEdit(r)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.muted, flexShrink: 0 }}><Pencil size={12} /></button>
+                {confirmDeleteId === r.id ? (
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    <button onClick={() => confirmDelete(r)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "0 8px", fontSize: 11, cursor: "pointer" }}>تأكيد</button>
+                    <button onClick={() => setConfirmDeleteId(null)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, padding: "0 8px", fontSize: 11, cursor: "pointer", color: T.muted }}>لا</button>
+                  </div>
+                ) : (<button onClick={() => setConfirmDeleteId(r.id)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#C0392B", flexShrink: 0 }}><Trash2 size={12} /></button>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {form && (
+        <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>{editing === "new" ? "إضافة استفسار يدويًا" : `تعديل الاستفسار #${editing}`}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            {afieldInput(ADMIN_FIELD_LABEL.model, form.model, (v) => setForm((f) => ({ ...f, model: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.loc, form.loc, (v) => setForm((f) => ({ ...f, loc: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.pri, form.pri, (v) => setForm((f) => ({ ...f, pri: v })), ["عالية جدًا", "عالية", "متوسطة", "عادية"])}
+            {afieldInput(ADMIN_FIELD_LABEL.status, form.status, (v) => setForm((f) => ({ ...f, status: v })), ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"])}
+            {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.month, form.month, (v) => setForm((f) => ({ ...f, month: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.closed, form.closed, (v) => setForm((f) => ({ ...f, closed: v })), ["نعم", "لا"])}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+            {afieldInput(ADMIN_FIELD_LABEL.note, form.note, (v) => setForm((f) => ({ ...f, note: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.note_en, form.note_en, (v) => setForm((f) => ({ ...f, note_en: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.reply, form.reply, (v) => setForm((f) => ({ ...f, reply: v })))}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={saveForm} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
+            <button onClick={() => { setEditing(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── الزيارات والتحليلات — يقرأ من جدول logs الحقيقي ── */
+function AAnalyticsTab({ flashToast, canExport }) {
+  const T = THEMES.light;
+  const today = new Date();
+  const [from, setFrom] = useState(isoAdminDate(new Date(today - 6 * 86400000)));
+  const [to, setTo] = useState(isoAdminDate(today));
+  const [selectedTypes, setSelectedTypes] = useState(new Set(ADMIN_EVENT_TYPES.map((t) => t.key)));
+  const [events, setEvents] = useState([]); const [loading, setLoading] = useState(true);
+  const [todaysVisits, setTodaysVisits] = useState(0);
+
+  useEffect(() => {
+    setLoading(true);
+    (async () => {
+      const { data } = await supabase.from("logs").select("*")
+        .gte("created_at", from + "T00:00:00").lte("created_at", to + "T23:59:59")
+        .order("created_at", { ascending: false }).limit(2000);
+      setEvents(data || []); setLoading(false);
+      const { count } = await supabase.from("logs").select("id", { count: "exact", head: true })
+        .eq("event_type", "visit").gte("created_at", isoAdminDate(today) + "T00:00:00");
+      setTodaysVisits(count || 0);
+    })();
+  }, [from, to]);
+
+  const toggleType = (key) => setSelectedTypes((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const filtered = events.filter((e) => selectedTypes.has(e.event_type));
+  const inquiryOpensInRange = filtered.filter((e) => e.event_type === "inquiry_open").length;
+  const uniqueSessions = new Set(filtered.map((e) => e.session_id)).size;
+
+  const exportExcel = () => {
+    const summary = ADMIN_EVENT_TYPES.map((t) => ({ "نوع الحدث": t.label, "العدد": filtered.filter((e) => e.event_type === t.key).length }));
+    const raw = filtered.map((e) => ({ "نوع الحدث": ADMIN_EVENT_TYPES.find((t) => t.key === e.event_type)?.label || e.event_type, "تصنيف": e.category ?? "", "قيمة": e.value ?? "", "الجلسة": e.session_id, "التاريخ": fmtAdminDate(e.created_at) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "ملخص");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "سجل تفصيلي");
+    XLSX.writeFile(wb, `تقرير-الزيارات-${from}_${to}.xlsx`); flashToast("تم تصدير التقرير");
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        {[["زيارات اليوم", todaysVisits], ["استفسارات فُتحت بالفترة", inquiryOpensInRange], ["زوّار مميّزون بالفترة", uniqueSessions]].map(([label, val]) => (<div key={label} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 10px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 700, color: T.brass }}>{val}</div><div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{label}</div></div>))}
+      </div>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><BarChart3 size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>استخراج تقرير مخصص</span></div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+          <div style={{ flex: 1 }}><label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>من تاريخ</label><input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.sunken }} /></div>
+          <div style={{ flex: 1 }}><label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>إلى تاريخ</label><input type="date" value={to} min={from} max={isoAdminDate(today)} onChange={(e) => setTo(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.sunken }} /></div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>{ADMIN_EVENT_TYPES.map((t) => { const on = selectedTypes.has(t.key); const Icon = t.icon; return (<button key={t.key} onClick={() => toggleType(t.key)} style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "7px 12px", fontSize: 12, cursor: "pointer", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "16" : "transparent", color: on ? T.brass : T.muted, fontWeight: on ? 700 : 500 }}><Icon size={13} /> {t.label}</button>); })}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, color: T.muted }}>{loading ? "جارٍ التحميل..." : `${filtered.length} حدث مطابق`}</span>
+          {canExport ? (<button onClick={exportExcel} disabled={filtered.length === 0} style={{ display: "flex", alignItems: "center", gap: 7, background: filtered.length ? T.brass : T.line, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: filtered.length ? "pointer" : "not-allowed" }}><Download size={15} /> تصدير إكسل</button>) : (<span style={{ fontSize: 11.5, color: T.faint, display: "flex", alignItems: "center", gap: 5 }}><Lock size={12} /> بدون صلاحية تصدير</span>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── الفلاتر المخصصة ── */
+function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
+  const T = THEMES.light;
+  const [newCatName, setNewCatName] = useState(""); const [newVal, setNewVal] = useState(""); const [draftValues, setDraftValues] = useState([]);
+  const addValueToDraft = () => { if (!newVal.trim()) return; setDraftValues((v) => [...v, newVal.trim()]); setNewVal(""); };
+  const createCategory = async () => {
+    if (!newCatName.trim() || draftValues.length === 0) { flashToast("لازم اسم الفئة وقيمة وحدة على الأقل"); return; }
+    await supabase.from("filter_categories").insert({ key: `custom-${Date.now()}`, label: newCatName.trim(), locked: false, values: draftValues });
+    log("إنشاء فئة فلترة", `"${newCatName.trim()}" بقيم: ${draftValues.join("، ")}`);
+    setNewCatName(""); setDraftValues([]); flashToast("تمت إضافة فئة الفلترة"); refreshCategories();
+  };
+  const deleteCategory = async (c) => { await supabase.from("filter_categories").delete().eq("key", c.key); log("حذف فئة فلترة", c.label); refreshCategories(); };
+  const deleteValue = async (c, val) => { await supabase.from("filter_categories").update({ values: c.values.filter((v) => v !== val) }).eq("key", c.key); log("حذف قيمة فلتر", `${val} من ${c.label}`); refreshCategories(); };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Tag size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>إضافة فئة فلترة جديدة يدويًا</span></div>
+        <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>اسم الفئة</label>
+        <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="مثال: رقم الاجتماع" style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.line}`, marginBottom: 12, fontSize: 13, background: T.sunken }} />
+        <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>القيم</label>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <input value={newVal} onChange={(e) => setNewVal(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addValueToDraft())} placeholder="مثال: الاجتماع الخامس — ثم Enter" style={{ flex: 1, boxSizing: "border-box", padding: "9px 12px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.sunken }} />
+          <button onClick={addValueToDraft} style={{ background: T.brass + "16", color: T.brass, border: "none", borderRadius: 10, padding: "0 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>إضافة</button>
+        </div>
+        {draftValues.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>{draftValues.map((v) => (<span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.sunken, borderRadius: 999, padding: "5px 10px", fontSize: 12 }}>{v} <X size={12} style={{ cursor: "pointer" }} onClick={() => setDraftValues((d) => d.filter((x) => x !== v))} /></span>))}</div>}
+        <button onClick={createCategory} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><PlusCircle size={15} /> إنشاء فئة الفلترة</button>
+      </div>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>كل الفئات (أساسية تلقائية + مخصصة)</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {categories.map((c) => (
+            <div key={c.key} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>{c.label} {c.locked && <Lock size={11} color={T.faint} />}</span>
+                {!c.locked && <button onClick={() => deleteCategory(c)} style={{ background: "none", border: "none", color: "#C0392B", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11.5 }}><Trash2 size={13} /> حذف الفئة</button>}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(c.values || []).map((v) => (<span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.brass + "14", color: T.brass, borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 600 }}>{v} {!c.locked && <X size={11} style={{ cursor: "pointer" }} onClick={() => deleteValue(c, v)} />}</span>))}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── سجل نشاط الإدارة ── */
+function AAuditLogTab() {
+  const T = THEMES.light;
+  const [entries, setEntries] = useState([]);
+  useEffect(() => { supabase.from("audit_log").select("*").order("ts", { ascending: false }).limit(200).then(({ data }) => setEntries(data || [])); }, []);
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><History size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>سجل نشاط الإدارة</span></div>
+      {entries.length === 0 ? (<div style={{ fontSize: 12.5, color: T.muted, textAlign: "center", padding: 20 }}>ما فيه أي نشاط مسجّل بعد.</div>) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {entries.map((e) => (
+            <div key={e.id} style={{ background: T.sunken, borderRadius: 11, padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, fontWeight: 700 }}>{e.action}</span><span style={{ fontSize: 11, color: T.faint }}>{fmtAdminDate(e.ts)}</span></div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 3 }}>{e.details}</div>
+              <div style={{ fontSize: 11, color: T.brass, marginTop: 4, fontWeight: 600 }}>بواسطة: {e.user_name}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── تعديل صلاحيات أعضاء موجودين (إنشاء الحساب نفسه يتم من لوحة Supabase) ── */
+function AUsersTab({ profile, flashToast, log }) {
+  const T = THEMES.light;
+  const [members, setMembers] = useState([]); const [editingId, setEditingId] = useState(null); const [form, setForm] = useState(null);
+  const load = () => supabase.from("profiles").select("*").then(({ data }) => setMembers(data || []));
+  useEffect(() => { load(); }, []);
+  const startEdit = (m) => { setEditingId(m.id); setForm({ ...m }); };
+  const togglePerm = (key) => setForm((f) => ({ ...f, perms: f.perms.includes(key) ? f.perms.filter((p) => p !== key) : [...f.perms, key] }));
+  const save = async () => {
+    await supabase.from("profiles").update({ name: form.name, role: form.role, perms: form.perms }).eq("id", form.id);
+    log("تعديل صلاحيات عضو", `${form.name} — ${form.perms.length} صلاحية`);
+    flashToast("تم حفظ الصلاحيات"); setEditingId(null); setForm(null); load();
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ background: "#B8790F14", border: "1px solid #B8790F33", borderRadius: 14, padding: "12px 14px", fontSize: 12, color: "#8A6318", lineHeight: 1.8 }}>
+        إضافة عضو جديد بالكامل (بريد وكلمة مرور) تصير من Supabase Dashboard → Authentication → Add user، لأن إنشاء حساب دخول حقيقي ما يصير بأمان من واجهة الموقع. بعد ما تنشئه هناك، يظهر هنا تلقائيًا وتقدر تحدد صلاحياته.
+      </div>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><Users size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>أعضاء لوحة الإدارة</span></div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+          {members.map((u) => (
+            <div key={u.id} style={{ background: T.sunken, borderRadius: 12, padding: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div><div style={{ fontSize: 13, fontWeight: 700 }}>{u.name || "(بدون اسم)"}</div><div style={{ fontSize: 11, color: T.muted }}>{u.role}</div></div>
+                <button onClick={() => startEdit(u)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 9, padding: "6px 10px", fontSize: 11.5, color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}><Pencil size={12} /> تعديل</button>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>{(u.perms || []).map((p) => <span key={p} style={{ fontSize: 10.5, background: T.brass + "14", color: T.brass, borderRadius: 999, padding: "2px 8px" }}>{ADMIN_PERMISSIONS.find((x) => x.key === p)?.label}</span>)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {form && (
+        <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>تعديل صلاحيات: {form.name}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {ADMIN_PERMISSIONS.map((p) => { const on = form.perms.includes(p.key); const Icon = p.icon; return (
+              <button key={p.key} onClick={() => togglePerm(p.key)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: "pointer" }}>
+                <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
+                <Icon size={14} color={on ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: on ? T.paper : T.muted }}>{p.label}</span>
+              </button>
+            );})}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={save} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
+            <button onClick={() => { setEditingId(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ADMIN_TABS = [
+  { key: "sync", label: "المزامنة والبيانات", perm: "sync_data" },
+  { key: "analytics", label: "الزيارات والتحليلات", perm: "view_analytics" },
+  { key: "filters", label: "الفلاتر المخصصة", perm: "manage_filters" },
+  { key: "audit", label: "سجل النشاط", perm: "view_audit_log" },
+  { key: "users", label: "المستخدمون", perm: "manage_users" },
+];
+
+function AdminHome({ session, onLogout }) {
+  const T = THEMES.light;
+  const [profile, setProfile] = useState(undefined);
+  const [inquiries, setInquiries] = useState([]);
+  const [progress, setProgress] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [toast, setToast] = useState("");
+  const [tab, setTab] = useState("sync");
+
+  const refreshProfile = () => supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data }) => setProfile(data || null));
+  const refreshInquiries = () => supabase.from("inquiries").select("*").order("id").then(({ data }) => setInquiries(data || []));
+  const refreshProgress = () => supabase.from("progress").select("*").order("month").then(({ data }) => setProgress(data || []));
+  const refreshCategories = () => supabase.from("filter_categories").select("*").then(({ data }) => setCategories(data || []));
+
+  useEffect(() => { refreshProfile(); refreshInquiries(); refreshProgress(); refreshCategories(); }, [session.user.id]);
+
+  const flashToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2800); };
+  const log = async (action, details) => {
+    await supabase.from("audit_log").insert({ user_name: profile?.name || session.user.email, action, details });
+  };
+
+  if (profile === undefined) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted, fontFamily: "system-ui" }}>جارٍ التحميل...</div>;
+  if (!profile) return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} dir="rtl">
+      <ALocked text={`حسابك (${session.user.email}) مسجّل دخول لكن ما له صلاحيات بعد. أضف صف له بجدول profiles من لوحة Supabase (راجع setup-supabase.sql).`} />
+    </div>
+  );
+  const has = (perm) => (profile.perms || []).includes(perm);
+  const visibleTabs = ADMIN_TABS.filter((t) => has(t.perm));
+  const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
+  const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => r.urgent).length };
+
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "system-ui, sans-serif", color: T.paper }} dir="rtl">
+      <div style={{ background: T.surface, borderBottom: `1px solid ${T.line}`, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10, flexWrap: "wrap", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: T.brass + "16", display: "flex", alignItems: "center", justifyContent: "center" }}><ShieldCheck size={17} color={T.brass} /></div>
+          <div><div style={{ fontSize: 14, fontWeight: 700 }}>لوحة إدارة ألبورادا</div><div style={{ fontSize: 11, color: T.muted }}>{liveStats.total} استفسار · {liveStats.open} مفتوح · {liveStats.urgent} عاجل</div></div>
+        </div>
+        <button onClick={() => supabase.auth.signOut()} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.line}`, borderRadius: 10, padding: "7px 12px", fontSize: 12.5, color: T.muted, cursor: "pointer" }}><LogOut size={13} /> خروج</button>
+      </div>
+
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 0" }}>
+        <div style={{ display: "flex", gap: 6, background: T.sunken, padding: 4, borderRadius: 12, marginBottom: 18, flexWrap: "wrap" }}>
+          {visibleTabs.map((t) => (<button key={t.key} onClick={() => setTab(t.key)} style={{ flex: "1 1 auto", border: "none", borderRadius: 9, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: activeTab === t.key ? T.surface : "transparent", color: activeTab === t.key ? T.brass : T.muted, boxShadow: activeTab === t.key ? T.shadow : "none" }}>{t.label}</button>))}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 16px 60px" }}>
+        {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
+        {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} log={log} />}
+        {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
+        {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
+        {activeTab === "audit" && <AAuditLogTab />}
+        {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} />}
+      </div>
+
+      {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: T.paper, color: T.bg, padding: "11px 20px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}><Check size={15} /> {toast}</div>}
+    </div>
+  );
+}
+
+function AdminApp() {
+  const session = useSupaAuth();
+  if (session === undefined) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui", color: THEMES.light.muted }}>جارٍ التحقق من الدخول...</div>;
+  if (!session) return <AdminLogin />;
+  return <AdminHome session={session} />;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ١٦. نقطة الدخول النهائية — يوجّه بين الموقع العام ولوحة الإدارة
+   حسب الرابط: أضف #admin بآخر رابط الموقع لفتح لوحة الإدارة، مثال:
+   https://your-site.vercel.app/#admin
+   ═══════════════════════════════════════════════════════════ */
+function App() {
+  const [route, setRoute] = useState(() => (window.location.hash === "#admin" ? "admin" : "site"));
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash === "#admin" ? "admin" : "site");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  return route === "admin" ? <AdminApp /> : <PublicSite />;
+}
+
+export default App;
