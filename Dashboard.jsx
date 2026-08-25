@@ -4061,7 +4061,10 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                   <Sparkles size={14} color={isMarkedNew(r) ? "#fff" : T.faint} />
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8 }}><span style={{ color: T.faint, fontWeight: 700 }}>#{r.id}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.note}</span></div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8, minWidth: 0 }}>
+                    <span style={{ color: T.faint, fontWeight: 700, flexShrink: 0 }}>#{r.id}</span>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{r.note}</span>
+                  </div>
                   <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}</div>
                 </div>
                 {canEdit && <button onClick={() => startEdit(r)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.muted, flexShrink: 0 }}><Pencil size={12} /></button>}
@@ -4110,27 +4113,44 @@ function AAnalyticsTab({ flashToast, canExport }) {
   const today = new Date();
   const [from, setFrom] = useState(isoAdminDate(new Date(today - 6 * 86400000)));
   const [to, setTo] = useState(isoAdminDate(today));
+  const [rangeReady, setRangeReady] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState(new Set(ADMIN_EVENT_TYPES.map((t) => t.key)));
   const [events, setEvents] = useState([]); const [loading, setLoading] = useState(true);
   const [todaysVisits, setTodaysVisits] = useState(0);
 
+  /* افتراضيًا نعرض كل السجل من أول يوم — نجيب أقدم تاريخ فعلي بدل ما نفترض مدة ثابتة */
   useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("logs").select("created_at").order("created_at", { ascending: true }).limit(1);
+      if (data && data.length) setFrom(isoAdminDate(new Date(data[0].created_at)));
+      setRangeReady(true);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!rangeReady) return;
     setLoading(true);
     (async () => {
       const { data } = await supabase.from("logs").select("*")
         .gte("created_at", from + "T00:00:00").lte("created_at", to + "T23:59:59")
-        .order("created_at", { ascending: false }).limit(2000);
+        .order("created_at", { ascending: false }).limit(20000);
       setEvents(data || []); setLoading(false);
       const { count } = await supabase.from("logs").select("id", { count: "exact", head: true })
         .eq("event_type", "visit").gte("created_at", isoAdminDate(today) + "T00:00:00");
       setTodaysVisits(count || 0);
     })();
-  }, [from, to]);
+  }, [from, to, rangeReady]);
 
   const toggleType = (key) => setSelectedTypes((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
   const filtered = events.filter((e) => selectedTypes.has(e.event_type));
   const inquiryOpensInRange = filtered.filter((e) => e.event_type === "inquiry_open").length;
   const uniqueSessions = new Set(filtered.map((e) => e.session_id)).size;
+  const setPreset = (days) => { setFrom(isoAdminDate(new Date(today - days * 86400000))); setTo(isoAdminDate(today)); };
+  const setAllTime = async () => {
+    const { data } = await supabase.from("logs").select("created_at").order("created_at", { ascending: true }).limit(1);
+    if (data && data.length) setFrom(isoAdminDate(new Date(data[0].created_at)));
+    setTo(isoAdminDate(today));
+  };
 
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -4165,6 +4185,33 @@ function AAnalyticsTab({ flashToast, canExport }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
         {[["زيارات اليوم", todaysVisits], ["استفسارات فُتحت بالفترة", inquiryOpensInRange], ["زوّار مميّزون بالفترة", uniqueSessions]].map(([label, val]) => (<div key={label} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 10px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 700, color: T.brass }}>{val}</div><div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{label}</div></div>))}
+      </div>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><BarChart3 size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>ملخص شامل — {from} إلى {to}</span></div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button onClick={setAllTime} style={{ fontSize: 11, background: T.brass + "16", color: T.brass, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer", fontWeight: 700 }}>الكل</button>
+            <button onClick={() => setPreset(6)} style={{ fontSize: 11, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>أسبوع</button>
+            <button onClick={() => setPreset(29)} style={{ fontSize: 11, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>شهر</button>
+            <button onClick={() => setPreset(59)} style={{ fontSize: 11, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>شهرين</button>
+          </div>
+        </div>
+        {loading ? (
+          <div style={{ fontSize: 12.5, color: T.muted, textAlign: "center", padding: 14 }}>جارٍ حساب الأرقام...</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+            {ADMIN_EVENT_TYPES.map((t) => { const Icon = t.icon; const c = events.filter((e) => e.event_type === t.key).length; return (
+              <div key={t.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 10, padding: "9px 12px" }}>
+                <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}><Icon size={13} color={T.brass} /> {t.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>{c}</span>
+              </div>
+            );})}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.brass + "12", borderRadius: 10, padding: "9px 12px", gridColumn: "1 / -1" }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>الإجمالي الكلي</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>{events.length}</span>
+            </div>
+          </div>
+        )}
       </div>
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><BarChart3 size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>استخراج تقرير مخصص</span></div>
