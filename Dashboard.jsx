@@ -4117,6 +4117,8 @@ function AAnalyticsTab({ flashToast, canExport }) {
   const [selectedTypes, setSelectedTypes] = useState(new Set(ADMIN_EVENT_TYPES.map((t) => t.key)));
   const [events, setEvents] = useState([]); const [loading, setLoading] = useState(true);
   const [todaysVisits, setTodaysVisits] = useState(0);
+  const [typeCounts, setTypeCounts] = useState({});
+  const [refreshTick, setRefreshTick] = useState(0);
 
   /* افتراضيًا نعرض كل السجل من أول يوم — نجيب أقدم تاريخ فعلي بدل ما نفترض مدة ثابتة */
   useEffect(() => {
@@ -4131,15 +4133,37 @@ function AAnalyticsTab({ flashToast, canExport }) {
     if (!rangeReady) return;
     setLoading(true);
     (async () => {
-      const { data } = await supabase.from("logs").select("*")
-        .gte("created_at", from + "T00:00:00").lte("created_at", to + "T23:59:59")
-        .order("created_at", { ascending: false }).limit(20000);
-      setEvents(data || []); setLoading(false);
-      const { count } = await supabase.from("logs").select("id", { count: "exact", head: true })
+      const gte = from + "T00:00:00", lte = to + "T23:59:59";
+
+      /* الأرقام بالبطاقة الشاملة: عدّ حقيقي مباشر من قاعدة البيانات لكل نوع — بدون سقف الـ 1000 صف
+         (استعلام count فقط، ما يجيب صفوف، فيرجع الرقم الحقيقي الكامل دايمًا) */
+      const counts = {};
+      await Promise.all(ADMIN_EVENT_TYPES.map(async (t) => {
+        const { count } = await supabase.from("logs").select("id", { count: "exact", head: true })
+          .eq("event_type", t.key).gte("created_at", gte).lte("created_at", lte);
+        counts[t.key] = count || 0;
+      }));
+      setTypeCounts(counts);
+
+      /* الصفوف التفصيلية (للمعاينة والتصدير) — نجيبها بالكامل عبر ترقيم صفحات يتجاوز سقف الـ 1000 صف الافتراضي */
+      let all = []; let from_i = 0; const page = 1000;
+      while (true) {
+        const { data, error } = await supabase.from("logs").select("*")
+          .gte("created_at", gte).lte("created_at", lte)
+          .order("created_at", { ascending: false }).range(from_i, from_i + page - 1);
+        if (error || !data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < page) break;
+        from_i += page;
+        if (all.length > 50000) break; // سقف أمان
+      }
+      setEvents(all); setLoading(false);
+
+      const { count: tv } = await supabase.from("logs").select("id", { count: "exact", head: true })
         .eq("event_type", "visit").gte("created_at", isoAdminDate(today) + "T00:00:00");
-      setTodaysVisits(count || 0);
+      setTodaysVisits(tv || 0);
     })();
-  }, [from, to, rangeReady]);
+  }, [from, to, rangeReady, refreshTick]);
 
   const toggleType = (key) => setSelectedTypes((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
   const filtered = events.filter((e) => selectedTypes.has(e.event_type));
@@ -4189,7 +4213,8 @@ function AAnalyticsTab({ flashToast, canExport }) {
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><BarChart3 size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>ملخص شامل — {from} إلى {to}</span></div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => setRefreshTick((n) => n + 1)} title="تحديث الأرقام الآن" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, background: T.sunken, border: "none", borderRadius: 999, cursor: "pointer", color: T.brass }}><RefreshCw size={12} /></button>
             <button onClick={setAllTime} style={{ fontSize: 11, background: T.brass + "16", color: T.brass, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer", fontWeight: 700 }}>الكل</button>
             <button onClick={() => setPreset(6)} style={{ fontSize: 11, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>أسبوع</button>
             <button onClick={() => setPreset(29)} style={{ fontSize: 11, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>شهر</button>
@@ -4200,7 +4225,7 @@ function AAnalyticsTab({ flashToast, canExport }) {
           <div style={{ fontSize: 12.5, color: T.muted, textAlign: "center", padding: 14 }}>جارٍ حساب الأرقام...</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-            {ADMIN_EVENT_TYPES.map((t) => { const Icon = t.icon; const c = events.filter((e) => e.event_type === t.key).length; return (
+            {ADMIN_EVENT_TYPES.map((t) => { const Icon = t.icon; const c = typeCounts[t.key] || 0; return (
               <div key={t.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 10, padding: "9px 12px" }}>
                 <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}><Icon size={13} color={T.brass} /> {t.label}</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>{c}</span>
@@ -4208,7 +4233,7 @@ function AAnalyticsTab({ flashToast, canExport }) {
             );})}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.brass + "12", borderRadius: 10, padding: "9px 12px", gridColumn: "1 / -1" }}>
               <span style={{ fontSize: 12, fontWeight: 700 }}>الإجمالي الكلي</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>{events.length}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>{Object.values(typeCounts).reduce((s, v) => s + v, 0)}</span>
             </div>
           </div>
         )}
