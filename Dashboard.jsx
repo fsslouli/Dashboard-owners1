@@ -2200,6 +2200,62 @@ function ProgressTab({ reduced, data, loading }) {
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 const EMPTY_F = { q: "", zone: null, pri: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false };
 
+/* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem("alborada_device_id");
+    if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`); localStorage.setItem("alborada_device_id", id); }
+    return id;
+  } catch { return "anon"; }
+}
+
+/* ── شريط الإشعارات المؤقتة أعلى الموقع العام ── */
+function NoticesBanner() {
+  const { T } = useT();
+  const { lang } = useLang();
+  const [notices, setNotices] = useState([]);
+  const [voted, setVoted] = useState({});
+  const [dismissed, setDismissed] = useState({});
+
+  useEffect(() => {
+    supabase.from("notices").select("*").order("created_at", { ascending: false }).then(({ data }) => setNotices(data || []));
+  }, []);
+  useEffect(() => {
+    if (!notices.length) return;
+    supabase.from("notice_votes").select("notice_id").eq("device_id", getDeviceId()).then(({ data }) => {
+      const v = {}; (data || []).forEach((r) => { v[r.notice_id] = true; }); setVoted(v);
+    });
+  }, [notices]);
+
+  const vote = async (n) => {
+    const { error } = await supabase.from("notice_votes").insert({ notice_id: n.id, device_id: getDeviceId() });
+    if (!error) setVoted((v) => ({ ...v, [n.id]: true }));
+    else if (String(error.code) === "23505") setVoted((v) => ({ ...v, [n.id]: true })); // صوّت من قبل بنفس الجهاز
+  };
+
+  const visible = notices.filter((n) => !dismissed[n.id]);
+  if (!visible.length) return null;
+  return (
+    <div className="no-print" style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+      {visible.map((n) => (
+        <div key={n.id} style={{ background: n.kind === "important" ? "#C0392B14" : T.surface, border: `1px solid ${n.kind === "important" ? "#C0392B44" : T.brass + "44"}`, borderRadius: 14, padding: "12px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <Sparkles size={16} color={n.kind === "important" ? "#C0392B" : T.brass} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.paper }}>{n.title}</div>
+            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 3, lineHeight: 1.7 }}>{n.body}</div>
+            {n.votes_enabled && (
+              <button onClick={() => vote(n)} disabled={voted[n.id]} style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, background: voted[n.id] ? T.brass + "18" : T.brass, color: voted[n.id] ? T.brass : "#fff", border: "none", borderRadius: 9, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: voted[n.id] ? "default" : "pointer" }}>
+                <ThumbsUp size={12} /> {voted[n.id] ? (lang === "ar" ? "تم التأييد، شكرًا" : "Voted, thanks") : (lang === "ar" ? "أؤيد" : "Support")}
+              </button>
+            )}
+          </div>
+          <button onClick={() => setDismissed((d) => ({ ...d, [n.id]: true }))} style={{ background: "none", border: "none", cursor: "pointer", color: T.faint, flexShrink: 0 }}><X size={14} /></button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PublicSite() {
   const reduced = usePrefersReduced();
   const { mode, setMode, resolved } = useThemeMode();
@@ -2933,6 +2989,7 @@ function PublicSite() {
         <LegalDisclaimer />
 
         <div className="wrap">
+          <NoticesBanner />
           <header>
             <div className="head">
               <div className="min-w-0">
@@ -3381,10 +3438,27 @@ function PublicSite() {
    مرتبطة بنفس عميل supabase المُعرَّف بالأعلى بالسطر ٢٦.
    ═══════════════════════════════════════════════════════════ */
 
+/* ── يتبع وضع الجهاز (فاتح/داكن) تلقائيًا بدون أي زر تبديل ── */
+let CURRENT_ADMIN_THEME = THEMES.light;
+function useSystemTheme() {
+  const [dark, setDark] = useState(() => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setDark(mq.matches);
+    const h = (e) => setDark(e.matches);
+    mq.addEventListener?.("change", h);
+    return () => mq.removeEventListener?.("change", h);
+  }, []);
+  const T = dark ? THEMES.dark : THEMES.light;
+  CURRENT_ADMIN_THEME = T;
+  return T;
+}
+
 const ADMIN_PERMISSIONS = [
   { key: "sync_data", label: "مزامنة وتعديل بيانات الاستفسارات (إكسل أو يدويًا)", icon: FileSpreadsheet },
   { key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
   { key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
+  { key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
   { key: "view_analytics", label: "عرض الزيارات والتحليلات", icon: BarChart3 },
   { key: "export_data", label: "تصدير التقارير كإكسل", icon: Download },
   { key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
@@ -3426,7 +3500,7 @@ function useSupaAuth() {
 function AdminLogin() {
   const [email, setEmail] = useState(""); const [pass, setPass] = useState("");
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const submit = async (e) => {
     e.preventDefault(); setErr(""); setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -3453,21 +3527,21 @@ function AdminLogin() {
 
 /* أدوات مساعدة عامة لواجهة الإدارة */
 function ABadge({ kind, children }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const map = { add: { bg: "#1E8E5A14", fg: "#1E8E5A", icon: PlusCircle }, change: { bg: "#B8790F14", fg: "#B8790F", icon: Pencil }, missing: { bg: "#C0392B14", fg: "#C0392B", icon: MinusCircle } };
   const { bg, fg, icon: Icon } = map[kind];
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, color: fg, fontSize: 11.5, fontWeight: 600, padding: "3px 9px", borderRadius: 999 }}><Icon size={12} /> {children}</span>;
 }
 function ASegmented({ options, value, onChange }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   return <div style={{ display: "flex", background: T.sunken, borderRadius: 10, padding: 3, gap: 2 }}>{options.map((o) => (<button key={o.value} onClick={() => onChange(o.value)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600, background: value === o.value ? T.brass : "transparent", color: value === o.value ? "#fff" : T.muted }}>{o.label}</button>))}</div>;
 }
 function ALocked({ text }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   return <div style={{ background: T.surface, border: `1px dashed ${T.line}`, borderRadius: 16, padding: 30, textAlign: "center" }}><ShieldAlert size={22} color={T.faint} style={{ marginBottom: 8 }} /><div style={{ fontSize: 13, color: T.muted }}>{text}</div></div>;
 }
 function afieldInput(label, value, onChange, opts) {
-  const T = THEMES.light;
+  const T = CURRENT_ADMIN_THEME;
   return (
     <div key={label}>
       <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>{label}</label>
@@ -3476,6 +3550,34 @@ function afieldInput(label, value, onChange, opts) {
     </div>
   );
 }
+/* أسماء أعمدة بديلة شائعة — يقبل ملفات إكسل حقيقية بعناوين عربية، مو بس القالب الجاهز */
+const HEADER_ALIASES = {
+  id: ["id", "رقم", "الرقم", "م", "رقم الاستفسار", "no", "no."],
+  model: ["model", "النموذج", "الموديل"],
+  loc: ["loc", "الموقع", "موقع الملاحظة"],
+  pri: ["pri", "الأولوية", "الاولوية"],
+  status: ["status", "الحالة"],
+  owner: ["owner", "المهندس", "المسؤول", "صاحب الرد"],
+  month: ["month", "الشهر"],
+  note: ["note", "الملاحظة", "ملاحظة", "الاستفسار"],
+  note_en: ["note_en", "note (en)", "الملاحظة بالانجليزي", "note en"],
+  reply: ["reply", "الرد", "رد"],
+  closed: ["closed", "مغلقة", "مقفل", "مقفل/مفتوح", "مقفل / مفتوح"],
+};
+const HEADER_LOOKUP = (() => {
+  const map = {};
+  Object.entries(HEADER_ALIASES).forEach(([canon, aliases]) => aliases.forEach((a) => { map[a.trim().toLowerCase()] = canon; }));
+  return map;
+})();
+function normalizeRow(row) {
+  const out = {};
+  Object.entries(row).forEach(([key, val]) => {
+    const canon = HEADER_LOOKUP[String(key).trim().toLowerCase()];
+    out[canon || key] = val;
+  });
+  return out;
+}
+
 function findNewValuesAdmin(rows, categories) {
   const found = []; const seen = new Set();
   categories.forEach((cat) => {
@@ -3503,7 +3605,7 @@ function findNewColumnsAdmin(rows, categories) {
 
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
 function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, log }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const fileRef = useRef(null);
   const [sheets, setSheets] = useState(null);
   const [mapping, setMapping] = useState({});
@@ -3543,7 +3645,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     reader.onload = (evt) => {
       try {
         const wb = XLSX.read(evt.target.result, { type: "array" });
-        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "" }); });
+        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "" }).map(normalizeRow); });
         const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: "merge" }; });
         setSheets(parsed); setMapping(initMap); setDiffResults(null); setNewValues([]); setNewColumns([]);
       } catch { flashToast("تعذّرت قراءة الملف"); }
@@ -3608,7 +3710,9 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
               const patch = Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined));
               await supabase.from("inquiries").update(patch).eq("id", Number(key));
             }
-            const newRows = res.added.map((row) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false }));
+            // العناصر المضافة فعليًا (مو المعدّلة) توسم "جديد" تلقائيًا لمدة ٧ أيام
+            const todayISO = new Date().toISOString().slice(0, 10);
+            const newRows = res.added.map((row) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false, last_modified: todayISO }));
             if (newRows.length) await supabase.from("inquiries").insert(newRows);
             count += res.added.length + res.changed.length;
           }
@@ -3650,6 +3754,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const toggleUrgent = async (r) => {
     await supabase.from("inquiries").update({ urgent: !r.urgent }).eq("id", r.id);
     log("تعديل وسم عاجل", `تبديل الحالة على الاستفسار #${r.id}`);
+    refreshInquiries();
+  };
+  const isMarkedNew = (r) => { if (!r.last_modified) return false; const days = (Date.now() - new Date(r.last_modified + "T00:00:00").getTime()) / 86400000; return days >= 0 && days <= 7; };
+  const toggleNew = async (r) => {
+    const newVal = isMarkedNew(r) ? null : new Date().toISOString().slice(0, 10);
+    await supabase.from("inquiries").update({ last_modified: newVal }).eq("id", r.id);
+    log("تعديل وسم جديد", `${newVal ? "تفعيل" : "إلغاء"} علامة "جديد" على الاستفسار #${r.id}`);
     refreshInquiries();
   };
   const startAdd = () => { setEditing("new"); setForm({ ...ADMIN_BLANK_INQ }); };
@@ -3804,6 +3915,9 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                 <button disabled={!canFlag} onClick={() => toggleUrgent(r)} style={{ flexShrink: 0, background: r.urgent ? "#B8790F" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
                   <Star size={14} color={r.urgent ? "#fff" : T.faint} fill={r.urgent ? "#fff" : "none"} />
                 </button>
+                <button disabled={!canFlag} onClick={() => toggleNew(r)} title={isMarkedNew(r) ? "إلغاء وسم جديد" : "وسم كـ جديد (٧ أيام)"} style={{ flexShrink: 0, background: isMarkedNew(r) ? T.brass : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
+                  <Sparkles size={14} color={isMarkedNew(r) ? "#fff" : T.faint} />
+                </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8 }}><span style={{ color: T.faint, fontWeight: 700 }}>#{r.id}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.note}</span></div>
                   <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}</div>
@@ -3850,7 +3964,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
 /* ── الزيارات والتحليلات — يقرأ من جدول logs الحقيقي ── */
 function AAnalyticsTab({ flashToast, canExport }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const today = new Date();
   const [from, setFrom] = useState(isoAdminDate(new Date(today - 6 * 86400000)));
   const [to, setTo] = useState(isoAdminDate(today));
@@ -3928,7 +4042,7 @@ function AAnalyticsTab({ flashToast, canExport }) {
 
 /* ── الفلاتر المخصصة ── */
 function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const [newCatName, setNewCatName] = useState(""); const [newVal, setNewVal] = useState(""); const [draftValues, setDraftValues] = useState([]);
   const addValueToDraft = () => { if (!newVal.trim()) return; setDraftValues((v) => [...v, newVal.trim()]); setNewVal(""); };
   const createCategory = async () => {
@@ -3973,7 +4087,7 @@ function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
 
 /* ── سجل نشاط الإدارة ── */
 function AAuditLogTab() {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const [entries, setEntries] = useState([]);
   useEffect(() => { supabase.from("audit_log").select("*").order("ts", { ascending: false }).limit(200).then(({ data }) => setEntries(data || [])); }, []);
   return (
@@ -3996,7 +4110,7 @@ function AAuditLogTab() {
 
 /* ── تعديل صلاحيات أعضاء موجودين (إنشاء الحساب نفسه يتم من لوحة Supabase) ── */
 function AUsersTab({ profile, flashToast, log }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const [members, setMembers] = useState([]); const [editingId, setEditingId] = useState(null); const [form, setForm] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState(null); // { name, email, password, perms }
@@ -4087,16 +4201,114 @@ function AUsersTab({ profile, flashToast, log }) {
   );
 }
 
+/* ── الإشعارات المؤقتة (تنبيه/مهم) مع تصويت اختياري محمي من التكرار ── */
+function ANoticesTab({ flashToast, log }) {
+  const T = useSystemTheme();
+  const [notices, setNotices] = useState([]);
+  const [form, setForm] = useState(null);
+  const load = () => supabase.from("notices").select("*").order("created_at", { ascending: false }).then(({ data }) => setNotices(data || []));
+  useEffect(() => { load(); }, []);
+  const startAdd = () => setForm({ title: "", body: "", kind: "info", durationDays: "7", votesEnabled: false });
+  const create = async () => {
+    if (!form.title.trim() || !form.body.trim()) { flashToast("لازم عنوان ونص"); return; }
+    const expires_at = form.durationDays === "0" ? null : new Date(Date.now() + Number(form.durationDays) * 86400000).toISOString();
+    await supabase.from("notices").insert({ title: form.title.trim(), body: form.body.trim(), kind: form.kind, votes_enabled: form.votesEnabled, expires_at });
+    log("نشر إشعار جديد", `"${form.title.trim()}" (${form.kind}) — ${form.durationDays === "0" ? "بدون انتهاء" : `${form.durationDays} يوم`}`);
+    flashToast("تم نشر الإشعار على الموقع"); setForm(null); load();
+  };
+  const remove = async (n) => { await supabase.from("notices").delete().eq("id", n.id); log("حذف إشعار", n.title); flashToast("تم الحذف"); load(); };
+  const [voteCounts, setVoteCounts] = useState({});
+  useEffect(() => {
+    if (!notices.length) return;
+    supabase.from("notice_votes").select("notice_id").then(({ data }) => {
+      const counts = {};
+      (data || []).forEach((v) => { counts[v.notice_id] = (counts[v.notice_id] || 0) + 1; });
+      setVoteCounts(counts);
+    });
+  }, [notices]);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Sparkles size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>إشعارات الموقع العام</span></div>
+          <button onClick={startAdd} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "8px 13px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}><PlusCircle size={14} /> إشعار جديد</button>
+        </div>
+        <p style={{ fontSize: 12, color: T.muted, margin: "6px 0 0", lineHeight: 1.7 }}>يظهر بأعلى الموقع العام لكل الزوّار، ويختفي تلقائيًا بعد المدة اللي تحددها.</p>
+      </div>
+
+      {form && (
+        <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>إشعار جديد</div>
+          <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>الموضوع (العنوان)</label>
+          <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="مثال: اجتماع الملاك القادم" style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.line}`, marginBottom: 12, fontSize: 13, background: T.sunken }} />
+          <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>النص</label>
+          <textarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} rows={4} placeholder="اكتب تفاصيل الإشعار هنا..." style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.line}`, marginBottom: 12, fontSize: 13, background: T.sunken, fontFamily: "inherit", resize: "vertical" }} />
+          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>النوع</label>
+              <ASegmented value={form.kind} onChange={(v) => setForm((f) => ({ ...f, kind: v }))} options={[{ value: "info", label: "تنبيه" }, { value: "important", label: "مهم" }]} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>يبقى ظاهر لمدة</label>
+              <select value={form.durationDays} onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.sunken }}>
+                <option value="1">يوم واحد</option><option value="3">3 أيام</option><option value="7">أسبوع</option>
+                <option value="14">أسبوعين</option><option value="30">شهر</option><option value="0">بدون انتهاء (يدوي فقط)</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={() => setForm((f) => ({ ...f, votesEnabled: !f.votesEnabled }))} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${form.votesEnabled ? T.brass : T.line}`, background: form.votesEnabled ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: "pointer", width: "100%", marginBottom: 16 }}>
+            <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${form.votesEnabled ? T.brass : T.faint}`, background: form.votesEnabled ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{form.votesEnabled && <Check size={13} color="#fff" />}</span>
+            <span style={{ fontSize: 12.5 }}>تفعيل التصويت (تأييد/عدم تأييد) — صوت واحد لكل جهاز، محمي من التكرار</span>
+          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={create} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> نشر الإشعار</button>
+            <button onClick={() => setForm(null)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>الإشعارات الحالية</div>
+        {notices.length === 0 ? (<div style={{ fontSize: 12.5, color: T.muted, textAlign: "center", padding: 20 }}>ما فيه إشعارات منشورة حاليًا.</div>) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {notices.map((n) => {
+              const expired = n.expires_at && new Date(n.expires_at) < new Date();
+              return (
+                <div key={n.id} style={{ background: T.sunken, borderRadius: 12, padding: 12, opacity: expired ? .5 : 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                        {n.kind === "important" ? <ABadge kind="missing">مهم</ABadge> : <ABadge kind="change">تنبيه</ABadge>} {n.title}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>{n.body}</div>
+                      <div style={{ fontSize: 11, color: T.faint, marginTop: 4 }}>
+                        {expired ? "انتهى" : n.expires_at ? `ينتهي ${fmtAdminDate(n.expires_at)}` : "بدون انتهاء"}
+                        {n.votes_enabled && ` · ${voteCounts[n.id] || 0} صوت`}
+                      </div>
+                    </div>
+                    <button onClick={() => remove(n)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#C0392B", flexShrink: 0 }}><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const ADMIN_TABS = [
   { key: "sync", label: "المزامنة والبيانات", perm: "sync_data" },
   { key: "analytics", label: "الزيارات والتحليلات", perm: "view_analytics" },
   { key: "filters", label: "الفلاتر المخصصة", perm: "manage_filters" },
+  { key: "notices", label: "الإشعارات", perm: "manage_notices" },
   { key: "audit", label: "سجل النشاط", perm: "view_audit_log" },
   { key: "users", label: "المستخدمون", perm: "manage_users" },
 ];
 
 function AdminHome({ session, onLogout }) {
-  const T = THEMES.light;
+  const T = useSystemTheme();
   const [profile, setProfile] = useState(undefined);
   const [inquiries, setInquiries] = useState([]);
   const [progress, setProgress] = useState([]);
@@ -4134,7 +4346,7 @@ function AdminHome({ session, onLogout }) {
           <div style={{ width: 34, height: 34, borderRadius: 10, background: T.brass + "16", display: "flex", alignItems: "center", justifyContent: "center" }}><ShieldCheck size={17} color={T.brass} /></div>
           <div><div style={{ fontSize: 14, fontWeight: 700 }}>لوحة إدارة ألبورادا</div><div style={{ fontSize: 11, color: T.muted }}>{liveStats.total} استفسار · {liveStats.open} مفتوح · {liveStats.urgent} عاجل</div></div>
         </div>
-        <button onClick={() => supabase.auth.signOut()} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.line}`, borderRadius: 10, padding: "7px 12px", fontSize: 12.5, color: T.muted, cursor: "pointer" }}><LogOut size={13} /> خروج</button>
+        <button onClick={async () => { await supabase.auth.signOut(); window.location.hash = ""; window.location.reload(); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.line}`, borderRadius: 10, padding: "7px 12px", fontSize: 12.5, color: T.muted, cursor: "pointer" }}><LogOut size={13} /> خروج</button>
       </div>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 0" }}>
@@ -4148,6 +4360,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} log={log} />}
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
+        {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} />}
       </div>
