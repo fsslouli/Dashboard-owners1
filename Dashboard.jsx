@@ -1385,13 +1385,13 @@ const LEGAL_COPY = {
 };
 
 /* ── ١١. الإقرار القانوني ولوحة سجل التحديثات ── */
-function LegalDisclaimer() {
+function LegalDisclaimer({ onAgree: onAgreeParent }) {
   const { T } = useT();
   const { lang } = useLang();
   const [agreed, setAgreed] = useState(false);
   if (agreed) return null;
   const c = LEGAL_COPY[lang];
-  const onAgree = () => setAgreed(true);
+  const onAgree = () => { setAgreed(true); onAgreeParent?.(); };
   return (
     <div className="ovl" style={{ zIndex: 90 }}>
       <div className="sheet" style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
@@ -1690,6 +1690,16 @@ function Sheet({ r, navList, onJump, onClose }) {
   const [shareCopied, setShareCopied] = useState(false);
   const [feedback, setFeedback] = useState(null); // "up" | "down" | null — محلي فقط للعرض، لا يُقرأ من القاعدة
   useBackClose(!!r, onClose);
+
+  /* يقفل تمرير الصفحة الخلفية أثناء فتح اللوحة — يمنع تمرير الصفحة الأصلية بالتوازي مع
+     تمرير محتوى اللوحة، وهو سبب ظهور شريط الأزرار العلوي (X، التنقّل) بموضع غير متزامن
+     ويصعّب الوصول له على الجوال (خصوصًا سفاري) */
+  useEffect(() => {
+    if (!r) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [!!r]);
 
   const idx = r && navList ? navList.findIndex((x) => x.id === r.id) : -1;
   const hasPrev = idx > 0;
@@ -2209,13 +2219,15 @@ function getDeviceId() {
   } catch { return "anon"; }
 }
 
-/* ── شريط الإشعارات المؤقتة أعلى الموقع العام ── */
-function NoticesBanner() {
+/* ── نافذة الإشعارات المنبثقة — تظهر مرة عند دخول الموقع (بعد الإقرار القانوني)
+   بدل الشريط الثابت أعلى الصفحة، بنفس أسلوب نافذة "الإقرار القانوني". يبقى فيها
+   خروج عادي وواضح: زر X بالأعلى، زر "إغلاق" بالأسفل، أو النقر خارج النافذة ── */
+function NoticesModal({ enabled }) {
   const { T } = useT();
   const { lang } = useLang();
   const [notices, setNotices] = useState([]);
   const [voted, setVoted] = useState({});
-  const [dismissed, setDismissed] = useState({});
+  const [closed, setClosed] = useState(false);
 
   useEffect(() => {
     supabase.from("notices").select("*").order("created_at", { ascending: false }).then(({ data }) => setNotices(data || []));
@@ -2233,25 +2245,44 @@ function NoticesBanner() {
     else if (String(error.code) === "23505") setVoted((v) => ({ ...v, [n.id]: true })); // صوّت من قبل بنفس الجهاز
   };
 
-  const visible = notices.filter((n) => !dismissed[n.id]);
-  if (!visible.length) return null;
+  const onClose = () => setClosed(true);
+  useBackClose(enabled && !closed && notices.length > 0, onClose);
+
+  if (!enabled || closed || !notices.length) return null;
   return (
-    <div className="no-print" style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-      {visible.map((n) => (
-        <div key={n.id} style={{ background: n.kind === "important" ? "#C0392B14" : T.surface, border: `1px solid ${n.kind === "important" ? "#C0392B44" : T.brass + "44"}`, borderRadius: 14, padding: "12px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <Sparkles size={16} color={n.kind === "important" ? "#C0392B" : T.brass} style={{ flexShrink: 0, marginTop: 2 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.paper }}>{n.title}</div>
-            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 3, lineHeight: 1.7 }}>{n.body}</div>
-            {n.votes_enabled && (
-              <button onClick={() => vote(n)} disabled={voted[n.id]} style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, background: voted[n.id] ? T.brass + "18" : T.brass, color: voted[n.id] ? T.brass : "#fff", border: "none", borderRadius: 9, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: voted[n.id] ? "default" : "pointer" }}>
-                <ThumbsUp size={12} /> {voted[n.id] ? (lang === "ar" ? "تم التأييد، شكرًا" : "Voted, thanks") : (lang === "ar" ? "أؤيد" : "Support")}
-              </button>
-            )}
+    <div className="ovl no-print" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
+        <div className="sheet-top">
+          <div className="flex items-center gap-2">
+            <span style={{ width: 36, height: 36, borderRadius: 11, background: T.brass + "14", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+              <Sparkles size={17} color={T.brass} />
+            </span>
+            <div className="sec-t">{lang === "en" ? "Notices" : "الإشعارات"}</div>
           </div>
-          <button onClick={() => setDismissed((d) => ({ ...d, [n.id]: true }))} style={{ background: "none", border: "none", cursor: "pointer", color: T.faint, flexShrink: 0 }}><X size={14} /></button>
+          <button onClick={onClose} className="icon-btn" aria-label={lang === "en" ? "Close" : "إغلاق"}><X size={16} /></button>
         </div>
-      ))}
+        <div className="sheet-body">
+          {notices.map((n, i) => (
+            <div key={n.id} style={{ marginBottom: i < notices.length - 1 ? 18 : 0, paddingBottom: i < notices.length - 1 ? 18 : 0, borderBottom: i < notices.length - 1 ? `1px solid ${T.lineSoft}` : "none" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <Sparkles size={15} color={n.kind === "important" ? "#C0392B" : T.brass} style={{ flexShrink: 0, marginTop: 3 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: T.paper }}>{n.title}</div>
+                  <div style={{ fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.8 }}>{n.body}</div>
+                  {n.votes_enabled && (
+                    <button onClick={() => vote(n)} disabled={voted[n.id]} style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 6, background: voted[n.id] ? T.brass + "18" : T.brass, color: voted[n.id] ? T.brass : "#fff", border: "none", borderRadius: 9, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: voted[n.id] ? "default" : "pointer" }}>
+                      <ThumbsUp size={12} /> {voted[n.id] ? (lang === "ar" ? "تم التأييد، شكرًا" : "Voted, thanks") : (lang === "ar" ? "أؤيد" : "Support")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: "14px 19px 20px", borderTop: `1px solid ${T.line}`, background: T.sunken }}>
+          <button onClick={onClose} className="big-btn" style={{ marginTop: 0 }}>{lang === "en" ? "Close" : "إغلاق"}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2308,6 +2339,7 @@ function PublicSite() {
   const [navList, setNavList] = useState(null);
   const openRecord = (r, list) => { setSel(r); setNavList(list || null); };
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [legalAgreed, setLegalAgreed] = useState(false);
   const [limit, setLimit] = useState(12);
   const tabsRef = useRef(null);
   const indicatorRef = useRef(null);
@@ -2986,10 +3018,10 @@ function PublicSite() {
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
 
-        <LegalDisclaimer />
+        <LegalDisclaimer onAgree={() => setLegalAgreed(true)} />
+        <NoticesModal enabled={legalAgreed} />
 
         <div className="wrap">
-          <NoticesBanner />
           <header>
             <div className="head">
               <div className="min-w-0">
@@ -3469,9 +3501,14 @@ const ADMIN_PERMISSIONS = [
   { key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
   { key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
 ];
-const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "status", "owner", "month", "note", "note_en", "reply", "closed"];
-const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)" };
-const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا" };
+const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "status", "owner", "month", "note", "note_en", "reply", "closed", "answered"];
+const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
+const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا" };
+/* answered عمود boolean حقيقي بقاعدة البيانات (بخلاف closed اللي نص) — نحوّلها بالحدين:
+   نص "نعم/لا" أثناء العرض والمقارنة بالإدارة (اتساقًا مع closed)، وBoolean فعلي عند الكتابة الفعلية لقاعدة البيانات */
+const REAL_BOOL_FIELDS = ["answered"];
+const toYesNo = (v) => (v === true ? "نعم" : v === false ? "لا" : v);
+const toDbBool = (v) => (v === "نعم" ? true : v === "لا" ? false : typeof v === "boolean" ? v : !!v);
 const ADMIN_TARGETS = [
   { key: "inquiries", label: "الاستفسارات", fields: INQ_FIELDS_ADMIN, keyField: "id" },
   { key: "progress", label: "تقدّم التنفيذ", fields: ["planned", "actual"], keyField: "month" },
@@ -3537,6 +3574,21 @@ function ABadge({ kind, children }) {
   const { bg, fg, icon: Icon } = map[kind];
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, color: fg, fontSize: 11.5, fontWeight: 600, padding: "3px 9px", borderRadius: 999 }}><Icon size={12} /> {children}</span>;
 }
+/* ملخص مختصر لكل صف تغيّر — أي حقول بالضبط اختلفت (الرد، الحالة..) بدل رقم عام بس،
+   عشان تعرف بلمحة وش تغيّر قبل ما تعتمد */
+function DiffChangeList({ changed, T }) {
+  if (!changed || !changed.length) return null;
+  return (
+    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+      {changed.slice(0, 6).map((c) => (
+        <div key={c.key} style={{ fontSize: 11, color: T.muted }}>
+          <b style={{ color: T.brass }}>#{c.key}</b> — تغيّر: {c.fieldDiffs.map((f) => ADMIN_FIELD_LABEL[f] || f).join("، ")}
+        </div>
+      ))}
+      {changed.length > 6 && <div style={{ fontSize: 11, color: T.faint }}>+{changed.length - 6} تغييرات أخرى</div>}
+    </div>
+  );
+}
 function ASegmented({ options, value, onChange }) {
   const T = useSystemTheme();
   return <div style={{ display: "flex", background: T.sunken, borderRadius: 10, padding: 3, gap: 2 }}>{options.map((o) => (<button key={o.value} onClick={() => onChange(o.value)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600, background: value === o.value ? T.brass : "transparent", color: value === o.value ? "#fff" : T.muted }}>{o.label}</button>))}</div>;
@@ -3557,30 +3609,81 @@ function afieldInput(label, value, onChange, opts) {
 }
 /* أسماء أعمدة بديلة شائعة — يقبل ملفات إكسل حقيقية بعناوين عربية، مو بس القالب الجاهز */
 const HEADER_ALIASES = {
-  id: ["id", "رقم", "الرقم", "م", "رقم الاستفسار", "no", "no."],
-  model: ["model", "النموذج", "الموديل", "نوع النموذج"],
-  loc: ["loc", "الموقع", "موقع الملاحظة"],
-  pri: ["pri", "الأولوية", "الاولوية", "درجة الأولوية"],
-  status: ["status", "الحالة", "حالة المقترح"],
-  owner: ["owner", "المهندس", "المسؤول", "صاحب الرد"],
-  month: ["month", "الشهر", "شهر الرد", "شهر الرد (نص)", "تاريخ الطلب"],
-  note: ["note", "الملاحظة", "ملاحظة", "الاستفسار", "الملاحظة / الحل المقترح", "الملاحظة/الحل المقترح", "تفاصيل الطلب"],
+  id: ["id", "رقم", "الرقم", "م", "رقم الاستفسار", "no", "no.", "#"],
+  model: ["model", "النموذج", "الموديل", "نوع النموذج", "موديل الفيلا"],
+  loc: ["loc", "الموقع", "موقع الملاحظة", "مكان الملاحظة", "الموقع بالفيلا"],
+  pri: ["pri", "الأولوية", "الاولوية", "درجة الأولوية", "الاهمية", "الأهمية"],
+  status: ["status", "الحالة", "حالة المقترح", "حالة الاعتماد"],
+  owner: ["owner", "المهندس", "المسؤول", "صاحب الرد", "المهندس المسؤول", "الجهة المعنية"],
+  month: ["month", "الشهر", "شهر الرد", "شهر الرد (نص)", "تاريخ الطلب", "تاريخ الرد", "التاريخ"],
+  note: ["note", "الملاحظة", "ملاحظة", "الاستفسار", "الملاحظة / الحل المقترح", "الملاحظة/الحل المقترح", "تفاصيل الطلب", "نص الاستفسار", "وصف الاستفسار"],
   note_en: ["note_en", "note (en)", "الملاحظة بالانجليزي", "note en"],
-  reply: ["reply", "الرد", "رد", "الرد على المقترح"],
-  closed: ["closed", "مغلقة", "مقفل", "مقفل/مفتوح", "مقفل / مفتوح", "حالة الإغلاق", "حالة الطلب"],
+  reply: ["reply", "الرد", "رد", "الرد على المقترح", "رد المهندس", "التوضيح"],
+  closed: ["closed", "مغلقة", "مقفل", "مقفل/مفتوح", "مقفل / مفتوح", "حالة الإغلاق", "حالة الطلب", "الإغلاق", "هل تم الإغلاق"],
+  answered: ["answered", "حالة الرد", "هل تم الرد"],
 };
+/* مفاتيح مطبَّعة (بدون تشكيل/مسافات/فوارق أ-إ-آ) لكل بديل — أساس محرك المطابقة الذكي للعناوين */
 const HEADER_LOOKUP = (() => {
   const map = {};
-  Object.entries(HEADER_ALIASES).forEach(([canon, aliases]) => aliases.forEach((a) => { map[a.trim().toLowerCase()] = canon; }));
+  Object.entries(HEADER_ALIASES).forEach(([canon, aliases]) => aliases.forEach((a) => { map[normalizeArabic(a)] = canon; }));
   return map;
 })();
+/* يطابق عنوان عمود حتى لو مختلف شوي بالصياغة عن القوالب المعروفة (مسافات زائدة، تشكيل، همزات، أقواس..)
+   أولًا مطابقة تامة بعد التطبيع، ولو ما لقى، مطابقة تقريبية (Levenshtein) بحد أدنى للتشابه */
+function resolveHeaderKey(rawKey) {
+  const norm = normalizeArabic(rawKey);
+  if (!norm) return null;
+  if (HEADER_LOOKUP[norm]) return HEADER_LOOKUP[norm];
+  let best = null, bestScore = 0;
+  Object.entries(HEADER_LOOKUP).forEach(([alias, canon]) => {
+    const longer = Math.max(alias.length, norm.length), shorter = Math.min(alias.length, norm.length);
+    if (longer - shorter > Math.max(4, longer * 0.35)) return; // فرق طول كبير = مستبعد مبكرًا (يمنع تطابق عناوين قصيرة كجزء من عناوين طويلة غير مرتبطة)
+    if (shorter / longer < 0.7) return; // نفس الغرض: يمنع اعتبار عنوان قصير جزءًا من عنوان أطول بلا علاقة فعلية
+    const dist = levenshtein(norm, alias);
+    const s = 1 - dist / longer;
+    if (s > bestScore) { bestScore = s; best = canon; }
+  });
+  return bestScore >= 0.82 ? best : null;
+}
 function normalizeRow(row) {
   const out = {};
   Object.entries(row).forEach(([key, val]) => {
-    const canon = HEADER_LOOKUP[String(key).trim().toLowerCase()];
+    const canon = resolveHeaderKey(String(key));
     out[canon || key] = val;
   });
 
+  return out;
+}
+
+/* ═══ تطبيع القيم الثنائية (نعم/لا) — يحل مشكلة أعمدة مثل "حالة الإغلاق" و"حالة الرد" اللي تجي
+   بصياغات مختلفة تمامًا عن القيم المعتمدة (مثلاً "مقفل"/"مفتوح" أو "تم الرد"/"بانتظار الرد" بدل
+   "نعم"/"لا"). المطابقة التقريبية بالتشابه النصي ما تكفي هنا لأنها كلمات مختلفة كليًا وليست أخطاء
+   إملائية، فنستخدم قوائم مرادفات صريحة لكل حقل على حدة بدلًا من الاعتماد على Levenshtein وحده ═══ */
+const BOOLEAN_FIELD_WORDS = {
+  closed: {
+    true: ["نعم", "مقفل", "مغلق", "مغلقة", "تم الإغلاق", "تم اغلاقه", "منتهي", "closed", "yes", "true", "done", "1"],
+    false: ["لا", "مفتوح", "غير مغلق", "قائم", "لم يغلق", "لايزال مفتوح", "لا يزال مفتوحا", "open", "no", "false", "pending", "0"],
+  },
+  answered: {
+    true: ["تم الرد", "تم الرد عليه", "رد عليه", "نعم", "answered", "replied", "yes", "true", "done", "1"],
+    false: ["لم يتم الرد", "بانتظار الرد", "لم يرد بعد", "لم يرد", "لا", "not answered", "awaiting", "pending", "no", "false", "0"],
+  },
+};
+function normalizeBooleanish(value, field) {
+  if (value == null || value === "") return value;
+  const norm = normalizeArabic(value);
+  if (!norm) return value;
+  const words = BOOLEAN_FIELD_WORDS[field]; if (!words) return value;
+  const hit = (list) => list.some((w) => { const nw = normalizeArabic(w); return norm === nw || norm.includes(nw); });
+  if (hit(words.true)) return "نعم";
+  if (hit(words.false)) return "لا";
+  return value; // قيمة غير معروفة — تُترك كما هي لتمر بعدها على المطابقة التقريبية العامة (canonicalizeRow)
+}
+/* الحقول اللي قيمتها منطقية بطبيعتها (نعم/لا) وتحتاج هذا التطبيع الصريح قبل أي تطبيع عام آخر */
+const BOOLEAN_FIELDS = ["closed", "answered"];
+function normalizeBooleanFields(row) {
+  const out = { ...row };
+  BOOLEAN_FIELDS.forEach((f) => { if (out[f] != null && out[f] !== "") out[f] = normalizeBooleanish(out[f], f); });
   return out;
 }
 
@@ -3631,16 +3734,18 @@ function canonicalizeRow(row, categories) {
   return out;
 }
 
-/* يكتشف صف العناوين الحقيقي تلقائيًا حتى لو فيه صف عنوان تجميعي فوقه (خلايا مدمجة) */
+/* يكتشف صف العناوين الحقيقي تلقائيًا حتى لو فيه صف عنوان تجميعي فوقه (خلايا مدمجة) —
+   يستخدم نفس محرك المطابقة التقريبية للعناوين، مو بس تطابق حرفي، عشان يلقط صف العناوين
+   الصحيح حتى لو صياغته مختلفة شوي عن القوالب المعروفة */
 function smartSheetToJson(sheet, categories) {
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
   let bestIdx = 0, bestScore = -1;
   for (let i = 0; i < Math.min(6, raw.length); i++) {
-    const score = (raw[i] || []).filter((cell) => HEADER_LOOKUP[String(cell).trim().toLowerCase()]).length;
+    const score = (raw[i] || []).filter((cell) => resolveHeaderKey(String(cell))).length;
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   }
   const rows = XLSX.utils.sheet_to_json(sheet, { range: bestIdx, defval: "", raw: false });
-  return rows.map(normalizeRow).map((r) => {
+  return rows.map(normalizeRow).map(normalizeBooleanFields).map((r) => {
     if (typeof r.month === "string" && /^\d{4}-\d{2}/.test(r.month)) r.month = r.month.slice(0, 7);
     return r;
   }).map((r) => canonicalizeRow(r, categories));
@@ -3677,13 +3782,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const fileRef = useRef(null);
   const [sheets, setSheets] = useState(null);
   const [mapping, setMapping] = useState({});
+  const [stage, setStage] = useState(null); // null | "select" (اختيار الشيتات) | "results" (نتيجة المقارنة)
   const [diffResults, setDiffResults] = useState(null);
   const [newValues, setNewValues] = useState([]);
   const [newColumns, setNewColumns] = useState([]);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [overrideOpen, setOverrideOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const [backups, setBackups] = useState([]);
   const [restoring, setRestoring] = useState(null);
@@ -3703,6 +3808,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
   const guessTarget = (name) => { const n = name.toLowerCase(); if (n.includes("تقدم") || n.includes("progress")) return "progress"; return "inquiries"; };
   const guessMode = (name) => (/اجتماع|طلبات|ملاحظات/.test(name) ? "append" : "merge");
+  /* يقارن قيمة حقل قادم من الملف (نص "نعم/لا" دائمًا بعد التطبيع) بقيمة الحقل بالسجل الحالي —
+     يحوّل حقول boolean الحقيقية (زي answered) لنفس صيغة "نعم/لا" قبل المقارنة، وإلا أي مقارنة
+     نصية بينها وبين true/false الفعلي بقاعدة البيانات كانت راح تفشل دائمًا وتُحسب "تغيّر" زورًا */
+  const fieldsThatDiffer = (fields, row, cur) => fields.filter((f) => {
+    const curVal = REAL_BOOL_FIELDS.includes(f) ? toYesNo(cur[f]) : cur[f];
+    return String(row[f] ?? "") !== String(curVal ?? "");
+  });
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inquiries.map(({ urgent, updated_at, ...r }) => r)), "الاستفسارات");
@@ -3712,18 +3824,45 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const runCompareWith = (parsedSheets, mapObj) => {
     const results = []; let scanRows = [];
     Object.entries(mapObj).forEach(([sheetName, cfg]) => {
-      if (cfg.target === "ignore") return;
+      if (cfg.target === "ignore" || cfg.selected === false) return; // شيت غير مُختار بخطوة "اختيار الشيتات" أو مُستبعد يدويًا
       const rows = parsedSheets[sheetName]; const cfgTarget = ADMIN_TARGETS.find((t) => t.key === cfg.target);
       const current = cfg.target === "inquiries" ? inquiries : progress; const keyField = cfgTarget.keyField;
       if (cfg.mode === "replace") { results.push({ sheetName, target: cfg.target, mode: "replace", newRows: rows, removedCount: current.length }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
-      if (cfg.mode === "append") { results.push({ sheetName, target: cfg.target, mode: "append", newRows: rows, tag: (cfg.tag ?? sheetName).trim() }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
+      if (cfg.mode === "append") {
+        const tag = (cfg.tag ?? sheetName).trim();
+        if (cfg.target !== "inquiries") { results.push({ sheetName, target: cfg.target, mode: "append", newRows: rows, tag }); return; }
+        /* ═══ مطابقة محتوى ذكية بدل الإلحاق الأعمى — تقارن كل صف بالاستفسارات الموجودة أصلاً
+           تحت نفس وسم الشيت (meetings) عن طريق تشابه نص الملاحظة، مو رقم تسلسلي (لأن كل شيت
+           اجتماع يبدأ ترقيمه من ١ فيتعارض مع باقي الشيتات). هذا يمنع تكرار نفس الصفوف كل مرة
+           يُرفع نفس الملف، ويكتشف التعديلات (رد جديد، تغيّر حالة..) على صف اتّفق مضمونه سابقًا ═══ */
+        const existingTagged = current.filter((r) => Array.isArray(r.meetings) && r.meetings.includes(tag));
+        const usedIds = new Set(); const added = []; const changed = [];
+        rows.forEach((row) => {
+          let bestRow = null, bestScore = 0;
+          existingTagged.forEach((cur) => {
+            if (usedIds.has(cur.id)) return;
+            const s = textSimilarity(row.note || "", cur.note || "");
+            if (s > bestScore) { bestScore = s; bestRow = cur; }
+          });
+          if (bestRow && bestScore >= 0.85) {
+            usedIds.add(bestRow.id);
+            const fdiffs = fieldsThatDiffer(cfgTarget.fields, row, bestRow);
+            if (fdiffs.length) changed.push({ key: String(bestRow.id), row, cur: bestRow, fieldDiffs: fdiffs });
+          } else {
+            added.push(row);
+          }
+        });
+        results.push({ sheetName, target: cfg.target, mode: "append", added, changed, tag });
+        scanRows = scanRows.concat(added, changed.map((c) => c.row));
+        return;
+      }
       const currentByKey = new Map(current.map((r) => [String(r[keyField]), r]));
       const incomingKeys = new Set(); const added = []; const changed = [];
       rows.forEach((row) => {
         const k = String(row[keyField] ?? "").trim(); if (!k) return; incomingKeys.add(k);
         const cur = currentByKey.get(k);
         if (!cur) { added.push(row); return; }
-        const fdiffs = cfgTarget.fields.filter((f) => String(row[f] ?? "") !== String(cur[f] ?? ""));
+        const fdiffs = fieldsThatDiffer(cfgTarget.fields, row, cur);
         if (fdiffs.length) changed.push({ key: k, row, cur, fieldDiffs: fdiffs });
       });
       const missing = current.filter((r) => !incomingKeys.has(String(r[keyField])));
@@ -3731,6 +3870,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       if (cfg.target === "inquiries") scanRows = scanRows.concat(added, changed.map((c) => c.row));
     });
     setDiffResults(results);
+    setStage("results");
     /* ذكي بالكامل: أي قيمة أو عمود جديد يُعتمد تلقائيًا كفلتر افتراضيًا — بدون ما تحتاج تراجعها وحدة وحدة،
        تقدر بس تلغي أي وحدة محددة لو ما تبيها قبل الاعتماد النهائي */
     setNewValues(findNewValuesAdmin(scanRows, categories).map((f) => ({ ...f, decision: "add" })));
@@ -3743,14 +3883,15 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       try {
         const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
         const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name], categories); });
-        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name) }; });
-        setSheets(parsed); setMapping(initMap);
-        runCompareWith(parsed, initMap); /* يقارن تلقائيًا فورًا — بدون أي خطوة وسيطة */
+        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name), selected: parsed[name].length > 0 }; });
+        setSheets(parsed); setMapping(initMap); setDiffResults(null);
+        setStage("select"); /* الخطوة الأولى: اختيار الشيتات ومراجعة طريقة التعامل معها قبل أي مقارنة */
       } catch { flashToast("تعذّرت قراءة الملف"); }
     };
     reader.readAsArrayBuffer(file); e.target.value = "";
   };
   const runCompare = () => runCompareWith(sheets, mapping);
+  const toggleSheetSelected = (name) => setMapping((m) => ({ ...m, [name]: { ...m[name], selected: m[name]?.selected === false } }));
   const decideAllValues = (decision) => setNewValues((prev) => prev.map((v) => ({ ...v, decision })));
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
@@ -3791,6 +3932,15 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     }
     refreshInquiries();
   };
+  /* يبني كائن الحقول الجاهز للكتابة الفعلية بقاعدة البيانات — يحوّل حقول boolean الحقيقية
+     (answered) من نص "نعم/لا" إلى true/false فعلي، ويترك closed كنص زي ما هو (عمود نصي) */
+  const buildInsertPayload = (r) => Object.fromEntries(INQ_FIELDS_ADMIN.map((f) =>
+    REAL_BOOL_FIELDS.includes(f) ? [f, toDbBool(r[f] ?? "لا")] : [f, r[f] ?? ""]
+  ));
+  const buildPatchPayload = (r) => Object.fromEntries(
+    INQ_FIELDS_ADMIN.map((f) => [f, r[f]]).filter(([, v]) => v !== undefined)
+      .map(([f, v]) => (REAL_BOOL_FIELDS.includes(f) ? [f, toDbBool(v)] : [f, v]))
+  );
   const applyAll = async () => {
     setApplying(true);
     let count = 0;
@@ -3815,24 +3965,29 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
             await supabase.from("inquiries").delete().neq("id", -1);
-            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
+            const rows = res.newRows.map((r) => ({ ...buildInsertPayload(r), id: Number(r.id), urgent: false }));
             if (rows.length) await supabase.from("inquiries").insert(rows);
             rows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
             count += rows.length;
           } else if (res.mode === "append") {
-            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
-            if (rows.length) await supabase.from("inquiries").insert(rows);
-            rows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
-            count += rows.length;
+            const newRows = res.added.map((r) => ({ ...buildInsertPayload(r), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
+            if (newRows.length) await supabase.from("inquiries").insert(newRows);
+            newRows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
+            for (const { key, row } of res.changed || []) {
+              const patch = buildPatchPayload(row);
+              await supabase.from("inquiries").update(patch).eq("id", Number(key));
+              if (patch.note && !patch.note_en) pendingTranslateIds.push(Number(key));
+            }
+            count += newRows.length + (res.changed ? res.changed.length : 0);
           } else {
             for (const { key, row } of res.changed) {
-              const patch = Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined));
+              const patch = buildPatchPayload(row);
               await supabase.from("inquiries").update(patch).eq("id", Number(key));
               if (patch.note && !patch.note_en) pendingTranslateIds.push(Number(key));
             }
             // العناصر المضافة فعليًا (مو المعدّلة) توسم "جديد" تلقائيًا لمدة ٧ أيام
             const todayISO = new Date().toISOString().slice(0, 10);
-            const newRows = res.added.map((row) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false, last_modified: todayISO }));
+            const newRows = res.added.map((row) => ({ ...buildInsertPayload(row), id: Number(row.id), urgent: false, last_modified: todayISO }));
             if (newRows.length) await supabase.from("inquiries").insert(newRows);
             newRows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
             count += res.added.length + res.changed.length;
@@ -3865,7 +4020,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       await refreshInquiries(); await refreshProgress();
       flashToast(`تم تحديث الموقع بالكامل — ${count} عنصر`);
       loadBackups();
-      setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]);
+      setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]); setStage(null);
       /* الترجمة تصير بالخلفية بدون ما توقّف الحفظ — عشان ما تعلّق الاعتماد لو فيها عدد كبير من الصفوف */
       if (pendingTranslateIds.length) backgroundTranslate(pendingTranslateIds);
     } catch (err) {
@@ -3887,16 +4042,17 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     refreshInquiries();
   };
   const startAdd = () => { setEditing("new"); setForm({ ...ADMIN_BLANK_INQ }); };
-  const startEdit = (r) => { setEditing(r.id); setForm({ ...r }); };
+  const startEdit = (r) => { setEditing(r.id); setForm({ ...r, closed: r.closed, answered: toYesNo(r.answered) }); };
   const saveForm = async () => {
     if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return; }
     const translatedForm = await autoTranslate(canonicalizeRow(form, categories));
+    const payload = { ...translatedForm, answered: toDbBool(translatedForm.answered) };
     if (editing === "new") {
       const nextId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
-      await supabase.from("inquiries").insert({ ...translatedForm, id: nextId, urgent: false });
+      await supabase.from("inquiries").insert({ ...payload, id: nextId, urgent: false });
       log("إضافة استفسار يدويًا", `#${nextId} — ${form.note.slice(0, 40)}`); flashToast("تمت الإضافة");
     } else {
-      await supabase.from("inquiries").update(translatedForm).eq("id", editing);
+      await supabase.from("inquiries").update(payload).eq("id", editing);
       log("تعديل استفسار يدويًا", `#${editing} — ${form.note.slice(0, 40)}`); flashToast("تم الحفظ");
     }
     setEditing(null); setForm(null); refreshInquiries();
@@ -3941,38 +4097,64 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         </div>
       )}
 
-      {sheets && overrideOpen && (
+      {sheets && stage === "select" && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>تعديل طريقة الرفع (اختياري)</div>
-          <p style={{ fontSize: 12, color: T.muted, margin: "0 0 14px" }}>النظام حدد هذي الإعدادات تلقائيًا — عدّل بس لو تبي تغيّر شي.</p>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>الخطوة ١ — اختر الشيتات اللي تبي تقارنها</div>
+          <p style={{ fontSize: 12, color: T.muted, margin: "0 0 14px" }}>ألغِ تحديد أي شيت ما تبي يدخل بالمقارنة (مثل شيتات مرجعية بلا بيانات فعلية). النظام حدد الباقي تلقائيًا — عدّل بس لو تبي تغيّر شي.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {Object.keys(sheets).map((name) => (
-              <div key={name} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontSize: 13, fontWeight: 700 }}>{name}</span><span style={{ fontSize: 11, color: T.faint }}>{sheets[name].length} صف</span></div>
-                <ASegmented value={mapping[name]?.target} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], target: v } }))} options={ADMIN_TARGETS.map((t) => ({ value: t.key, label: t.label }))} />
-                {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "append", label: "➕ إلحاق دائمًا" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
-                {mapping[name]?.mode === "append" && mapping[name]?.target === "inquiries" && (
-                  <div style={{ marginTop: 8 }}>
-                    <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>تسمية الفلتر (يظهر بالموقع العام — تقدر تعدله)</label>
-                    <input value={mapping[name]?.tag ?? name} onChange={(e) => setMapping((m) => ({ ...m, [name]: { ...m[name], tag: e.target.value } }))} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />
-                  </div>
-                )}
-              </div>
-            ))}
+            {Object.keys(sheets).map((name) => {
+              const on = mapping[name]?.selected !== false;
+              return (
+                <div key={name} style={{ background: T.sunken, borderRadius: 12, padding: 14, opacity: on ? 1 : 0.55 }}>
+                  <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: on ? 10 : 0, cursor: "pointer" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                      <input type="checkbox" checked={on} onChange={() => toggleSheetSelected(name)} style={{ width: 16, height: 16, cursor: "pointer" }} />
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>{name}</span>
+                    </span>
+                    <span style={{ fontSize: 11, color: T.faint }}>{sheets[name].length} صف</span>
+                  </label>
+                  {on && (<>
+                    <ASegmented value={mapping[name]?.target} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], target: v } }))} options={ADMIN_TARGETS.map((t) => ({ value: t.key, label: t.label }))} />
+                    {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "append", label: "➕ إلحاق ذكي" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
+                    {mapping[name]?.mode === "append" && mapping[name]?.target === "inquiries" && (
+                      <div style={{ marginTop: 8 }}>
+                        <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>تسمية الفلتر (يظهر بالموقع العام — تقدر تعدله)</label>
+                        <input value={mapping[name]?.tag ?? name} onChange={(e) => setMapping((m) => ({ ...m, [name]: { ...m[name], tag: e.target.value } }))} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />
+                      </div>
+                    )}
+                  </>)}
+                </div>
+              );
+            })}
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <button onClick={() => { runCompare(); setOverrideOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><RefreshCw size={14} /> إعادة المقارنة بهذي الإعدادات</button>
-            <button onClick={() => setOverrideOpen(false)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إغلاق</button>
+            <button onClick={runCompare} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><RefreshCw size={14} /> قارن الآن</button>
+            <button onClick={() => { setSheets(null); setMapping({}); setStage(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
           </div>
         </div>
       )}
 
-      {diffResults && (
+      {diffResults && stage === "results" && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 700 }}>النظام قارن وحلّل كل شي تلقائيًا — راجع وحدد الاعتماد</span>
-            <button onClick={() => setOverrideOpen((v) => !v)} style={{ background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", textDecoration: "underline" }}>تعديل طريقة الرفع</button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>الخطوة ٢ — نتيجة المقارنة</span>
+            <button onClick={() => setStage("select")} style={{ background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", textDecoration: "underline" }}>تعديل اختيار الشيتات</button>
           </div>
+          {(() => {
+            const totals = diffResults.reduce((acc, res) => {
+              if (res.mode === "replace") { acc.added += res.newRows.length; acc.removed += res.removedCount; }
+              else if (res.mode === "append") { acc.added += (res.added ? res.added.length : res.newRows.length); acc.changed += (res.changed ? res.changed.length : 0); }
+              else { acc.added += res.added.length; acc.changed += res.changed.length; acc.missing += res.missing.length; }
+              return acc;
+            }, { added: 0, changed: 0, missing: 0, removed: 0 });
+            const parts = [];
+            if (totals.added) parts.push(`${totals.added} استفسار جديد`);
+            if (totals.changed) parts.push(`${totals.changed} تحديث على استفسارات موجودة`);
+            if (totals.missing) parts.push(`${totals.missing} موجودة بالقاعدة وغير موجودة بالملف`);
+            if (totals.removed) parts.push(`${totals.removed} سيُحذف بالاستبدال الكامل`);
+            const summary = parts.length ? `قارنت ${diffResults.length} شيت بكل الاستفسارات الحالية: ${parts.join("، ")}.` : `قارنت ${diffResults.length} شيت بكل الاستفسارات الحالية — ما فيه أي فرق، البيانات مطابقة تمامًا.`;
+            return <p style={{ fontSize: 12.5, color: T.paper, margin: "0 0 14px", lineHeight: 1.8, background: T.sunken, borderRadius: 10, padding: "10px 12px" }}>{summary}</p>;
+          })()}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {diffResults.map((res) => (
               <div key={res.sheetName}>
@@ -3981,16 +4163,25 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                   <div style={{ background: "#C0392B14", borderRadius: 9, padding: "10px 12px", fontSize: 12.5, color: "#C0392B" }}>⚠️ سيُحذف {res.removedCount} ويُستبدل بـ {res.newRows.length} جديد.</div>
                 ) : res.mode === "append" ? (
                   <div>
-                    <ABadge kind="add">{res.newRows.length} سيُضاف كعناصر جديدة</ABadge>
-                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6 }}>سيُوسم الكل بفلتر: <b style={{ color: T.brass }}>{res.tag}</b> — يظهر مباشرة بشريط الفلاتر بالموقع العام</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {res.added.length === 0 && (!res.changed || res.changed.length === 0) ? <span style={{ fontSize: 12.5, color: T.muted }}>لا فرق — كل الصفوف موجودة أصلًا بنفس المحتوى.</span> : <>
+                        {res.added.length > 0 && <ABadge kind="add">{res.added.length} جديد فعليًا</ABadge>}
+                        {res.changed && res.changed.length > 0 && <ABadge kind="change">{res.changed.length} تحديث على صفوف مطابقة سابقًا</ABadge>}
+                      </>}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6 }}>الجديد سيُوسم بفلتر: <b style={{ color: T.brass }}>{res.tag}</b> — النظام اكتشف الصفوف المكررة بمطابقة نص الملاحظة، فما راح تتكرر لو رفعت نفس الملف مرة ثانية.</div>
+                    <DiffChangeList changed={res.changed} T={T} />
                   </div>
                 ) : (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {res.added.length === 0 && res.changed.length === 0 && res.missing.length === 0 ? <span style={{ fontSize: 12.5, color: T.muted }}>لا فرق.</span> : <>
-                      {res.added.length > 0 && <ABadge kind="add">{res.added.length} جديد</ABadge>}
-                      {res.changed.length > 0 && <ABadge kind="change">{res.changed.length} تغيّر</ABadge>}
-                      {res.missing.length > 0 && <ABadge kind="missing">{res.missing.length} ناقص</ABadge>}
-                    </>}
+                  <div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {res.added.length === 0 && res.changed.length === 0 && res.missing.length === 0 ? <span style={{ fontSize: 12.5, color: T.muted }}>لا فرق.</span> : <>
+                        {res.added.length > 0 && <ABadge kind="add">{res.added.length} جديد</ABadge>}
+                        {res.changed.length > 0 && <ABadge kind="change">{res.changed.length} تغيّر</ABadge>}
+                        {res.missing.length > 0 && <ABadge kind="missing">{res.missing.length} ناقص</ABadge>}
+                      </>}
+                    </div>
+                    <DiffChangeList changed={res.changed} T={T} />
                   </div>
                 )}
               </div>
@@ -4040,7 +4231,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
             <button onClick={applyAll} disabled={applying} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: applying ? "wait" : "pointer", opacity: applying ? .7 : 1 }}><Check size={15} /> {applying ? "جارٍ الحفظ..." : "اعتماد كل شي"}</button>
-            <button onClick={() => { setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}><X size={15} /> تجاهل الكل</button>
+            <button onClick={() => { setSheets(null); setMapping({}); setDiffResults(null); setNewValues([]); setNewColumns([]); setStage(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}><X size={15} /> تجاهل الكل</button>
           </div>
         </div>
       )}
@@ -4091,6 +4282,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
             {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.month, form.month, (v) => setForm((f) => ({ ...f, month: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.closed, form.closed, (v) => setForm((f) => ({ ...f, closed: v })), ["نعم", "لا"])}
+            {afieldInput(ADMIN_FIELD_LABEL.answered, form.answered, (v) => setForm((f) => ({ ...f, answered: v })), ["نعم", "لا"])}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
             {afieldInput(ADMIN_FIELD_LABEL.note, form.note, (v) => setForm((f) => ({ ...f, note: v })))}
@@ -4643,13 +4835,22 @@ function ADashboardTab({ inquiries }) {
         <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>الاستفسارات الأكثر فتحًا (آخر ٣٠ يوم)</div>
           {topInquiries.length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات بعد."}</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {topInquiries.map((t) => (
-                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: T.faint, flexShrink: 0 }}>#{t.id}</span>
-                  <span style={{ fontSize: 11.5, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: T.brass, flexShrink: 0 }}>{t.count} فتحة</span>
-                </div>
+                <a
+                  key={t.id}
+                  href={`${window.location.origin}${window.location.pathname}?note=${t.id}`}
+                  target="_blank" rel="noreferrer"
+                  title={t.note}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                    background: T.sunken, border: `1px solid ${T.line}`, borderRadius: 13,
+                    padding: "10px 16px", textDecoration: "none", cursor: "pointer", minWidth: 60,
+                  }}
+                >
+                  <span style={{ fontSize: 15, fontWeight: 800, color: T.brass }}>#{t.id}</span>
+                  <span style={{ fontSize: 10, color: T.muted, fontWeight: 600 }}>{t.count} فتحة</span>
+                </a>
               ))}
             </div>
           )}
