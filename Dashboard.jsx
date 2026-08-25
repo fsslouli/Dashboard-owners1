@@ -525,7 +525,7 @@ function useBackClose(isOpen, onClose) {
 
 /* ── الوضع التلقائي: يتبع إعداد الجهاز ويتغيّر معه فورًا ── */
 function useThemeMode() {
-  const [mode, setMode] = useState("light");
+  const [mode, setMode] = useState("auto"); /* افتراضيًا يتبع وضع جهاز الزائر مباشرة */
   const [sysDark, setSysDark] = useState(true);
 
   useEffect(() => {
@@ -3455,14 +3455,19 @@ function useSystemTheme() {
 }
 
 const ADMIN_PERMISSIONS = [
-  { key: "sync_data", label: "مزامنة وتعديل بيانات الاستفسارات (إكسل أو يدويًا)", icon: FileSpreadsheet },
+  { key: "view_dashboard", label: "عرض لوحة القرار (التحليلات الداخلية الشاملة)", icon: BarChart3 },
+  { key: "view_analytics", label: "عرض تبويب الزيارات والتحليلات", icon: Eye },
+  { key: "export_data", label: "تصدير التقارير كإكسل", icon: Download },
+  { key: "import_excel", label: "رفع ومزامنة بيانات من إكسل", icon: FileSpreadsheet },
+  { key: "add_inquiry", label: "إضافة استفسار جديد يدويًا", icon: PlusCircle },
+  { key: "edit_inquiry", label: "تعديل استفسار موجود", icon: Pencil },
+  { key: "delete_inquiry", label: "حذف استفسار", icon: Trash2 },
   { key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
   { key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
   { key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
-  { key: "view_analytics", label: "عرض الزيارات والتحليلات", icon: BarChart3 },
-  { key: "export_data", label: "تصدير التقارير كإكسل", icon: Download },
   { key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
-  { key: "manage_users", label: "تعديل صلاحيات أعضاء آخرين", icon: Users },
+  { key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
+  { key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
 ];
 const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "status", "owner", "month", "note", "note_en", "reply", "closed"];
 const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)" };
@@ -3553,16 +3558,16 @@ function afieldInput(label, value, onChange, opts) {
 /* أسماء أعمدة بديلة شائعة — يقبل ملفات إكسل حقيقية بعناوين عربية، مو بس القالب الجاهز */
 const HEADER_ALIASES = {
   id: ["id", "رقم", "الرقم", "م", "رقم الاستفسار", "no", "no."],
-  model: ["model", "النموذج", "الموديل"],
+  model: ["model", "النموذج", "الموديل", "نوع النموذج"],
   loc: ["loc", "الموقع", "موقع الملاحظة"],
-  pri: ["pri", "الأولوية", "الاولوية"],
-  status: ["status", "الحالة"],
+  pri: ["pri", "الأولوية", "الاولوية", "درجة الأولوية"],
+  status: ["status", "الحالة", "حالة المقترح"],
   owner: ["owner", "المهندس", "المسؤول", "صاحب الرد"],
-  month: ["month", "الشهر"],
-  note: ["note", "الملاحظة", "ملاحظة", "الاستفسار"],
+  month: ["month", "الشهر", "شهر الرد", "شهر الرد (نص)", "تاريخ الطلب"],
+  note: ["note", "الملاحظة", "ملاحظة", "الاستفسار", "الملاحظة / الحل المقترح", "الملاحظة/الحل المقترح", "تفاصيل الطلب"],
   note_en: ["note_en", "note (en)", "الملاحظة بالانجليزي", "note en"],
-  reply: ["reply", "الرد", "رد"],
-  closed: ["closed", "مغلقة", "مقفل", "مقفل/مفتوح", "مقفل / مفتوح"],
+  reply: ["reply", "الرد", "رد", "الرد على المقترح"],
+  closed: ["closed", "مغلقة", "مقفل", "مقفل/مفتوح", "مقفل / مفتوح", "حالة الإغلاق", "حالة الطلب"],
 };
 const HEADER_LOOKUP = (() => {
   const map = {};
@@ -3575,7 +3580,23 @@ function normalizeRow(row) {
     const canon = HEADER_LOOKUP[String(key).trim().toLowerCase()];
     out[canon || key] = val;
   });
+
   return out;
+}
+
+/* يكتشف صف العناوين الحقيقي تلقائيًا حتى لو فيه صف عنوان تجميعي فوقه (خلايا مدمجة) */
+function smartSheetToJson(sheet) {
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+  let bestIdx = 0, bestScore = -1;
+  for (let i = 0; i < Math.min(6, raw.length); i++) {
+    const score = (raw[i] || []).filter((cell) => HEADER_LOOKUP[String(cell).trim().toLowerCase()]).length;
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  const rows = XLSX.utils.sheet_to_json(sheet, { range: bestIdx, defval: "", raw: false });
+  return rows.map(normalizeRow).map((r) => {
+    if (typeof r.month === "string" && /^\d{4}-\d{2}/.test(r.month)) r.month = r.month.slice(0, 7);
+    return r;
+  });
 }
 
 function findNewValuesAdmin(rows, categories) {
@@ -3604,7 +3625,7 @@ function findNewColumnsAdmin(rows, categories) {
 }
 
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
-function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, log }) {
+function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, canImport, canAdd, canEdit, canDelete, log }) {
   const T = useSystemTheme();
   const fileRef = useRef(null);
   const [sheets, setSheets] = useState(null);
@@ -3633,6 +3654,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   };
 
   const guessTarget = (name) => { const n = name.toLowerCase(); if (n.includes("تقدم") || n.includes("progress")) return "progress"; return "inquiries"; };
+  const guessMode = (name) => (/اجتماع|طلبات|ملاحظات/.test(name) ? "append" : "merge");
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inquiries.map(({ urgent, updated_at, ...r }) => r)), "الاستفسارات");
@@ -3644,9 +3666,9 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const wb = XLSX.read(evt.target.result, { type: "array" });
-        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "" }).map(normalizeRow); });
-        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: "merge" }; });
+        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
+        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name]); });
+        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name) }; });
         setSheets(parsed); setMapping(initMap); setDiffResults(null); setNewValues([]); setNewColumns([]);
       } catch { flashToast("تعذّرت قراءة الملف"); }
     };
@@ -3659,6 +3681,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       const rows = sheets[sheetName]; const cfgTarget = ADMIN_TARGETS.find((t) => t.key === cfg.target);
       const current = cfg.target === "inquiries" ? inquiries : progress; const keyField = cfgTarget.keyField;
       if (cfg.mode === "replace") { results.push({ sheetName, target: cfg.target, mode: "replace", newRows: rows, removedCount: current.length }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
+      if (cfg.mode === "append") { results.push({ sheetName, target: cfg.target, mode: "append", newRows: rows, tag: (cfg.tag ?? sheetName).trim() }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
       const currentByKey = new Map(current.map((r) => [String(r[keyField]), r]));
       const incomingKeys = new Set(); const added = []; const changed = [];
       rows.forEach((row) => {
@@ -3698,11 +3721,17 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         await supabase.from("data_backups").delete().in("id", idsToDelete);
       }
 
+      let nextAppendId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
+      const todayISOOuter = new Date().toISOString().slice(0, 10);
       for (const res of diffResults) {
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
             await supabase.from("inquiries").delete().neq("id", -1);
             const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
+            if (rows.length) await supabase.from("inquiries").insert(rows);
+            count += rows.length;
+          } else if (res.mode === "append") {
+            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
             if (rows.length) await supabase.from("inquiries").insert(rows);
             count += rows.length;
           } else {
@@ -3785,6 +3814,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {canImport && (
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><FileSpreadsheet size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>مزامنة من ملف إكسل</span></div>
         <p style={{ fontSize: 12.5, color: T.muted, margin: "4px 0 14px", lineHeight: 1.7 }}>حدد لكل شيت وش يمثّل، وراجع الفروقات قبل الاعتماد — التغييرات تُكتب مباشرة بقاعدة البيانات.</p>
@@ -3794,6 +3824,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
         </div>
       </div>
+      )}
 
       {backups.length > 0 && (
         <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
@@ -3824,7 +3855,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
               <div key={name} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontSize: 13, fontWeight: 700 }}>{name}</span><span style={{ fontSize: 11, color: T.faint }}>{sheets[name].length} صف</span></div>
                 <ASegmented value={mapping[name]?.target} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], target: v } }))} options={ADMIN_TARGETS.map((t) => ({ value: t.key, label: t.label }))} />
-                {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
+                {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "append", label: "➕ إلحاق دائمًا" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
+                {mapping[name]?.mode === "append" && mapping[name]?.target === "inquiries" && (
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>تسمية الفلتر (يظهر بالموقع العام — تقدر تعدله)</label>
+                    <input value={mapping[name]?.tag ?? name} onChange={(e) => setMapping((m) => ({ ...m, [name]: { ...m[name], tag: e.target.value } }))} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -3844,6 +3881,11 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                 <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8, color: T.muted }}>شيت "{res.sheetName}" ← {ADMIN_TARGETS.find((t) => t.key === res.target).label}</div>
                 {res.mode === "replace" ? (
                   <div style={{ background: "#C0392B14", borderRadius: 9, padding: "10px 12px", fontSize: 12.5, color: "#C0392B" }}>⚠️ سيُحذف {res.removedCount} ويُستبدل بـ {res.newRows.length} جديد.</div>
+                ) : res.mode === "append" ? (
+                  <div>
+                    <ABadge kind="add">{res.newRows.length} سيُضاف كعناصر جديدة</ABadge>
+                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6 }}>سيُوسم الكل بفلتر: <b style={{ color: T.brass }}>{res.tag}</b> — يظهر مباشرة بشريط الفلاتر بالموقع العام</div>
+                  </div>
                 ) : (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {res.added.length === 0 && res.changed.length === 0 && res.missing.length === 0 ? <span style={{ fontSize: 12.5, color: T.muted }}>لا فرق.</span> : <>
@@ -3906,7 +3948,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontSize: 14, fontWeight: 700 }}>الاستفسارات الحالية ({inquiries.length})</span>
-          <button onClick={startAdd} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}><PlusCircle size={13} /> إضافة يدويًا</button>
+          <button onClick={startAdd} disabled={!canAdd} style={{ display: "flex", alignItems: "center", gap: 6, background: canAdd ? T.brass : T.line, color: "#fff", border: "none", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: canAdd ? "pointer" : "not-allowed", opacity: canAdd ? 1 : .6 }}><PlusCircle size={13} /> إضافة يدويًا</button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[...inquiries].sort((a, b) => a.id - b.id).map((r) => (
@@ -3922,13 +3964,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                   <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8 }}><span style={{ color: T.faint, fontWeight: 700 }}>#{r.id}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.note}</span></div>
                   <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}</div>
                 </div>
-                <button onClick={() => startEdit(r)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.muted, flexShrink: 0 }}><Pencil size={12} /></button>
-                {confirmDeleteId === r.id ? (
+                {canEdit && <button onClick={() => startEdit(r)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.muted, flexShrink: 0 }}><Pencil size={12} /></button>}
+                {canDelete && (confirmDeleteId === r.id ? (
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                     <button onClick={() => confirmDelete(r)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "0 8px", fontSize: 11, cursor: "pointer" }}>تأكيد</button>
                     <button onClick={() => setConfirmDeleteId(null)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, padding: "0 8px", fontSize: 11, cursor: "pointer", color: T.muted }}>لا</button>
                   </div>
-                ) : (<button onClick={() => setConfirmDeleteId(r.id)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#C0392B", flexShrink: 0 }}><Trash2 size={12} /></button>)}
+                ) : (<button onClick={() => setConfirmDeleteId(r.id)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#C0392B", flexShrink: 0 }}><Trash2 size={12} /></button>))}
               </div>
             </div>
           ))}
@@ -4109,7 +4151,7 @@ function AAuditLogTab() {
 }
 
 /* ── تعديل صلاحيات أعضاء موجودين (إنشاء الحساب نفسه يتم من لوحة Supabase) ── */
-function AUsersTab({ profile, flashToast, log }) {
+function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms }) {
   const T = useSystemTheme();
   const [members, setMembers] = useState([]); const [editingId, setEditingId] = useState(null); const [form, setForm] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -4142,14 +4184,14 @@ function AUsersTab({ profile, flashToast, log }) {
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Users size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>أعضاء لوحة الإدارة</span></div>
-          <button onClick={startCreate} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "8px 13px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}><UserPlus size={14} /> إضافة عضو جديد</button>
+          {canCreate && <button onClick={startCreate} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "8px 13px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}><UserPlus size={14} /> إضافة عضو جديد</button>}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
           {members.map((u) => (
             <div key={u.id} style={{ background: T.sunken, borderRadius: 12, padding: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div><div style={{ fontSize: 13, fontWeight: 700 }}>{u.name || "(بدون اسم)"}</div><div style={{ fontSize: 11, color: T.muted }}>{u.role}</div></div>
-                <button onClick={() => startEdit(u)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 9, padding: "6px 10px", fontSize: 11.5, color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}><Pencil size={12} /> تعديل</button>
+                {canEditPerms && <button onClick={() => startEdit(u)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 9, padding: "6px 10px", fontSize: 11.5, color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}><Pencil size={12} /> تعديل</button>}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>{(u.perms || []).map((p) => <span key={p} style={{ fontSize: 10.5, background: T.brass + "14", color: T.brass, borderRadius: 999, padding: "2px 8px" }}>{ADMIN_PERMISSIONS.find((x) => x.key === p)?.label}</span>)}</div>
             </div>
@@ -4298,13 +4340,188 @@ function ANoticesTab({ flashToast, log }) {
   );
 }
 
+/* ── لوحة القرار الداخلية — نظرة شاملة تساعد الإدارة تتخذ قرار بسرعة ── */
+function ADashboardTab({ inquiries }) {
+  const T = useSystemTheme();
+  const [dailyVisits, setDailyVisits] = useState([]);
+  const [monthlyActivity, setMonthlyActivity] = useState([]);
+  const [topInquiries, setTopInquiries] = useState([]);
+  const [peakHours, setPeakHours] = useState([]);
+  const [eventBreakdown, setEventBreakdown] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const since = new Date(Date.now() - 6 * 86400000);
+      const { data: logs } = await supabase.from("logs").select("event_type,created_at").eq("event_type", "visit").gte("created_at", since.toISOString());
+      const byDay = {};
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000);
+        byDay[isoAdminDate(d)] = 0;
+      }
+      (logs || []).forEach((l) => { const k = isoAdminDate(new Date(l.created_at)); if (byDay[k] !== undefined) byDay[k]++; });
+      const WD = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"];
+      setDailyVisits(Object.entries(byDay).map(([k, v]) => ({ day: WD[new Date(k + "T12:00:00").getDay()], visits: v })));
+
+      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const { data: acts } = await supabase.from("audit_log").select("user_name").gte("ts", monthStart.toISOString());
+      const counts = {};
+      (acts || []).forEach((a) => { counts[a.user_name] = (counts[a.user_name] || 0) + 1; });
+      setMonthlyActivity(Object.entries(counts).map(([user, count]) => ({ user, count })).sort((a, b) => b.count - a.count));
+
+      /* نشاط شامل لآخر ٣٠ يوم — لحساب الأكثر فتحًا وأوقات الذروة وتوزيع كل نوع حدث */
+      const since30 = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data: allEvents } = await supabase.from("logs").select("event_type,category,created_at").gte("created_at", since30).limit(8000);
+
+      const opens = {};
+      (allEvents || []).filter((e) => e.event_type === "inquiry_open" && e.category).forEach((e) => { opens[e.category] = (opens[e.category] || 0) + 1; });
+      const inqById = new Map(inquiries.map((r) => [String(r.id), r]));
+      setTopInquiries(
+        Object.entries(opens).map(([id, count]) => ({ id, count, note: inqById.get(id)?.note || "—", model: inqById.get(id)?.model || "" }))
+          .sort((a, b) => b.count - a.count).slice(0, 8)
+      );
+
+      const hourCounts = Array(24).fill(0);
+      (allEvents || []).forEach((e) => { const h = (new Date(e.created_at).getUTCHours() + 3) % 24; hourCounts[h]++; }); // بتوقيت السعودية (UTC+3)
+      setPeakHours(hourCounts.map((c, h) => ({ hour: `${h}`, count: c })));
+
+      const evCounts = {};
+      (allEvents || []).forEach((e) => { evCounts[e.event_type] = (evCounts[e.event_type] || 0) + 1; });
+      setEventBreakdown(ADMIN_EVENT_TYPES.map((t) => ({ type: t.label, count: evCounts[t.key] || 0 })).filter((x) => x.count > 0));
+
+      setLoading(false);
+    })();
+  }, []);
+
+  const statusCounts = useMemo(() => {
+    const m = {}; inquiries.forEach((r) => { m[r.status || "—"] = (m[r.status || "—"] || 0) + 1; });
+    return Object.entries(m).map(([status, count]) => ({ status, count }));
+  }, [inquiries]);
+  const priCounts = useMemo(() => {
+    const order = ["عالية جدًا", "عالية", "متوسطة", "عادية"];
+    const m = {}; inquiries.forEach((r) => { m[r.pri || "—"] = (m[r.pri || "—"] || 0) + 1; });
+    return order.filter((p) => m[p]).map((p) => ({ pri: p, count: m[p] })).concat(Object.entries(m).filter(([p]) => !order.includes(p)).map(([pri, count]) => ({ pri, count })));
+  }, [inquiries]);
+  const ownerLoad = useMemo(() => {
+    const m = {}; inquiries.filter((r) => r.closed !== "نعم").forEach((r) => { const o = r.owner || "غير محدد"; m[o] = (m[o] || 0) + 1; });
+    return Object.entries(m).map(([owner, open]) => ({ owner, open })).sort((a, b) => b.open - a.open);
+  }, [inquiries]);
+  const total = inquiries.length;
+  const open = inquiries.filter((r) => r.closed !== "نعم").length;
+  const urgent = inquiries.filter((r) => r.urgent).length;
+  const isNewCount = inquiries.filter((r) => r.last_modified && (Date.now() - new Date(r.last_modified + "T00:00:00").getTime()) / 86400000 <= 7).length;
+  const weekVisitsTotal = dailyVisits.reduce((s, d) => s + d.visits, 0);
+
+  const barCard = (title, data, xKey, barColor) => (
+    <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>{title}</div>
+      {data.length === 0 ? <div style={{ fontSize: 12, color: T.muted, padding: 10 }}>لا بيانات كافية.</div> : (
+        <div style={{ width: "100%", height: 180 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={T.line} />
+              <XAxis dataKey={xKey} tick={{ fontSize: 10.5, fill: T.muted }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10.5, fill: T.muted }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid ${T.line}`, background: T.surface }} />
+              <Bar dataKey={data[0]?.count !== undefined ? "count" : data[0]?.open !== undefined ? "open" : "visits"} fill={barColor} radius={[6, 6, 0, 0]} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        {[["إجمالي الاستفسارات", total], ["مفتوحة", open], ["عاجلة", urgent], ["جديدة (٧ أيام)", isNewCount], ["زيارات آخر أسبوع", weekVisitsTotal], ["أعضاء نشيطون هذا الشهر", monthlyActivity.length]].map(([label, val]) => (
+          <div key={label} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 10px", textAlign: "center" }}>
+            <div style={{ fontSize: 19, fontWeight: 700, color: T.brass }}>{loading && (label.includes("زيارات") || label.includes("أعضاء")) ? "…" : val}</div>
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {barCard("الزيارات آخر ٧ أيام", dailyVisits, "day", T.brass)}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {barCard("الاستفسارات حسب الحالة", statusCounts, "status", "#1E8E5A")}
+        {barCard("الاستفسارات حسب الأولوية", priCounts, "pri", "#B8790F")}
+      </div>
+
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>عبء العمل الحالي — استفسارات مفتوحة حسب المسؤول</div>
+        {ownerLoad.length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>لا يوجد استفسارات مفتوحة.</div> : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {ownerLoad.map((o) => (
+              <div key={o.owner} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, width: 130, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.owner}</span>
+                <div style={{ flex: 1, background: T.sunken, borderRadius: 999, height: 10, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.min(100, (o.open / (ownerLoad[0].open || 1)) * 100)}%`, height: "100%", background: T.brass, borderRadius: 999 }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: T.brass, width: 20, textAlign: "end" }}>{o.open}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {barCard("أوقات الذروة (آخر ٣٠ يوم — بتوقيت السعودية)", peakHours, "hour", "#6B5FBC")}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>الاستفسارات الأكثر فتحًا (آخر ٣٠ يوم)</div>
+          {topInquiries.length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات بعد."}</div> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {topInquiries.map((t) => (
+                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.faint, flexShrink: 0 }}>#{t.id}</span>
+                  <span style={{ fontSize: 11.5, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.brass, flexShrink: 0 }}>{t.count} فتحة</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>توزيع كل نشاط بالموقع (آخر ٣٠ يوم)</div>
+          {eventBreakdown.length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات بعد."}</div> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {eventBreakdown.map((e) => (
+                <div key={e.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
+                  <span style={{ fontSize: 11.5 }}>{e.type}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.brass }}>{e.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>نشاط فريق الإدارة هذا الشهر</div>
+        {monthlyActivity.length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>{loading ? "جارٍ التحميل..." : "ما فيه نشاط مسجّل هذا الشهر بعد."}</div> : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {monthlyActivity.map((a) => (
+              <div key={a.user} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 10, padding: "9px 12px" }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600 }}>{a.user}</span>
+                <span style={{ fontSize: 12, color: T.brass, fontWeight: 700 }}>{a.count} إجراء</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const ADMIN_TABS = [
-  { key: "sync", label: "المزامنة والبيانات", perm: "sync_data" },
-  { key: "analytics", label: "الزيارات والتحليلات", perm: "view_analytics" },
-  { key: "filters", label: "الفلاتر المخصصة", perm: "manage_filters" },
-  { key: "notices", label: "الإشعارات", perm: "manage_notices" },
-  { key: "audit", label: "سجل النشاط", perm: "view_audit_log" },
-  { key: "users", label: "المستخدمون", perm: "manage_users" },
+  { key: "dashboard", label: "لوحة القرار", perms: ["view_dashboard"] },
+  { key: "sync", label: "المزامنة والبيانات", perms: ["import_excel", "add_inquiry", "edit_inquiry", "delete_inquiry", "flag_urgent"] },
+  { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
+  { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
+  { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
+  { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
+  { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
 ];
 
 function AdminHome({ session, onLogout }) {
@@ -4314,7 +4531,7 @@ function AdminHome({ session, onLogout }) {
   const [progress, setProgress] = useState([]);
   const [categories, setCategories] = useState([]);
   const [toast, setToast] = useState("");
-  const [tab, setTab] = useState("sync");
+  const [tab, setTab] = useState("dashboard");
 
   const refreshProfile = () => supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data }) => setProfile(data || null));
   const refreshInquiries = () => supabase.from("inquiries").select("*").order("id").then(({ data }) => setInquiries(data || []));
@@ -4335,7 +4552,7 @@ function AdminHome({ session, onLogout }) {
     </div>
   );
   const has = (perm) => (profile.perms || []).includes(perm);
-  const visibleTabs = ADMIN_TABS.filter((t) => has(t.perm));
+  const visibleTabs = ADMIN_TABS.filter((t) => t.perms.some((p) => has(p)));
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
   const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => r.urgent).length };
 
@@ -4357,12 +4574,13 @@ function AdminHome({ session, onLogout }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 16px 60px" }}>
         {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
-        {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} log={log} />}
+        {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
+        {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "audit" && <AAuditLogTab />}
-        {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} />}
+        {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
       </div>
 
       {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: T.paper, color: T.bg, padding: "11px 20px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}><Check size={15} /> {toast}</div>}
