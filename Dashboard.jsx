@@ -3636,6 +3636,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const [backups, setBackups] = useState([]);
   const [restoring, setRestoring] = useState(null);
@@ -3661,24 +3662,11 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(progress), "تقدم_التنفيذ");
     XLSX.writeFile(wb, "قالب-البيانات.xlsx");
   };
-  const handleFile = (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
-        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name]); });
-        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name) }; });
-        setSheets(parsed); setMapping(initMap); setDiffResults(null); setNewValues([]); setNewColumns([]);
-      } catch { flashToast("تعذّرت قراءة الملف"); }
-    };
-    reader.readAsArrayBuffer(file); e.target.value = "";
-  };
-  const runCompare = () => {
+  const runCompareWith = (parsedSheets, mapObj) => {
     const results = []; let scanRows = [];
-    Object.entries(mapping).forEach(([sheetName, cfg]) => {
+    Object.entries(mapObj).forEach(([sheetName, cfg]) => {
       if (cfg.target === "ignore") return;
-      const rows = sheets[sheetName]; const cfgTarget = ADMIN_TARGETS.find((t) => t.key === cfg.target);
+      const rows = parsedSheets[sheetName]; const cfgTarget = ADMIN_TARGETS.find((t) => t.key === cfg.target);
       const current = cfg.target === "inquiries" ? inquiries : progress; const keyField = cfgTarget.keyField;
       if (cfg.mode === "replace") { results.push({ sheetName, target: cfg.target, mode: "replace", newRows: rows, removedCount: current.length }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
       if (cfg.mode === "append") { results.push({ sheetName, target: cfg.target, mode: "append", newRows: rows, tag: (cfg.tag ?? sheetName).trim() }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
@@ -3696,10 +3684,26 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       if (cfg.target === "inquiries") scanRows = scanRows.concat(added, changed.map((c) => c.row));
     });
     setDiffResults(results);
-    setNewValues(findNewValuesAdmin(scanRows, categories).map((f) => ({ ...f, decision: "skip" })));
-    setNewColumns(findNewColumnsAdmin(scanRows, categories).map((f) => ({ ...f, decision: "skip" })));
+    /* ذكي بالكامل: أي قيمة أو عمود جديد يُعتمد تلقائيًا كفلتر افتراضيًا — بدون ما تحتاج تراجعها وحدة وحدة،
+       تقدر بس تلغي أي وحدة محددة لو ما تبيها قبل الاعتماد النهائي */
+    setNewValues(findNewValuesAdmin(scanRows, categories).map((f) => ({ ...f, decision: "add" })));
+    setNewColumns(findNewColumnsAdmin(scanRows, categories).map((f) => ({ ...f, decision: "add" })));
   };
-  const setValueDecision = (sig, decision) => setNewValues((prev) => prev.map((v) => (v.categoryKey + "::" + v.value === sig ? { ...v, decision } : v)));
+  const handleFile = (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
+        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name]); });
+        const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name) }; });
+        setSheets(parsed); setMapping(initMap);
+        runCompareWith(parsed, initMap); /* يقارن تلقائيًا فورًا — بدون أي خطوة وسيطة */
+      } catch { flashToast("تعذّرت قراءة الملف"); }
+    };
+    reader.readAsArrayBuffer(file); e.target.value = "";
+  };
+  const runCompare = () => runCompareWith(sheets, mapping);
   const decideAllValues = (decision) => setNewValues((prev) => prev.map((v) => ({ ...v, decision })));
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
@@ -3846,10 +3850,10 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         </div>
       )}
 
-      {sheets && !diffResults && (
+      {sheets && overrideOpen && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>حدد كل شيت يمثّل إيش</div>
-          <p style={{ fontSize: 12, color: T.muted, margin: "0 0 14px" }}>لقينا {Object.keys(sheets).length} شيت.</p>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>تعديل طريقة الرفع (اختياري)</div>
+          <p style={{ fontSize: 12, color: T.muted, margin: "0 0 14px" }}>النظام حدد هذي الإعدادات تلقائيًا — عدّل بس لو تبي تغيّر شي.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {Object.keys(sheets).map((name) => (
               <div key={name} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
@@ -3866,15 +3870,18 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
             ))}
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <button onClick={runCompare} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><RefreshCw size={14} /> متابعة ومقارنة</button>
-            <button onClick={() => setSheets(null)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={() => { runCompare(); setOverrideOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><RefreshCw size={14} /> إعادة المقارنة بهذي الإعدادات</button>
+            <button onClick={() => setOverrideOpen(false)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إغلاق</button>
           </div>
         </div>
       )}
 
       {diffResults && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>نتيجة المقارنة — راجعها قبل الاعتماد</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>النظام قارن وحلّل كل شي تلقائيًا — راجع وحدد الاعتماد</span>
+            <button onClick={() => setOverrideOpen((v) => !v)} style={{ background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", textDecoration: "underline" }}>تعديل طريقة الرفع</button>
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {diffResults.map((res) => (
               <div key={res.sheetName}>
@@ -3901,7 +3908,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
           {newValues.length > 0 && (
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px dashed ${T.line}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}><Sparkles size={15} color={T.brass} /><span style={{ fontSize: 13, fontWeight: 700 }}>قيم جديدة داخل فلاتر موجودة</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}><Sparkles size={15} color={T.brass} /><span style={{ fontSize: 13, fontWeight: 700 }}>قيم جديدة داخل فلاتر موجودة — راح تُضاف تلقائيًا</span></div>
+              <p style={{ fontSize: 11.5, color: T.muted, margin: "0 0 10px" }}>معتمدة كلها افتراضيًا. لغِ أي واحدة لو ما تبيها.</p>
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                 <button onClick={() => decideAllValues("add")} style={{ fontSize: 11.5, background: "#1E8E5A14", color: "#1E8E5A", border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: إضافة</button>
                 <button onClick={() => decideAllValues("skip")} style={{ fontSize: 11.5, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: تجاهل</button>
@@ -3919,7 +3927,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
           {newColumns.length > 0 && (
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px dashed ${T.line}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}><ListPlus size={15} color={T.brass} /><span style={{ fontSize: 13, fontWeight: 700 }}>أعمدة جديدة كليًا بالملف</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}><ListPlus size={15} color={T.brass} /><span style={{ fontSize: 13, fontWeight: 700 }}>أعمدة جديدة كليًا بالملف — راح تُنشأ كفلاتر تلقائيًا</span></div>
+              <p style={{ fontSize: 11.5, color: T.muted, margin: "0 0 10px" }}>معتمدة كلها افتراضيًا. لغِ أي واحدة لو ما تبيها.</p>
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                 <button onClick={() => decideAllCols("add")} style={{ fontSize: 11.5, background: "#1E8E5A14", color: "#1E8E5A", border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: إنشاء فئة</button>
                 <button onClick={() => decideAllCols("skip")} style={{ fontSize: 11.5, background: T.sunken, color: T.muted, border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>تحديد الكل: تجاهل</button>
