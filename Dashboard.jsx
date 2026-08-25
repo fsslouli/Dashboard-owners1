@@ -3584,8 +3584,55 @@ function normalizeRow(row) {
   return out;
 }
 
+/* ═══ محرك مطابقة ذكي — يقرأ نص الخلية ويقرّبه لأقرب قيمة فلتر موجودة، مو مطابقة حرفية بس ═══ */
+function normalizeArabic(s) {
+  return String(s || "")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[إأآا]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/ؤ/g, "و").replace(/ئ/g, "ي")
+    .replace(/^ال/, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...new Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+    dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  }
+  return dp[m][n];
+}
+function textSimilarity(a, b) {
+  const na = normalizeArabic(a), nb = normalizeArabic(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  if (na.includes(nb) || nb.includes(na)) return 0.93;
+  const dist = levenshtein(na, nb);
+  return 1 - dist / Math.max(na.length, nb.length);
+}
+function findClosestMatch(value, existingValues, threshold = 0.72) {
+  let best = null, bestScore = 0;
+  (existingValues || []).forEach((ev) => {
+    const s = textSimilarity(value, ev);
+    if (s > bestScore) { bestScore = s; best = ev; }
+  });
+  return bestScore >= threshold ? { match: best, score: bestScore } : null;
+}
+/* يقرّب قيم الفئات الأساسية (النموذج/الموقع/الأولوية/الحالة/الإغلاق) لأقرب قيمة معتمدة —
+   يخلي البيانات موحّدة تلقائيًا حتى لو اختلفت الصياغة قليلًا بالملف عن القائمة المعتمدة */
+function canonicalizeRow(row, categories) {
+  const out = { ...row };
+  (categories || []).forEach((cat) => {
+    if (!cat.locked) return;
+    const val = out[cat.key];
+    if (val == null || val === "") return;
+    if (cat.values.includes(val)) return;
+    const found = findClosestMatch(val, cat.values);
+    if (found) out[cat.key] = found.match;
+  });
+  return out;
+}
+
 /* يكتشف صف العناوين الحقيقي تلقائيًا حتى لو فيه صف عنوان تجميعي فوقه (خلايا مدمجة) */
-function smartSheetToJson(sheet) {
+function smartSheetToJson(sheet, categories) {
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
   let bestIdx = 0, bestScore = -1;
   for (let i = 0; i < Math.min(6, raw.length); i++) {
@@ -3596,7 +3643,7 @@ function smartSheetToJson(sheet) {
   return rows.map(normalizeRow).map((r) => {
     if (typeof r.month === "string" && /^\d{4}-\d{2}/.test(r.month)) r.month = r.month.slice(0, 7);
     return r;
-  });
+  }).map((r) => canonicalizeRow(r, categories));
 }
 
 function findNewValuesAdmin(rows, categories) {
@@ -3695,7 +3742,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     reader.onload = (evt) => {
       try {
         const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
-        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name]); });
+        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name], categories); });
         const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name) }; });
         setSheets(parsed); setMapping(initMap);
         runCompareWith(parsed, initMap); /* يقارن تلقائيًا فورًا — بدون أي خطوة وسيطة */
@@ -3708,6 +3755,20 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
 
+  const autoTranslate = async (obj) => {
+    const out = { ...obj };
+    try {
+      if (out.note && !out.note_en) {
+        const { data } = await supabase.functions.invoke("translate-text", { body: { text: out.note } });
+        if (data?.translated) out.note_en = data.translated;
+      }
+      if (out.reply && !out.reply_en) {
+        const { data } = await supabase.functions.invoke("translate-text", { body: { text: out.reply } });
+        if (data?.translated) out.reply_en = data.translated;
+      }
+    } catch { /* لو فشلت الترجمة نكمل بدونها — ما توقف المزامنة */ }
+    return out;
+  };
   const applyAll = async () => {
     setApplying(true);
     let count = 0;
@@ -3731,21 +3792,24 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
             await supabase.from("inquiries").delete().neq("id", -1);
-            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
+            const rows = [];
+            for (const r of res.newRows) rows.push(await autoTranslate({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
             if (rows.length) await supabase.from("inquiries").insert(rows);
             count += rows.length;
           } else if (res.mode === "append") {
-            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
+            const rows = [];
+            for (const r of res.newRows) rows.push(await autoTranslate({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
             if (rows.length) await supabase.from("inquiries").insert(rows);
             count += rows.length;
           } else {
             for (const { key, row } of res.changed) {
-              const patch = Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined));
+              const patch = await autoTranslate(Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined)));
               await supabase.from("inquiries").update(patch).eq("id", Number(key));
             }
             // العناصر المضافة فعليًا (مو المعدّلة) توسم "جديد" تلقائيًا لمدة ٧ أيام
             const todayISO = new Date().toISOString().slice(0, 10);
-            const newRows = res.added.map((row) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false, last_modified: todayISO }));
+            const newRows = [];
+            for (const row of res.added) newRows.push(await autoTranslate({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false, last_modified: todayISO }));
             if (newRows.length) await supabase.from("inquiries").insert(newRows);
             count += res.added.length + res.changed.length;
           }
@@ -3800,12 +3864,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const startEdit = (r) => { setEditing(r.id); setForm({ ...r }); };
   const saveForm = async () => {
     if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return; }
+    const translatedForm = await autoTranslate(canonicalizeRow(form, categories));
     if (editing === "new") {
       const nextId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
-      await supabase.from("inquiries").insert({ ...form, id: nextId, urgent: false });
+      await supabase.from("inquiries").insert({ ...translatedForm, id: nextId, urgent: false });
       log("إضافة استفسار يدويًا", `#${nextId} — ${form.note.slice(0, 40)}`); flashToast("تمت الإضافة");
     } else {
-      await supabase.from("inquiries").update(form).eq("id", editing);
+      await supabase.from("inquiries").update(translatedForm).eq("id", editing);
       log("تعديل استفسار يدويًا", `#${editing} — ${form.note.slice(0, 40)}`); flashToast("تم الحفظ");
     }
     setEditing(null); setForm(null); refreshInquiries();
