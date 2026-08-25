@@ -3769,6 +3769,28 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     } catch { /* لو فشلت الترجمة نكمل بدونها — ما توقف المزامنة */ }
     return out;
   };
+  /* ترجمة خلفية غير معطّلة — تشتغل بعد اعتماد المزامنة بدون ما توقف الواجهة، وحدة وحدة بفاصل بسيط
+     عشان ما نضغط على خدمة الترجمة المجانية دفعة وحدة */
+  const backgroundTranslate = async (ids) => {
+    for (const id of ids) {
+      try {
+        const { data: row } = await supabase.from("inquiries").select("note,note_en,reply,reply_en").eq("id", id).single();
+        if (!row) continue;
+        const patch = {};
+        if (row.note && !row.note_en) {
+          const { data } = await supabase.functions.invoke("translate-text", { body: { text: row.note } });
+          if (data?.translated) patch.note_en = data.translated;
+        }
+        if (row.reply && !row.reply_en) {
+          const { data } = await supabase.functions.invoke("translate-text", { body: { text: row.reply } });
+          if (data?.translated) patch.reply_en = data.translated;
+        }
+        if (Object.keys(patch).length) await supabase.from("inquiries").update(patch).eq("id", id);
+      } catch { /* نتجاوز أي صف فشلت ترجمته ونكمل الباقي */ }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    refreshInquiries();
+  };
   const applyAll = async () => {
     setApplying(true);
     let count = 0;
@@ -3788,29 +3810,31 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 
       let nextAppendId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
       const todayISOOuter = new Date().toISOString().slice(0, 10);
+      const pendingTranslateIds = [];
       for (const res of diffResults) {
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
             await supabase.from("inquiries").delete().neq("id", -1);
-            const rows = [];
-            for (const r of res.newRows) rows.push(await autoTranslate({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
+            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: Number(r.id), urgent: false }));
             if (rows.length) await supabase.from("inquiries").insert(rows);
+            rows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
             count += rows.length;
           } else if (res.mode === "append") {
-            const rows = [];
-            for (const r of res.newRows) rows.push(await autoTranslate({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
+            const rows = res.newRows.map((r) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, r[f] ?? ""])), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
             if (rows.length) await supabase.from("inquiries").insert(rows);
+            rows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
             count += rows.length;
           } else {
             for (const { key, row } of res.changed) {
-              const patch = await autoTranslate(Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined)));
+              const patch = Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f]]).filter(([, v]) => v !== undefined));
               await supabase.from("inquiries").update(patch).eq("id", Number(key));
+              if (patch.note && !patch.note_en) pendingTranslateIds.push(Number(key));
             }
             // العناصر المضافة فعليًا (مو المعدّلة) توسم "جديد" تلقائيًا لمدة ٧ أيام
             const todayISO = new Date().toISOString().slice(0, 10);
-            const newRows = [];
-            for (const row of res.added) newRows.push(await autoTranslate({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false, last_modified: todayISO }));
+            const newRows = res.added.map((row) => ({ ...Object.fromEntries(INQ_FIELDS_ADMIN.map((f) => [f, row[f] ?? ""])), id: Number(row.id), urgent: false, last_modified: todayISO }));
             if (newRows.length) await supabase.from("inquiries").insert(newRows);
+            newRows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
             count += res.added.length + res.changed.length;
           }
         } else if (res.target === "progress") {
@@ -3842,6 +3866,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       flashToast(`تم تحديث الموقع بالكامل — ${count} عنصر`);
       loadBackups();
       setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]);
+      /* الترجمة تصير بالخلفية بدون ما توقّف الحفظ — عشان ما تعلّق الاعتماد لو فيها عدد كبير من الصفوف */
+      if (pendingTranslateIds.length) backgroundTranslate(pendingTranslateIds);
     } catch (err) {
       flashToast("صار خطأ أثناء الحفظ — تأكد إن جداول Supabase مجهّزة (setup-supabase.sql)");
     }
