@@ -89,6 +89,11 @@ const TelegramIcon = ({ size = 13 }) => (
 /* ── ٢. البيانات الثابتة: قوائم مرجعية، ثم سجل الملاحظات RAW ── */
 const PRI_ORDER = ["عالية جدًا", "عالية", "متوسطة", "عادية"];
 const STA_ORDER = ["معتمدة", "تم الرفض", "قيد الدراسة", "تم التصويت"];
+/* ── فئة البند (عمود «تصنيف نوع البند» بملف الإكسل) ──
+   يوصف طبيعة البند نفسه: هل هو تصحيح عيب، أو تحسين تصميمي، أو ترقية، أو مجرد استفسار…
+   الترتيب هنا هو ترتيب العرض بالفلاتر (الأهم أولًا)، وأي قيمة جديدة تجي من الإكسل
+   تنضاف تلقائيًا بعدها عبر نفس محرك المطابقة الذكي المستخدم مع باقي الأعمدة. */
+const CAT_ORDER = ["تصحيح عيب تنفيذي", "تصميمي/جمالي", "ترقية", "استفسار فني توضيحي", "تجاري", "إداري/نظامي"];
 
 /* ── مستندات المخططات (تبويب "المخططات والمستندات") ── */
 /* ── مصدر المخططات: صور WebP مقصوصة لكل دور/واجهة على حدة (تجربة جوال أفضل من PDF) ── */
@@ -221,6 +226,11 @@ const LOC_EN = {
   "موقع الخزان": "Tank Location", "الحوش الخلفي (الدور الأرضي)": "Backyard (Ground Floor)",
   "الحوش الخلفي (الدور الأرضي) والسطح": "Backyard (Ground Floor) & Roof",
 };
+const CAT_EN = {
+  "تصحيح عيب تنفيذي": "Execution Defect Fix", "تصميمي/جمالي": "Design / Aesthetic",
+  "ترقية": "Upgrade", "استفسار فني توضيحي": "Technical Clarification",
+  "تجاري": "Commercial", "إداري/نظامي": "Administrative / Regulatory",
+};
 const OWN_EN = { "م/محمد عبدالمعطي": "Eng. Mohammed Abdulmuti", "م/رواحه": "Eng. Rawaha", "غير محدد": "Unspecified", "أبو سلطان": "Abu Sultan", "م/إبراهيم (مالك)": "Eng. Ibrahim (Owner)" };
 const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting" };
 const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -231,6 +241,7 @@ const trModel = (lang, v) => (lang === "en" ? MODEL_EN[v] || v : v);
 const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.find((z) => z.key === k) || {}).label || k);
 const trLoc = (lang, v) => (lang === "en" ? LOC_EN[v] || v : v);
 const trOwn = (lang, v) => (lang === "en" ? OWN_EN[v] || v : v);
+const trCat = (lang, v) => (lang === "en" ? CAT_EN[v] || v : v);
 const trMeeting = (lang, v) => (lang === "en" ? MEETING_EN[v] || v : v);
 const trMonth = (lang, m) => {
   if (!/^\d{4}-\d{2}$/.test(m || "")) return lang === "en" ? "—" : "—";
@@ -254,6 +265,10 @@ const THEMES = {
     zone: "#7FA0B2", zoneOn: "#1B7F8E",
     sta: { "معتمدة": "#1F7A5C", "تم الرفض": "#A8443C", "قيد الدراسة": "#8A6318", "تم التصويت": "#4E6474" },
     pri: { "عالية جدًا": "#A8443C", "عالية": "#8F5A1E", "متوسطة": "#2E6C86", "عادية": "#5F7280" },
+    cat: {
+      "تصحيح عيب تنفيذي": "#A8443C", "تصميمي/جمالي": "#5E5488", "ترقية": "#1F7368",
+      "استفسار فني توضيحي": "#2E6C86", "تجاري": "#8A6318", "إداري/نظامي": "#4E6474",
+    },
     extra: ["#5E5488", "#1F7368", "#84544A", "#4E6474"],
     onAccent: "#FFFFFF",
   },
@@ -266,6 +281,10 @@ const THEMES = {
     zone: "#7C9CAD", zoneOn: "#5FBCCB",
     sta: { "معتمدة": "#74B698", "تم الرفض": "#D48D87", "قيد الدراسة": "#D8B274", "تم التصويت": "#93A7B8" },
     pri: { "عالية جدًا": "#D48D87", "عالية": "#D6A578", "متوسطة": "#8AB0C2", "عادية": "#93A4AE" },
+    cat: {
+      "تصحيح عيب تنفيذي": "#D48D87", "تصميمي/جمالي": "#AC9EC2", "ترقية": "#8CBEB0",
+      "استفسار فني توضيحي": "#8AB0C2", "تجاري": "#D8B274", "إداري/نظامي": "#93A7B8",
+    },
     extra: ["#AC9EC2", "#8CBEB0", "#C2A399", "#93A7B8"],
     onAccent: "#101820",
   },
@@ -279,6 +298,11 @@ const useLang = () => useContext(LangCtx);
 
 /* ── ٥. أدوات نص عربي، تحليل النماذج، ومناطق المخطط ── */
 const hashPick = (s, arr) => arr[Math.abs([...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0)) % arr.length];
+
+/* لون فئة البند — لو جت فئة جديدة من الإكسل بلا لون معرَّف، ناخذ لها لونًا ثابتًا من قائمة
+   الألوان الإضافية بحسب نص الفئة نفسها (نفس أسلوب حالات الاعتماد)، فتبقى الألوان ثابتة
+   بين الجلسات بدون ما نحتاج نضيف اللون يدويًا لكل فئة جديدة */
+const catColor = (T, v) => (v ? (T.cat && T.cat[v]) || hashPick(v, T.extra) : T.faint);
 
 /* ── نص عربي: توحيد للبحث والمطابقة ── */
 const norm = (s = "") =>
@@ -354,7 +378,7 @@ const fmtDate = (iso) => {
 
 /* ── النسخة الأساسية كسجلات نصية ── مستوردة من inquiries.json */
 const BASE = INQUIRIES_DATA.map((r) => ({
-  id: r.id, model: r.model, loc: r.loc, pri: r.pri, sta: r.status,
+  id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", sta: r.status,
   answered: !!r.answered, owner: r.owner, month: r.month, closed: !!r.closed,
   meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
   note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
@@ -917,6 +941,20 @@ function ViewToggle({ view, setView }) {
   );
 }
 
+/* شارة فئة البند — عنصر واحد مشترك بين البطاقة والجدول ولوحة التفاصيل،
+   عشان أي تعديل مستقبلي على شكل الشارة يصير بمكان واحد فقط */
+function CatPill({ cat }) {
+  const { T } = useT();
+  const { lang } = useLang();
+  if (!cat) return null;
+  const cc = catColor(T, cat);
+  return (
+    <span className="cat-pill" style={{ color: cc, background: `${cc}16`, borderColor: `${cc}33` }}>
+      {trCat(lang, cat)}
+    </span>
+  );
+}
+
 function Row({ r, onOpen }) {
   const { T } = useT();
   const { lang } = useLang();
@@ -940,6 +978,7 @@ function Row({ r, onOpen }) {
           </span>
         )}
       </td>
+      <td className="td-cat">{r.cat ? <CatPill cat={r.cat} /> : <span className="td-m">—</span>}</td>
       <td className="td-m">{trLoc(lang, r.loc)}</td>
       <td className="td-m">{trScope(lang, r.model)}</td>
       <td className="td-m">{trMonth(lang, r.month)}</td>
@@ -986,6 +1025,7 @@ function Card({ r, i, onOpen, reduced }) {
       <div className="card-top">
         <span className="mono card-id">{String(r.id).padStart(2, "0")}</span>
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
+        <CatPill cat={r.cat} />
         {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
         {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
         <span className="card-sta" style={{ color: sc }}>
@@ -1016,6 +1056,23 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.8.0",
+    dateAr: "26 أغسطس 2026",
+    dateEn: "August 26, 2026",
+    ar: [
+      "إضافة «فئة البند» لكل استفسار — تصحيح عيب تنفيذي، تصميمي/جمالي، ترقية، استفسار فني، تجاري، إداري",
+      "الفئة تظهر كشارة ملوّنة عند كل استفسار بالبطاقات والجدول ولوحة التفاصيل",
+      "فلتر جديد بالفئة مع عدّاد لكل فئة، وصار البحث النصي يشملها",
+      "لوحة «طبيعة البنود» بالنظرة العامة — توزيع الاستفسارات على الفئات بضغطة واحدة",
+    ],
+    en: [
+      "Added an item category to every inquiry — defect fix, design/aesthetic, upgrade, technical, commercial, administrative",
+      "The category now shows as a colored badge on every inquiry in cards, table, and detail view",
+      "New category filter with per-category counts; free-text search now covers it too",
+      "New \"Item Categories\" panel in the overview showing how inquiries break down",
+    ],
+  },
   {
     version: "1.7.9",
     dateAr: "11 أغسطس 2026",
@@ -1783,6 +1840,7 @@ function Sheet({ r, navList, onJump, onClose }) {
           <div className="flex items-center gap-2">
             <span className="mono sheet-id">{L("ملاحظة", "Note")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
+            <CatPill cat={r.cat} />
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -1811,7 +1869,8 @@ function Sheet({ r, navList, onJump, onClose }) {
           </div>
 
           <div className="meta-list">
-            {[[Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)], [User, L("صاحب الرد", "Engineer"), trOwn(lang, r.owner)],
+            {[[Tag, L("الفئة", "Category"), r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")],
+              [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)], [User, L("صاحب الرد", "Engineer"), trOwn(lang, r.owner)],
               [Calendar, L("شهر الرد", "Reply Month"), trMonth(lang, r.month)], [Ruler, L("حالة الإغلاق", "Closure Status"), r.closed ? L("مقفل", "Closed") : L("مفتوح", "Open")],
               [Droplet, L("حالة الرد", "Reply Status"), r.answered ? L("تم الرد", "Replied") : L("بانتظار الرد", "Awaiting reply")]].map(([Ic, k, v]) => (
               <div key={k} className="meta-row">
@@ -2208,7 +2267,7 @@ function ProgressTab({ reduced, data, loading }) {
 }
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-const EMPTY_F = { q: "", zone: null, pri: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false };
+const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false };
 
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
@@ -2307,7 +2366,7 @@ function PublicSite() {
      يبقى الموقع شغّال بالنسخة الأساسية (BASE) بدون أي انقطاع. */
   useEffect(() => {
     const mapRow = (r) => ({
-      id: r.id, model: r.model, loc: r.loc, pri: r.pri, sta: r.status,
+      id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", sta: r.status,
       answered: !!r.answered, owner: r.owner, month: r.month,
       closed: r.closed === "نعم" || r.closed === true,
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
@@ -2475,6 +2534,7 @@ function PublicSite() {
 
   const cats = useMemo(() => ({
     pri: uniqSorted(ALL.map((r) => r.pri), PRI_ORDER),
+    cat: uniqSorted(ALL.map((r) => r.cat), CAT_ORDER),
     sta: uniqSorted(ALL.map((r) => r.sta), STA_ORDER),
     models: MODEL_LIST.filter((m) => ALL.some((r) => r.models.includes(m))),
     owners: [...new Set(ALL.map((r) => r.owner))].filter(Boolean).sort((a, b) => a.localeCompare(b, "ar")),
@@ -2508,6 +2568,7 @@ function PublicSite() {
   const match = useMemo(() => (r, skip = {}) => {
     if (!skip.zone && f.zone && r.zone !== f.zone) return false;
     if (!skip.pri && f.pri && r.pri !== f.pri) return false;
+    if (!skip.cat && f.cat && r.cat !== f.cat) return false;
     if (!skip.sta && f.sta && r.sta !== f.sta) return false;
     if (f.model && !r.models.includes(f.model)) return false;
     if (f.own && r.owner !== f.own) return false;
@@ -2515,7 +2576,7 @@ function PublicSite() {
     if (f.meeting && r.meeting !== f.meeting) return false;
     if (f.open && r.closed) return false;
     if (f.fresh && !r.isNew) return false;
-    if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.sta}`).includes(nq)) return false;
+    if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
     return true;
   }, [f, nq, nqId]);
 
@@ -2547,6 +2608,8 @@ function PublicSite() {
     const tot = ALL.length;
     const byS = {}; cats.sta.forEach((s) => (byS[s] = ALL.filter((r) => r.sta === s).length));
     const byP = {}; cats.pri.forEach((p) => (byP[p] = ALL.filter((r) => r.pri === p).length));
+    const byC = {}; cats.cat.forEach((c) => (byC[c] = ALL.filter((r) => r.cat === c).length));
+    const noCat = ALL.filter((r) => !r.cat).length;
     const zc = {}; ZONES.forEach((z) => (zc[z.key] = 0));
     ALL.forEach((r) => (zc[r.zone] = (zc[r.zone] || 0) + 1));
     const ok = byS["معتمدة"] || 0, no = byS["تم الرفض"] || 0;
@@ -2558,7 +2621,7 @@ function PublicSite() {
       cats.sta.forEach((s) => (o[s] = inM.filter((r) => r.sta === s).length));
       return o;
     });
-    return { tot, byS, byP, zc, rate: ok + no ? Math.round((ok / (ok + no)) * 100) : 0, tl };
+    return { tot, byS, byP, byC, noCat, zc, rate: ok + no ? Math.round((ok / (ok + no)) * 100) : 0, tl };
   }, [ALL, cats, lang]);
 
   const latest = useMemo(() =>
@@ -2570,6 +2633,7 @@ function PublicSite() {
     if (f.zone) out.push({ k: "zone", l: trZone(lang, f.zone) });
     if (f.sta) out.push({ k: "sta", l: trSta(lang, f.sta) });
     if (f.pri) out.push({ k: "pri", l: trPri(lang, f.pri) });
+    if (f.cat) out.push({ k: "cat", l: trCat(lang, f.cat) });
     if (f.model) out.push({ k: "model", l: trModel(lang, f.model) });
     if (f.own) out.push({ k: "own", l: trOwn(lang, f.own) });
     if (f.mon) out.push({ k: "mon", l: trMonth(lang, f.mon) });
@@ -2823,6 +2887,11 @@ function PublicSite() {
 .tag-new{display:inline-flex;align-items:center;gap:3px;color:${T.sta["معتمدة"]};animation:${reduced ? "none" : "tagPulse 2.4s ease-in-out infinite"};}
 @keyframes tagPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
 .tag-open{color:${T.brass};}
+/* شارة فئة البند — تظهر عند كل استفسار بالبطاقة والجدول ولوحة التفاصيل، بلون خاص لكل فئة */
+.cat-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;line-height:1;
+  padding:4px 9px;border-radius:999px;white-space:nowrap;border:1px solid transparent;}
+.cat-pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex:none;}
+.tbl td.td-cat{white-space:nowrap;}
 .card-note{position:relative;z-index:1;font-size:14.5px;line-height:1.95;color:${T.paper};margin-bottom:12px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .card-foot{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
@@ -2842,7 +2911,7 @@ function PublicSite() {
 .tbl-wrap::-webkit-scrollbar{height:8px;}
 .tbl-wrap::-webkit-scrollbar-track{background:transparent;}
 .tbl-wrap::-webkit-scrollbar-thumb{background:${T.faint}55;border-radius:4px;}
-.tbl{width:100%;min-width:760px;border-collapse:collapse;font-family:inherit;}
+.tbl{width:100%;min-width:880px;border-collapse:collapse;font-family:inherit;}
 .tbl th{text-align:start;font-weight:500;font-size:11.5px;color:${T.muted};
   padding:14px 14px;border-bottom:1px solid ${T.line};white-space:nowrap;}
 .trow{cursor:pointer;transition:background .16s;}
@@ -2863,6 +2932,8 @@ function PublicSite() {
   font-family:inherit;background:transparent;border:none;transition:background .16s;}
 .zrow:hover{background:${T.sunken};}
 .zbar{height:3px;border-radius:2px;background:${T.sunken};overflow:hidden;margin-top:7px;}
+.cat-grid{display:grid;grid-template-columns:1fr;gap:2px;}
+@media(min-width:760px){.cat-grid{grid-template-columns:repeat(2,1fr);gap:2px 18px;}}
 
 .tip{background:${T.surface};border-radius:12px;padding:10px 13px;font-size:12px;box-shadow:${T.shadowUp};}
 .tip-h{color:${T.muted};margin-bottom:6px;font-size:11.5px;}
@@ -3013,7 +3084,8 @@ function PublicSite() {
 @keyframes up{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
 @media(min-width:640px){@keyframes up{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
-@media print{.no-print{display:none!important;}.dash{background:#fff;color:#000;}.card,.surf,.stats{box-shadow:none!important;}.tabs{position:static;}}
+@media print{.no-print{display:none!important;}.dash{background:#fff;color:#000;}.card,.surf,.stats{box-shadow:none!important;}.tabs{position:static;}
+  .tbl{min-width:0!important;}.tbl-wrap{overflow:visible!important;}.cat-pill{border-color:currentColor!important;background:none!important;}}
         `}</style>
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
@@ -3208,6 +3280,45 @@ function PublicSite() {
                 </div>
               </section>
 
+              {/* فئات البنود — طبيعة كل استفسار: عيب تنفيذي، تحسين تصميمي، ترقية، استفسار… */}
+              {cats.cat.length > 0 && (
+                <section className="surf" style={{ padding: "20px 18px", marginBottom: 14 }}>
+                  <div className="sec-t">{L("طبيعة البنود", "Item Categories")}</div>
+                  <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>
+                    {L("اضغط أي فئة لعرض بنودها", "Tap any category to view its items")}
+                  </div>
+                  <div className="cat-grid">
+                    {cats.cat.map((c) => {
+                      const n = overview.byC[c] || 0;
+                      const pct = Math.round((n / Math.max(1, overview.tot)) * 100);
+                      const cc = catColor(T, c);
+                      return (
+                        <div key={c} role="button" tabIndex={0} className="zrow"
+                          onClick={() => n && openBoard({ cat: c })}
+                          onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && n) { e.preventDefault(); openBoard({ cat: c }); } }}
+                          style={{ opacity: n === 0 ? 0.45 : 1, cursor: n === 0 ? "default" : "pointer" }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span style={{ fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 7 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: 3, background: cc, flex: "none" }} />
+                              {trCat(lang, c)}
+                            </span>
+                            <span className="mono" style={{ fontSize: 12.5, color: T.muted }}>{n} · {pct}٪</span>
+                          </div>
+                          <div className="zbar">
+                            <div style={{ width: `${pct}%`, height: "100%", background: cc, opacity: .6, transition: "width .5s ease" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {overview.noCat > 0 && (
+                    <div className="eyebrow" style={{ marginTop: 12 }}>
+                      {L(`${overview.noCat} بند بلا فئة محددة بعد`, `${overview.noCat} item(s) not categorized yet`)}
+                    </div>
+                  )}
+                </section>
+              )}
+
               {/* الزمن + الأولوية */}
               <section className="grid grid-cols-1 lg:grid-cols-5" style={{ gap: 14 }}>
                 <div className="surf lg:col-span-3" style={{ padding: "20px 16px 12px" }}>
@@ -3299,6 +3410,8 @@ function PublicSite() {
                   <Select value={sort} onChange={(v) => setSort(v || "id")} placeholder={L("ترتيب", "Sort")} icon={Hash}
                     options={[{ v: "id", l: L("الأرقام: الأحدث أولاً", "Number: newest first") }, { v: "date", l: L("الأحدث أولاً (بالتاريخ)", "Newest first (by date)") }, { v: "new", l: L("الجديد أولاً", "New first") }, { v: "pri", l: L("الأولوية أولاً", "Priority first") }, { v: "open", l: L("المفتوحة أولاً", "Open first") }]} />
                   <Select value={f.pri} onChange={(v) => { setF((p) => ({ ...p, pri: v })); setLimit(12); }} placeholder={L("كل الأولويات", "All priorities")} icon={Layers} options={cats.pri.map((p) => ({ v: p, l: trPri(lang, p) }))} />
+                  <Select value={f.cat} onChange={(v) => { setF((p) => ({ ...p, cat: v })); setLimit(12); }} placeholder={L("كل الفئات", "All categories")} icon={Tag}
+                    options={cats.cat.map((c) => ({ v: c, l: `${trCat(lang, c)} (${ALL.filter((r) => r.cat === c).length})` }))} />
                   <Select value={f.model} onChange={(v) => { setF((p) => ({ ...p, model: v })); setLimit(12); }} placeholder={L("كل النماذج", "All models")} icon={Home}
                     options={cats.models.map((m) => ({ v: m, l: `${trModel(lang, m)} (${ALL.filter((r) => r.models.includes(m)).length})` }))} />
                   <Select value={f.zone} onChange={(v) => { setF((p) => ({ ...p, zone: v })); setLimit(12); }} placeholder={L("كل المواقع", "All locations")} icon={Layers}
@@ -3348,6 +3461,7 @@ function PublicSite() {
                             <th>{L("الحالة", "Status")}</th>
                             <th>{L("الأولوية", "Priority")}</th>
                             <th>{L("الملاحظة", "Note")}</th>
+                            <th>{L("الفئة", "Category")}</th>
                             <th>{L("الموقع", "Location")}</th>
                             <th>{L("النموذج", "Model")}</th>
                             <th>{L("الشهر", "Month")}</th>
@@ -3501,9 +3615,9 @@ const ADMIN_PERMISSIONS = [
   { key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
   { key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
 ];
-const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "status", "owner", "month", "note", "note_en", "reply", "closed", "answered"];
-const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
-const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا" };
+const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "cat", "status", "owner", "month", "note", "note_en", "reply", "closed", "answered"];
+const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة (تصنيف نوع البند)", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
+const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا" };
 /* answered عمود boolean حقيقي بقاعدة البيانات (بخلاف closed اللي نص) — نحوّلها بالحدين:
    نص "نعم/لا" أثناء العرض والمقارنة بالإدارة (اتساقًا مع closed)، وBoolean فعلي عند الكتابة الفعلية لقاعدة البيانات */
 const REAL_BOOL_FIELDS = ["answered"];
@@ -3602,7 +3716,7 @@ function afieldInput(label, value, onChange, opts) {
   return (
     <div key={label}>
       <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>{label}</label>
-      {opts ? (<select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }}>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</select>)
+      {opts ? (<select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }}>{opts.map((o) => <option key={o} value={o}>{o === "" ? "— بدون —" : o}</option>)}</select>)
         : (<input value={value || ""} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />)}
     </div>
   );
@@ -3613,6 +3727,9 @@ const HEADER_ALIASES = {
   model: ["model", "النموذج", "الموديل", "نوع النموذج", "موديل الفيلا"],
   loc: ["loc", "الموقع", "موقع الملاحظة", "مكان الملاحظة", "الموقع بالفيلا"],
   pri: ["pri", "الأولوية", "الاولوية", "درجة الأولوية", "الاهمية", "الأهمية"],
+  /* عمود الفئة — العنوان الرسمي بالملف "تصنيف نوع البند"، والباقي صياغات بديلة محتملة.
+     كلها بعيدة نصيًا عن عناوين الأعمدة الأخرى، فما تتعارض مع المطابقة التقريبية القائمة. */
+  cat: ["cat", "category", "الفئة", "الفئه", "التصنيف", "تصنيف", "تصنيف نوع البند", "نوع البند", "تصنيف البند", "فئة البند", "نوع الاستفسار", "تصنيف الاستفسار"],
   status: ["status", "الحالة", "حالة المقترح", "حالة الاعتماد"],
   owner: ["owner", "المهندس", "المسؤول", "صاحب الرد", "المهندس المسؤول", "الجهة المعنية"],
   month: ["month", "الشهر", "شهر الرد", "شهر الرد (نص)", "تاريخ الطلب", "تاريخ الرد", "التاريخ"],
@@ -3790,6 +3907,16 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const [form, setForm] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [applying, setApplying] = useState(false);
+  /* ═══ أمان الرفع: نتحقق أول شي إذا عمود "cat" (الفئة) موجود فعلًا بجدول inquiries ═══
+     لو قاعدة البيانات ما انحدّثت بعد بملف setup-supabase.sql، نشيل الحقل من كل عمليات
+     الكتابة والمقارنة تلقائيًا — فتبقى مزامنة الإكسل شغّالة تمامًا زي قبل بدون أي خطأ،
+     وتشتغل الفئة وحدها أول ما ينضاف العمود، بدون أي تعديل ثاني على الكود. */
+  const [hasCatCol, setHasCatCol] = useState(true);
+  useEffect(() => {
+    supabase.from("inquiries").select("cat").limit(1).then(({ error }) => { if (error) setHasCatCol(false); });
+  }, []);
+  const INQ_FIELDS = useMemo(() => (hasCatCol ? INQ_FIELDS_ADMIN : INQ_FIELDS_ADMIN.filter((f) => f !== "cat")), [hasCatCol]);
+  const stripCat = (obj) => { if (hasCatCol) return obj; const { cat, ...rest } = obj; return rest; };
   const [backups, setBackups] = useState([]);
   const [restoring, setRestoring] = useState(null);
   const loadBackups = () => supabase.from("data_backups").select("*").order("created_at", { ascending: false }).then(({ data }) => setBackups(data || []));
@@ -3826,6 +3953,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     Object.entries(mapObj).forEach(([sheetName, cfg]) => {
       if (cfg.target === "ignore" || cfg.selected === false) return; // شيت غير مُختار بخطوة "اختيار الشيتات" أو مُستبعد يدويًا
       const rows = parsedSheets[sheetName]; const cfgTarget = ADMIN_TARGETS.find((t) => t.key === cfg.target);
+      /* حقول المقارنة: للاستفسارات ناخذها من INQ_FIELDS (اللي يحذف "cat" لو العمود مو موجود بعد) */
+      const cmpFields = cfg.target === "inquiries" ? INQ_FIELDS : cfgTarget.fields;
       const current = cfg.target === "inquiries" ? inquiries : progress; const keyField = cfgTarget.keyField;
       if (cfg.mode === "replace") { results.push({ sheetName, target: cfg.target, mode: "replace", newRows: rows, removedCount: current.length }); if (cfg.target === "inquiries") scanRows = scanRows.concat(rows); return; }
       if (cfg.mode === "append") {
@@ -3846,7 +3975,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           });
           if (bestRow && bestScore >= 0.85) {
             usedIds.add(bestRow.id);
-            const fdiffs = fieldsThatDiffer(cfgTarget.fields, row, bestRow);
+            const fdiffs = fieldsThatDiffer(cmpFields, row, bestRow);
             if (fdiffs.length) changed.push({ key: String(bestRow.id), row, cur: bestRow, fieldDiffs: fdiffs });
           } else {
             added.push(row);
@@ -3862,7 +3991,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         const k = String(row[keyField] ?? "").trim(); if (!k) return; incomingKeys.add(k);
         const cur = currentByKey.get(k);
         if (!cur) { added.push(row); return; }
-        const fdiffs = fieldsThatDiffer(cfgTarget.fields, row, cur);
+        const fdiffs = fieldsThatDiffer(cmpFields, row, cur);
         if (fdiffs.length) changed.push({ key: k, row, cur, fieldDiffs: fdiffs });
       });
       const missing = current.filter((r) => !incomingKeys.has(String(r[keyField])));
@@ -3934,11 +4063,11 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   };
   /* يبني كائن الحقول الجاهز للكتابة الفعلية بقاعدة البيانات — يحوّل حقول boolean الحقيقية
      (answered) من نص "نعم/لا" إلى true/false فعلي، ويترك closed كنص زي ما هو (عمود نصي) */
-  const buildInsertPayload = (r) => Object.fromEntries(INQ_FIELDS_ADMIN.map((f) =>
+  const buildInsertPayload = (r) => Object.fromEntries(INQ_FIELDS.map((f) =>
     REAL_BOOL_FIELDS.includes(f) ? [f, toDbBool(r[f] ?? "لا")] : [f, r[f] ?? ""]
   ));
   const buildPatchPayload = (r) => Object.fromEntries(
-    INQ_FIELDS_ADMIN.map((f) => [f, r[f]]).filter(([, v]) => v !== undefined)
+    INQ_FIELDS.map((f) => [f, r[f]]).filter(([, v]) => v !== undefined)
       .map(([f, v]) => (REAL_BOOL_FIELDS.includes(f) ? [f, toDbBool(v)] : [f, v]))
   );
   const applyAll = async () => {
@@ -4046,7 +4175,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const saveForm = async () => {
     if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return; }
     const translatedForm = await autoTranslate(canonicalizeRow(form, categories));
-    const payload = { ...translatedForm, answered: toDbBool(translatedForm.answered) };
+    const payload = stripCat({ ...translatedForm, answered: toDbBool(translatedForm.answered) });
     if (editing === "new") {
       const nextId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
       await supabase.from("inquiries").insert({ ...payload, id: nextId, urgent: false });
@@ -4256,7 +4385,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                     <span style={{ color: T.faint, fontWeight: 700, flexShrink: 0 }}>#{r.id}</span>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{r.note}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}</div>
+                  <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}{r.cat ? ` · ${r.cat}` : ""}</div>
                 </div>
                 {canEdit && <button onClick={() => startEdit(r)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.muted, flexShrink: 0 }}><Pencil size={12} /></button>}
                 {canDelete && (confirmDeleteId === r.id ? (
@@ -4278,6 +4407,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
             {afieldInput(ADMIN_FIELD_LABEL.model, form.model, (v) => setForm((f) => ({ ...f, model: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.loc, form.loc, (v) => setForm((f) => ({ ...f, loc: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.pri, form.pri, (v) => setForm((f) => ({ ...f, pri: v })), ["عالية جدًا", "عالية", "متوسطة", "عادية"])}
+            {afieldInput(ADMIN_FIELD_LABEL.cat, form.cat ?? "", (v) => setForm((f) => ({ ...f, cat: v })), ["", ...CAT_ORDER])}
             {afieldInput(ADMIN_FIELD_LABEL.status, form.status, (v) => setForm((f) => ({ ...f, status: v })), ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"])}
             {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.month, form.month, (v) => setForm((f) => ({ ...f, month: v })))}

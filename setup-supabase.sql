@@ -6,11 +6,15 @@
 -- ١) الاستفسارات
 create table if not exists public.inquiries (
   id serial primary key,
-  model text, loc text, pri text, status text, owner text, month text,
+  model text, loc text, pri text, cat text, status text, owner text, month text,
   note text, note_en text, reply text, closed text default 'لا',
   urgent boolean default false,
   updated_at timestamptz default now()
 );
+
+-- ترقية لقاعدة بيانات موجودة أصلًا: يضيف عمود الفئة بدون ما يمسّ أي بيانات حالية.
+-- (آمن تمامًا — لو العمود موجود مسبقًا ما يسوي شي)
+alter table public.inquiries add column if not exists cat text;
 
 -- ٢) تقدّم التنفيذ
 create table if not exists public.progress (
@@ -88,6 +92,7 @@ insert into public.filter_categories (key, label, locked, values) values
   ('model', 'النموذج', true, array['أمانيثير','ألبا','أورورا']),
   ('loc', 'الموقع', true, array['الطابق الأرضي','السطح','كامل الفيلا']),
   ('pri', 'الأولوية', true, array['عالية جدًا','عالية','متوسطة','عادية']),
+  ('cat', 'الفئة (تصنيف نوع البند)', true, array['تصحيح عيب تنفيذي','تصميمي/جمالي','ترقية','استفسار فني توضيحي','تجاري','إداري/نظامي']),
   ('status', 'الحالة', true, array['معتمدة','قيد الدراسة','تم التصويت']),
   ('closed', 'مقفل / مفتوح', true, array['نعم','لا'])
 on conflict (key) do nothing;
