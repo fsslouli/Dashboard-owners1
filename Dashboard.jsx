@@ -490,9 +490,29 @@ const uniqSorted = (arr, order) => [...new Set(arr)].filter(Boolean).sort((a, b)
 const SKEY = "owners-inquiries-v1";
 const PGKEY = "owners-progress-v1";
 const TKEY = "owners-inquiries-theme";
-const hasStore = () => typeof window !== "undefined" && !!window.storage;
+/* ── طبقة تخزين موحّدة لتفضيلات الزائر (ثيم/لغة/شكل عرض) ──
+   window.storage موجود فقط داخل بيئة المعاينة (artifacts)، ومو موجود بالمتصفح العادي بعد
+   النشر على Vercel — فكانت كل التفضيلات ترجع للافتراضي مع كل زيارة. الآن نستخدمه إن وُجد،
+   وإلا ننزل تلقائيًا على localStorage العادي. أي بيئة تمنع الاثنين (تصفّح خاص متشدد)
+   تكمّل شغّالة بالافتراضيات بدون أي خطأ. */
+const hasStore = () => typeof window !== "undefined";
+const prefStore = {
+  async get(key) {
+    if (typeof window === "undefined") return null;
+    if (window.storage) { try { return await window.storage.get(key, false); } catch { return null; } }
+    try { const v = window.localStorage.getItem(key); return v == null ? null : { key, value: v }; }
+    catch { return null; }
+  },
+  set(key, value) {
+    if (typeof window === "undefined") return;
+    if (window.storage) { try { window.storage.set(key, value, false); } catch { /* تجاهل */ } return; }
+    try { window.localStorage.setItem(key, value); } catch { /* تجاهل */ }
+  },
+};
+/* التخزين المشترك بين كل الزوّار — يبقى معتمدًا على window.storage وحده لأن localStorage
+   محلي لكل جهاز ولا يصلح لبيانات مشتركة. مصدر البيانات الفعلي بالإنتاج هو Supabase. */
 async function loadShared(key = SKEY) {
-  if (!hasStore()) return null;
+  if (typeof window === "undefined" || !window.storage) return null;
   try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }
   catch { return null; }
 }
@@ -550,7 +570,11 @@ function useBackClose(isOpen, onClose) {
 /* ── الوضع التلقائي: يتبع إعداد الجهاز ويتغيّر معه فورًا ── */
 function useThemeMode() {
   const [mode, setMode] = useState("auto"); /* افتراضيًا يتبع وضع جهاز الزائر مباشرة */
-  const [sysDark, setSysDark] = useState(true);
+  /* يُقرأ فورًا عند أول رسم — قبل كان يبدأ بـ true دائمًا ثم يُصحَّح بالـ effect،
+     فيومض الوضع الداكن لحظة على أجهزة وضعها فاتح */
+  const [sysDark, setSysDark] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches : false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -563,7 +587,7 @@ function useThemeMode() {
   useEffect(() => {
     if (!hasStore()) return;
     let alive = true;
-    window.storage.get(TKEY, false)
+    prefStore.get(TKEY)
       .then((r) => { if (alive && r && ["auto", "light", "dark"].includes(r.value)) setMode(r.value); })
       .catch(() => {});
     return () => { alive = false; };
@@ -571,7 +595,7 @@ function useThemeMode() {
 
   const pick = (m) => {
     setMode(m);
-    if (hasStore()) { try { window.storage.set(TKEY, m, false); } catch { /* تجاهل */ } }
+    prefStore.set(TKEY, m);
   };
 
   const resolved = mode === "auto" ? (sysDark ? "dark" : "light") : mode;
@@ -585,14 +609,14 @@ function useLangMode() {
   useEffect(() => {
     if (!hasStore()) return;
     let alive = true;
-    window.storage.get(LKEY, false)
+    prefStore.get(LKEY)
       .then((r) => { if (alive && r && ["ar", "en"].includes(r.value)) setLang(r.value); })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
   const pick = (l) => {
     setLang(l);
-    if (hasStore()) { try { window.storage.set(LKEY, l, false); } catch { /* تجاهل */ } }
+    prefStore.set(LKEY, l);
   };
   return { lang, setLang: pick };
 }
@@ -620,7 +644,7 @@ function useViewMode() {
   useEffect(() => {
     if (!hasStore()) return;
     let alive = true;
-    window.storage.get(VKEY, false)
+    prefStore.get(VKEY)
       .then((r) => { if (alive && r && ["auto", "cards", "table"].includes(r.value)) setPref(r.value); })
       .catch(() => {});
     return () => { alive = false; };
@@ -630,7 +654,7 @@ function useViewMode() {
   const pick = (v) => {
     setPref(v);
     logEvent("filter", "view", v, null);
-    if (hasStore()) { try { window.storage.set(VKEY, v, false); } catch { /* تجاهل */ } }
+    prefStore.set(VKEY, v);
   };
 
   /* الافتراضي يتبع حجم الشاشة، والاختيار اليدوي يتجاوزه على أي جهاز */
@@ -761,7 +785,10 @@ function VillaPlan({ counts, active, onPick, built }) {
     transition: `opacity .45s ease ${delay}ms`,
   });
 
-  const Tag = ({ x, y, name, k, delay, big }) => (
+  /* دالة رسم عادية وليست مكوّنًا داخليًا: المكوّن المعرَّف داخل الدالة يُعتبر نوعًا جديدًا مع كل
+     إعادة رسم فتُهدم عناصره وتُعاد حركات الشفافية من البداية عند كل تمرير مؤشر — كما أنه كان
+     يحمل نفس اسم أيقونة Tag المستوردة من lucide ويحجبها داخل هذا المكوّن. */
+  const zoneTag = ({ x, y, name, k, delay, big }) => (
     <div style={{ ...pos(x, y), ...lbl(k, delay) }}>
       <div style={{ fontSize: big ? 12.5 : 11, color: on(k) ? T.zoneOn : T.paper, fontFamily: big ? "'Reem Kufi',sans-serif" : "inherit" }}>{name}</div>
       <div className="mono" style={{ fontSize: big ? 19 : 14, fontWeight: 600, color: on(k) ? T.zoneOn : T.brass, marginTop: 2 }}>{counts[k] || 0}</div>
@@ -813,14 +840,14 @@ function VillaPlan({ counts, active, onPick, built }) {
 
       {/* النصوص العربية كطبقة HTML — عنصر SVG text لا يُشكّل العربية بشكل موثوق */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        <Tag x={330} y={278} name={trZone(lang, "ground")} k="ground" delay={160} big />
-        <Tag x={330} y={152} name={trZone(lang, "first")} k="first" delay={340} big />
-        <Tag x={286} y={84} name={trZone(lang, "roof")} k="roof" delay={420} />
-        <Tag x={196} y={288} name={trZone(lang, "wet")} k="wet" delay={240} />
-        <Tag x={383} y={220} name={trZone(lang, "stairs")} k="stairs" delay={260} />
-        <Tag x={236} y={376} name={trZone(lang, "tank")} k="tank" delay={100} />
-        <Tag x={494} y={365} name={trZone(lang, "street")} k="street" delay={60} />
-        <Tag x={508} y={87} name={trZone(lang, "na")} k="na" delay={600} />
+        {zoneTag({ x: 330, y: 278, name: trZone(lang, "ground"), k: "ground", delay: 160, big: true })}
+        {zoneTag({ x: 330, y: 152, name: trZone(lang, "first"), k: "first", delay: 340, big: true })}
+        {zoneTag({ x: 286, y: 84, name: trZone(lang, "roof"), k: "roof", delay: 420 })}
+        {zoneTag({ x: 196, y: 288, name: trZone(lang, "wet"), k: "wet", delay: 240 })}
+        {zoneTag({ x: 383, y: 220, name: trZone(lang, "stairs"), k: "stairs", delay: 260 })}
+        {zoneTag({ x: 236, y: 376, name: trZone(lang, "tank"), k: "tank", delay: 100 })}
+        {zoneTag({ x: 494, y: 365, name: trZone(lang, "street"), k: "street", delay: 60 })}
+        {zoneTag({ x: 508, y: 87, name: trZone(lang, "na"), k: "na", delay: 600 })}
 
         <div style={{ ...pos(129, 204), ...lbl("party", 520), transform: "translate(-50%,-50%) rotate(180deg)", writingMode: "vertical-rl" }}>
           <span style={{ fontSize: 10, color: on("party") ? T.zoneOn : T.muted }}>{lang === "en" ? "Party Wall" : "جدار الفلل"}</span>
@@ -1056,6 +1083,25 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.8.1",
+    dateAr: "27 أغسطس 2026",
+    dateEn: "August 27, 2026",
+    ar: [
+      "إصلاح خطأ كان يوقف تبويب المزامنة عند اختيار قرار لقيمة فلترة واحدة",
+      "الإشعارات المنتهية صارت تختفي فعلًا عن الزائر بدل ما تظل ظاهرة للأبد",
+      "الثيم واللغة وشكل العرض صاروا يُحفظون فعلًا بين الزيارات بعد النشر",
+      "معالجة ومضة الوضع الداكن عند فتح الموقع على جهاز وضعه فاتح",
+      "تحسينات داخلية على بنية الكود بدون أي تغيير بالمظهر أو البيانات",
+    ],
+    en: [
+      "Fixed an error that broke the sync tab when choosing a decision for a single filter value",
+      "Expired notices now actually disappear for visitors instead of showing forever",
+      "Theme, language, and layout preferences now persist between visits in production",
+      "Fixed a dark-mode flash when opening the site on a light-mode device",
+      "Internal code structure cleanup with no visual or data changes",
+    ],
+  },
   {
     version: "1.8.0",
     dateAr: "26 أغسطس 2026",
@@ -1916,6 +1962,31 @@ function Sheet({ r, navList, onJump, onClose }) {
 }
 
 /* ── ١٣. تبويب تقدّم التنفيذ (ProgressTab) ── */
+/* ── شريط نسبة واحد (إنجاز + علامة الهدف) ──
+   كان معرَّفًا داخل ProgressTab، وهذا يعني أمرين سيئين: أولًا كان يحجب مكوّن Bar المستورد من
+   recharts داخل نفس الملف (قنبلة موقوتة لو انضاف رسم أعمدة هنا لاحقًا)، وثانيًا كان يُبنى من
+   جديد مع كل إعادة رسم فتُفقد حالة useInView وتُعاد حركة التعبئة من الصفر بلا سبب. */
+function GaugeBar({ val, color, target, scale, reduced, lang }) {
+  const { T } = useT();
+  const [ref, inView] = useInView(0.35);
+  const show = reduced || inView; /* بدون حركة النظام: يظهر مباشرة بدون انتظار السكرول */
+  const w = val != null ? `${Math.min(100, (val / scale) * 100)}%` : "0%";
+  return (
+    <div className="gbar" ref={ref}>
+      {val != null && (
+        <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
+          style={{ width: show ? w : "0%", background: color }} />
+      )}
+      {target != null && (
+        <span className="gbar-t" style={{
+          [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
+          background: T.paper,
+        }} />
+      )}
+    </div>
+  );
+}
+
 /* ── حلقات المراحل — ملخص بصري سريع، ترتسم تدريجيًا عند دخولها الشاشة ── */
 function PhaseRings({ phases, mi, tgt, ahead, behind, muted, sunken, lang }) {
   const reduced = usePrefersReduced();
@@ -2006,26 +2077,6 @@ function ProgressTab({ reduced, data, loading }) {
   const stalled = blocks.filter((r) => mi > 0 && r.v[mi] != null && r.v[mi - 1] != null && Math.abs(r.v[mi] - r.v[mi - 1]) < 0.2);
   const grouped = ["p1", "p2", "p3", "p4"].map((k) => ({ k, rows: blocks.filter((r) => r.ph === k) }));
 
-  const Bar = ({ val, color, target }) => {
-    const [ref, inView] = useInView(0.35);
-    const show = reduced || inView; /* بدون حركة النظام: يظهر مباشرة بدون انتظار السكرول */
-    const w = val != null ? `${Math.min(100, (val / scale) * 100)}%` : "0%";
-    return (
-      <div className="gbar" ref={ref}>
-        {val != null && (
-          <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
-            style={{ width: show ? w : "0%", background: color }} />
-        )}
-        {target != null && (
-          <span className="gbar-t" style={{
-            [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
-            background: T.paper,
-          }} />
-        )}
-      </div>
-    );
-  };
-
   return (
     <>
       {loading ? (
@@ -2049,7 +2100,7 @@ function ProgressTab({ reduced, data, loading }) {
           </div>
         </div>
 
-        <Bar val={cur} color={gapColor} target={tgt} />
+        <GaugeBar val={cur} color={gapColor} target={tgt} scale={scale} reduced={reduced} lang={lang} />
 
         <div className="gmeta">
           <span className="gm"><span className="gm-k">{L("الهدف", "Target")}</span> <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span></span>
@@ -2173,7 +2224,7 @@ function ProgressTab({ reduced, data, loading }) {
                   <span className="mono grow-g" style={{ color: col }}>{g == null ? "—" : g >= 0 ? `+${g.toFixed(2)}` : g.toFixed(2)}</span>
                 </span>
               </div>
-              <Bar val={v} color={col} target={tgt} />
+              <GaugeBar val={v} color={col} target={tgt} scale={scale} reduced={reduced} lang={lang} />
               <div className="grow-d">{L("التغيّر عن الشهر السابق", "Change vs. previous month")} <span className="mono" style={{ color: dColor(d) }}>{dText(d)}</span></div>
             </div>
           );
@@ -2228,7 +2279,7 @@ function ProgressTab({ reduced, data, loading }) {
                 <div key={r.b} className="brow">
                   <span className="brow-b mono">{r.b}</span>
                   <div className="brow-bar">
-                    <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} target={tgt} />
+                    <GaugeBar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} target={tgt} scale={scale} reduced={reduced} lang={lang} />
                   </div>
                   <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}٪`}</span>
                   <span className="brow-d mono" style={{ color: dColor(d) }}>{dText(d)}</span>
@@ -2288,8 +2339,14 @@ function NoticesModal({ enabled }) {
   const [voted, setVoted] = useState({});
   const [closed, setClosed] = useState(false);
 
+  /* الإشعار المنتهي لازم يختفي فعلًا عن الزائر — لوحة الإدارة تحفظ expires_at،
+     وهنا نستبعد أي إشعار تجاوز تاريخه (أو نُبقي اللي بلا انتهاء) */
   useEffect(() => {
-    supabase.from("notices").select("*").order("created_at", { ascending: false }).then(({ data }) => setNotices(data || []));
+    const nowISO = new Date().toISOString();
+    supabase.from("notices").select("*")
+      .or(`expires_at.is.null,expires_at.gt.${nowISO}`)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setNotices(data || []));
   }, []);
   useEffect(() => {
     if (!notices.length) return;
@@ -4021,6 +4078,10 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   };
   const runCompare = () => runCompareWith(sheets, mapping);
   const toggleSheetSelected = (name) => setMapping((m) => ({ ...m, [name]: { ...m[name], selected: m[name]?.selected === false } }));
+  /* قرار قيمة واحدة (إضافة/تجاهل) — كانت مفقودة تمامًا فكان الضغط على أزرار القيمة الواحدة
+     يرمي خطأ ReferenceError ويوقف تبويب المزامنة كامل. sig = "categoryKey::value" */
+  const setValueDecision = (sig, decision) => setNewValues((prev) =>
+    prev.map((v) => (v.categoryKey + "::" + v.value === sig ? { ...v, decision } : v)));
   const decideAllValues = (decision) => setNewValues((prev) => prev.map((v) => ({ ...v, decision })));
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
