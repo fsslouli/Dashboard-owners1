@@ -1083,6 +1083,17 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.8.4",
+    dateAr: "27 أغسطس 2026",
+    dateEn: "August 27, 2026",
+    ar: [
+      "إصلاح مشكلة تنسيق كانت تكسر عرض بعض أقسام لوحة الإدارة على الجوال",
+    ],
+    en: [
+      "Fixed a layout issue that broke some admin panel sections on mobile",
+    ],
+  },
+  {
     version: "1.8.3",
     dateAr: "27 أغسطس 2026",
     dateEn: "August 27, 2026",
@@ -4790,8 +4801,8 @@ function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
       </div>
 
       {/* ساعات الذروة وأيام الأسبوع */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, minWidth: 0 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>ساعات الذروة</div>
           {loading ? <div style={{ fontSize: 11.5, color: T.muted, textAlign: "center", padding: 10 }}>جارٍ التحميل...</div> : (
             <div style={{ width: "100%", height: 140 }}>
@@ -4806,7 +4817,7 @@ function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
             </div>
           )}
         </div>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>حسب يوم الأسبوع</div>
           {loading ? <div style={{ fontSize: 11.5, color: T.muted, textAlign: "center", padding: 10 }}>جارٍ التحميل...</div> : (
             <div style={{ width: "100%", height: 140 }}>
@@ -4824,27 +4835,27 @@ function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
       </div>
 
       {/* الاستفسارات الأكثر فتحًا والفلاتر الأكثر استخدامًا */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, minWidth: 0 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>الأكثر فتحًا بالفترة</div>
           {topOpened.length === 0 ? <div style={{ fontSize: 11.5, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات كافية."}</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
               {topOpened.map((o) => (
-                <div key={o.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
-                  <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }} title={o.note}>#{o.id} — {o.note}</span>
+                <div key={o.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px", minWidth: 0 }}>
+                  <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }} title={o.note}>#{o.id} — {o.note}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: T.brass, flexShrink: 0 }}>{o.count}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>الفلاتر الأكثر استخدامًا</div>
           {topFilters.length === 0 ? <div style={{ fontSize: 11.5, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات كافية."}</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
               {topFilters.map((f) => (
-                <div key={f.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
-                  <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }} title={f.label}>{f.label}</span>
+                <div key={f.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px", minWidth: 0 }}>
+                  <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }} title={f.label}>{f.label}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: T.brass, flexShrink: 0 }}>{f.count}</span>
                 </div>
               ))}
