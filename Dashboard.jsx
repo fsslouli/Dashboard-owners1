@@ -1077,6 +1077,13 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.11.1",
+    dateAr: "29 أغسطس 2026",
+    dateEn: "August 29, 2026",
+    ar: ["إصلاحات"],
+    en: ["Fixes"],
+  },
+  {
     version: "1.11.0",
     dateAr: "29 أغسطس 2026",
     dateEn: "August 29, 2026",
@@ -4078,13 +4085,15 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const loadBackups = () => supabase.from("data_backups").select("*").order("created_at", { ascending: false }).then(({ data }) => setBackups(data || []));
   useEffect(() => { loadBackups(); }, []);
   const restoreBackup = async (b) => {
+    if (!canImport) { flashToast("ما عندك صلاحية \"رفع ومزامنة بيانات من إكسل\" اللازمة للاسترجاع"); return; }
     setRestoring(b.id);
-    await supabase.from("inquiries").delete().neq("id", -1);
-    if ((b.inquiries || []).length) await supabase.from("inquiries").insert(b.inquiries.map(({ updated_at, ...r }) => r));
-    await supabase.from("progress").delete().neq("month", "");
-    if ((b.progress || []).length) await supabase.from("progress").insert(b.progress);
-    log("استرجاع نسخة احتياطية", b.label);
-    flashToast("تم الاسترجاع بنجاح");
+    const { error } = await supabase.rpc("restore_inquiries_backup", { p_backup_id: b.id });
+    if (error) {
+      flashToast("تعذّر الاسترجاع — لم يتغيّر شي بالبيانات الحالية");
+    } else {
+      log("استرجاع نسخة احتياطية", b.label);
+      flashToast("تم الاسترجاع بنجاح");
+    }
     setRestoring(null);
     refreshInquiries(); refreshProgress();
   };
@@ -4249,9 +4258,9 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       for (const res of diffResults) {
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
-            await supabase.from("inquiries").delete().neq("id", -1);
             const rows = res.newRows.map((r) => ({ ...buildInsertPayload(r), id: Number(r.id), urgent: false }));
-            if (rows.length) await supabase.from("inquiries").insert(rows);
+            const { error } = await supabase.rpc("replace_inquiries_full", { p_rows: rows });
+            if (error) throw error;
             rows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
             count += rows.length;
           } else if (res.mode === "append") {
@@ -4279,8 +4288,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           }
         } else if (res.target === "progress") {
           if (res.mode === "replace") {
-            await supabase.from("progress").delete().neq("month", "");
-            if (res.newRows.length) await supabase.from("progress").insert(res.newRows);
+            const { error } = await supabase.rpc("replace_progress_full", { p_rows: res.newRows });
+            if (error) throw error;
             count += res.newRows.length;
           } else {
             for (const { key, row } of res.changed) await supabase.from("progress").update({ planned: row.planned, actual: row.actual }).eq("month", key);
@@ -4377,7 +4386,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       </div>
       )}
 
-      {backups.length > 0 && (
+      {canImport && backups.length > 0 && (
         <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><History size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>نسخ احتياطية</span></div>
           <p style={{ fontSize: 12, color: T.muted, margin: "4px 0 12px", lineHeight: 1.7 }}>تُؤخذ تلقائيًا قبل كل مزامنة إكسل — يُحتفظ بآخر نسختين فقط. لو صار خطأ بمزامنة، ترجع بضغطة وحدة.</p>

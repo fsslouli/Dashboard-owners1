@@ -131,7 +131,207 @@ insert into public.filter_categories (key, label, locked, values) values
 on conflict (key) do nothing;
 
 -- ═══════════════════════════════════════════════════════════
--- ملاحظة مهمة: إنشاء أول حساب أدمن
+-- ٧) تشديد الأمان — سياسات RLS مبنية فعليًا على صلاحيات profiles.perms
+-- بدل "أي حساب مسجّل دخول = تحكم كامل". آمنة لإعادة التشغيل (كلها
+-- create or replace / drop if exists). شغّلها مرة وحدة من SQL Editor.
+-- ═══════════════════════════════════════════════════════════
+create or replace function public.current_perms()
+returns text[] language sql stable security definer set search_path = public as $$
+  select coalesce(perms, '{}'::text[]) from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.has_perm(p text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select p = any(public.current_perms());
+$$;
+
+create or replace function public.is_known_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists(select 1 from public.profiles where id = auth.uid());
+$$;
+
+drop policy if exists "كتابة للمسجّلين - الاستفسارات" on public.inquiries;
+create policy "إضافة - الاستفسارات" on public.inquiries for insert
+  with check (public.has_perm('add_inquiry') or public.has_perm('import_excel'));
+create policy "تعديل - الاستفسارات" on public.inquiries for update
+  using (public.is_known_admin()) with check (public.is_known_admin());
+create policy "حذف - الاستفسارات" on public.inquiries for delete
+  using (public.has_perm('delete_inquiry'));
+
+-- فحص تفصيلي بمستوى العمود: وسوم العرض (يجب الاطلاع/مهم/جديد) تحتاج flag_urgent،
+-- ومحتوى الاستفسار يحتاج edit_inquiry أو import_excel — مفروض من قاعدة البيانات
+-- نفسها، ما ينكسر حتى لو حد نادى الـ API مباشرة متجاوزًا واجهة الموقع.
+create or replace function public.check_inquiry_update()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  flag_cols text[] := array['urgent','urgent_until','important','important_until','last_modified'];
+  content_cols text[] := array['model','loc','pri','cat','status','owner','month','note','note_en','reply','reply_en','closed','answered','meetings'];
+  col text;
+begin
+  foreach col in array flag_cols loop
+    if (to_jsonb(old) ->> col) is distinct from (to_jsonb(new) ->> col) then
+      if not public.has_perm('flag_urgent') then
+        raise exception 'لا توجد صلاحية لتعديل وسوم العرض (يجب الاطلاع/مهم/جديد)';
+      end if;
+    end if;
+  end loop;
+  foreach col in array content_cols loop
+    if (to_jsonb(old) ->> col) is distinct from (to_jsonb(new) ->> col) then
+      if not (public.has_perm('edit_inquiry') or public.has_perm('import_excel')) then
+        raise exception 'لا توجد صلاحية لتعديل محتوى الاستفسار';
+      end if;
+    end if;
+  end loop;
+  return new;
+end;
+$$;
+drop trigger if exists trg_check_inquiry_update on public.inquiries;
+create trigger trg_check_inquiry_update before update on public.inquiries
+  for each row execute function public.check_inquiry_update();
+
+drop policy if exists "كتابة للمسجّلين - التقدم" on public.progress;
+create policy "كتابة - التقدم" on public.progress for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+drop policy if exists "كتابة للمسجّلين - الفلاتر" on public.filter_categories;
+create policy "كتابة - الفلاتر" on public.filter_categories for all
+  using (public.has_perm('manage_filters') or public.has_perm('import_excel'))
+  with check (public.has_perm('manage_filters') or public.has_perm('import_excel'));
+
+drop policy if exists "كتابة للمسجلين - الإشعارات" on public.notices;
+create policy "كتابة - الإشعارات" on public.notices for all
+  using (public.has_perm('manage_notices')) with check (public.has_perm('manage_notices'));
+
+drop policy if exists "قراءة للمسجّلين - سجل النشاط" on public.audit_log;
+create policy "قراءة - سجل النشاط" on public.audit_log for select
+  using (public.has_perm('view_audit_log'));
+drop policy if exists "إدخال للمسجّلين - سجل النشاط" on public.audit_log;
+create policy "إدخال - سجل النشاط" on public.audit_log for insert
+  with check (public.is_known_admin());
+
+drop policy if exists "قراءة للمسجلين - النسخ الاحتياطية" on public.data_backups;
+create policy "قراءة - النسخ الاحتياطية" on public.data_backups for select
+  using (public.is_known_admin());
+drop policy if exists "كتابة للمسجلين - النسخ الاحتياطية" on public.data_backups;
+create policy "كتابة - النسخ الاحتياطية" on public.data_backups for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+-- الملفات الشخصية: القراءة لأي أدمن معروف؛ التعديل لصاحب الحساب نفسه أو من
+-- عنده edit_permissions؛ وتريغر يمنع أي حساب من ترقية صلاحياته/دوره بنفسه
+-- حتى لو كان يعدّل صف حسابه هو — هذا يقفل ثغرة ترقية الصلاحيات الذاتية.
+drop policy if exists "قراءة للمسجّلين - الملفات الشخصية" on public.profiles;
+create policy "قراءة - الملفات الشخصية" on public.profiles for select
+  using (public.is_known_admin());
+drop policy if exists "تحديث للمسجّلين - الملفات الشخصية" on public.profiles;
+create policy "تحديث - الملفات الشخصية" on public.profiles for update
+  using (id = auth.uid() or public.has_perm('edit_permissions'))
+  with check (id = auth.uid() or public.has_perm('edit_permissions'));
+
+create or replace function public.check_profile_perm_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (new.perms is distinct from old.perms or new.role is distinct from old.role) then
+    if not public.has_perm('edit_permissions') then
+      raise exception 'لا توجد صلاحية لتعديل الصلاحيات أو الدور';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_check_profile_perm_change on public.profiles;
+create trigger trg_check_profile_perm_change before update on public.profiles
+  for each row execute function public.check_profile_perm_change();
+
+-- سجل الزيارات: القراءة لمن عنده view_analytics؛ الإدخال يبقى عامًا (تتبع
+-- زوّار مجهولين مقصود) لكن بشكل بيانات مقيّد يمنع الإغراق بقيم عشوائية ضخمة.
+drop policy if exists "قراءة للمسجلين - سجل الزيارات" on public.logs;
+create policy "قراءة - سجل الزيارات" on public.logs for select
+  using (public.has_perm('view_analytics'));
+drop policy if exists "Allow anonymous insert" on public.logs;
+alter table public.logs drop constraint if exists logs_event_type_check;
+alter table public.logs add constraint logs_event_type_check
+  check (event_type in ('visit','tab','filter','inquiry_open','share','feedback','nav','click','doc_open'));
+alter table public.logs drop constraint if exists logs_value_length_check;
+alter table public.logs add constraint logs_value_length_check check (char_length(coalesce(value,'')) <= 200);
+alter table public.logs drop constraint if exists logs_category_length_check;
+alter table public.logs add constraint logs_category_length_check check (char_length(coalesce(category,'')) <= 200);
+alter table public.logs drop constraint if exists logs_extra_length_check;
+alter table public.logs add constraint logs_extra_length_check check (char_length(coalesce(extra,'')) <= 300);
+alter table public.logs drop constraint if exists logs_session_length_check;
+alter table public.logs add constraint logs_session_length_check check (char_length(coalesce(session_id,'')) <= 100);
+
+alter table public.notice_votes drop constraint if exists notice_votes_device_id_length;
+alter table public.notice_votes add constraint notice_votes_device_id_length check (char_length(coalesce(device_id,'')) <= 100);
+
+-- ═══════════════════════════════════════════════════════════
+-- ٨) عمليات استبدال/استرجاع كاملة للبيانات — دوال ذرّية (atomic)
+-- بدل حذف-ثم-إضافة من جهة العميل. لو انقطع الاتصال أو فشل جزء
+-- منتصف حذف-ثم-إضافة من المتصفح، تنتهي ببيانات فاضية أو مكرّرة.
+-- هذي الدوال تنفّذ الحذف والإضافة بمعاملة واحدة داخل قاعدة
+-- البيانات نفسها — إما تنجح كلها، أو ما يتغيّر شي إطلاقًا.
+-- كل دالة تتحقق من صلاحية import_excel بنفسها كخط دفاع مستقل
+-- عن أي تحقق بواجهة الموقع.
+-- ═══════════════════════════════════════════════════════════
+create or replace function public.replace_inquiries_full(p_rows jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.has_perm('import_excel') then
+    raise exception 'لا توجد صلاحية لاستبدال بيانات الاستفسارات';
+  end if;
+  delete from public.inquiries;
+  if p_rows is not null and jsonb_array_length(p_rows) > 0 then
+    insert into public.inquiries
+      (id, model, loc, pri, cat, status, owner, month, note, note_en, reply, reply_en,
+       closed, urgent, answered, meetings, updated_at, last_modified, important,
+       created_at, urgent_until, important_until)
+    select
+      r.id, r.model, r.loc, r.pri, r.cat, r.status, r.owner, r.month, r.note, r.note_en, r.reply, r.reply_en,
+      r.closed, coalesce(r.urgent, false), r.answered, r.meetings, coalesce(r.updated_at, now()), r.last_modified,
+      coalesce(r.important, false), coalesce(r.created_at, now()), r.urgent_until, r.important_until
+    from jsonb_populate_recordset(null::public.inquiries, p_rows) as r;
+  end if;
+end;
+$$;
+
+create or replace function public.replace_progress_full(p_rows jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.has_perm('import_excel') then
+    raise exception 'لا توجد صلاحية لاستبدال بيانات التقدم';
+  end if;
+  delete from public.progress;
+  if p_rows is not null and jsonb_array_length(p_rows) > 0 then
+    insert into public.progress select * from jsonb_populate_recordset(null::public.progress, p_rows);
+  end if;
+end;
+$$;
+
+create or replace function public.restore_inquiries_backup(p_backup_id bigint)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  b record;
+begin
+  if not public.has_perm('import_excel') then
+    raise exception 'لا توجد صلاحية لاسترجاع نسخة احتياطية';
+  end if;
+  select * into b from public.data_backups where id = p_backup_id;
+  if not found then
+    raise exception 'النسخة الاحتياطية غير موجودة';
+  end if;
+  delete from public.inquiries;
+  if b.inquiries is not null and jsonb_array_length(b.inquiries) > 0 then
+    insert into public.inquiries
+      select * from jsonb_populate_recordset(null::public.inquiries, b.inquiries);
+  end if;
+  delete from public.progress;
+  if b.progress is not null and jsonb_array_length(b.progress) > 0 then
+    insert into public.progress
+      select * from jsonb_populate_recordset(null::public.progress, b.progress);
+  end if;
+end;
+$$;
+
+
 -- ═══════════════════════════════════════════════════════════
 -- سوّي هذا يدويًا من: Supabase Dashboard → Authentication → Users → Add user
 -- (يوزر وباسورد تحددهم انت) — ثم شغّل السطر التالي (بدّل الـ UUID
