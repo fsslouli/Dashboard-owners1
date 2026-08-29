@@ -65,7 +65,7 @@ import {
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   RefreshCw, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
-  ChevronLeft, ChevronRight, ArrowUp, SlidersHorizontal, FileText, ExternalLink,
+  ChevronLeft, ChevronRight, ArrowUp, SlidersHorizontal, FileText, ExternalLink, AlertTriangle,
 } from "lucide-react";
 /* أيقونات إضافية للوحة الإدارة فقط */
 import {
@@ -971,8 +971,9 @@ function Row({ r, onOpen }) {
       <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
       <td className="td-note">
         <span className="td-note-t">{trNote(lang, r)}</span>
-        {(r.isNew || !r.closed) && (
+        {(r.important || r.isNew || !r.closed) && (
           <span className="td-tags">
+            {r.important && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
             {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
           </span>
@@ -1029,6 +1030,7 @@ function Card({ r, i, onOpen, reduced }) {
         <span className="mono card-id">{String(r.id).padStart(2, "0")}</span>
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
         <CatPill cat={r.cat} />
+        {r.important && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
         {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
         {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
         <span className="card-sta" style={{ color: sc }}>
@@ -1059,6 +1061,21 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.10.0",
+    dateAr: "29 أغسطس 2026",
+    dateEn: "August 29, 2026",
+    ar: [
+      "علامة جديدة \"مهم\" — إطار أحمر واضح مع وميض لافت، أقوى من تأثير شارة \"جديد\"",
+      "تظهر بالبطاقة والجدول ولوحة التفاصيل، وتُفعَّل/تُلغى يدويًا بالكامل من لوحة الإدارة بدون أي مدة انتهاء تلقائية (بخلاف \"جديد\" اللي ينتهي بعد ٧ أيام)",
+      "فلتر مخصص \"مهم\" بلوحة المتابعة — يظهر فقط لو فيه استفسار واحد مفعّل عليه الوسم، ويختفي تلقائيًا لو ما فيه شي",
+    ],
+    en: [
+      "New \"Important\" tag — a clear red border with an attention-grabbing blink, stronger than the existing \"New\" badge effect",
+      "Shown on the card, table, and detail sheet; toggled fully manually from the admin panel with no auto-expiry (unlike \"New\", which expires after 7 days)",
+      "Dedicated \"Important\" filter in the notes board — only appears when at least one inquiry is flagged, and disappears automatically when none are",
+    ],
+  },
   {
     version: "1.9.0",
     dateAr: "29 أغسطس 2026",
@@ -1861,6 +1878,7 @@ function Sheet({ r, navList, onJump, onClose }) {
             <span className="mono sheet-id">{L("ملاحظة", "Note")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
+            {r.important && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -2287,7 +2305,7 @@ function ProgressTab({ reduced, data, loading }) {
 }
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false };
+const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false };
 
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
@@ -2564,6 +2582,7 @@ function PublicSite() {
 
   const newCount = ALL.filter((r) => r.isNew).length;
   const openCount = ALL.filter((r) => !r.closed).length;
+  const importantCount = ALL.filter((r) => r.important).length;
   const staC = (s) => T.sta[s] || hashPick(s, T.extra);
   const monthValue = (r) => (/^\d{4}-\d{2}$/.test(r.month || "") ? r.month : "9999-99");
 
@@ -2596,6 +2615,7 @@ function PublicSite() {
     if (f.meeting && r.meeting !== f.meeting) return false;
     if (f.open && r.closed) return false;
     if (f.fresh && !r.isNew) return false;
+    if (f.important && !r.important) return false;
     if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
     return true;
   }, [f, nq, nqId]);
@@ -2660,6 +2680,7 @@ function PublicSite() {
     if (f.meeting) out.push({ k: "meeting", l: trMeeting(lang, f.meeting) });
     if (f.open) out.push({ k: "open", l: L("مفتوحة فقط", "Open only") });
     if (f.fresh) out.push({ k: "fresh", l: L("الجديد فقط", "New only") });
+    if (f.important) out.push({ k: "important", l: L("مهم فقط", "Important only") });
     return out;
   }, [f, lang]);
 
@@ -2912,6 +2933,12 @@ function PublicSite() {
 .tag{font-size:11px;color:${T.muted};}
 .tag-new{display:inline-flex;align-items:center;gap:3px;color:${T.sta["معتمدة"]};animation:${reduced ? "none" : "tagPulse 2.4s ease-in-out infinite"};}
 @keyframes tagPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+/* شارة "مهم" — إطار أحمر واضح مع وميض أقوى وأبطأ من "جديد" حتى تُميَّز فورًا بالعين،
+   تُفعَّل وتُلغى يدويًا من لوحة الإدارة بدون أي مدة انتهاء تلقائية */
+.tag-important{display:inline-flex;align-items:center;gap:4px;font-weight:700;color:#C0392B;
+  border:1.4px solid #C0392B;background:#C0392B14;border-radius:999px;padding:2px 9px 2px 7px;
+  animation:${reduced ? "none" : "importantBlink 1.3s ease-in-out infinite"};}
+@keyframes importantBlink{0%,100%{opacity:1;box-shadow:0 0 0 0 #C0392B4D;}50%{opacity:.55;box-shadow:0 0 7px 1px #C0392B4D;}}
 .tag-open{color:${T.brass};}
 /* شارة فئة البند — تظهر عند كل استفسار بالبطاقة والجدول ولوحة التفاصيل، بلون خاص لكل فئة */
 .cat-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;line-height:1;
@@ -3424,6 +3451,9 @@ function PublicSite() {
                 </div>
 
                 <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+                  {importantCount > 0 && (
+                    <Chip on={f.important} onClick={() => set("important", true)} color="#C0392B" count={importantCount}>{L("مهم", "Important")}</Chip>
+                  )}
                   <Chip on={f.fresh} onClick={() => set("fresh", true)} color={T.sta["معتمدة"]} count={newCount}>{L("الجديد", "New")}</Chip>
                   <Chip on={f.open} onClick={() => set("open", true)} color={T.brass} count={openCount}>{L("مفتوحة", "Open")}</Chip>
                   {cats.sta.map((s) => (
@@ -3454,7 +3484,7 @@ function PublicSite() {
                     <span style={{ fontSize: 11.5, color: T.muted }}>{L("مُصفّى على:", "Filtered by:")}</span>
                     {activeChips.map((c) => (
                       <button key={c.k} className="fchip"
-                        onClick={() => { setF((p) => ({ ...p, [c.k]: c.k === "open" || c.k === "fresh" ? false : c.k === "q" ? "" : null })); setLimit(12); }}>
+                        onClick={() => { setF((p) => ({ ...p, [c.k]: c.k === "open" || c.k === "fresh" || c.k === "important" ? false : c.k === "q" ? "" : null })); setLimit(12); }}>
                         {c.l} <X size={12} />
                       </button>
                     ))}
@@ -4213,6 +4243,13 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     log("تعديل وسم عاجل", `تبديل الحالة على الاستفسار #${r.id}`);
     refreshInquiries();
   };
+  /* وسم "مهم" — يدوي بالكامل، بلا مدة انتهاء (بخلاف "جديد" اللي ينتهي تلقائيًا بعد ٧ أيام).
+     يبقى فعّالاً على بطاقة الاستفسار بالموقع العام لين ما يُلغى يدويًا من هنا. */
+  const toggleImportant = async (r) => {
+    await supabase.from("inquiries").update({ important: !r.important }).eq("id", r.id);
+    log("تعديل وسم مهم", `${r.important ? "إلغاء" : "تفعيل"} علامة "مهم" على الاستفسار #${r.id}`);
+    refreshInquiries();
+  };
   const isMarkedNew = (r) => { if (!r.last_modified) return false; const days = (Date.now() - new Date(r.last_modified + "T00:00:00").getTime()) / 86400000; return days >= 0 && days <= 7; };
   const toggleNew = async (r) => {
     const newVal = isMarkedNew(r) ? null : new Date().toISOString().slice(0, 10);
@@ -4433,6 +4470,9 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                 </button>
                 <button disabled={!canFlag} onClick={() => toggleNew(r)} title={isMarkedNew(r) ? "إلغاء وسم جديد" : "وسم كـ جديد (٧ أيام)"} style={{ flexShrink: 0, background: isMarkedNew(r) ? T.brass : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
                   <Sparkles size={14} color={isMarkedNew(r) ? "#fff" : T.faint} />
+                </button>
+                <button disabled={!canFlag} onClick={() => toggleImportant(r)} title={r.important ? "إلغاء علامة \"مهم\" عن هذا الاستفسار بالموقع العام" : "إظهار علامة \"مهم\" (إطار أحمر وميّاض) على بطاقة هذا الاستفسار بالموقع العام — تبقى لين ما تُلغى يدويًا، بنفس طريقة وسم \"جديد\""} style={{ flexShrink: 0, background: r.important ? "#C0392B" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
+                  <AlertTriangle size={14} color={r.important ? "#fff" : T.faint} />
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8, minWidth: 0 }}>
