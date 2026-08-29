@@ -487,31 +487,12 @@ const rank = (order) => (v) => { const i = order.indexOf(v); return i === -1 ? o
 const uniqSorted = (arr, order) => [...new Set(arr)].filter(Boolean).sort((a, b) => rank(order)(a) - rank(order)(b) || a.localeCompare(b, "ar"));
 
 /* ── تخزين ── */
+const SKEY = "owners-inquiries-v1";
 const PGKEY = "owners-progress-v1";
 const TKEY = "owners-inquiries-theme";
-/* ── طبقة تخزين موحّدة لتفضيلات الزائر (ثيم/لغة/شكل عرض) ──
-   window.storage موجود فقط داخل بيئة المعاينة (artifacts)، ومو موجود بالمتصفح العادي بعد
-   النشر على Vercel — فكانت كل التفضيلات ترجع للافتراضي مع كل زيارة. الآن نستخدمه إن وُجد،
-   وإلا ننزل تلقائيًا على localStorage العادي. أي بيئة تمنع الاثنين (تصفّح خاص متشدد)
-   تكمّل شغّالة بالافتراضيات بدون أي خطأ. */
-const hasStore = () => typeof window !== "undefined";
-const prefStore = {
-  async get(key) {
-    if (typeof window === "undefined") return null;
-    if (window.storage) { try { return await window.storage.get(key, false); } catch { return null; } }
-    try { const v = window.localStorage.getItem(key); return v == null ? null : { key, value: v }; }
-    catch { return null; }
-  },
-  set(key, value) {
-    if (typeof window === "undefined") return;
-    if (window.storage) { try { window.storage.set(key, value, false); } catch { /* تجاهل */ } return; }
-    try { window.localStorage.setItem(key, value); } catch { /* تجاهل */ }
-  },
-};
-/* التخزين المشترك بين كل الزوّار — يبقى معتمدًا على window.storage وحده لأن localStorage
-   محلي لكل جهاز ولا يصلح لبيانات مشتركة. مصدر البيانات الفعلي بالإنتاج هو Supabase. */
-async function loadShared(key) {
-  if (typeof window === "undefined" || !window.storage) return null;
+const hasStore = () => typeof window !== "undefined" && !!window.storage;
+async function loadShared(key = SKEY) {
+  if (!hasStore()) return null;
   try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }
   catch { return null; }
 }
@@ -569,11 +550,7 @@ function useBackClose(isOpen, onClose) {
 /* ── الوضع التلقائي: يتبع إعداد الجهاز ويتغيّر معه فورًا ── */
 function useThemeMode() {
   const [mode, setMode] = useState("auto"); /* افتراضيًا يتبع وضع جهاز الزائر مباشرة */
-  /* يُقرأ فورًا عند أول رسم — قبل كان يبدأ بـ true دائمًا ثم يُصحَّح بالـ effect،
-     فيومض الوضع الداكن لحظة على أجهزة وضعها فاتح */
-  const [sysDark, setSysDark] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches : false);
+  const [sysDark, setSysDark] = useState(true);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -586,7 +563,7 @@ function useThemeMode() {
   useEffect(() => {
     if (!hasStore()) return;
     let alive = true;
-    prefStore.get(TKEY)
+    window.storage.get(TKEY, false)
       .then((r) => { if (alive && r && ["auto", "light", "dark"].includes(r.value)) setMode(r.value); })
       .catch(() => {});
     return () => { alive = false; };
@@ -594,7 +571,7 @@ function useThemeMode() {
 
   const pick = (m) => {
     setMode(m);
-    prefStore.set(TKEY, m);
+    if (hasStore()) { try { window.storage.set(TKEY, m, false); } catch { /* تجاهل */ } }
   };
 
   const resolved = mode === "auto" ? (sysDark ? "dark" : "light") : mode;
@@ -608,14 +585,14 @@ function useLangMode() {
   useEffect(() => {
     if (!hasStore()) return;
     let alive = true;
-    prefStore.get(LKEY)
+    window.storage.get(LKEY, false)
       .then((r) => { if (alive && r && ["ar", "en"].includes(r.value)) setLang(r.value); })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
   const pick = (l) => {
     setLang(l);
-    prefStore.set(LKEY, l);
+    if (hasStore()) { try { window.storage.set(LKEY, l, false); } catch { /* تجاهل */ } }
   };
   return { lang, setLang: pick };
 }
@@ -643,7 +620,7 @@ function useViewMode() {
   useEffect(() => {
     if (!hasStore()) return;
     let alive = true;
-    prefStore.get(VKEY)
+    window.storage.get(VKEY, false)
       .then((r) => { if (alive && r && ["auto", "cards", "table"].includes(r.value)) setPref(r.value); })
       .catch(() => {});
     return () => { alive = false; };
@@ -653,7 +630,7 @@ function useViewMode() {
   const pick = (v) => {
     setPref(v);
     logEvent("filter", "view", v, null);
-    prefStore.set(VKEY, v);
+    if (hasStore()) { try { window.storage.set(VKEY, v, false); } catch { /* تجاهل */ } }
   };
 
   /* الافتراضي يتبع حجم الشاشة، والاختيار اليدوي يتجاوزه على أي جهاز */
@@ -784,10 +761,7 @@ function VillaPlan({ counts, active, onPick, built }) {
     transition: `opacity .45s ease ${delay}ms`,
   });
 
-  /* دالة رسم عادية وليست مكوّنًا داخليًا: المكوّن المعرَّف داخل الدالة يُعتبر نوعًا جديدًا مع كل
-     إعادة رسم فتُهدم عناصره وتُعاد حركات الشفافية من البداية عند كل تمرير مؤشر — كما أنه كان
-     يحمل نفس اسم أيقونة Tag المستوردة من lucide ويحجبها داخل هذا المكوّن. */
-  const zoneTag = ({ x, y, name, k, delay, big }) => (
+  const Tag = ({ x, y, name, k, delay, big }) => (
     <div style={{ ...pos(x, y), ...lbl(k, delay) }}>
       <div style={{ fontSize: big ? 12.5 : 11, color: on(k) ? T.zoneOn : T.paper, fontFamily: big ? "'Reem Kufi',sans-serif" : "inherit" }}>{name}</div>
       <div className="mono" style={{ fontSize: big ? 19 : 14, fontWeight: 600, color: on(k) ? T.zoneOn : T.brass, marginTop: 2 }}>{counts[k] || 0}</div>
@@ -839,14 +813,14 @@ function VillaPlan({ counts, active, onPick, built }) {
 
       {/* النصوص العربية كطبقة HTML — عنصر SVG text لا يُشكّل العربية بشكل موثوق */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        {zoneTag({ x: 330, y: 278, name: trZone(lang, "ground"), k: "ground", delay: 160, big: true })}
-        {zoneTag({ x: 330, y: 152, name: trZone(lang, "first"), k: "first", delay: 340, big: true })}
-        {zoneTag({ x: 286, y: 84, name: trZone(lang, "roof"), k: "roof", delay: 420 })}
-        {zoneTag({ x: 196, y: 288, name: trZone(lang, "wet"), k: "wet", delay: 240 })}
-        {zoneTag({ x: 383, y: 220, name: trZone(lang, "stairs"), k: "stairs", delay: 260 })}
-        {zoneTag({ x: 236, y: 376, name: trZone(lang, "tank"), k: "tank", delay: 100 })}
-        {zoneTag({ x: 494, y: 365, name: trZone(lang, "street"), k: "street", delay: 60 })}
-        {zoneTag({ x: 508, y: 87, name: trZone(lang, "na"), k: "na", delay: 600 })}
+        <Tag x={330} y={278} name={trZone(lang, "ground")} k="ground" delay={160} big />
+        <Tag x={330} y={152} name={trZone(lang, "first")} k="first" delay={340} big />
+        <Tag x={286} y={84} name={trZone(lang, "roof")} k="roof" delay={420} />
+        <Tag x={196} y={288} name={trZone(lang, "wet")} k="wet" delay={240} />
+        <Tag x={383} y={220} name={trZone(lang, "stairs")} k="stairs" delay={260} />
+        <Tag x={236} y={376} name={trZone(lang, "tank")} k="tank" delay={100} />
+        <Tag x={494} y={365} name={trZone(lang, "street")} k="street" delay={60} />
+        <Tag x={508} y={87} name={trZone(lang, "na")} k="na" delay={600} />
 
         <div style={{ ...pos(129, 204), ...lbl("party", 520), transform: "translate(-50%,-50%) rotate(180deg)", writingMode: "vertical-rl" }}>
           <span style={{ fontSize: 10, color: on("party") ? T.zoneOn : T.muted }}>{lang === "en" ? "Party Wall" : "جدار الفلل"}</span>
@@ -1048,6 +1022,9 @@ function Card({ r, i, onOpen, reduced }) {
         borderRightColor: pc,
       }}>
       <span className="card-wm mono" aria-hidden="true">{r.id}</span>
+      {r.urgent && (
+        <span className="card-wm-urgent" aria-hidden="true">{lang === "en" ? "Needs review" : "يلزم الاطلاع"}</span>
+      )}
       <div className="card-top">
         <span className="mono card-id">{String(r.id).padStart(2, "0")}</span>
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
@@ -1083,61 +1060,20 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
-    version: "1.8.4",
-    dateAr: "27 أغسطس 2026",
-    dateEn: "August 27, 2026",
+    version: "1.9.0",
+    dateAr: "29 أغسطس 2026",
+    dateEn: "August 29, 2026",
     ar: [
-      "إصلاح مشكلة تنسيق كانت تكسر عرض بعض أقسام لوحة الإدارة على الجوال",
+      "علامة مائية جديدة وواضحة \"يلزم الاطلاع\" تظهر على بطاقة أي استفسار تفعّله الإدارة — بلون تحذيري وشفافية أعلى بكثير من رقم الاستفسار الخافت",
+      "تُفعَّل وتُلغى من لوحة الإدارة (زر النجمة بقائمة الاستفسارات) بنفس صلاحية وسم \"عاجل\" الحالية",
+      "خيار فرز جديد بقائمة الاستفسارات بلوحة الإدارة: الأحدث تعديلاً، الأحدث إضافة، أو رقم الاستفسار — لتسهيل الوصول لآخر التعديلات",
+      "كل استفسار بالقائمة يعرض الآن تاريخ آخر تعديل أو الإضافة بجانبه حسب الفرز المختار",
     ],
     en: [
-      "Fixed a layout issue that broke some admin panel sections on mobile",
-    ],
-  },
-  {
-    version: "1.8.3",
-    dateAr: "27 أغسطس 2026",
-    dateEn: "August 27, 2026",
-    ar: [
-      "إصلاحات داخلية وتحسينات بالأداء بلوحة الإدارة",
-    ],
-    en: [
-      "Internal fixes and admin panel performance improvements",
-    ],
-  },
-  {
-    version: "1.8.2",
-    dateAr: "27 أغسطس 2026",
-    dateEn: "August 27, 2026",
-    ar: [
-      "إصلاح: الاستفسار المُضاف يدويًا من لوحة الإدارة يتوسم «جديد» تلقائيًا لمدة ٧ أيام (كان يحتاج خطوة إضافية يدويًا)",
-      "علامة «مهم» جديدة، مستقلة تمامًا عن «عاجل» — تقدر تفعّل الاثنتين معًا من فورم الإضافة/التعديل أو من زر سريع بالقائمة",
-      "تبويب «الزيارات والتحليلات» صار أكثر تفصيلًا: رسم اتجاه الزيارات عبر الفترة، ساعات الذروة، النشاط حسب يوم الأسبوع، الاستفسارات الأكثر فتحًا، الفلاتر الأكثر استخدامًا، وتوزيع الإعجاب/عدم الإعجاب",
-      "تنظيف كود داخلي إضافي بدون أي تغيير بالمظهر أو البيانات",
-    ],
-    en: [
-      "Fixed: inquiries added manually from the admin panel are now auto-tagged \"new\" for 7 days (previously required a separate manual step)",
-      "New \"Important\" flag, fully independent from \"Urgent\" — both can be set together from the add/edit form or a quick toggle in the list",
-      "The \"Visits & Analytics\" tab is now much richer: a visits trend chart, peak hours, weekday activity, most-opened inquiries, most-used filters, and a like/dislike breakdown",
-      "Additional internal code cleanup with no visual or data changes",
-    ],
-  },
-  {
-    version: "1.8.1",
-    dateAr: "27 أغسطس 2026",
-    dateEn: "August 27, 2026",
-    ar: [
-      "إصلاح خطأ كان يوقف تبويب المزامنة عند اختيار قرار لقيمة فلترة واحدة",
-      "الإشعارات المنتهية صارت تختفي فعلًا عن الزائر بدل ما تظل ظاهرة للأبد",
-      "الثيم واللغة وشكل العرض صاروا يُحفظون فعلًا بين الزيارات بعد النشر",
-      "معالجة ومضة الوضع الداكن عند فتح الموقع على جهاز وضعه فاتح",
-      "تحسينات داخلية على بنية الكود بدون أي تغيير بالمظهر أو البيانات",
-    ],
-    en: [
-      "Fixed an error that broke the sync tab when choosing a decision for a single filter value",
-      "Expired notices now actually disappear for visitors instead of showing forever",
-      "Theme, language, and layout preferences now persist between visits in production",
-      "Fixed a dark-mode flash when opening the site on a light-mode device",
-      "Internal code structure cleanup with no visual or data changes",
+      "New, clearly visible \"Needs review\" watermark on any inquiry card the admin flags — a warning color and far higher opacity than the faint inquiry-number mark",
+      "Toggled on and off from the admin panel (the star button in the inquiries list), using the existing \"urgent\" permission",
+      "New sort option in the admin inquiries list: most recently modified, most recently added, or inquiry number — to quickly reach the latest updates",
+      "Each inquiry row now shows its last-modified or added date next to it, matching the chosen sort",
     ],
   },
   {
@@ -2000,31 +1936,6 @@ function Sheet({ r, navList, onJump, onClose }) {
 }
 
 /* ── ١٣. تبويب تقدّم التنفيذ (ProgressTab) ── */
-/* ── شريط نسبة واحد (إنجاز + علامة الهدف) ──
-   كان معرَّفًا داخل ProgressTab، وهذا يعني أمرين سيئين: أولًا كان يحجب مكوّن Bar المستورد من
-   recharts داخل نفس الملف (قنبلة موقوتة لو انضاف رسم أعمدة هنا لاحقًا)، وثانيًا كان يُبنى من
-   جديد مع كل إعادة رسم فتُفقد حالة useInView وتُعاد حركة التعبئة من الصفر بلا سبب. */
-function GaugeBar({ val, color, target, scale, reduced, lang }) {
-  const { T } = useT();
-  const [ref, inView] = useInView(0.35);
-  const show = reduced || inView; /* بدون حركة النظام: يظهر مباشرة بدون انتظار السكرول */
-  const w = val != null ? `${Math.min(100, (val / scale) * 100)}%` : "0%";
-  return (
-    <div className="gbar" ref={ref}>
-      {val != null && (
-        <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
-          style={{ width: show ? w : "0%", background: color }} />
-      )}
-      {target != null && (
-        <span className="gbar-t" style={{
-          [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
-          background: T.paper,
-        }} />
-      )}
-    </div>
-  );
-}
-
 /* ── حلقات المراحل — ملخص بصري سريع، ترتسم تدريجيًا عند دخولها الشاشة ── */
 function PhaseRings({ phases, mi, tgt, ahead, behind, muted, sunken, lang }) {
   const reduced = usePrefersReduced();
@@ -2115,6 +2026,26 @@ function ProgressTab({ reduced, data, loading }) {
   const stalled = blocks.filter((r) => mi > 0 && r.v[mi] != null && r.v[mi - 1] != null && Math.abs(r.v[mi] - r.v[mi - 1]) < 0.2);
   const grouped = ["p1", "p2", "p3", "p4"].map((k) => ({ k, rows: blocks.filter((r) => r.ph === k) }));
 
+  const Bar = ({ val, color, target }) => {
+    const [ref, inView] = useInView(0.35);
+    const show = reduced || inView; /* بدون حركة النظام: يظهر مباشرة بدون انتظار السكرول */
+    const w = val != null ? `${Math.min(100, (val / scale) * 100)}%` : "0%";
+    return (
+      <div className="gbar" ref={ref}>
+        {val != null && (
+          <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
+            style={{ width: show ? w : "0%", background: color }} />
+        )}
+        {target != null && (
+          <span className="gbar-t" style={{
+            [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
+            background: T.paper,
+          }} />
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       {loading ? (
@@ -2138,7 +2069,7 @@ function ProgressTab({ reduced, data, loading }) {
           </div>
         </div>
 
-        <GaugeBar val={cur} color={gapColor} target={tgt} scale={scale} reduced={reduced} lang={lang} />
+        <Bar val={cur} color={gapColor} target={tgt} />
 
         <div className="gmeta">
           <span className="gm"><span className="gm-k">{L("الهدف", "Target")}</span> <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span></span>
@@ -2262,7 +2193,7 @@ function ProgressTab({ reduced, data, loading }) {
                   <span className="mono grow-g" style={{ color: col }}>{g == null ? "—" : g >= 0 ? `+${g.toFixed(2)}` : g.toFixed(2)}</span>
                 </span>
               </div>
-              <GaugeBar val={v} color={col} target={tgt} scale={scale} reduced={reduced} lang={lang} />
+              <Bar val={v} color={col} target={tgt} />
               <div className="grow-d">{L("التغيّر عن الشهر السابق", "Change vs. previous month")} <span className="mono" style={{ color: dColor(d) }}>{dText(d)}</span></div>
             </div>
           );
@@ -2317,7 +2248,7 @@ function ProgressTab({ reduced, data, loading }) {
                 <div key={r.b} className="brow">
                   <span className="brow-b mono">{r.b}</span>
                   <div className="brow-bar">
-                    <GaugeBar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} target={tgt} scale={scale} reduced={reduced} lang={lang} />
+                    <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} target={tgt} />
                   </div>
                   <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}٪`}</span>
                   <span className="brow-d mono" style={{ color: dColor(d) }}>{dText(d)}</span>
@@ -2377,14 +2308,8 @@ function NoticesModal({ enabled }) {
   const [voted, setVoted] = useState({});
   const [closed, setClosed] = useState(false);
 
-  /* الإشعار المنتهي لازم يختفي فعلًا عن الزائر — لوحة الإدارة تحفظ expires_at،
-     وهنا نستبعد أي إشعار تجاوز تاريخه (أو نُبقي اللي بلا انتهاء) */
   useEffect(() => {
-    const nowISO = new Date().toISOString();
-    supabase.from("notices").select("*")
-      .or(`expires_at.is.null,expires_at.gt.${nowISO}`)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setNotices(data || []));
+    supabase.from("notices").select("*").order("created_at", { ascending: false }).then(({ data }) => setNotices(data || []));
   }, []);
   useEffect(() => {
     if (!notices.length) return;
@@ -2453,7 +2378,7 @@ function PublicSite() {
   const [tab, setTab] = useState("overview");
   const [docView, setDocView] = useState(null);
   const [built, setBuilt] = useState(false);
-  const [data, setData] = useState({ records: BASE, updatedAt: null, label: "" });
+  const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
 
   /* تحديث لحظي: يجيب البيانات الحية من قاعدة البيانات، ويشترك بالتغييرات الفورية
      (Supabase Realtime) — أي تعديل يسويه الأدمن (مزامنة إكسل أو يدوي) ينعكس هنا
@@ -2471,10 +2396,9 @@ function PublicSite() {
     const fetchLive = async () => {
       try {
         const { data: rows, error } = await supabase.from("inquiries").select("*").order("id");
-        if (error || !rows || !rows.length) { setLoading(false); return; }
+        if (error || !rows || !rows.length) return;
         setData((d) => ({ ...d, records: rows.map(mapRow) }));
       } catch {}
-      setLoading(false);
     };
     fetchLive();
     const channel = supabase
@@ -2592,6 +2516,16 @@ function PublicSite() {
     tabsRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     setScrollPending(false);
   }, [tab, scrollPending, reduced]);
+
+  useEffect(() => {
+    let alive = true;
+    loadShared().then((s) => {
+      if (!alive) return;
+      if (s?.records?.length) setData({ records: s.records, newKeys: s.newKeys || [], updatedAt: s.updatedAt, label: s.label || "" });
+      setLoading(false);
+    });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -2966,6 +2900,12 @@ function PublicSite() {
 .card:focus-visible{outline:2px solid ${T.brass};outline-offset:2px;}
 .card-wm{position:absolute;bottom:-16px;inset-inline-start:10px;font-size:64px;font-weight:700;line-height:1;
   color:${T.paper};opacity:${resolved === "dark" ? 0.05 : 0.045};pointer-events:none;z-index:0;}
+/* علامة مائية إضافية وواضحة لعلامة "يلزم الاطلاع" — نفس أسلوب العلامة المائية أعلاه
+   (موضع مطلق، بلا تفاعل، خلف محتوى البطاقة) لكن بشفافية أعلى بكثير عشان تكون لافتة،
+   وبلون الأولوية "عالية جدًا" حتى تدل بصريًا على الاستعجال. تُفعَّل من لوحة الإدارة. */
+.card-wm-urgent{position:absolute;bottom:-8px;inset-inline-end:14px;max-width:62%;font-size:19px;font-weight:800;
+  line-height:1.15;text-align:end;letter-spacing:.2px;color:${T.pri["عالية جدًا"]};
+  opacity:${resolved === "dark" ? 0.55 : 0.46};pointer-events:none;z-index:0;}
 .card-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;position:relative;z-index:1;}
 .card-id{font-size:11.5px;color:${T.faint};}
 .card-sta{display:inline-flex;align-items:center;gap:5px;font-size:12px;margin-right:auto;}
@@ -3694,7 +3634,7 @@ const ADMIN_PERMISSIONS = [
   { key: "add_inquiry", label: "إضافة استفسار جديد يدويًا", icon: PlusCircle },
   { key: "edit_inquiry", label: "تعديل استفسار موجود", icon: Pencil },
   { key: "delete_inquiry", label: "حذف استفسار", icon: Trash2 },
-  { key: "flag_urgent", label: "تعديل وسمَي \"عاجل\" و\"مهم\"", icon: Star },
+  { key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
   { key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
   { key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
   { key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
@@ -3703,7 +3643,7 @@ const ADMIN_PERMISSIONS = [
 ];
 const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "cat", "status", "owner", "month", "note", "note_en", "reply", "closed", "answered"];
 const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة (تصنيف نوع البند)", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
-const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا", urgent: false, important: false };
+const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا" };
 /* answered عمود boolean حقيقي بقاعدة البيانات (بخلاف closed اللي نص) — نحوّلها بالحدين:
    نص "نعم/لا" أثناء العرض والمقارنة بالإدارة (اتساقًا مع closed)، وBoolean فعلي عند الكتابة الفعلية لقاعدة البيانات */
 const REAL_BOOL_FIELDS = ["answered"];
@@ -4003,38 +3943,30 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   }, []);
   const INQ_FIELDS = useMemo(() => (hasCatCol ? INQ_FIELDS_ADMIN : INQ_FIELDS_ADMIN.filter((f) => f !== "cat")), [hasCatCol]);
   const stripCat = (obj) => { if (hasCatCol) return obj; const { cat, ...rest } = obj; return rest; };
-
-  /* ═══ تتبع تلقائي لكل استفسار: زيارات (فتح)، إعجابات، ومشاركات ═══
-     ما يحتاج أي إعداد يدوي — يُحسب مباشرة من جدول logs الحالي مقارنةً بمعرّف كل استفسار،
-     فأي استفسار جديد يبدأ يتجمّع له تتبع تلقائيًا أول ما يُفتح أو يُعجَب به أو يُشارَك،
-     بالضبط زي أي استفسار قديم — بدون فرق. */
-  const [statsById, setStatsById] = useState({});
-  const [statsLoading, setStatsLoading] = useState(true);
-  const loadStats = async () => {
-    setStatsLoading(true);
-    let all = []; let from_i = 0; const page = 1000;
-    while (true) {
-      const { data, error } = await supabase.from("logs").select("event_type,category,value")
-        .in("event_type", ["inquiry_open", "feedback", "share"])
-        .not("category", "is", null)
-        .range(from_i, from_i + page - 1);
-      if (error || !data || data.length === 0) break;
-      all = all.concat(data);
-      if (data.length < page) break;
-      from_i += page;
-      if (all.length > 100000) break; // سقف أمان
-    }
-    const m = {};
-    all.forEach((e) => {
-      const id = e.category;
-      if (!m[id]) m[id] = { views: 0, likes: 0, shares: 0 };
-      if (e.event_type === "inquiry_open") m[id].views++;
-      else if (e.event_type === "share") m[id].shares++;
-      else if (e.event_type === "feedback" && e.value === "up") m[id].likes++;
-    });
-    setStatsById(m); setStatsLoading(false);
+  /* ═══ أمان الفرز: نتحقق إذا عمود "created_at" (تاريخ الإضافة) موجود فعلًا — لو قاعدة
+     البيانات ما انحدّثت بعد بملف setup-supabase.sql، فرز "الأحدث إضافة" يرجع تلقائيًا
+     لترتيب رقم الاستفسار بدل ما يسبب خطأ. ═══ */
+  const [hasCreatedAtCol, setHasCreatedAtCol] = useState(true);
+  useEffect(() => {
+    supabase.from("inquiries").select("created_at").limit(1).then(({ error }) => { if (error) setHasCreatedAtCol(false); });
+  }, []);
+  const [sortBy, setSortBy] = useState("updated_desc");
+  const SORT_OPTIONS = [
+    { value: "updated_desc", label: "آخر تعديل" },
+    { value: "created_desc", label: "أحدث إضافة" },
+    { value: "id_asc", label: "الرقم" },
+  ];
+  const sortedInquiries = useMemo(() => {
+    const arr = [...inquiries];
+    if (sortBy === "updated_desc") return arr.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+    if (sortBy === "created_desc" && hasCreatedAtCol) return arr.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0) || b.id - a.id);
+    return arr.sort((a, b) => a.id - b.id);
+  }, [inquiries, sortBy, hasCreatedAtCol]);
+  const rowDateLabel = (r) => {
+    if (sortBy === "created_desc" && hasCreatedAtCol) return r.created_at ? `أُضيف: ${fmtAdminDate(r.created_at)}` : null;
+    if (sortBy === "updated_desc") return r.updated_at ? `آخر تعديل: ${fmtAdminDate(r.updated_at)}` : null;
+    return null;
   };
-  useEffect(() => { loadStats(); }, []);
   const [backups, setBackups] = useState([]);
   const [restoring, setRestoring] = useState(null);
   const loadBackups = () => supabase.from("data_backups").select("*").order("created_at", { ascending: false }).then(({ data }) => setBackups(data || []));
@@ -4139,10 +4071,6 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   };
   const runCompare = () => runCompareWith(sheets, mapping);
   const toggleSheetSelected = (name) => setMapping((m) => ({ ...m, [name]: { ...m[name], selected: m[name]?.selected === false } }));
-  /* قرار قيمة واحدة (إضافة/تجاهل) — كانت مفقودة تمامًا فكان الضغط على أزرار القيمة الواحدة
-     يرمي خطأ ReferenceError ويوقف تبويب المزامنة كامل. sig = "categoryKey::value" */
-  const setValueDecision = (sig, decision) => setNewValues((prev) =>
-    prev.map((v) => (v.categoryKey + "::" + v.value === sig ? { ...v, decision } : v)));
   const decideAllValues = (decision) => setNewValues((prev) => prev.map((v) => ({ ...v, decision })));
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
@@ -4285,11 +4213,6 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     log("تعديل وسم عاجل", `تبديل الحالة على الاستفسار #${r.id}`);
     refreshInquiries();
   };
-  const toggleImportant = async (r) => {
-    await supabase.from("inquiries").update({ important: !r.important }).eq("id", r.id);
-    log("تعديل وسم مهم", `تبديل الحالة على الاستفسار #${r.id}`);
-    refreshInquiries();
-  };
   const isMarkedNew = (r) => { if (!r.last_modified) return false; const days = (Date.now() - new Date(r.last_modified + "T00:00:00").getTime()) / 86400000; return days >= 0 && days <= 7; };
   const toggleNew = async (r) => {
     const newVal = isMarkedNew(r) ? null : new Date().toISOString().slice(0, 10);
@@ -4305,15 +4228,10 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     const payload = stripCat({ ...translatedForm, answered: toDbBool(translatedForm.answered) });
     if (editing === "new") {
       const nextId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
-      /* أي استفسار يُضاف مباشرة من هنا يُوسم "جديد" تلقائيًا لمدة ٧ أيام —
-         بنفس آلية الإضافة عبر مزامنة الإكسل (لاحظ last_modified: todayISO هناك).
-         قبل هذا التعديل كان الإدخال اليدوي وحده ينسى وسم last_modified فيبقى الاستفسار
-         بلا علامة "جديد" إلا لو رجع الأدمن وضغط زر التبديل يدويًا بعد الحفظ. */
-      const todayISO = new Date().toISOString().slice(0, 10);
-      await supabase.from("inquiries").insert({ ...payload, id: nextId, urgent: form.urgent || false, important: form.important || false, last_modified: todayISO });
-      log("إضافة استفسار يدويًا", `#${nextId} — ${form.note.slice(0, 40)}`); flashToast("تمت الإضافة — ووُسم تلقائيًا كـ«جديد»");
+      await supabase.from("inquiries").insert({ ...payload, id: nextId, urgent: false });
+      log("إضافة استفسار يدويًا", `#${nextId} — ${form.note.slice(0, 40)}`); flashToast("تمت الإضافة");
     } else {
-      await supabase.from("inquiries").update({ ...payload, urgent: form.urgent || false, important: form.important || false }).eq("id", editing);
+      await supabase.from("inquiries").update(payload).eq("id", editing);
       log("تعديل استفسار يدويًا", `#${editing} — ${form.note.slice(0, 40)}`); flashToast("تم الحفظ");
     }
     setEditing(null); setForm(null); refreshInquiries();
@@ -4500,20 +4418,18 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontSize: 14, fontWeight: 700 }}>الاستفسارات الحالية ({inquiries.length})</span>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={loadStats} title="تحديث أرقام التتبع (زيارات/إعجابات/مشاركات)" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, background: T.sunken, border: "none", borderRadius: 9, cursor: "pointer", color: T.brass }}><RefreshCw size={13} /></button>
-            <button onClick={startAdd} disabled={!canAdd} style={{ display: "flex", alignItems: "center", gap: 6, background: canAdd ? T.brass : T.line, color: "#fff", border: "none", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: canAdd ? "pointer" : "not-allowed", opacity: canAdd ? 1 : .6 }}><PlusCircle size={13} /> إضافة يدويًا</button>
-          </div>
+          <button onClick={startAdd} disabled={!canAdd} style={{ display: "flex", alignItems: "center", gap: 6, background: canAdd ? T.brass : T.line, color: "#fff", border: "none", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: canAdd ? "pointer" : "not-allowed", opacity: canAdd ? 1 : .6 }}><PlusCircle size={13} /> إضافة يدويًا</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 11.5, color: T.muted, flexShrink: 0 }}>الفرز:</span>
+          <ASegmented value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[...inquiries].sort((a, b) => a.id - b.id).map((r) => (
+          {sortedInquiries.map((r) => (
             <div key={r.id} style={{ background: T.sunken, borderRadius: 12, padding: "10px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <button disabled={!canFlag} onClick={() => toggleUrgent(r)} title="عاجل" style={{ flexShrink: 0, background: r.urgent ? "#B8790F" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
+                <button disabled={!canFlag} onClick={() => toggleUrgent(r)} title={r.urgent ? "إلغاء علامة \"يلزم الاطلاع\" عن هذا الاستفسار بالموقع العام" : "إظهار علامة \"يلزم الاطلاع\" الواضحة على بطاقة هذا الاستفسار بالموقع العام"} style={{ flexShrink: 0, background: r.urgent ? "#B8790F" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
                   <Star size={14} color={r.urgent ? "#fff" : T.faint} fill={r.urgent ? "#fff" : "none"} />
-                </button>
-                <button disabled={!canFlag} onClick={() => toggleImportant(r)} title="مهم" style={{ flexShrink: 0, background: r.important ? T.brass : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
-                  <ShieldAlert size={14} color={r.important ? "#fff" : T.faint} />
                 </button>
                 <button disabled={!canFlag} onClick={() => toggleNew(r)} title={isMarkedNew(r) ? "إلغاء وسم جديد" : "وسم كـ جديد (٧ أيام)"} style={{ flexShrink: 0, background: isMarkedNew(r) ? T.brass : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
                   <Sparkles size={14} color={isMarkedNew(r) ? "#fff" : T.faint} />
@@ -4523,14 +4439,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                     <span style={{ color: T.faint, fontWeight: 700, flexShrink: 0 }}>#{r.id}</span>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{r.note}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}{r.cat ? ` · ${r.cat}` : ""}</div>
-                  {/* تتبع الاستفسار — زيارات (فتح)، إعجابات، ومشاركات: يُحسب تلقائيًا من جدول logs،
-                      وينطبق على أي استفسار بمجرد إضافته بدون أي إعداد إضافي */}
-                  <div style={{ display: "flex", gap: 10, marginTop: 5, fontSize: 10.5, color: T.faint }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Eye size={11} /> {statsLoading ? "…" : (statsById[r.id]?.views || 0)}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><ThumbsUp size={11} /> {statsLoading ? "…" : (statsById[r.id]?.likes || 0)}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 size={11} /> {statsLoading ? "…" : (statsById[r.id]?.shares || 0)}</span>
-                  </div>
+                  <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}{r.cat ? ` · ${r.cat}` : ""}{rowDateLabel(r) ? ` · ${rowDateLabel(r)}` : ""}</div>
                 </div>
                 {canEdit && <button onClick={() => startEdit(r)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.muted, flexShrink: 0 }}><Pencil size={12} /></button>}
                 {canDelete && (confirmDeleteId === r.id ? (
@@ -4564,20 +4473,6 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
             {afieldInput(ADMIN_FIELD_LABEL.note_en, form.note_en, (v) => setForm((f) => ({ ...f, note_en: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.reply, form.reply, (v) => setForm((f) => ({ ...f, reply: v })))}
           </div>
-          {/* عاجل ومهم — علامتان مستقلتان تمامًا، تقدر تفعّل الاثنتين معًا أو وحدة بس أو ولا وحدة.
-              مقفلتان بنفس صلاحية flag_urgent — عضو بدونها يشوفهما بس ما يقدر يغيّرهما. */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            <button type="button" disabled={!canFlag} onClick={() => setForm((f) => ({ ...f, urgent: !f.urgent }))}
-              style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, border: `1px solid ${form.urgent ? "#B8790F" : T.line}`, background: form.urgent ? "#B8790F14" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .6 }}>
-              <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${form.urgent ? "#B8790F" : T.faint}`, background: form.urgent ? "#B8790F" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{form.urgent && <Check size={13} color="#fff" />}</span>
-              <Star size={14} color={form.urgent ? "#B8790F" : T.faint} /><span style={{ fontSize: 12.5, color: form.urgent ? T.paper : T.muted, fontWeight: form.urgent ? 700 : 500 }}>عاجل</span>
-            </button>
-            <button type="button" disabled={!canFlag} onClick={() => setForm((f) => ({ ...f, important: !f.important }))}
-              style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, border: `1px solid ${form.important ? T.brass : T.line}`, background: form.important ? T.brass + "14" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .6 }}>
-              <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${form.important ? T.brass : T.faint}`, background: form.important ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{form.important && <Check size={13} color="#fff" />}</span>
-              <ShieldAlert size={14} color={form.important ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: form.important ? T.paper : T.muted, fontWeight: form.important ? 700 : 500 }}>مهم</span>
-            </button>
-          </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={saveForm} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
             <button onClick={() => { setEditing(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
@@ -4589,7 +4484,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
 }
 
 /* ── الزيارات والتحليلات — يقرأ من جدول logs الحقيقي ── */
-function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
+function AAnalyticsTab({ flashToast, canExport }) {
   const T = useSystemTheme();
   const today = new Date();
   const [from, setFrom] = useState(isoAdminDate(new Date(today - 6 * 86400000)));
@@ -4650,74 +4545,12 @@ function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
   const filtered = events.filter((e) => selectedTypes.has(e.event_type));
   const inquiryOpensInRange = filtered.filter((e) => e.event_type === "inquiry_open").length;
   const uniqueSessions = new Set(filtered.map((e) => e.session_id)).size;
-  const avgPerVisitor = uniqueSessions ? (filtered.length / uniqueSessions).toFixed(1) : "0";
   const setPreset = (days) => { setFrom(isoAdminDate(new Date(today - days * 86400000))); setTo(isoAdminDate(today)); };
   const setAllTime = async () => {
     const { data } = await supabase.from("logs").select("created_at").order("created_at", { ascending: true }).limit(1);
     if (data && data.length) setFrom(isoAdminDate(new Date(data[0].created_at)));
     setTo(isoAdminDate(today));
   };
-
-  /* ── تفصيلات إضافية — كلها محسوبة من نفس أحداث الفترة المحمَّلة أصلًا (filtered)،
-     بدون أي استعلام إضافي على قاعدة البيانات ── */
-  const WEEKDAY_AR = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"];
-  const rangeDays = Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
-
-  /* اتجاه الزيارات عبر الفترة — يوميًا لو الفترة ٦٠ يوم فأقل، وإلا أسبوعيًا لتفادي رسم مزدحم */
-  const dailyTrend = useMemo(() => {
-    const visits = filtered.filter((e) => e.event_type === "visit");
-    if (rangeDays <= 60) {
-      const byDay = {};
-      for (let i = 0; i < rangeDays; i++) byDay[isoAdminDate(new Date(new Date(from + "T00:00:00").getTime() + i * 86400000))] = 0;
-      visits.forEach((e) => { const k = isoAdminDate(new Date(e.created_at)); if (byDay[k] !== undefined) byDay[k]++; });
-      return Object.entries(byDay).map(([k, v]) => ({ label: k.slice(5), visits: v }));
-    }
-    const byWeek = {};
-    visits.forEach((e) => {
-      const d = new Date(e.created_at); const ws = new Date(d); ws.setDate(d.getDate() - d.getDay());
-      const k = isoAdminDate(ws); byWeek[k] = (byWeek[k] || 0) + 1;
-    });
-    return Object.entries(byWeek).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({ label: k.slice(5), visits: v }));
-  }, [filtered, from, to]);
-
-  /* توزيع كل الأحداث حسب يوم الأسبوع — بتوقيت السعودية (UTC+3) */
-  const weekdayTrend = useMemo(() => {
-    const counts = Array(7).fill(0);
-    filtered.forEach((e) => { const d = new Date(new Date(e.created_at).getTime() + 3 * 3600000); counts[d.getUTCDay()]++; });
-    return WEEKDAY_AR.map((label, i) => ({ label, count: counts[i] }));
-  }, [filtered]);
-
-  /* توزيع كل الأحداث حسب ساعة اليوم — بتوقيت السعودية (UTC+3) */
-  const hourlyTrend = useMemo(() => {
-    const counts = Array(24).fill(0);
-    filtered.forEach((e) => { counts[(new Date(e.created_at).getUTCHours() + 3) % 24]++; });
-    return counts.map((count, h) => ({ label: `${h}`, count }));
-  }, [filtered]);
-
-  /* الاستفسارات الأكثر فتحًا بالفترة — مربوطة باسم الاستفسار الفعلي */
-  const topOpened = useMemo(() => {
-    const opens = {};
-    filtered.filter((e) => e.event_type === "inquiry_open" && e.category).forEach((e) => { opens[e.category] = (opens[e.category] || 0) + 1; });
-    const byId = new Map(inquiries.map((r) => [String(r.id), r]));
-    return Object.entries(opens).map(([id, count]) => ({ id, count, note: byId.get(id)?.note || "—", model: byId.get(id)?.model || "" }))
-      .sort((a, b) => b.count - a.count).slice(0, 8);
-  }, [filtered, inquiries]);
-
-  /* الفلاتر الأكثر استخدامًا بالفترة */
-  const topFilters = useMemo(() => {
-    const m = {};
-    filtered.filter((e) => e.event_type === "filter" && e.category).forEach((e) => {
-      const k = `${e.category}: ${e.value ?? ""}`; m[k] = (m[k] || 0) + 1;
-    });
-    return Object.entries(m).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, 8);
-  }, [filtered]);
-
-  /* توزيع الإعجاب/عدم الإعجاب على الاستفسارات */
-  const feedbackSplit = useMemo(() => {
-    const fb = filtered.filter((e) => e.event_type === "feedback");
-    const up = fb.filter((e) => e.value === "up").length;
-    return { up, down: fb.length - up, total: fb.length };
-  }, [filtered]);
 
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -4750,8 +4583,8 @@ function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-        {[["زيارات اليوم", todaysVisits], ["استفسارات فُتحت بالفترة", inquiryOpensInRange], ["زوّار مميّزون بالفترة", uniqueSessions], ["متوسط الأحداث لكل زائر", avgPerVisitor]].map(([label, val]) => (<div key={label} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 10px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 700, color: T.brass }}>{val}</div><div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{label}</div></div>))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        {[["زيارات اليوم", todaysVisits], ["استفسارات فُتحت بالفترة", inquiryOpensInRange], ["زوّار مميّزون بالفترة", uniqueSessions]].map(([label, val]) => (<div key={label} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 10px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 700, color: T.brass }}>{val}</div><div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{label}</div></div>))}
       </div>
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -4781,106 +4614,6 @@ function AAnalyticsTab({ flashToast, canExport, inquiries = [] }) {
           </div>
         )}
       </div>
-
-      {/* اتجاه الزيارات عبر الفترة */}
-      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}><Eye size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>اتجاه الزيارات{rangeDays > 60 ? " (أسبوعيًا)" : " (يوميًا)"}</span></div>
-        {loading ? <div style={{ fontSize: 12, color: T.muted, textAlign: "center", padding: 10 }}>جارٍ التحميل...</div> : dailyTrend.every((d) => d.visits === 0) ? <div style={{ fontSize: 12, color: T.muted, padding: 10 }}>لا زيارات مسجّلة بالفترة.</div> : (
-          <div style={{ width: "100%", height: 170 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={dailyTrend} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={T.line} />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: T.muted }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10.5, fill: T.muted }} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid ${T.line}`, background: T.surface }} />
-                <Bar dataKey="visits" fill={T.brass} radius={[6, 6, 0, 0]} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {/* ساعات الذروة وأيام الأسبوع */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, minWidth: 0 }}>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>ساعات الذروة</div>
-          {loading ? <div style={{ fontSize: 11.5, color: T.muted, textAlign: "center", padding: 10 }}>جارٍ التحميل...</div> : (
-            <div style={{ width: "100%", height: 140 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={hourlyTrend} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: T.muted }} interval={2} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 9.5, fill: T.muted }} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid ${T.line}`, background: T.surface }} labelFormatter={(h) => `الساعة ${h}`} />
-                  <Bar dataKey="count" fill={T.brass} radius={[4, 4, 0, 0]} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>حسب يوم الأسبوع</div>
-          {loading ? <div style={{ fontSize: 11.5, color: T.muted, textAlign: "center", padding: 10 }}>جارٍ التحميل...</div> : (
-            <div style={{ width: "100%", height: 140 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={weekdayTrend} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 9.5, fill: T.muted }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 9.5, fill: T.muted }} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid ${T.line}`, background: T.surface }} />
-                  <Bar dataKey="count" fill={T.brass} radius={[4, 4, 0, 0]} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* الاستفسارات الأكثر فتحًا والفلاتر الأكثر استخدامًا */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, minWidth: 0 }}>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>الأكثر فتحًا بالفترة</div>
-          {topOpened.length === 0 ? <div style={{ fontSize: 11.5, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات كافية."}</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-              {topOpened.map((o) => (
-                <div key={o.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px", minWidth: 0 }}>
-                  <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }} title={o.note}>#{o.id} — {o.note}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T.brass, flexShrink: 0 }}>{o.count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>الفلاتر الأكثر استخدامًا</div>
-          {topFilters.length === 0 ? <div style={{ fontSize: 11.5, color: T.muted }}>{loading ? "جارٍ التحميل..." : "لا بيانات كافية."}</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-              {topFilters.map((f) => (
-                <div key={f.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px", minWidth: 0 }}>
-                  <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }} title={f.label}>{f.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T.brass, flexShrink: 0 }}>{f.count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* توزيع الإعجاب/عدم الإعجاب */}
-      {feedbackSplit.total > 0 && (
-        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>ردود الفعل على الاستفسارات</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1E8E5A14", borderRadius: 10, padding: "9px 12px" }}>
-              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: "#1E8E5A" }}><ThumbsUp size={13} /> إعجاب</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#1E8E5A" }}>{feedbackSplit.up}</span>
-            </div>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", background: "#C0392B14", borderRadius: 10, padding: "9px 12px" }}>
-              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: "#C0392B" }}><ThumbsDown size={13} /> عدم إعجاب</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#C0392B" }}>{feedbackSplit.down}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><BarChart3 size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>استخراج تقرير مخصص</span></div>
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
@@ -4966,19 +4699,19 @@ function AAuditLogTab() {
 }
 
 /* ── تعديل صلاحيات أعضاء موجودين (إنشاء الحساب نفسه يتم من لوحة Supabase) ── */
-function AUsersTab({ flashToast, log, canCreate, canEditPerms }) {
+function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms }) {
   const T = useSystemTheme();
-  const [members, setMembers] = useState([]); const [form, setForm] = useState(null);
+  const [members, setMembers] = useState([]); const [editingId, setEditingId] = useState(null); const [form, setForm] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState(null); // { name, email, password, perms }
   const load = () => supabase.from("profiles").select("*").then(({ data }) => setMembers(data || []));
   useEffect(() => { load(); }, []);
-  const startEdit = (m) => { setForm({ ...m }); };
+  const startEdit = (m) => { setEditingId(m.id); setForm({ ...m }); };
   const togglePerm = (key) => setForm((f) => ({ ...f, perms: f.perms.includes(key) ? f.perms.filter((p) => p !== key) : [...f.perms, key] }));
   const save = async () => {
     await supabase.from("profiles").update({ name: form.name, role: form.role, perms: form.perms }).eq("id", form.id);
     log("تعديل صلاحيات عضو", `${form.name} — ${form.perms.length} صلاحية`);
-    flashToast("تم حفظ الصلاحيات"); setForm(null); load();
+    flashToast("تم حفظ الصلاحيات"); setEditingId(null); setForm(null); load();
   };
   const startCreate = () => setNewUser({ name: "", email: "", password: "", perms: [] });
   const toggleNewPerm = (key) => setNewUser((f) => ({ ...f, perms: f.perms.includes(key) ? f.perms.filter((p) => p !== key) : [...f.perms, key] }));
@@ -5026,7 +4759,7 @@ function AUsersTab({ flashToast, log, canCreate, canEditPerms }) {
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={save} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
-            <button onClick={() => { setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={() => { setEditingId(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
           </div>
         </div>
       )}
@@ -5348,7 +5081,7 @@ const ADMIN_TABS = [
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
 ];
 
-function AdminHome({ session }) {
+function AdminHome({ session, onLogout }) {
   const T = useSystemTheme();
   const [profile, setProfile] = useState(undefined);
   const [inquiries, setInquiries] = useState([]);
@@ -5400,11 +5133,11 @@ function AdminHome({ session }) {
         {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
         {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
         {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
-        {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} inquiries={inquiries} />}
+        {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "audit" && <AAuditLogTab />}
-        {activeTab === "users" && <AUsersTab flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
+        {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
       </div>
 
       {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: T.paper, color: T.bg, padding: "11px 20px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}><Check size={15} /> {toast}</div>}

@@ -16,6 +16,28 @@ create table if not exists public.inquiries (
 -- (آمن تمامًا — لو العمود موجود مسبقًا ما يسوي شي)
 alter table public.inquiries add column if not exists cat text;
 
+-- ترقية: عمود "تاريخ الإضافة" منفصل عن "تاريخ آخر تعديل" (updated_at) — يخدم فرز
+-- الاستفسارات بلوحة الإدارة حسب الأحدث إضافة أو الأحدث تعديلاً.
+-- (آمن تمامًا — لو العمود موجود مسبقًا ما يسوي شي)
+alter table public.inquiries add column if not exists created_at timestamptz default now();
+-- تعبئة الصفوف القديمة اللي ما لها created_at (قبل هذه الترقية) بأقرب قيمة متاحة
+update public.inquiries set created_at = updated_at where created_at is null;
+
+-- ترقية: تحديث تلقائي لـ updated_at عند أي تعديل على صف الاستفسار (كان يتحدّث فقط
+-- عند الإضافة). هذا يخلّي فرز "الأحدث تعديلاً" بلوحة الإدارة يعكس آخر تعديل فعلي.
+create or replace function public.set_inquiry_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_inquiries_updated_at on public.inquiries;
+create trigger trg_inquiries_updated_at
+before update on public.inquiries
+for each row execute function public.set_inquiry_updated_at();
+
 -- ٢) تقدّم التنفيذ
 create table if not exists public.progress (
   month text primary key,
