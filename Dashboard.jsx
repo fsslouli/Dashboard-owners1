@@ -383,6 +383,7 @@ const BASE = INQUIRIES_DATA.map((r) => ({
   meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
   note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
   last_modified: r.last_modified,
+  urgent: !!r.urgent, important: !!r.important,
 }));
 
 /* ═══════════════════════════════════════════════════════════
@@ -1061,6 +1062,17 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.10.2",
+    dateAr: "29 أغسطس 2026",
+    dateEn: "August 29, 2026",
+    ar: [
+      "تصحيح خطأ حقيقي: علامتا \"يلزم الاطلاع\" و\"مهم\" ما كانتا تظهران على الموقع العام رغم تفعيلهما من لوحة الإدارة — السبب أن دالة قراءة البيانات الحيّة كانت تتجاهل هذين الحقلين تحديدًا قبل ما توصل للبطاقات. تم تصحيحها.",
+    ],
+    en: [
+      "Fixed a real bug: the \"Needs review\" and \"Important\" marks never appeared on the public site even when enabled from the admin panel — the live-data mapping function was silently dropping exactly those two fields before they reached the cards. Corrected.",
+    ],
+  },
   {
     version: "1.10.0",
     dateAr: "29 أغسطس 2026",
@@ -2410,6 +2422,7 @@ function PublicSite() {
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
       note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
       last_modified: r.last_modified,
+      urgent: !!r.urgent, important: !!r.important,
     });
     const fetchLive = async () => {
       try {
