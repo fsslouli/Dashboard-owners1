@@ -21,6 +21,12 @@ alter table public.inquiries add column if not exists cat text;
 -- (آمن تمامًا — لو العمود موجود مسبقًا ما يسوي شي)
 alter table public.inquiries add column if not exists important boolean default false;
 
+-- ترقية: مدة تفعيل مؤقتة لوسمَي "يجب الاطلاع" و"مهم" — لو الحقل _until معبّى بتاريخ
+-- مستقبلي، يُعتبر الوسم فعّالاً لين ذاك التاريخ فقط؛ لو فاضي والحقل المنطقي (urgent/
+-- important) صحيح، فالتفعيل دائم. يختاره الأدمن (٣ أيام / ٧ أيام / دائم) عند التفعيل.
+alter table public.inquiries add column if not exists urgent_until timestamptz;
+alter table public.inquiries add column if not exists important_until timestamptz;
+
 -- ترقية: عمود "تاريخ الإضافة" منفصل عن "تاريخ آخر تعديل" (updated_at) — يخدم فرز
 -- الاستفسارات بلوحة الإدارة حسب الأحدث إضافة أو الأحدث تعديلاً.
 -- (آمن تمامًا — لو العمود موجود مسبقًا ما يسوي شي)

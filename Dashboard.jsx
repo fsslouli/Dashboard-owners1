@@ -204,6 +204,20 @@ function isRecentlyChanged(d) {
   return days >= 0 && days <= CHANGE_WINDOW_DAYS;
 }
 
+/* ═══ وسوم "يجب الاطلاع" و"مهم" — تفعيل مؤقت (٣ أو ٧ أيام) أو دائم من لوحة الإدارة ═══
+   الحقل المنطقي (urgent / important) = "دائم" وما له تاريخ انتهاء.
+   حقل الـ_until (urgent_until / important_until) = وقت انتهاء التفعيل المؤقت.
+   الوسم يُعتبر فعّالاً لو كان دائمًا، أو لو تاريخ الانتهاء لسه ما وصل. */
+function isFlagLive(permanentFlag, untilVal) {
+  if (permanentFlag) return true;
+  if (!untilVal) return false;
+  return new Date(untilVal).getTime() > Date.now();
+}
+const FLAG_META = {
+  urgent: { boolField: "urgent", untilField: "urgent_until", labelAr: "يجب الاطلاع", labelEn: "Needs review" },
+  important: { boolField: "important", untilField: "important_until", labelAr: "مهم", labelEn: "Important" },
+};
+
 /* ── ٣. ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
 const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Low" };
 const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Rejected", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
@@ -383,7 +397,7 @@ const BASE = INQUIRIES_DATA.map((r) => ({
   meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
   note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
   last_modified: r.last_modified,
-  urgent: !!r.urgent, important: !!r.important,
+  urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
 }));
 
 /* ═══════════════════════════════════════════════════════════
@@ -972,9 +986,9 @@ function Row({ r, onOpen }) {
       <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
       <td className="td-note">
         <span className="td-note-t">{trNote(lang, r)}</span>
-        {(r.important || r.isNew || !r.closed) && (
+        {(r.isImportantActive || r.isNew || !r.closed) && (
           <span className="td-tags">
-            {r.important && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
+            {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
             {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
           </span>
@@ -1024,14 +1038,14 @@ function Card({ r, i, onOpen, reduced }) {
         borderRightColor: pc,
       }}>
       <span className="card-wm mono" aria-hidden="true">{r.id}</span>
-      {r.urgent && (
+      {r.isUrgentActive && (
         <span className="card-wm-urgent" aria-hidden="true">{lang === "en" ? "Needs review" : "يلزم الاطلاع"}</span>
       )}
       <div className="card-top">
         <span className="mono card-id">{String(r.id).padStart(2, "0")}</span>
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
         <CatPill cat={r.cat} />
-        {r.important && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
+        {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
         {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
         {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
         <span className="card-sta" style={{ color: sc }}>
@@ -1062,6 +1076,20 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.11.0",
+    dateAr: "29 أغسطس 2026",
+    dateEn: "August 29, 2026",
+    ar: ["إصلاحات"],
+    en: ["Fixes"],
+  },
+  {
+    version: "1.10.3",
+    dateAr: "29 أغسطس 2026",
+    dateEn: "August 29, 2026",
+    ar: ["إصلاحات"],
+    en: ["Fixes"],
+  },
   {
     version: "1.10.2",
     dateAr: "29 أغسطس 2026",
@@ -1890,7 +1918,7 @@ function Sheet({ r, navList, onJump, onClose }) {
             <span className="mono sheet-id">{L("ملاحظة", "Note")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
-            {r.important && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
+            {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -2317,7 +2345,7 @@ function ProgressTab({ reduced, data, loading }) {
 }
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false };
+const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false };
 
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
@@ -2422,7 +2450,7 @@ function PublicSite() {
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
       note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
       last_modified: r.last_modified,
-      urgent: !!r.urgent, important: !!r.important,
+      urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
     });
     const fetchLive = async () => {
       try {
@@ -2569,7 +2597,8 @@ function PublicSite() {
   }, []);
 
   const ALL = useMemo(() => {
-    return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.last_modified) }));
+    return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.last_modified),
+      isUrgentActive: isFlagLive(r.urgent, r.urgent_until), isImportantActive: isFlagLive(r.important, r.important_until) }));
   }, [data]);
 
   /* فتح استفسار محدد تلقائيًا عند الوصول عبر رابط مشاركة (?note=ID) — مرة واحدة فقط بعد اكتمال تحميل البيانات */
@@ -2595,7 +2624,8 @@ function PublicSite() {
 
   const newCount = ALL.filter((r) => r.isNew).length;
   const openCount = ALL.filter((r) => !r.closed).length;
-  const importantCount = ALL.filter((r) => r.important).length;
+  const importantCount = ALL.filter((r) => r.isImportantActive).length;
+  const urgentCount = ALL.filter((r) => r.isUrgentActive).length;
   const staC = (s) => T.sta[s] || hashPick(s, T.extra);
   const monthValue = (r) => (/^\d{4}-\d{2}$/.test(r.month || "") ? r.month : "9999-99");
 
@@ -2628,7 +2658,8 @@ function PublicSite() {
     if (f.meeting && r.meeting !== f.meeting) return false;
     if (f.open && r.closed) return false;
     if (f.fresh && !r.isNew) return false;
-    if (f.important && !r.important) return false;
+    if (f.important && !r.isImportantActive) return false;
+    if (f.urgent && !r.isUrgentActive) return false;
     if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
     return true;
   }, [f, nq, nqId]);
@@ -2694,6 +2725,7 @@ function PublicSite() {
     if (f.open) out.push({ k: "open", l: L("مفتوحة فقط", "Open only") });
     if (f.fresh) out.push({ k: "fresh", l: L("الجديد فقط", "New only") });
     if (f.important) out.push({ k: "important", l: L("مهم فقط", "Important only") });
+    if (f.urgent) out.push({ k: "urgent", l: L("يجب الاطلاع فقط", "Needs review only") });
     return out;
   }, [f, lang]);
 
@@ -2794,6 +2826,20 @@ function PublicSite() {
 @keyframes badgeGlow{
   0%,100%{box-shadow:0 0 0 0 transparent;}
   50%{box-shadow:0 0 0 4px ${T.brass}26;}
+}
+/* توهج شارة "مهم" — أحمر وأسرع من توهج "الجديد" حتى يُلاحظ فورًا */
+.chip-important{color:#C0392B;border-color:#C0392B99;background:#C0392B14;}
+.chip-important.chip-glow{animation:badgeGlowImportant 1.5s ease-in-out infinite;}
+@keyframes badgeGlowImportant{
+  0%,100%{box-shadow:0 0 0 0 transparent;}
+  50%{box-shadow:0 0 0 5px #C0392B40;}
+}
+/* توهج شارة "يجب الاطلاع" — كهرماني/ذهبي حتى يتميّز عن "مهم" الأحمر */
+.chip-urgent{color:#B8790F;border-color:#B8790F99;background:#B8790F14;}
+.chip-urgent.chip-glow{animation:badgeGlowUrgent 1.5s ease-in-out infinite;}
+@keyframes badgeGlowUrgent{
+  0%,100%{box-shadow:0 0 0 0 transparent;}
+  50%{box-shadow:0 0 0 5px #B8790F40;}
 }
 
 /* انتقال بطاقات ↔ جدول */
@@ -3202,10 +3248,24 @@ function PublicSite() {
                   {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
                 </>
               ) : null}
-              {newCount > 0 && (
-                <button className="chip chip-glow" style={{ marginRight: "auto" }} onClick={() => openBoard({ fresh: true, __sort: "new" })}>
-                  <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
-                </button>
+              {(urgentCount > 0 || importantCount > 0 || newCount > 0) && (
+                <div style={{ display: "flex", gap: 9, marginRight: "auto" }}>
+                  {urgentCount > 0 && (
+                    <button className="chip chip-glow chip-urgent" onClick={() => openBoard({ urgent: true })}>
+                      <ShieldAlert size={11} /> {L("يجب الاطلاع", "Needs review")} <span className="mono chip-n">{urgentCount}</span>
+                    </button>
+                  )}
+                  {importantCount > 0 && (
+                    <button className="chip chip-glow chip-important" onClick={() => openBoard({ important: true })}>
+                      <AlertTriangle size={11} /> {L("مهم", "Important")} <span className="mono chip-n">{importantCount}</span>
+                    </button>
+                  )}
+                  {newCount > 0 && (
+                    <button className="chip chip-glow" onClick={() => openBoard({ fresh: true, __sort: "new" })}>
+                      <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </header>
@@ -3464,6 +3524,9 @@ function PublicSite() {
                 </div>
 
                 <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+                  {urgentCount > 0 && (
+                    <Chip on={f.urgent} onClick={() => set("urgent", true)} color="#B8790F" count={urgentCount}>{L("يجب الاطلاع", "Needs review")}</Chip>
+                  )}
                   {importantCount > 0 && (
                     <Chip on={f.important} onClick={() => set("important", true)} color="#C0392B" count={importantCount}>{L("مهم", "Important")}</Chip>
                   )}
@@ -3497,7 +3560,7 @@ function PublicSite() {
                     <span style={{ fontSize: 11.5, color: T.muted }}>{L("مُصفّى على:", "Filtered by:")}</span>
                     {activeChips.map((c) => (
                       <button key={c.k} className="fchip"
-                        onClick={() => { setF((p) => ({ ...p, [c.k]: c.k === "open" || c.k === "fresh" || c.k === "important" ? false : c.k === "q" ? "" : null })); setLimit(12); }}>
+                        onClick={() => { setF((p) => ({ ...p, [c.k]: c.k === "open" || c.k === "fresh" || c.k === "important" || c.k === "urgent" ? false : c.k === "q" ? "" : null })); setLimit(12); }}>
                         {c.l} <X size={12} />
                       </button>
                     ))}
@@ -4251,17 +4314,25 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     setApplying(false);
   };
 
-  const toggleUrgent = async (r) => {
-    await supabase.from("inquiries").update({ urgent: !r.urgent }).eq("id", r.id);
-    log("تعديل وسم عاجل", `تبديل الحالة على الاستفسار #${r.id}`);
+  /* ═══ وسوم "يجب الاطلاع" و"مهم" — عند التفعيل تُختار مدة: ٣ أيام، ٧ أيام، أو دائم.
+     التفعيل الدائم يستخدم الحقل المنطقي (urgent/important)، والمؤقت يستخدم حقل
+     الـ_until (تاريخ انتهاء) — العرض العام يحسب الحالة الفعلية من الاثنين معًا. ═══ */
+  const [flagPicker, setFlagPicker] = useState(null); // { id, key: "urgent" | "important" }
+  const isFlagActive = (r, key) => isFlagLive(r[FLAG_META[key].boolField], r[FLAG_META[key].untilField]);
+  const applyFlag = async (r, key, choice) => {
+    const meta = FLAG_META[key];
+    const patch = choice === "clear" ? { [meta.boolField]: false, [meta.untilField]: null }
+      : choice === "forever" ? { [meta.boolField]: true, [meta.untilField]: null }
+      : { [meta.boolField]: false, [meta.untilField]: new Date(Date.now() + choice * 86400000).toISOString() };
+    await supabase.from("inquiries").update(patch).eq("id", r.id);
+    const actionLabel = choice === "clear" ? "إلغاء" : choice === "forever" ? "تفعيل دائم" : `تفعيل لمدة ${choice} أيام`;
+    log(`تعديل وسم "${meta.labelAr}"`, `${actionLabel} على الاستفسار #${r.id}`);
+    setFlagPicker(null);
     refreshInquiries();
   };
-  /* وسم "مهم" — يدوي بالكامل، بلا مدة انتهاء (بخلاف "جديد" اللي ينتهي تلقائيًا بعد ٧ أيام).
-     يبقى فعّالاً على بطاقة الاستفسار بالموقع العام لين ما يُلغى يدويًا من هنا. */
-  const toggleImportant = async (r) => {
-    await supabase.from("inquiries").update({ important: !r.important }).eq("id", r.id);
-    log("تعديل وسم مهم", `${r.important ? "إلغاء" : "تفعيل"} علامة "مهم" على الاستفسار #${r.id}`);
-    refreshInquiries();
+  const flagButtonClick = (r, key) => {
+    if (isFlagActive(r, key)) { applyFlag(r, key, "clear"); return; }
+    setFlagPicker((p) => (p && p.id === r.id && p.key === key) ? null : { id: r.id, key });
   };
   const isMarkedNew = (r) => { if (!r.last_modified) return false; const days = (Date.now() - new Date(r.last_modified + "T00:00:00").getTime()) / 86400000; return days >= 0 && days <= 7; };
   const toggleNew = async (r) => {
@@ -4478,14 +4549,14 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           {sortedInquiries.map((r) => (
             <div key={r.id} style={{ background: T.sunken, borderRadius: 12, padding: "10px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <button disabled={!canFlag} onClick={() => toggleUrgent(r)} title={r.urgent ? "إلغاء علامة \"يلزم الاطلاع\" عن هذا الاستفسار بالموقع العام" : "إظهار علامة \"يلزم الاطلاع\" الواضحة على بطاقة هذا الاستفسار بالموقع العام"} style={{ flexShrink: 0, background: r.urgent ? "#B8790F" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
-                  <Star size={14} color={r.urgent ? "#fff" : T.faint} fill={r.urgent ? "#fff" : "none"} />
+                <button disabled={!canFlag} onClick={() => flagButtonClick(r, "urgent")} title={isFlagActive(r, "urgent") ? "إلغاء علامة \"يجب الاطلاع\" عن هذا الاستفسار بالموقع العام" : "إظهار علامة \"يجب الاطلاع\" واختيار مدتها"} style={{ flexShrink: 0, background: isFlagActive(r, "urgent") ? "#B8790F" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
+                  <ShieldAlert size={14} color={isFlagActive(r, "urgent") ? "#fff" : T.faint} />
                 </button>
                 <button disabled={!canFlag} onClick={() => toggleNew(r)} title={isMarkedNew(r) ? "إلغاء وسم جديد" : "وسم كـ جديد (٧ أيام)"} style={{ flexShrink: 0, background: isMarkedNew(r) ? T.brass : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
                   <Sparkles size={14} color={isMarkedNew(r) ? "#fff" : T.faint} />
                 </button>
-                <button disabled={!canFlag} onClick={() => toggleImportant(r)} title={r.important ? "إلغاء علامة \"مهم\" عن هذا الاستفسار بالموقع العام" : "إظهار علامة \"مهم\" (إطار أحمر وميّاض) على بطاقة هذا الاستفسار بالموقع العام — تبقى لين ما تُلغى يدويًا، بنفس طريقة وسم \"جديد\""} style={{ flexShrink: 0, background: r.important ? "#C0392B" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
-                  <AlertTriangle size={14} color={r.important ? "#fff" : T.faint} />
+                <button disabled={!canFlag} onClick={() => flagButtonClick(r, "important")} title={isFlagActive(r, "important") ? "إلغاء علامة \"مهم\" عن هذا الاستفسار بالموقع العام" : "إظهار علامة \"مهم\" واختيار مدتها"} style={{ flexShrink: 0, background: isFlagActive(r, "important") ? "#C0392B" : T.line, border: "none", width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: canFlag ? "pointer" : "not-allowed", opacity: canFlag ? 1 : .5 }}>
+                  <AlertTriangle size={14} color={isFlagActive(r, "important") ? "#fff" : T.faint} />
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8, minWidth: 0 }}>
@@ -4502,6 +4573,15 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
                   </div>
                 ) : (<button onClick={() => setConfirmDeleteId(r.id)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#C0392B", flexShrink: 0 }}><Trash2 size={12} /></button>))}
               </div>
+              {flagPicker && flagPicker.id === r.id && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "7px 9px", borderRadius: 10, background: T.surface, border: `1px solid ${T.line}` }}>
+                  <span style={{ fontSize: 11, color: T.muted, flexShrink: 0 }}>مدة "{FLAG_META[flagPicker.key].labelAr}":</span>
+                  <button onClick={() => applyFlag(r, flagPicker.key, 3)} style={{ fontSize: 11.5, background: T.sunken, border: `1px solid ${T.line}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: T.paper }}>٣ أيام</button>
+                  <button onClick={() => applyFlag(r, flagPicker.key, 7)} style={{ fontSize: 11.5, background: T.sunken, border: `1px solid ${T.line}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: T.paper }}>٧ أيام</button>
+                  <button onClick={() => applyFlag(r, flagPicker.key, "forever")} style={{ fontSize: 11.5, background: T.sunken, border: `1px solid ${T.line}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: T.paper }}>دائم</button>
+                  <button onClick={() => setFlagPicker(null)} style={{ marginRight: "auto", background: "none", border: "none", color: T.faint, cursor: "pointer", display: "flex" }}><X size={13} /></button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -5009,7 +5089,7 @@ function ADashboardTab({ inquiries }) {
   }, [inquiries]);
   const total = inquiries.length;
   const open = inquiries.filter((r) => r.closed !== "نعم").length;
-  const urgent = inquiries.filter((r) => r.urgent).length;
+  const urgent = inquiries.filter((r) => isFlagLive(r.urgent, r.urgent_until)).length;
   const isNewCount = inquiries.filter((r) => r.last_modified && (Date.now() - new Date(r.last_modified + "T00:00:00").getTime()) / 86400000 <= 7).length;
   const weekVisitsTotal = dailyVisits.reduce((s, d) => s + d.visits, 0);
 
@@ -5164,7 +5244,7 @@ function AdminHome({ session, onLogout }) {
   const has = (perm) => (profile.perms || []).includes(perm);
   const visibleTabs = ADMIN_TABS.filter((t) => t.perms.some((p) => has(p)));
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
-  const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => r.urgent).length };
+  const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => isFlagLive(r.urgent, r.urgent_until)).length };
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "system-ui, sans-serif", color: T.paper }} dir="rtl">
