@@ -331,6 +331,43 @@ begin
 end;
 $$;
 
+-- ═══════════════════════════════════════════════════════════
+-- ٩) تقدّم الوحدة والمراحل (KPIs) — رفع تلقائي من لوحة الإدارة بدل التعديل
+-- اليدوي بالكود. كل شهر = صف واحد بجدول progress_matrix: نسبة كل مرحلة
+-- (إجمالي/مرحلة١-٤) ونسبة كل بلوك، كـ jsonb. الهدف (target) ما يُخزَّن هنا
+-- إطلاقًا — يُحسب دائمًا آليًا بالكود من التقويم (planTarget)، فما يحتاج رفعه.
+-- آمنة لإعادة التشغيل بالكامل — شغّلها مرة وحدة من SQL Editor.
+-- ═══════════════════════════════════════════════════════════
+create table if not exists public.progress_matrix (
+  month text primary key,                    -- 'YYYY-MM'
+  phases jsonb not null default '{}'::jsonb, -- {"total":46.97,"p1":55.79,...}
+  blocks jsonb not null default '{}'::jsonb, -- {"1":58.03,"2":56.13,...}
+  updated_at timestamptz default now()
+);
+alter table public.progress_matrix enable row level security;
+
+drop policy if exists "قراءة عامة - تقدم الوحدة" on public.progress_matrix;
+create policy "قراءة عامة - تقدم الوحدة" on public.progress_matrix for select using (true);
+drop policy if exists "كتابة - تقدم الوحدة" on public.progress_matrix;
+create policy "كتابة - تقدم الوحدة" on public.progress_matrix for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+-- نسخ احتياطية تلقائية قبل كل رفع (يُحتفظ بآخر ٥ نسخ من واجهة الإدارة نفسها)
+create table if not exists public.progress_matrix_backups (
+  id bigserial primary key,
+  label text,
+  rows jsonb not null default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+alter table public.progress_matrix_backups enable row level security;
+
+drop policy if exists "قراءة - نسخ تقدم الوحدة" on public.progress_matrix_backups;
+create policy "قراءة - نسخ تقدم الوحدة" on public.progress_matrix_backups for select
+  using (public.is_known_admin());
+drop policy if exists "كتابة - نسخ تقدم الوحدة" on public.progress_matrix_backups;
+create policy "كتابة - نسخ تقدم الوحدة" on public.progress_matrix_backups for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
 
 -- ═══════════════════════════════════════════════════════════
 -- سوّي هذا يدويًا من: Supabase Dashboard → Authentication → Users → Add user

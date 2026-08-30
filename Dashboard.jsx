@@ -71,7 +71,7 @@ import {
 import {
   LogIn, LogOut, Upload, Download, Star, ShieldCheck, FileSpreadsheet,
   PlusCircle, Pencil, MinusCircle, Lock, BarChart3, Eye, Filter,
-  MousePointerClick, Tag, Trash2, UserPlus, ListPlus,
+  MousePointerClick, Tag, Trash2, UserPlus, ListPlus, TrendingUp,
 } from "lucide-react";
 
 /* أيقونة تليجرام الرسمية (غير متوفرة في lucide-react) */
@@ -411,7 +411,7 @@ const PG_PHASES = [
   { key: "p1", label: "المرحلة الأولى", note: "بلوكات ١-٥", v: [44.21, 46.15, 48.7, 49.94, 51.84, null, 55.79] },
   { key: "p2", label: "المرحلة الثانية", note: "بلوكات ٦-٨", v: [40.1, 42.41, 43.86, 44.39, 47.47, null, 52.7] },
   { key: "p3", label: "المرحلة الثالثة", note: "بلوكات ٩-١٥", v: [34.49, 35.87, 37.41, 38.01, 38.5, null, 41.72] },
-  { key: "p4", label: "المرحلة الرابعة", note: "بلوكات ٢٢ و٢٣", v: [22.63, 25.77, 27.52, 28.37, 31.14, null, 32.02] },
+  { key: "p4", label: "المرحلة الرابعة", note: "بلوكات ٢٢ و٢٣", v: [22.63, 25.77, 27.52, 28.37, 31.14, null, 32.03] },
 ];
 const PG_BLOCKS = [
   { b: 1, ph: "p1", v: [47.64, 50.02, 51.88, 53.56, 54.44, null, 58.03] },
@@ -432,7 +432,10 @@ const PG_BLOCKS = [
   { b: 23, ph: "p4", v: [19.1, 19.5, 19.5, 19.5, 19.5, null, 19.88] },
 ];
 const PG_NOTE = "بلوك ٢٣: لا توجد بيانات جديدة لمايو ويونيو، فتم ترحيل آخر نسبة مسجَّلة (١٩٫٥٠٪ في أبريل) بدل تجاهله.";
-const PG_PHASE_NAME = { p1: "المرحلة الأولى", p2: "المرحلة الثانية", p3: "المرحلة الثالثة", p4: "المرحلة الرابعة" };
+/* نسخة بدون أرقام شهرية (v) من PG_PHASES — تُستخدم لبناء بيانات أي شهور تجي من قاعدة
+   البيانات مستقبلًا (تحافظ على نفس التسميات والترتيب الثابت بغض النظر عن مصدر الأرقام) */
+const PG_PHASES_META = PG_PHASES.map(({ key, label, note }) => ({ key, label, note }));
+const PG_PHASE_NAME = { p1: "المرحلة الأولى", p2: "المرحلة الثانية", p3: "المرحلة الثالثة", p4: "المرحلة الرابعة", p_unassigned: "غير مصنّف" };
 const PG_BASE = { months: PG_MONTHS, target: PG_TARGET, phases: PG_PHASES, blocks: PG_BLOCKS, note: PG_NOTE, updatedAt: null, label: "", start: { y: 2026, m: 2 } };
 
 /* ── هدف التنفيذ: خطة خطّية تُحسب من التقويم ──
@@ -446,6 +449,77 @@ const PLAN_ANCHOR_Y = 2025, PLAN_ANCHOR_M = 4;   /* أبريل ٢٠٢٥ = الخ
 const PLAN_END_Y = 2027, PLAN_END_M = 12;        /* نهاية الخطة عند ١٠٠٪ */
 const planTarget = (y, m) =>
   Math.max(0, Math.min(100, +(PLAN_STEP * ((y - PLAN_ANCHOR_Y) * 12 + (m - PLAN_ANCHOR_M))).toFixed(2)));
+
+/* ═══════════════════════════════════════════════════════════
+   ٦ب. تقدّم التنفيذ من قاعدة البيانات (progress_matrix) — يحلّ محلّ
+   الاعتماد الكامل على PG_BASE الثابت بالكود. كل شهر مخزَّن كصف واحد
+   بجدول progress_matrix: {month:'YYYY-MM', phases:{...}, blocks:{...}}.
+   الهدف (target) ما يُخزَّن إطلاقًا — يُحسب دائمًا آليًا بصيغة planTarget()
+   لأي شهر موجود، تمامًا متل فلسفة الخطة الخطية أعلاه.
+   ═══════════════════════════════════════════════════════════ */
+/* البلوكات الأصلية بترتيب عرضها الحالي + تصنيف كل بلوك لمرحلته — يبقى ثابتًا
+   بالكود لأن ملف الإكسل نفسه ما يذكر أي بلوك تابع لأي مرحلة، فقط رقمه. */
+const PG_BLOCK_PHASE = {
+  1: "p1", 2: "p1", 3: "p1", 4: "p1", 5: "p1",
+  6: "p2", 7: "p2", 8: "p2",
+  9: "p3", 10: "p3", 12: "p3", 13: "p3", 14: "p3", 15: "p3",
+  22: "p4", 23: "p4",
+};
+const PG_BLOCK_DISPLAY_ORDER = [1, 2, 3, 5, 4, 7, 6, 8, 9, 10, 14, 13, 22, 12, 15, 23];
+/* أي بلوك جديد ما هو موجود بالخريطة أعلاه (توسّع مستقبلي بالمشروع) يُصنَّف تلقائيًا
+   حسب نطاقات أرقام البلوكات المعروفة بدل ما يُفقد من العرض؛ ولو خارج كل النطاقات
+   يوضع تحت "غير مصنّف" ويظهر تحذير بمعاينة الرفع يطلب مراجعته يدويًا بالكود. */
+function guessBlockPhase(b) {
+  if (PG_BLOCK_PHASE[b]) return PG_BLOCK_PHASE[b];
+  if (b >= 1 && b <= 5) return "p1";
+  if (b >= 6 && b <= 8) return "p2";
+  if (b >= 9 && b <= 21) return "p3";
+  if (b >= 22 && b <= 23) return "p4";
+  return "p_unassigned";
+}
+const monthKeyOf = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
+const monthKeyParts = (key) => { const [y, m] = String(key).split("-").map(Number); return { y, m }; };
+function nextMonthKey(key) {
+  const { y, m } = monthKeyParts(key);
+  const t = y * 12 + (m - 1) + 1;
+  return monthKeyOf(Math.floor(t / 12), (t % 12) + 1);
+}
+/* يبني نفس شكل بيانات PG_BASE (months/target/phases/blocks/start) من صفوف جدول
+   progress_matrix — يملأ أي شهر مفقود بين أقدم وأحدث شهر موجود بقيمة فارغة (null)
+   عشان يبقى تسلسل الأشهر متصلًا (مطلوب لحساب الهدف تلقائيًا ولتمديد الخطة مستقبلًا)
+   حتى لو رفع الأدمن ملفًا فيه فجوة (مثلاً شهر سحبه المطوّر بالكامل ولا صار له صف أصلاً). */
+function buildPgFromRows(rows) {
+  if (!rows || !rows.length) return null;
+  const byMonth = new Map(rows.map((r) => [r.month, r]));
+  const sortedKeys = [...byMonth.keys()].sort();
+  const first = sortedKeys[0], last = sortedKeys[sortedKeys.length - 1];
+  const monthKeys = []; const months = [];
+  for (let k = first; ; k = nextMonthKey(k)) {
+    monthKeys.push(k);
+    months.push(MONTH_AR[monthKeyParts(k).m - 1]);
+    if (k === last) break;
+    if (monthKeys.length > 240) break; /* حزام أمان: يمنع حلقة لا نهائية لو تاريخ تالف */
+  }
+  const { y: startY, m: startM } = monthKeyParts(first);
+  const target = monthKeys.map((k) => { const { y, m } = monthKeyParts(k); return planTarget(y, m); });
+
+  const phases = PG_PHASES_META.map((meta) => ({
+    ...meta,
+    v: monthKeys.map((k) => { const val = byMonth.get(k)?.phases?.[meta.key]; return val == null ? null : +val; }),
+  }));
+
+  const blockNums = new Set(PG_BLOCK_DISPLAY_ORDER);
+  rows.forEach((r) => Object.keys(r.blocks || {}).forEach((b) => blockNums.add(+b)));
+  const extra = [...blockNums].filter((b) => !PG_BLOCK_DISPLAY_ORDER.includes(b)).sort((a, b) => a - b);
+  const blockOrder = [...PG_BLOCK_DISPLAY_ORDER, ...extra];
+  const blocks = blockOrder.map((b) => ({
+    b, ph: guessBlockPhase(b),
+    v: monthKeys.map((k) => { const val = byMonth.get(k)?.blocks?.[String(b)]; return val == null ? null : +val; }),
+  }));
+
+  const updatedAt = rows.reduce((a, r) => (r.updated_at && r.updated_at > (a || "") ? r.updated_at : a), null);
+  return { months, target, phases, blocks, note: PG_NOTE, updatedAt, label: "", start: { y: startY, m: startM } };
+}
 
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const arNum = (n) => String(n).replace(/[0-9]/g, (d) => AR_DIGITS[+d]);
@@ -488,7 +562,7 @@ function extendPlan(data, now) {
 }
 
 /* ── ترجمة محتوى تقدم التنفيذ (النسخة الأساسية المدمجة فقط؛ التحديثات الحيّة تبقى كما رُفعت) ── */
-const PG_PHASE_NAME_EN = { p1: "Phase 1", p2: "Phase 2", p3: "Phase 3", p4: "Phase 4" };
+const PG_PHASE_NAME_EN = { p1: "Phase 1", p2: "Phase 2", p3: "Phase 3", p4: "Phase 4", p_unassigned: "Unclassified" };
 const PG_LABEL_EN = { "إجمالي المشروع": "Total Project", "المرحلة الأولى": "Phase 1", "المرحلة الثانية": "Phase 2", "المرحلة الثالثة": "Phase 3", "المرحلة الرابعة": "Phase 4" };
 const PG_PNOTE_EN = { "كل البلوكات": "All Blocks", "بلوكات ١-٥": "Blocks 1–5", "بلوكات ٦-٨": "Blocks 6–8", "بلوكات ٩-١٥": "Blocks 9–15", "بلوكات ٢٢ و٢٣": "Blocks 22 & 23" };
 const PG_NOTE_EN = "Block 23: no new data for May or June, so the last recorded reading (19.50% in April) was carried forward for the average rather than ignored.";
@@ -1076,6 +1150,13 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.12.0",
+    dateAr: "30 أغسطس 2026",
+    dateEn: "August 30, 2026",
+    ar: ["إضافة رفع تلقائي لملف \"تقدّم الوحدة والمراحل\" من لوحة الإدارة — يقرأ شيت KPIs بدون أي إعداد يدوي للأعمدة ويحدّث تبويب «تقدّم التنفيذ» بالموقع العام مباشرة لكل الزوّار عبر قاعدة البيانات، بدل الاعتماد على تعديل الكود وإعادة النشر كل شهر"],
+    en: ["Added automatic upload for the \"Unit & Phases Progress\" file from the admin panel — reads the KPIs sheet with zero manual column setup and updates the public \"Execution Progress\" tab live for all visitors via the database, instead of relying on a code edit and redeploy each month"],
+  },
   {
     version: "1.11.2",
     dateAr: "30 أغسطس 2026",
@@ -2096,7 +2177,7 @@ function ProgressTab({ reduced, data, loading }) {
     [...BLOCKS].sort((a, b) => (b.v[mi] == null ? -1 : b.v[mi]) - (a.v[mi] == null ? -1 : a.v[mi])), [mi, BLOCKS]);
 
   const stalled = blocks.filter((r) => mi > 0 && r.v[mi] != null && r.v[mi - 1] != null && Math.abs(r.v[mi] - r.v[mi - 1]) < 0.2);
-  const grouped = ["p1", "p2", "p3", "p4"].map((k) => ({ k, rows: blocks.filter((r) => r.ph === k) }));
+  const grouped = ["p1", "p2", "p3", "p4", "p_unassigned"].map((k) => ({ k, rows: blocks.filter((r) => r.ph === k) }));
 
   const Bar = ({ val, color, target }) => {
     const [ref, inView] = useInView(0.35);
@@ -2602,12 +2683,23 @@ function PublicSite() {
 
   useEffect(() => {
     let alive = true;
-    loadShared(PGKEY).then((s) => {
-      if (!alive) return;
-      if (s?.phases?.length && s?.blocks?.length) setPg(s);
-      setPgLoading(false);
-    });
-    return () => { alive = false; };
+    const fetchPg = async () => {
+      try {
+        const { data: rows, error } = await supabase.from("progress_matrix").select("*").order("month");
+        if (!alive) return;
+        if (!error && rows && rows.length) {
+          const built = buildPgFromRows(rows);
+          if (built) setPg(built);
+        }
+      } catch {}
+      if (alive) setPgLoading(false);
+    };
+    fetchPg();
+    const channel = supabase
+      .channel("public-progress-matrix-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "progress_matrix" }, fetchPg)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(channel); };
   }, []);
 
   const ALL = useMemo(() => {
@@ -4039,6 +4131,280 @@ function findNewColumnsAdmin(rows, categories) {
   return Object.entries(colValues).map(([column, set]) => ({ column, values: [...set] }));
 }
 
+/* ═══════════════════════════════════════════════════════════
+   محرك قراءة ملف «تقدّم الوحدة والمراحل» (شيت KPIs) — رفع تلقائي بالكامل:
+   يكتشف جدول متوسط تقدّم المراحل وجدول تقدّم البلوكات، وأعمدة الأشهر تحتهما،
+   بدون أي تعيين يدوي لعمود. الاستثناء الوحيد: الشيت يذكر اسم الشهر بدون سنة،
+   فيحتاج تأكيد سنة أول عمود من الأدمن (مع تخمين تلقائي من اسم الملف).
+   ═══════════════════════════════════════════════════════════ */
+function monthIndexOf(text) {
+  if (typeof text !== "string" || !text.trim()) return -1;
+  const t = text.trim();
+  let i = MONTH_EN_LABEL.findIndex((m) => m.toLowerCase() === t.toLowerCase());
+  if (i >= 0) return i;
+  i = MONTH_AR.findIndex((m) => normalizeArabic(m) === normalizeArabic(t));
+  return i;
+}
+/* يلقط سلسلة أعمدة متتالية تمثّل أسماء أشهر بادئة من عمود معيّن بصف — يوقف عند
+   أول خلية مو اسم شهر بعد ما يبدأ الالتقاط (يتجاوز الفراغات قبل أول اسم شهر) */
+function scanMonthRow(row) {
+  const out = []; let started = false;
+  for (let c = 0; c < (row ? row.length : 0); c++) {
+    const mi = monthIndexOf(row[c]);
+    if (mi < 0) { if (started) break; else continue; }
+    started = true;
+    out.push({ col: c, monthIdx: mi });
+  }
+  return out;
+}
+function toNumOrNull(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "string" && v.trim().toUpperCase() === "#N/A") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+/* يحوّل كسر (0.4696..) لنسبة مئوية بمنزلتين عشريتين (46.97) — نفس صيغة عرض
+   الموقع الحالية بكل مكان (PG_PHASES/PG_BLOCKS القديمة كانت مكتوبة بنفس الصيغة) */
+function toPct(v) { const n = toNumOrNull(v); return n == null ? null : Math.round(n * 10000) / 100; }
+function findRowIndexContaining(raw, needleNorm) {
+  for (let i = 0; i < raw.length; i++) {
+    const row = raw[i] || [];
+    if (row.some((c) => typeof c === "string" && normalizeArabic(c).includes(needleNorm))) return i;
+  }
+  return -1;
+}
+function findColIndexInRow(row, needleNorm) {
+  for (let c = 0; c < (row ? row.length : 0); c++) {
+    if (typeof row[c] === "string" && normalizeArabic(row[c]).includes(needleNorm)) return c;
+  }
+  return -1;
+}
+/* يحوّل قائمة أعمدة أشهر مكتشفة (بأي اتجاه ظهرت بالشيت) لمفاتيح تقويمية فعلية
+   (YYYY-MM) اعتمادًا على سنة العمود الأول فقط — يتحقق إن كل عمود تالٍ يمثّل فعلًا
+   الشهر السابق أو اللاحق مباشرة (تسلسل متصل بلا فجوة ولا قفزة)، وإلا يتوقف
+   ويرجع null بدل ما يخمّن سنة غلط. */
+function assignMonthKeys(monthCols, firstColYear) {
+  if (!monthCols.length) return null;
+  if (monthCols.length === 1) {
+    return [{ ...monthCols[0], year: firstColYear, key: monthKeyOf(firstColYear, monthCols[0].monthIdx + 1) }];
+  }
+  const d = ((monthCols[1].monthIdx - monthCols[0].monthIdx) % 12 + 12) % 12;
+  const step = d === 1 ? 1 : d === 11 ? -1 : null;
+  if (step == null) return null;
+  let y = firstColYear, m = monthCols[0].monthIdx;
+  const out = [{ ...monthCols[0], year: y, key: monthKeyOf(y, m + 1) }];
+  for (let i = 1; i < monthCols.length; i++) {
+    const expected = ((m + step) % 12 + 12) % 12;
+    if (monthCols[i].monthIdx !== expected) return null;
+    if (step === 1 && expected === 0) y += 1;
+    if (step === -1 && expected === 11) y -= 1;
+    m = expected;
+    out.push({ ...monthCols[i], year: y, key: monthKeyOf(y, m + 1) });
+  }
+  return out;
+}
+/* المحرّك الرئيسي: ياخذ ملف إكسل مقروء (XLSX.read) وسنة أول عمود، ويرجع
+   {sheetName, monthRows, warnings, monthLabels} أو {error} لو تعذّرت القراءة —
+   بدون رمي استثناء، عشان واجهة الرفع تقدر تعرض رسالة عربية واضحة دائمًا. */
+function parseKpiWorkbook(wb, firstColYear) {
+  const sheetName = wb.SheetNames.find((n) => /kpi/i.test(n))
+    || wb.SheetNames.find((n) => {
+      const raw = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null });
+      return raw.some((row) => (row || []).some((c) => typeof c === "string" && normalizeArabic(c).includes(normalizeArabic("متوسط تقدم المشروع"))));
+    });
+  if (!sheetName) return { error: "ما لقيت شيت يحتوي جدول \"متوسط تقدم المشروع والمراحل\" بهذا الملف. تأكد إنه نفس ملف «تقدم الوحدة والمراحل» المعتاد." };
+  const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: null });
+  const warnings = [];
+
+  const phaseTitleIdx = findRowIndexContaining(raw, normalizeArabic("متوسط تقدم المشروع والمراحل"));
+  if (phaseTitleIdx < 0) return { error: "ما لقيت عنوان جدول \"متوسط تقدم المشروع والمراحل\" بشيت KPIs." };
+  const phaseMonthCols = scanMonthRow(raw[phaseTitleIdx + 1]);
+  if (!phaseMonthCols.length) return { error: "ما لقيت صف عناوين الأشهر تحت جدول المراحل — تأكد إن الشيت ما تغيّر شكله." };
+  const phaseMonths = assignMonthKeys(phaseMonthCols, firstColYear);
+  if (!phaseMonths) return { error: "أعمدة الأشهر بجدول المراحل مو متتالية بشكل منتظم (شهر بعد شهر) — راجع الشيت أو صحّح السنة." };
+
+  const PHASE_ROW_KEYS = ["total", "p1", "p2", "p3", "p4"];
+  const phaseValues = {};
+  PHASE_ROW_KEYS.forEach((key, i) => {
+    const row = raw[phaseTitleIdx + 2 + i] || [];
+    phaseValues[key] = {};
+    phaseMonths.forEach(({ col, key: mk }) => { phaseValues[key][mk] = toPct(row[col]); });
+  });
+  const totalRowLabelCol = findColIndexInRow(raw[phaseTitleIdx + 2] || [], normalizeArabic("اجمالي"));
+  if (totalRowLabelCol < 0) {
+    warnings.push("صف \"إجمالي المشروع\" ما جاء بالمكان المتوقع (أول صف بعد عناوين الأشهر) — تأكد إن ترتيب صفوف المراحل بالملف (إجمالي، ثم المراحل ١-٤) ما تغيّر.");
+  }
+
+  const blockTitleIdx = findRowIndexContaining(raw, normalizeArabic("حسب البلوك"));
+  if (blockTitleIdx < 0) return { error: "ما لقيت عنوان جدول \"تقدم نسب الإنجاز - حسب البلوك\" بشيت KPIs." };
+  const blockNumColIdx = findColIndexInRow(raw[blockTitleIdx] || [], normalizeArabic("رقم البلوك"));
+  if (blockNumColIdx < 0) return { error: "ما لقيت عمود \"رقم البلوك\" بجدول البلوكات." };
+  const blockMonthCols = scanMonthRow(raw[blockTitleIdx + 1]);
+  if (!blockMonthCols.length) return { error: "ما لقيت صف عناوين الأشهر تحت جدول البلوكات." };
+  const blockMonths = assignMonthKeys(blockMonthCols, firstColYear);
+  if (!blockMonths) return { error: "أعمدة الأشهر بجدول البلوكات مو متتالية بشكل منتظم — راجع الشيت أو صحّح السنة." };
+
+  const blockValues = {};
+  for (let i = blockTitleIdx + 2; i < raw.length; i++) {
+    const row = raw[i] || [];
+    const bnum = toNumOrNull(row[blockNumColIdx]);
+    if (bnum == null) { if (Object.keys(blockValues).length) break; else continue; }
+    blockValues[bnum] = {};
+    blockMonths.forEach(({ col, key: mk }) => { blockValues[bnum][mk] = toPct(row[col]); });
+  }
+  if (!Object.keys(blockValues).length) return { error: "ما لقيت أي صف بلوك تحت جدول البلوكات." };
+
+  const unknownBlocks = Object.keys(blockValues).map(Number).filter((b) => !(b in PG_BLOCK_PHASE));
+  if (unknownBlocks.length) {
+    warnings.push(`بلوكات جديدة ما إلها مرحلة معروفة بكود الموقع: ${unknownBlocks.join("، ")} — راح تظهر تحت "غير مصنّف" لين ما تُضاف لخريطة البلوكات بالكود.`);
+  }
+
+  const allMonthKeys = [...new Set([...phaseMonths.map((m) => m.key), ...blockMonths.map((m) => m.key)])].sort();
+  const monthRows = allMonthKeys.map((mk) => ({
+    month: mk,
+    phases: Object.fromEntries(PHASE_ROW_KEYS.map((k) => [k, phaseValues[k]?.[mk] ?? null]).filter(([, v]) => v != null)),
+    blocks: Object.fromEntries(Object.entries(blockValues).map(([b, vals]) => [b, vals[mk] ?? null]).filter(([, v]) => v != null)),
+  }));
+  const monthLabels = allMonthKeys.map((mk) => { const { y, m } = monthKeyParts(mk); return `${MONTH_AR[m - 1]} ${y}`; });
+
+  return { sheetName, monthRows, warnings, monthLabels };
+}
+
+/* ── لوحة رفع ملف «تقدّم الوحدة والمراحل» — تكتب بجدول progress_matrix، ومنه
+   يقرأ تبويب «تقدّم التنفيذ» بالموقع العام مباشرة (مباشرة عبر Supabase Realtime،
+   بدون أي تعديل كود ولا إعادة نشر). خطوتين فقط: رفع الملف، ثم تأكيد التحديث. ── */
+function ProgressMatrixSync({ flashToast, canImport, log }) {
+  const T = useSystemTheme();
+  const fileRef = useRef(null);
+  const wbRef = useRef(null);
+  const [fileName, setFileName] = useState("");
+  const [parsed, setParsed] = useState(null);
+  const [firstYear, setFirstYear] = useState(new Date().getFullYear());
+  const [current, setCurrent] = useState([]);
+  const [applying, setApplying] = useState(false);
+
+  const loadCurrent = () => supabase.from("progress_matrix").select("*").order("month").then(({ data }) => setCurrent(data || []));
+  useEffect(() => { loadCurrent(); }, []);
+
+  const runParse = (yr) => { setFirstYear(yr); if (wbRef.current) setParsed(parseKpiWorkbook(wbRef.current, yr)); };
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setFileName(file.name);
+    const ym = file.name.match(/20\d{2}/);
+    const guessYear = ym ? Number(ym[0]) : new Date().getFullYear();
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: false });
+        wbRef.current = wb;
+        setFirstYear(guessYear);
+        setParsed(parseKpiWorkbook(wb, guessYear));
+      } catch { wbRef.current = null; setParsed({ error: "تعذّرت قراءة الملف — تأكد إنه ملف إكسل صالح (.xlsx)." }); }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
+
+  const currentByMonth = useMemo(() => new Map(current.map((r) => [r.month, r])), [current]);
+  const diffSummary = useMemo(() => {
+    if (!parsed || parsed.error) return null;
+    return parsed.monthRows.map((row) => {
+      const cur = currentByMonth.get(row.month);
+      const isNew = !cur;
+      const changed = !isNew && (JSON.stringify(cur.phases || {}) !== JSON.stringify(row.phases) || JSON.stringify(cur.blocks || {}) !== JSON.stringify(row.blocks));
+      return { ...row, isNew, changed };
+    });
+  }, [parsed, currentByMonth]);
+
+  const apply = async () => {
+    if (!canImport) { flashToast("ما عندك صلاحية \"رفع ومزامنة بيانات من إكسل\" اللازمة"); return; }
+    if (!diffSummary || !diffSummary.length) return;
+    setApplying(true);
+    try {
+      const { data: backupRows } = await supabase.from("progress_matrix").select("*");
+      await supabase.from("progress_matrix_backups").insert({
+        label: `قبل رفع تقدّم الوحدة بتاريخ ${fmtAdminDate(new Date())}`,
+        rows: backupRows || [],
+      });
+      const { data: oldBackups } = await supabase.from("progress_matrix_backups").select("id").order("created_at", { ascending: false });
+      if (oldBackups && oldBackups.length > 5) {
+        await supabase.from("progress_matrix_backups").delete().in("id", oldBackups.slice(5).map((b) => b.id));
+      }
+      const rows = diffSummary.map((r) => ({ month: r.month, phases: r.phases, blocks: r.blocks, updated_at: new Date().toISOString() }));
+      const { error } = await supabase.from("progress_matrix").upsert(rows, { onConflict: "month" });
+      if (error) throw error;
+      log("رفع بيانات تقدّم الوحدة (KPIs)", `${rows.length} شهر — ${fileName}`);
+      flashToast("تم تحديث تقدّم التنفيذ بالموقع");
+      setParsed(null); wbRef.current = null; setFileName("");
+      loadCurrent();
+    } catch {
+      flashToast("تعذّر تحديث تقدّم التنفيذ — لم يتغيّر شي بالبيانات الحالية");
+    }
+    setApplying(false);
+  };
+
+  if (!canImport) return null;
+
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <TrendingUp size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>تحديث تقدّم الوحدة والمراحل (KPIs)</span>
+      </div>
+      <p style={{ fontSize: 12.5, color: T.muted, margin: "4px 0 14px", lineHeight: 1.7 }}>
+        ارفع نفس ملف «تقدم الوحدة والمراحل» كل شهر — يُقرأ شيت KPIs تلقائيًا (المراحل والبلوكات) ويحدّث تبويب «تقدّم التنفيذ» بالموقع العام مباشرة لكل الزوّار، بدون أي تعديل يدوي على الكود أو إعادة نشر.
+      </p>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button onClick={() => fileRef.current?.click()} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+          <Upload size={15} /> رفع ملف تقدّم الوحدة
+        </button>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
+        {fileName && <span style={{ fontSize: 12, color: T.muted }}>{fileName}</span>}
+      </div>
+
+      {parsed?.error && (
+        <div className="note-box" style={{ marginTop: 14, color: "#c0392b" }}>{parsed.error}</div>
+      )}
+
+      {parsed && !parsed.error && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            <label style={{ fontSize: 12.5, color: T.muted }}>سنة أول شهر بالملف ({parsed.monthLabels?.[0]?.split(" ")[0]}):</label>
+            <input type="number" value={firstYear} onChange={(e) => runParse(Number(e.target.value))}
+              style={{ width: 90, padding: "6px 8px", borderRadius: 8, border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, fontSize: 13 }} />
+            <span style={{ fontSize: 11.5, color: T.muted }}>عدّلها لو التخمين غلط — المعاينة تحت تتحدّث فورًا</span>
+          </div>
+
+          {parsed.warnings?.length > 0 && (
+            <div className="note-box" style={{ marginBottom: 12, color: "#b8860b" }}>
+              {parsed.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
+            </div>
+          )}
+
+          <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
+            الأشهر المكتشفة: {parsed.monthLabels.join(" · ")}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+            {diffSummary.map((r) => (
+              <div key={r.month} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 9, padding: "8px 12px" }}>
+                <span style={{ fontSize: 12.5 }}>{MONTH_AR[monthKeyParts(r.month).m - 1]} {monthKeyParts(r.month).y}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: r.isNew ? T.brass : r.changed ? "#b8860b" : T.muted }}>
+                  {r.isNew ? "جديد" : r.changed ? "تغيّر" : "بدون تغيير"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={apply} disabled={applying} style={{ display: "flex", alignItems: "center", gap: 7, background: applying ? T.muted : T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: applying ? "wait" : "pointer" }}>
+            <RefreshCw size={15} /> {applying ? "جارٍ التحديث..." : "تحديث الموقع الآن"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
 function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, canImport, canAdd, canEdit, canDelete, log }) {
   const T = useSystemTheme();
@@ -4392,6 +4758,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         </div>
       </div>
       )}
+
+      {canImport && <ProgressMatrixSync flashToast={flashToast} canImport={canImport} log={log} />}
 
       {canImport && backups.length > 0 && (
         <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
