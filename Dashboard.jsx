@@ -1151,6 +1151,20 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.12.2",
+    dateAr: "30 أغسطس 2026",
+    dateEn: "August 30, 2026",
+    ar: ["إصلاح جذري لقراءة جدول المراحل بملف تقدّم الوحدة: صار كل صف (الإجمالي، والمراحل ١-٤) يُكتشف بمطابقة نصّه هو نفسه، بدل الاعتماد على عدّ عدد صفوف ثابت من عنوان الجدول — هذا هو سبب رجوع أرقام غلط لبعض المراحل ومسح شهور فبراير-يونيو بالرفعة الأولى الفعلية. جدول البلوكات ما تأثر لأنه أصلًا مبني على نفس مبدأ المطابقة بالمحتوى"],
+    en: ["Root-cause fix for reading the phases table in the unit-progress file: every row (Total, and Phases 1-4) is now located by matching its own text, instead of counting a fixed number of rows down from the table title — this was the actual cause of the wrong phase numbers and the wiped February-June months on the real first upload. The blocks table was unaffected since it already worked on content-matching"],
+  },
+  {
+    version: "1.12.1",
+    dateAr: "30 أغسطس 2026",
+    dateEn: "August 30, 2026",
+    ar: ["إضافة حماية من فقدان البيانات برفع ملف تقدّم الوحدة: أي شهر يرجع بقيم أقل بكثير مما هو مسجَّل له فعلًا يُستبعد تلقائيًا من التحديث بدل الكتابة فوقه، ويحتاج تأكيدًا صريحًا لكل شهر منه لو كان مقصودًا. كذلك صار تعذّر التعرّف على صف \"إجمالي المشروع\" بشيت KPIs يوقف القراءة بخطأ واضح بدل المتابعة بأرقام قد تكون غلط"],
+    en: ["Added data-loss protection to the unit-progress upload: any month whose parsed values are far fewer than what's already recorded is now automatically excluded from the update instead of overwriting it, and needs explicit per-month confirmation if truly intended. Also, failing to locate the \"Total Project\" row in the KPIs sheet now stops the read with a clear error instead of continuing with potentially wrong numbers"],
+  },
+  {
     version: "1.12.0",
     dateAr: "30 أغسطس 2026",
     dateEn: "August 30, 2026",
@@ -4203,9 +4217,30 @@ function assignMonthKeys(monthCols, firstColYear) {
   }
   return out;
 }
+/* يفتش عن أول صف ضمن مدى معيّن يحتوي أسماء أشهر متتالية (٢ على الأقل) — بدل
+   افتراض إنه دائمًا الصف اللي بعد العنوان مباشرة، عشان يتحمّل صف فاضي إضافي أو
+   أي اختلاف بسيط بشكل الملف. */
+function findMonthHeaderRow(raw, startIdx, endIdx) {
+  for (let i = startIdx; i <= endIdx && i < raw.length; i++) {
+    const cols = scanMonthRow(raw[i]);
+    if (cols.length >= 2) return { idx: i, cols };
+  }
+  return null;
+}
+/* يفتش عن أول صف ضمن مدى معيّن فيه خلية نصّها يطابق أحد النصوص المطلوبة (بعد
+   التطبيع) — نفس محرك findRowIndexContaining بس محدود بمدى صفوف معيّن. */
+function findRowMatchingIn(raw, startIdx, endIdx, needles) {
+  for (let i = startIdx; i <= endIdx && i < raw.length; i++) {
+    const row = raw[i] || [];
+    if (row.some((c) => typeof c === "string" && needles.some((n) => normalizeArabic(c).includes(n)))) return i;
+  }
+  return -1;
+}
 /* المحرّك الرئيسي: ياخذ ملف إكسل مقروء (XLSX.read) وسنة أول عمود، ويرجع
    {sheetName, monthRows, warnings, monthLabels} أو {error} لو تعذّرت القراءة —
-   بدون رمي استثناء، عشان واجهة الرفع تقدر تعرض رسالة عربية واضحة دائمًا. */
+   بدون رمي استثناء، عشان واجهة الرفع تقدر تعرض رسالة عربية واضحة دائمًا.
+   كل صف بيانات (المراحل الخمسة، وأرقام البلوكات) يُلقَط بمطابقة محتواه هو نفسه
+   لا بعدّ صفوف ثابت من العنوان — عشان ما ينكسر لو انزاح صف واحد لأي سبب. */
 function parseKpiWorkbook(wb, firstColYear) {
   const sheetName = wb.SheetNames.find((n) => /kpi/i.test(n))
     || wb.SheetNames.find((n) => {
@@ -4218,34 +4253,53 @@ function parseKpiWorkbook(wb, firstColYear) {
 
   const phaseTitleIdx = findRowIndexContaining(raw, normalizeArabic("متوسط تقدم المشروع والمراحل"));
   if (phaseTitleIdx < 0) return { error: "ما لقيت عنوان جدول \"متوسط تقدم المشروع والمراحل\" بشيت KPIs." };
-  const phaseMonthCols = scanMonthRow(raw[phaseTitleIdx + 1]);
-  if (!phaseMonthCols.length) return { error: "ما لقيت صف عناوين الأشهر تحت جدول المراحل — تأكد إن الشيت ما تغيّر شكله." };
-  const phaseMonths = assignMonthKeys(phaseMonthCols, firstColYear);
+  const phaseHeader = findMonthHeaderRow(raw, phaseTitleIdx + 1, phaseTitleIdx + 6);
+  if (!phaseHeader) return { error: "ما لقيت صف عناوين الأشهر تحت جدول المراحل خلال أول ٦ صفوف بعد العنوان — تأكد إن الشيت ما تغيّر شكله." };
+  const phaseMonths = assignMonthKeys(phaseHeader.cols, firstColYear);
   if (!phaseMonths) return { error: "أعمدة الأشهر بجدول المراحل مو متتالية بشكل منتظم (شهر بعد شهر) — راجع الشيت أو صحّح السنة." };
 
-  const PHASE_ROW_KEYS = ["total", "p1", "p2", "p3", "p4"];
-  const phaseValues = {};
-  PHASE_ROW_KEYS.forEach((key, i) => {
-    const row = raw[phaseTitleIdx + 2 + i] || [];
+  /* كل صف يُلقَط بمطابقة نصّه هو (مو بعدّ صفوف من العنوان) — ضمن نطاق واسع
+     (١٥ صف) بعد صف عناوين الأشهر، يكفي أي صفوف فاضية أو ملاحظات إضافية بينهم. */
+  const PHASE_ROW_DEFS = [
+    { key: "total", needles: [normalizeArabic("اجمالي")] },
+    { key: "p1", needles: [normalizeArabic("الأولى"), normalizeArabic("الاولى")] },
+    { key: "p2", needles: [normalizeArabic("الثانية")] },
+    { key: "p3", needles: [normalizeArabic("الثالثة")] },
+    { key: "p4", needles: [normalizeArabic("الرابعة")] },
+  ];
+  const phaseValues = {}; const missingPhaseRows = []; const phaseRowIdx = {};
+  PHASE_ROW_DEFS.forEach(({ key, needles }) => {
+    const idx = findRowMatchingIn(raw, phaseHeader.idx + 1, phaseHeader.idx + 15, needles);
     phaseValues[key] = {};
+    if (idx < 0) { missingPhaseRows.push(key); return; }
+    phaseRowIdx[key] = idx;
+    const row = raw[idx] || [];
     phaseMonths.forEach(({ col, key: mk }) => { phaseValues[key][mk] = toPct(row[col]); });
   });
-  const totalRowLabelCol = findColIndexInRow(raw[phaseTitleIdx + 2] || [], normalizeArabic("اجمالي"));
-  if (totalRowLabelCol < 0) {
-    warnings.push("صف \"إجمالي المشروع\" ما جاء بالمكان المتوقع (أول صف بعد عناوين الأشهر) — تأكد إن ترتيب صفوف المراحل بالملف (إجمالي، ثم المراحل ١-٤) ما تغيّر.");
+  /* حماية صارمة: لو أي صف من الخمسة ما انلقى بمطابقة محتواه، نوقف بخطأ صريح
+     بدل ما نكمل بأرقام ناقصة أو غلط ممكن تكتب فوق بيانات صحيحة موجودة أصلًا. */
+  if (missingPhaseRows.length) {
+    return { error: `ما لقيت صف بيانات مطابق لـ: ${missingPhaseRows.join("، ")} تحت جدول المراحل — توقّفت القراءة حماية من كتابة أرقام غلط. راجع شكل شيت KPIs.` };
+  }
+  if (!Object.values(phaseValues.total).some((v) => v != null)) {
+    return { error: "صف \"إجمالي المشروع\" موجود لكن كل قيمه فاضية — يبدو إن الأعمدة انزاحت. توقّفت القراءة حماية من كتابة أرقام غلط." };
   }
 
   const blockTitleIdx = findRowIndexContaining(raw, normalizeArabic("حسب البلوك"));
   if (blockTitleIdx < 0) return { error: "ما لقيت عنوان جدول \"تقدم نسب الإنجاز - حسب البلوك\" بشيت KPIs." };
-  const blockNumColIdx = findColIndexInRow(raw[blockTitleIdx] || [], normalizeArabic("رقم البلوك"));
+  let blockNumColIdx = -1;
+  for (let i = blockTitleIdx; i <= blockTitleIdx + 3 && i < raw.length; i++) {
+    const c = findColIndexInRow(raw[i] || [], normalizeArabic("رقم البلوك"));
+    if (c >= 0) { blockNumColIdx = c; break; }
+  }
   if (blockNumColIdx < 0) return { error: "ما لقيت عمود \"رقم البلوك\" بجدول البلوكات." };
-  const blockMonthCols = scanMonthRow(raw[blockTitleIdx + 1]);
-  if (!blockMonthCols.length) return { error: "ما لقيت صف عناوين الأشهر تحت جدول البلوكات." };
-  const blockMonths = assignMonthKeys(blockMonthCols, firstColYear);
+  const blockHeader = findMonthHeaderRow(raw, blockTitleIdx + 1, blockTitleIdx + 6);
+  if (!blockHeader) return { error: "ما لقيت صف عناوين الأشهر تحت جدول البلوكات." };
+  const blockMonths = assignMonthKeys(blockHeader.cols, firstColYear);
   if (!blockMonths) return { error: "أعمدة الأشهر بجدول البلوكات مو متتالية بشكل منتظم — راجع الشيت أو صحّح السنة." };
 
   const blockValues = {};
-  for (let i = blockTitleIdx + 2; i < raw.length; i++) {
+  for (let i = blockHeader.idx + 1; i < raw.length; i++) {
     const row = raw[i] || [];
     const bnum = toNumOrNull(row[blockNumColIdx]);
     if (bnum == null) { if (Object.keys(blockValues).length) break; else continue; }
@@ -4307,19 +4361,38 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
   };
 
   const currentByMonth = useMemo(() => new Map(current.map((r) => [r.month, r])), [current]);
+  /* حماية من فقدان البيانات: لو الملف المرفوع أعطى عدد قيم أقل بكثير مما هو مسجّل
+     فعليًا لشهر معيّن (يدل على خطأ بقراءة الملف، لا على تحديث حقيقي)، نستثني هذا
+     الشهر تلقائيًا من التحديث بدل الكتابة فوق بيانات صحيحة ببيانات فاضية أو ناقصة —
+     ويحتاج المدير تأكيد صريح لكل شهر منها لو كان فعلًا يقصد ذلك. */
   const diffSummary = useMemo(() => {
     if (!parsed || parsed.error) return null;
     return parsed.monthRows.map((row) => {
       const cur = currentByMonth.get(row.month);
       const isNew = !cur;
       const changed = !isNew && (JSON.stringify(cur.phases || {}) !== JSON.stringify(row.phases) || JSON.stringify(cur.blocks || {}) !== JSON.stringify(row.blocks));
-      return { ...row, isNew, changed };
+      const curCount = isNew ? 0 : Object.keys(cur.phases || {}).length + Object.keys(cur.blocks || {}).length;
+      const newCount = Object.keys(row.phases || {}).length + Object.keys(row.blocks || {}).length;
+      const dataLoss = !isNew && curCount >= 4 && newCount < curCount / 2;
+      return { ...row, isNew, changed, dataLoss };
     });
   }, [parsed, currentByMonth]);
+  const [forceMonths, setForceMonths] = useState(new Set());
+  const toggleForce = (mk) => setForceMonths((s) => { const n = new Set(s); n.has(mk) ? n.delete(mk) : n.add(mk); return n; });
+
+  const writeMonth = async (r) => {
+    const { error } = await supabase.from("progress_matrix").upsert(
+      { month: r.month, phases: r.phases, blocks: r.blocks, updated_at: new Date().toISOString() },
+      { onConflict: "month" }
+    );
+    return !error;
+  };
 
   const apply = async () => {
     if (!canImport) { flashToast("ما عندك صلاحية \"رفع ومزامنة بيانات من إكسل\" اللازمة"); return; }
     if (!diffSummary || !diffSummary.length) return;
+    const toWrite = diffSummary.filter((r) => !r.dataLoss || forceMonths.has(r.month));
+    if (!toWrite.length) { flashToast("كل الأشهر مستثناة بسبب حماية فقدان البيانات — راجع التحذيرات."); return; }
     setApplying(true);
     try {
       const { data: backupRows } = await supabase.from("progress_matrix").select("*");
@@ -4331,12 +4404,13 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
       if (oldBackups && oldBackups.length > 5) {
         await supabase.from("progress_matrix_backups").delete().in("id", oldBackups.slice(5).map((b) => b.id));
       }
-      const rows = diffSummary.map((r) => ({ month: r.month, phases: r.phases, blocks: r.blocks, updated_at: new Date().toISOString() }));
+      const rows = toWrite.map((r) => ({ month: r.month, phases: r.phases, blocks: r.blocks, updated_at: new Date().toISOString() }));
       const { error } = await supabase.from("progress_matrix").upsert(rows, { onConflict: "month" });
       if (error) throw error;
       log("رفع بيانات تقدّم الوحدة (KPIs)", `${rows.length} شهر — ${fileName}`);
-      flashToast("تم تحديث تقدّم التنفيذ بالموقع");
-      setParsed(null); wbRef.current = null; setFileName("");
+      const skipped = diffSummary.length - toWrite.length;
+      flashToast(skipped > 0 ? `تم التحديث — استُثني ${skipped} شهر بسبب حماية فقدان البيانات` : "تم تحديث تقدّم التنفيذ بالموقع");
+      setParsed(null); wbRef.current = null; setFileName(""); setForceMonths(new Set());
       loadCurrent();
     } catch {
       flashToast("تعذّر تحديث تقدّم التنفيذ — لم يتغيّر شي بالبيانات الحالية");
@@ -4387,14 +4461,27 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
             {diffSummary.map((r) => (
-              <div key={r.month} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.sunken, borderRadius: 9, padding: "8px 12px" }}>
+              <div key={r.month} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: r.dataLoss ? "#c0392b22" : T.sunken, border: r.dataLoss ? "1px solid #c0392b" : "none", borderRadius: 9, padding: "8px 12px" }}>
                 <span style={{ fontSize: 12.5 }}>{MONTH_AR[monthKeyParts(r.month).m - 1]} {monthKeyParts(r.month).y}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: r.isNew ? T.brass : r.changed ? "#b8860b" : T.muted }}>
-                  {r.isNew ? "جديد" : r.changed ? "تغيّر" : "بدون تغيير"}
-                </span>
+                {r.dataLoss ? (
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#c0392b", cursor: "pointer" }}>
+                    <input type="checkbox" checked={forceMonths.has(r.month)} onChange={() => toggleForce(r.month)} />
+                    ⚠ الملف فيه بيانات أقل بكثير من المسجَّل — استُبعد تلقائيًا، أكّد هنا لو تقصد هذا فعلًا
+                  </label>
+                ) : (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: r.isNew ? T.brass : r.changed ? "#b8860b" : T.muted }}>
+                    {r.isNew ? "جديد" : r.changed ? "تغيّر" : "بدون تغيير"}
+                  </span>
+                )}
               </div>
             ))}
           </div>
+
+          {diffSummary.some((r) => r.dataLoss) && (
+            <div className="note-box" style={{ marginBottom: 12, color: "#c0392b" }}>
+              ⚠ فيه أشهر مستبعدة تلقائيًا من هذا التحديث لأن الملف أعطى بيانات أقل بكثير مما هو مسجَّل حاليًا لها (يدل غالبًا على خطأ بقراءة الملف لا تحديث حقيقي). راجعها أعلاه، ولا تؤكّدها إلا لو متأكد إن الشهر فعلًا لازم يصير فاضي.
+            </div>
+          )}
 
           <button onClick={apply} disabled={applying} style={{ display: "flex", alignItems: "center", gap: 7, background: applying ? T.muted : T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: applying ? "wait" : "pointer" }}>
             <RefreshCw size={15} /> {applying ? "جارٍ التحديث..." : "تحديث الموقع الآن"}
