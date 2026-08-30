@@ -1151,6 +1151,13 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.12.3",
+    dateAr: "30 أغسطس 2026",
+    dateEn: "August 30, 2026",
+    ar: ["تعويض تلقائي لخلية \"الإجمالي\" الفاضية بجدول المراحل: لو المراحل الأربعة معبّاة لشهر معيّن لكن خليته \"الإجمالي\" فاضية (يصير هذا لما تتعدَّل خلايا المراحل يدويًا وتنكسر الصيغة المرتبطة بالإجمالي)، يُحسب الإجمالي تلقائيًا كمتوسط المراحل الأربعة — نفس الأسلوب الموثّق فعليًا بملاحظات الملف. اكتُشفت هذي الحالة الحقيقية بعد فحص ملف معدَّل فعليًا أرسله المستخدم"],
+    en: ["Automatic fallback for a blank \"Total\" cell in the phases table: if all four phases have values for a given month but the Total cell is blank (this happens when the phase cells are edited by hand and the formula feeding Total breaks), the total is now computed automatically as the average of the four phases — matching the methodology already documented in the file's own notes. This real scenario was discovered after reviewing an actually-edited file the user sent"],
+  },
+  {
     version: "1.12.2",
     dateAr: "30 أغسطس 2026",
     dateEn: "August 30, 2026",
@@ -4276,13 +4283,34 @@ function parseKpiWorkbook(wb, firstColYear) {
     const row = raw[idx] || [];
     phaseMonths.forEach(({ col, key: mk }) => { phaseValues[key][mk] = toPct(row[col]); });
   });
-  /* حماية صارمة: لو أي صف من الخمسة ما انلقى بمطابقة محتواه، نوقف بخطأ صريح
-     بدل ما نكمل بأرقام ناقصة أو غلط ممكن تكتب فوق بيانات صحيحة موجودة أصلًا. */
-  if (missingPhaseRows.length) {
-    return { error: `ما لقيت صف بيانات مطابق لـ: ${missingPhaseRows.join("، ")} تحت جدول المراحل — توقّفت القراءة حماية من كتابة أرقام غلط. راجع شكل شيت KPIs.` };
+  /* حماية صارمة: لو أي صف من الأربعة (p1-p4) ما انلقى بمطابقة محتواه، نوقف بخطأ
+     صريح — بس صف "الإجمالي" نفسه معاملته مختلفة تحت (بعض التحديثات اليدوية على
+     الملف تسيب خلية الإجمالي فاضية بعد ما تتعدَّل خلايا المراحل الأربعة يدويًا،
+     لأنها كانت مرتبطة بصيغة حسابية انكسرت). */
+  const missingRequired = missingPhaseRows.filter((k) => k !== "total");
+  if (missingRequired.length) {
+    return { error: `ما لقيت صف بيانات مطابق لـ: ${missingRequired.join("، ")} تحت جدول المراحل — توقّفت القراءة حماية من كتابة أرقام غلط. راجع شكل شيت KPIs.` };
+  }
+  /* تعويض تلقائي: لو خلية "الإجمالي" فاضية لشهر معيّن لكن كل المراحل الأربعة له
+     معبّاة، نحسب الإجمالي كمتوسط المراحل الأربعة — نفس الأسلوب المعتمد فعليًا
+     بملف تقدّم الوحدة (راجع عمود "ملاحظات" بشيت بيانات التقدم: "إجمالي المشروع =
+     متوسط نسب المراحل الأربعة"). هذا يغطّي حالة تعديل خلايا المراحل يدويًا بدون
+     ما ينكسر الإجمالي التابع لها. */
+  const recoveredTotalMonths = [];
+  phaseMonths.forEach(({ key: mk }) => {
+    if (phaseValues.total[mk] == null) {
+      const vals = ["p1", "p2", "p3", "p4"].map((k) => phaseValues[k][mk]);
+      if (vals.every((v) => v != null)) {
+        phaseValues.total[mk] = Math.round((vals.reduce((a, v) => a + v, 0) / 4) * 100) / 100;
+        recoveredTotalMonths.push(mk);
+      }
+    }
+  });
+  if (recoveredTotalMonths.length) {
+    warnings.push(`خلية "الإجمالي" كانت فاضية لأشهر (${recoveredTotalMonths.map((mk) => { const { y, m } = monthKeyParts(mk); return `${MONTH_AR[m - 1]} ${y}`; }).join("، ")})، فاتحسبت تلقائيًا كمتوسط المراحل الأربعة لذاك الشهر.`);
   }
   if (!Object.values(phaseValues.total).some((v) => v != null)) {
-    return { error: "صف \"إجمالي المشروع\" موجود لكن كل قيمه فاضية — يبدو إن الأعمدة انزاحت. توقّفت القراءة حماية من كتابة أرقام غلط." };
+    return { error: "صف \"إجمالي المشروع\" موجود لكن كل قيمه فاضية حتى بعد محاولة حسابه من متوسط المراحل — يبدو إن الأعمدة انزاحت. توقّفت القراءة حماية من كتابة أرقام غلط." };
   }
 
   const blockTitleIdx = findRowIndexContaining(raw, normalizeArabic("حسب البلوك"));
