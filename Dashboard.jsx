@@ -246,7 +246,8 @@ const CAT_EN = {
   "تجاري": "Commercial", "إداري/نظامي": "Administrative / Regulatory",
 };
 const OWN_EN = { "م/محمد عبدالمعطي": "Eng. Mohammed Abdulmuti", "م/رواحه": "Eng. Rawaha", "غير محدد": "Unspecified", "أبو سلطان": "Abu Sultan", "م/إبراهيم (مالك)": "Eng. Ibrahim (Owner)" };
-const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting" };
+const MEETING_ORDER = ["الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
+const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting" };
 const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const trPri = (lang, v) => (lang === "en" ? PRI_EN[v] || v : v);
@@ -395,6 +396,7 @@ const BASE = INQUIRIES_DATA.map((r) => ({
   id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", sta: r.status,
   answered: !!r.answered, owner: r.owner, month: r.month, closed: !!r.closed,
   meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
+  meetings: Array.isArray(r.meetings) ? r.meetings : [],
   note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
   last_modified: r.last_modified,
   urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
@@ -1150,6 +1152,23 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.13.0",
+    dateAr: "2 سبتمبر 2026",
+    dateEn: "September 2, 2026",
+    ar: [
+      "فلتر جديد: \"الاجتماع الخامس\" — يعرض البنود التي صدر بشأنها رد في اجتماع 2 سبتمبر 2026 (٩ بنود)",
+      "فلاتر الاجتماعات صارت تطابق كل اجتماع مرتبط بالبند، مو أول اجتماع فقط — قبل كذا كان البند المرتبط بأكثر من اجتماع يختفي من فلاتر الاجتماعات السابقة",
+      "إضافة عدّاد بجانب اسم كل اجتماع يوضح عدد بنوده",
+      "تحديث ردود وحالات ٩ بنود (٣٠، ٥٣، ٦٦، ٧٦، ٨٠، ٨١، ٨٢، ٨٤، ٨٥) — أُقفلت منها ٥ بنود",
+    ],
+    en: [
+      "New filter: \"5th Meeting\" — shows the items answered in the September 2, 2026 meeting (9 items)",
+      "Meeting filters now match every meeting an item is linked to, not just the first one — previously an item linked to several meetings disappeared from the earlier meetings' filters",
+      "Added a per-meeting item count next to each meeting name",
+      "Updated replies and statuses for 9 items (30, 53, 66, 76, 80, 81, 82, 84, 85) — 5 of them were closed",
+    ],
+  },
   {
     version: "1.12.3",
     dateAr: "30 أغسطس 2026",
@@ -2564,6 +2583,7 @@ function PublicSite() {
       answered: !!r.answered, owner: r.owner, month: r.month,
       closed: r.closed === "نعم" || r.closed === true,
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
+      meetings: Array.isArray(r.meetings) ? r.meetings : [],
       note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
       last_modified: r.last_modified,
       urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
@@ -2746,7 +2766,7 @@ function PublicSite() {
     models: MODEL_LIST.filter((m) => ALL.some((r) => r.models.includes(m))),
     owners: [...new Set(ALL.map((r) => r.owner))].filter(Boolean).sort((a, b) => a.localeCompare(b, "ar")),
     months: [...new Set(ALL.map((r) => r.month))].filter(Boolean).sort(),
-    meetings: [...new Set(ALL.map((r) => r.meeting))].filter(Boolean),
+    meetings: uniqSorted(ALL.flatMap((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting])), MEETING_ORDER),
   }), [ALL]);
 
   const newCount = ALL.filter((r) => r.isNew).length;
@@ -2782,7 +2802,7 @@ function PublicSite() {
     if (f.model && !r.models.includes(f.model)) return false;
     if (f.own && r.owner !== f.own) return false;
     if (f.mon && r.month !== f.mon) return false;
-    if (f.meeting && r.meeting !== f.meeting) return false;
+    if (f.meeting && !((r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(f.meeting))) return false;
     if (f.open && r.closed) return false;
     if (f.fresh && !r.isNew) return false;
     if (f.important && !r.isImportantActive) return false;
@@ -3678,7 +3698,7 @@ function PublicSite() {
                   <Select value={f.own} onChange={(v) => { setF((p) => ({ ...p, own: v })); setLimit(12); }} placeholder={L("كل المجيبين", "All engineers")} icon={User} options={cats.owners.map((m) => ({ v: m, l: trOwn(lang, m) }))} />
                   <Select value={f.mon} onChange={(v) => { setF((p) => ({ ...p, mon: v })); setLimit(12); }} placeholder={L("كل الأشهر", "All months")} icon={Calendar} options={cats.months.map((m) => ({ v: m, l: trMonth(lang, m) }))} />
                   {cats.meetings.map((m) => (
-                    <Chip key={m} on={f.meeting === m} onClick={() => set("meeting", m)} color={T.zone}>{trMeeting(lang, m)}</Chip>
+                    <Chip key={m} on={f.meeting === m} onClick={() => set("meeting", m)} color={T.zone}>{`${trMeeting(lang, m)} (${ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length})`}</Chip>
                   ))}
                 </div>
 

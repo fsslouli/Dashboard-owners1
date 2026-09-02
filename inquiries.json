@@ -558,18 +558,19 @@
   "cat": "تصميمي/جمالي",
   "status": "قيد الدراسة",
   "answered": true,
-  "owner": "م/محمد عبدالمعطي",
-  "month": "2026-08",
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
   "closed": false,
   "meetings": [
+   "الاجتماع الخامس",
    "الاجتماع الرابع"
   ],
   "note": "شكل نافذه المجلس لا يتناسب مع الطابع المعماري — الحل المقترح: تحسين التصميم الالمونيوم إلى باب سحب للاستفادة المستقبليه",
-  "reply": "عُرض المقترح على المستشار الهندسي ولم يُعتمد. لا يزال الفريق الهندسي يدرس حلولاً بديلة بالتنسيق مع المستشار، والبند لا يزال مفتوحاً.",
+  "reply": "الموضوع قيد المتابعة، حيث يواجه المهندس المسؤول تحديات في التنسيق مع الشركة الهندسية المنفذة، إضافة إلى اعتبارات تتعلق باشتراطات السلامة (Safety)، وسيتم تزويد الملاك بالرد النهائي فور الانتهاء من معالجة هذه النقاط.",
   "note_en": "The majlis window shape doesn't match the architectural style — proposed solution: upgrade the aluminum design to a sliding door for future benefit.",
-  "reply_en": "The proposal was presented to the engineering consultant and was not approved. The engineering team is still studying alternative solutions in coordination with the consultant, and the item remains open.",
+  "reply_en": "The matter remains under follow-up: the responsible engineer is facing coordination challenges with the executing engineering firm, in addition to safety requirement considerations. Owners will be given the final response once these points are resolved.",
   "content_hash": "c3fdd07ff3a2",
-  "last_modified": "2026-08-13"
+  "last_modified": "2026-09-02"
  },
  {
   "id": 31,
@@ -1001,21 +1002,22 @@
   "loc": "الأول",
   "pri": "عالية",
   "cat": "تصميمي/جمالي",
-  "status": "قيد الدراسة",
-  "answered": false,
-  "owner": "م/محمد عبدالمعطي",
-  "month": "2026-07",
-  "closed": false,
+  "status": "تم الرفض",
+  "answered": true,
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
+  "closed": true,
   "meetings": [
+   "الاجتماع الخامس",
    "الاجتماع الثالث",
    "الاجتماع الرابع"
   ],
   "note": "مقترح سابق بخصوص نافذة الشرفة بالدور الأول (أورورا) — الحل الجديد المقترح: تحويلها لدريشة سحب بارتفاع 90سم عن الأرضية حتى لا تُصنّف بلكونة حسب كود البناء",
-  "reply": "جارٍ دراسة حل بديل: تحويل النافذة لدريشة سحب بارتفاع 90سم عن الأرضية حتى لا تُصنّف بلكونة حسب كود البناء",
+  "reply": "تم رفض المقترح، حيث يُصنَّف الموقع ضمن الشرفات (البلكونات)، ولهذا التصنيف اشتراطات وتعديلات كودية خاصة لا يمكن تجاوزها.",
   "note_en": "Previous proposal regarding the first-floor balcony window (Aurora) — new proposed solution: convert it into a sliding vent/window set at 90 cm above floor level so it isn't classified as a balcony under building code.",
-  "reply_en": "An alternative solution is under study: converting the window into a sliding vent set at 90 cm above floor level so it isn't classified as a balcony under building code.",
+  "reply_en": "The proposal was rejected, as the location is classified as a balcony, which carries specific code requirements and conditions that cannot be waived.",
   "content_hash": "4c802a49860a",
-  "last_modified": null
+  "last_modified": "2026-09-02"
  },
  {
   "id": 54,
@@ -1278,18 +1280,19 @@
   "cat": "ترقية",
   "status": "قيد الدراسة",
   "answered": true,
-  "owner": "م/محمد عبدالمعطي",
-  "month": "2026-08",
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
   "closed": false,
   "meetings": [
+   "الاجتماع الخامس",
    "الاجتماع الرابع"
   ],
   "note": "استفسار عن إمكانية تنفيذ شبكة بيانات (LAN) بكابلات من نوع Cat6A في جميع أنحاء الفيلا بدلاً من Cat6، لضمان جاهزية أكبر للتقنيات المستقبلية",
-  "reply": "سيتم دراسة اعتماد كابل من نوع Cat6A لشبكة البيانات (LAN) بدلاً من Cat6.",
+  "reply": "لا يزال الموضوع قيد الدراسة الفنية من قبل الفريق المختص، وسيتم إبلاغ الملاك بالقرار النهائي فور الانتهاء منها.",
   "note_en": "Inquiry about running the data network (LAN) throughout the villa using Cat6A cabling instead of Cat6, to ensure better readiness for future technologies.",
-  "reply_en": "Adopting Cat6A cable for the LAN network instead of Cat6 will be studied.",
+  "reply_en": "The matter is still under technical study by the specialized team; owners will be informed of the final decision once it is complete.",
   "content_hash": "b8d1c157dbe7",
-  "last_modified": "2026-08-13"
+  "last_modified": "2026-09-02"
  },
  {
   "id": 67,
@@ -1482,20 +1485,21 @@
   "loc": "الأرضي",
   "pri": "متوسطة",
   "cat": "",
-  "status": "تم الرفض",
+  "status": "قيد الدراسة",
   "answered": true,
-  "owner": "م/محمد عبدالمعطي",
-  "month": "2026-08",
-  "closed": true,
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
+  "closed": false,
   "meetings": [
+   "الاجتماع الخامس",
    "الاجتماع الرابع"
   ],
   "note": "تصميم الجبس بورد بالصالة قطعة واحدة كاملة — طُلب سابقًا تعديله بنفس تصميم المجلس ولم يُعتمد، والآن يجري تعديله بما يسمح مستقبلاً بفصل الصالة لغرفتين عند الحاجة",
-  "reply": "تم رفض تعديل تصميم الجبس بورد بالصالة إلى تصميم قابل للفصل مستقبلاً، نظراً لتأثيره السلبي على الشكل الجمالي العام لتصميم السقف الجبسي، وسيُعتمد التصميم كما هو منفّذ في فيلا العرض (قطعة واحدة كاملة) دون تعديل.",
+  "reply": "تم رفع الموضوع إلى المكتب الاستشاري لدراسته من الناحية الهندسية وتحديد الحل المناسب، وسيتم إبلاغ الملاك بالنتيجة عند اعتمادها.",
   "note_en": "The gypsum board (drywall) ceiling design in the living room is a single continuous piece — a previous request to modify it to match the majlis design was not approved, and it is now being revised to allow the living room to be split into two rooms in the future if needed.",
-  "reply_en": "The request to modify the living room's gypsum ceiling design into one that could be split in the future was rejected, due to its negative effect on the overall aesthetics of the gypsum ceiling design. The design will be approved as implemented in the show villa (a single continuous piece), without modification.",
+  "reply_en": "The matter has been referred to the consulting office for engineering study and determination of a suitable solution. Owners will be informed of the outcome upon approval.",
   "content_hash": "258a6e037c78",
-  "last_modified": "2026-08-13"
+  "last_modified": "2026-09-02"
  },
  {
   "id": 77,
@@ -1560,18 +1564,20 @@
   "loc": "الشارع",
   "pri": "متوسطة",
   "cat": "استفسار فني توضيحي",
-  "status": "معتمدة",
+  "status": "قيد الدراسة",
   "answered": true,
-  "owner": "أبو سلطان (مالك)",
-  "month": "2026-08",
-  "closed": true,
-  "meetings": [],
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
+  "closed": false,
+  "meetings": [
+   "الاجتماع الخامس"
+  ],
   "note": "استفساراً عن آلية تمديد كوابل الاتصالات (الإنترنت) بالمشروع، وهل تم تجهيز البنية التحتية اللازمة لذلك",
-  "reply": "تم الاطلاع ميدانياً اليوم على أنابيب تأسيس الألياف البصرية (Microducts) الخاصة بالمشروع، وتبيّن أنها جاهزة ومُمدَّدة ضمن البنية التحتية، بحيث يتم لاحقاً تمرير كوابل الإنترنت (الألياف البصرية) من خلالها دون الحاجة لأي أعمال حفر أو تكسير إضافية",
+  "reply": "هذا الموضوع يقع خارج نطاق اختصاص فريق المشروع، ويندرج ضمن اختصاص شركة سكني، وسيتم متابعته والتنسيق بشأنه.",
   "note_en": "An inquiry about the mechanism for running telecom (internet) cables across the project, and whether the necessary infrastructure has been prepared for that.",
-  "reply_en": "A field inspection was conducted today of the project's fiber-optic infrastructure ducts (microducts), confirming they are ready and already laid within the infrastructure, so internet (fiber-optic) cables can later be pulled through them without any additional excavation or demolition work.",
+  "reply_en": "This matter falls outside the project team's scope and comes under Sakani's jurisdiction; it will be followed up and coordinated accordingly.",
   "content_hash": "0be7c55437cb",
-  "last_modified": "2026-08-20"
+  "last_modified": "2026-09-02"
  },
  {
   "id": 81,
@@ -1579,18 +1585,20 @@
   "loc": "كامل الفيلا",
   "pri": "عالية جدًا",
   "cat": "تجاري",
-  "status": "قيد الدراسة",
-  "answered": false,
-  "owner": null,
-  "month": null,
-  "closed": false,
-  "meetings": [],
+  "status": "معتمدة",
+  "answered": true,
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
+  "closed": true,
+  "meetings": [
+   "الاجتماع الخامس"
+  ],
   "note": "استفساراً عن وجود فروقات ملحوظة بين موقع المشروع كما هو مسجَّل بمنصة أمانة/بلدية منطقة الرياض وبين الموقع الموضح بالبروشور التسويقي للمشروع، وكذلك بين المساحات الواردة بالمخطط الإنشائي المعتمد وما هو مُعلن تسويقياً. ونأمل بيان السبب النظامي لهذا التباين، وتوضيح ما إذا كان له أي أثر على إجراءات إفراغ الوحدات (نقل الملكية) مستقبلاً، وآلية معالجته قبل مباشرة تلك الإجراءات",
-  "reply": null,
+  "reply": "تمت الموافقة على المقترح، على أن يتم الحصول على موافقة كل من المطور والمكتب الهندسي وشركة سكني قبل التنفيذ، وبعدها يمكن للمالك التعديل بالطريقة المناسبة.",
   "note_en": "An inquiry about noticeable discrepancies between the project location as registered on the Riyadh Region Municipality/Amanah platform and the location shown in the project's marketing brochure, as well as between the areas stated in the approved structural plan and those advertised for marketing. Requesting the official reason for this discrepancy, clarification on whether it will affect future unit transfer-of-ownership (\"Ifragh\") procedures, and the mechanism for resolving it before those procedures begin.",
-  "reply_en": null,
+  "reply_en": "The proposal was approved, provided that approval is obtained from the developer, the engineering office, and Sakani prior to execution, after which the owner may proceed with the modification.",
   "content_hash": "57b712e6e3d7",
-  "last_modified": null
+  "last_modified": "2026-09-02"
  },
  {
   "id": 82,
@@ -1598,18 +1606,20 @@
   "loc": "كامل الفيلا",
   "pri": "عالية",
   "cat": "إداري/نظامي",
-  "status": "قيد الدراسة",
-  "answered": false,
-  "owner": null,
-  "month": null,
-  "closed": false,
-  "meetings": [],
+  "status": "معتمدة",
+  "answered": true,
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
+  "closed": true,
+  "meetings": [
+   "الاجتماع الخامس"
+  ],
   "note": "استفساراً عن الجهة المسؤولة نظاماً عن استقبال طلبات التعديلات والإضافات المستقبلية على الوحدة (كإضافة ملحق أو غرفة سائق)، وهل الجهة المعنية بذلك هي (الوطنية)، مع توضيح ما إذا كانت هذه التعديلات تستلزم موافقة مسبقة من المكتب الاستشاري المشرف على المشروع، وبيان الإجراءات والخطوات النظامية الواجب اتباعها للحصول على هذه الموافقات",
-  "reply": null,
+  "reply": "تم اعتماد معالجة الفراغات غير المغلقة عن طريق تنفيذ عزل كامل في مناطق دورات المياه وأماكن التصريف، وقد تم إجراء اختبارات العزل للتأكد من سلامة التنفيذ ومنع أي تسريبات مستقبلية.",
   "note_en": "An inquiry about which party is officially responsible for receiving future requests for modifications and additions to a unit (such as adding an annex or a driver's room) — whether that party is (Al-Wataniya) — and clarification on whether such modifications require prior approval from the consulting office supervising the project, along with the official procedures and steps required to obtain these approvals.",
-  "reply_en": null,
+  "reply_en": "Treatment of the unsealed gaps has been approved through full waterproofing in the bathroom and drainage areas, and insulation testing has been carried out to verify proper execution and prevent future leaks.",
   "content_hash": "7a7075f329d2",
-  "last_modified": null
+  "last_modified": "2026-09-02"
  },
  {
   "id": 83,
@@ -1638,15 +1648,17 @@
   "cat": "استفسار فني توضيحي",
   "status": "معتمدة",
   "answered": true,
-  "owner": null,
-  "month": "2026-08",
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
   "closed": true,
-  "meetings": [],
+  "meetings": [
+   "الاجتماع الخامس"
+  ],
   "note": "استفساراً عن مدى مطابقة فتحة شفاط دورة المياه المطلة على الحوش الأمامي للمنزل لكود البناء السعودي، وهل هذا التوجيه ممنوع نظاماً",
-  "reply": "وفقاً لكود البناء السعودي SBC 1101/1102 (قسم البنود الميكانيكية)، فتحة عادم الشفاط الميكانيكي ليست ممنوعة عند إطلالتها على الحوش الأمامي، ويُشترط فقط ألا تقل المسافة عن 900مم من خط الملكية ومن أي فتحة قابلة للاستعمال (نافذة أو مأخذ تكييف) مجاورة، وذلك لمنع ارتداد الرائحة. كما يُحظر نظاماً إعادة تدوير هواء عادم الحمامات داخل المسكن، ويجب تصريفه مباشرة للهواء الطلق",
+  "reply": "يُعزى الاختلاف الملاحظ إلى تباين مناسيب الوحدات وارتفاعات الأسقف بين الفلل، وقد تم اعتماد توحيد الارتفاع الصافي من البلاطة إلى البلاطة ليصبح 2.65 متر بدلاً من 2.50 متر.",
   "note_en": "An inquiry about whether the bathroom exhaust fan opening facing the home's front yard complies with the Saudi Building Code, and whether this orientation is prohibited by code.",
-  "reply_en": "Per the Saudi Building Code SBC 1101/1102 (mechanical provisions section), a mechanical exhaust fan opening facing the front yard is not prohibited, provided the distance is no less than 900mm from the property line and from any adjacent usable opening (window or A/C intake), to prevent odor backflow. It is also prohibited by code to recirculate bathroom exhaust air inside the dwelling — it must be vented directly outdoors.",
+  "reply_en": "The observed variation is due to differences in unit levels and ceiling heights between villas. A unified clear slab-to-slab height of 2.65 m has been approved, replacing 2.50 m.",
   "content_hash": "6fbb17a64f89",
-  "last_modified": "2026-08-22"
+  "last_modified": "2026-09-02"
  }
 ]
