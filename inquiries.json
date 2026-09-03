@@ -1485,21 +1485,20 @@
   "loc": "الأرضي",
   "pri": "متوسطة",
   "cat": "",
-  "status": "قيد الدراسة",
+  "status": "تم الرفض",
   "answered": true,
-  "owner": "م/أحمد ملحم",
-  "month": "2026-09",
-  "closed": false,
+  "owner": "م/محمد عبدالمعطي",
+  "month": "2026-08",
+  "closed": true,
   "meetings": [
-   "الاجتماع الخامس",
    "الاجتماع الرابع"
   ],
   "note": "تصميم الجبس بورد بالصالة قطعة واحدة كاملة — طُلب سابقًا تعديله بنفس تصميم المجلس ولم يُعتمد، والآن يجري تعديله بما يسمح مستقبلاً بفصل الصالة لغرفتين عند الحاجة",
-  "reply": "تم رفع الموضوع إلى المكتب الاستشاري لدراسته من الناحية الهندسية وتحديد الحل المناسب، وسيتم إبلاغ الملاك بالنتيجة عند اعتمادها.",
+  "reply": "تم رفض تعديل تصميم الجبس بورد بالصالة إلى تصميم قابل للفصل مستقبلاً، نظراً لتأثيره السلبي على الشكل الجمالي العام لتصميم السقف الجبسي، وسيُعتمد التصميم كما هو منفّذ في فيلا العرض (قطعة واحدة كاملة) دون تعديل.",
   "note_en": "The gypsum board (drywall) ceiling design in the living room is a single continuous piece — a previous request to modify it to match the majlis design was not approved, and it is now being revised to allow the living room to be split into two rooms in the future if needed.",
-  "reply_en": "The matter has been referred to the consulting office for engineering study and determination of a suitable solution. Owners will be informed of the outcome upon approval.",
+  "reply_en": "The request to modify the living room's gypsum ceiling design into one that could be split in the future was rejected, due to its negative effect on the overall aesthetics of the gypsum ceiling design. The design will be approved as implemented in the show villa (a single continuous piece), without modification.",
   "content_hash": "258a6e037c78",
-  "last_modified": "2026-09-02"
+  "last_modified": "2026-08-13"
  },
  {
   "id": 77,
@@ -1509,16 +1508,18 @@
   "cat": "تصحيح عيب تنفيذي",
   "status": "قيد الدراسة",
   "answered": true,
-  "owner": "المهندس الميكانيكي للمشروع",
-  "month": "2026-08",
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
   "closed": false,
-  "meetings": [],
+  "meetings": [
+   "الاجتماع الخامس"
+  ],
   "note": "يُطلب رفع مقاس ماسورة تصريف الحوش الخلفي إلى ٤ بوصة، نظراً لعدم وجود غرفة تفتيش أو رداد ضمن التنفيذ الحالي",
-  "reply": "تمت مناقشة الموضوع مع المهندس الميكانيكي للمشروع بحضور ممثل الملاك، وتبيّن وجود تحدٍ فني يتمثل في صعوبة تكبير قطر الأنبوب الحالي نظراً لمحدودية الارتفاع المتاح وسماكة اللبشة الخرسانية. وأشار المهندس إلى وجود حوض زراعي بالحوش الخلفي يستوعب جزءاً من مياه التصريف، إلا أنه تم التأكيد على ضرورة إيجاد حل بديل ومستدام لا يقتصر على الامتصاص الطبيعي فقط. وعليه، تم اقتراح إضافة خط تصريف ثانٍ في الحوش الخلفي لتوزيع الحمل بين الخطين، على أن تُعاد دراسة الموضوع مع الاستشاري الهندسي لاختيار الحل الأنسب واعتماده",
+  "reply": "تم رفع الموضوع إلى المكتب الاستشاري لدراسته من الناحية الهندسية وتحديد الحل المناسب، وسيتم إبلاغ الملاك بالنتيجة عند اعتمادها.",
   "note_en": "A request to increase the back yard drainage pipe diameter to 4 inches, given the absence of an inspection chamber or cleanout in the current execution.",
-  "reply_en": "The issue was discussed with the project mechanical engineer in the presence of an owner representative. A technical challenge was identified: enlarging the current pipe diameter is difficult due to limited available height and the thickness of the concrete raft. The engineer noted a planting bed in the back yard absorbs part of the drainage water, but confirmed the need for a sustainable solution beyond natural absorption alone. A second drainage line in the back yard was proposed to split the load between both lines, pending further review with the engineering consultant to select and approve the best solution.",
+  "reply_en": "The matter has been referred to the consulting office for engineering study and determination of a suitable solution. Owners will be informed of the outcome upon approval.",
   "content_hash": "a4fefd15d528",
-  "last_modified": "2026-08-20"
+  "last_modified": "2026-09-02"
  },
  {
   "id": 78,
@@ -1564,6 +1565,25 @@
   "loc": "الشارع",
   "pri": "متوسطة",
   "cat": "استفسار فني توضيحي",
+  "status": "معتمدة",
+  "answered": true,
+  "owner": "أبو سلطان (مالك)",
+  "month": "2026-08",
+  "closed": true,
+  "meetings": [],
+  "note": "استفساراً عن آلية تمديد كوابل الاتصالات (الإنترنت) بالمشروع، وهل تم تجهيز البنية التحتية اللازمة لذلك",
+  "reply": "تم الاطلاع ميدانياً اليوم على أنابيب تأسيس الألياف البصرية (Microducts) الخاصة بالمشروع، وتبيّن أنها جاهزة ومُمدَّدة ضمن البنية التحتية، بحيث يتم لاحقاً تمرير كوابل الإنترنت (الألياف البصرية) من خلالها دون الحاجة لأي أعمال حفر أو تكسير إضافية",
+  "note_en": "An inquiry about the mechanism for running telecom (internet) cables across the project, and whether the necessary infrastructure has been prepared for that.",
+  "reply_en": "A field inspection was conducted today of the project's fiber-optic infrastructure ducts (microducts), confirming they are ready and already laid within the infrastructure, so internet (fiber-optic) cables can later be pulled through them without any additional excavation or demolition work.",
+  "content_hash": "0be7c55437cb",
+  "last_modified": "2026-08-20"
+ },
+ {
+  "id": 81,
+  "model": "جميع النماذج",
+  "loc": "كامل الفيلا",
+  "pri": "عالية جدًا",
+  "cat": "تجاري",
   "status": "قيد الدراسة",
   "answered": true,
   "owner": "م/أحمد ملحم",
@@ -1572,31 +1592,10 @@
   "meetings": [
    "الاجتماع الخامس"
   ],
-  "note": "استفساراً عن آلية تمديد كوابل الاتصالات (الإنترنت) بالمشروع، وهل تم تجهيز البنية التحتية اللازمة لذلك",
-  "reply": "هذا الموضوع يقع خارج نطاق اختصاص فريق المشروع، ويندرج ضمن اختصاص شركة سكني، وسيتم متابعته والتنسيق بشأنه.",
-  "note_en": "An inquiry about the mechanism for running telecom (internet) cables across the project, and whether the necessary infrastructure has been prepared for that.",
-  "reply_en": "This matter falls outside the project team's scope and comes under Sakani's jurisdiction; it will be followed up and coordinated accordingly.",
-  "content_hash": "0be7c55437cb",
-  "last_modified": "2026-09-02"
- },
- {
-  "id": 81,
-  "model": "جميع النماذج",
-  "loc": "كامل الفيلا",
-  "pri": "عالية جدًا",
-  "cat": "تجاري",
-  "status": "معتمدة",
-  "answered": true,
-  "owner": "م/أحمد ملحم",
-  "month": "2026-09",
-  "closed": true,
-  "meetings": [
-   "الاجتماع الخامس"
-  ],
   "note": "استفساراً عن وجود فروقات ملحوظة بين موقع المشروع كما هو مسجَّل بمنصة أمانة/بلدية منطقة الرياض وبين الموقع الموضح بالبروشور التسويقي للمشروع، وكذلك بين المساحات الواردة بالمخطط الإنشائي المعتمد وما هو مُعلن تسويقياً. ونأمل بيان السبب النظامي لهذا التباين، وتوضيح ما إذا كان له أي أثر على إجراءات إفراغ الوحدات (نقل الملكية) مستقبلاً، وآلية معالجته قبل مباشرة تلك الإجراءات",
-  "reply": "تمت الموافقة على المقترح، على أن يتم الحصول على موافقة كل من المطور والمكتب الهندسي وشركة سكني قبل التنفيذ، وبعدها يمكن للمالك التعديل بالطريقة المناسبة.",
+  "reply": "هذا الموضوع يقع خارج نطاق اختصاص فريق المشروع، ويندرج ضمن اختصاص شركة سكني، وسيتم متابعته والتنسيق بشأنه.",
   "note_en": "An inquiry about noticeable discrepancies between the project location as registered on the Riyadh Region Municipality/Amanah platform and the location shown in the project's marketing brochure, as well as between the areas stated in the approved structural plan and those advertised for marketing. Requesting the official reason for this discrepancy, clarification on whether it will affect future unit transfer-of-ownership (\"Ifragh\") procedures, and the mechanism for resolving it before those procedures begin.",
-  "reply_en": "The proposal was approved, provided that approval is obtained from the developer, the engineering office, and Sakani prior to execution, after which the owner may proceed with the modification.",
+  "reply_en": "This matter falls outside the project team's scope and comes under Sakani's jurisdiction; it will be followed up and coordinated accordingly.",
   "content_hash": "57b712e6e3d7",
   "last_modified": "2026-09-02"
  },
@@ -1615,9 +1614,9 @@
    "الاجتماع الخامس"
   ],
   "note": "استفساراً عن الجهة المسؤولة نظاماً عن استقبال طلبات التعديلات والإضافات المستقبلية على الوحدة (كإضافة ملحق أو غرفة سائق)، وهل الجهة المعنية بذلك هي (الوطنية)، مع توضيح ما إذا كانت هذه التعديلات تستلزم موافقة مسبقة من المكتب الاستشاري المشرف على المشروع، وبيان الإجراءات والخطوات النظامية الواجب اتباعها للحصول على هذه الموافقات",
-  "reply": "تم اعتماد معالجة الفراغات غير المغلقة عن طريق تنفيذ عزل كامل في مناطق دورات المياه وأماكن التصريف، وقد تم إجراء اختبارات العزل للتأكد من سلامة التنفيذ ومنع أي تسريبات مستقبلية.",
+  "reply": "تمت الموافقة على المقترح، على أن يتم الحصول على موافقة كل من المطور والمكتب الهندسي وشركة سكني قبل التنفيذ، وبعدها يمكن للمالك التعديل بالطريقة المناسبة.",
   "note_en": "An inquiry about which party is officially responsible for receiving future requests for modifications and additions to a unit (such as adding an annex or a driver's room) — whether that party is (Al-Wataniya) — and clarification on whether such modifications require prior approval from the consulting office supervising the project, along with the official procedures and steps required to obtain these approvals.",
-  "reply_en": "Treatment of the unsealed gaps has been approved through full waterproofing in the bathroom and drainage areas, and insulation testing has been carried out to verify proper execution and prevent future leaks.",
+  "reply_en": "The proposal was approved, provided that approval is obtained from the developer, the engineering office, and Sakani prior to execution, after which the owner may proceed with the modification.",
   "content_hash": "7a7075f329d2",
   "last_modified": "2026-09-02"
  },
@@ -1627,18 +1626,20 @@
   "loc": "الأرضي",
   "pri": "عالية",
   "cat": "تصحيح عيب تنفيذي",
-  "status": "قيد الدراسة",
-  "answered": false,
-  "owner": null,
-  "month": null,
-  "closed": false,
-  "meetings": [],
+  "status": "معتمدة",
+  "answered": true,
+  "owner": "م/أحمد ملحم",
+  "month": "2026-09",
+  "closed": true,
+  "meetings": [
+   "الاجتماع الخامس"
+  ],
   "note": "يُلاحظ ميدانياً وجود فراغات غير مُغلقة بين مواسير الصرف الصحي والصبة الخرسانية عند نقاط اختراق الأنابيب بالدور الأرضي، وهو ما قد يتسبب بتسربات مياه مستقبلاً. كما لوحظ وجود فتحات بقياس ٦ بوصة و٢ بوصة تم التعامل معها بشكل غير صحيح دون إغلاقها بالكامل. يُطلب إغلاق كافة الفراغات المذكورة بمواد مقاومة للماء وفق اشتراطات الكود الخاصة بإغلاق الفراغ الدائري حول اختراقات الأنابيب، والتأكد من سلامة التنفيذ قبل مباشرة أعمال التشطيب",
-  "reply": null,
+  "reply": "تم اعتماد معالجة الفراغات غير المغلقة عن طريق تنفيذ عزل كامل في مناطق دورات المياه وأماكن التصريف، وقد تم إجراء اختبارات العزل للتأكد من سلامة التنفيذ ومنع أي تسريبات مستقبلية.",
   "note_en": "Field observation of unclosed gaps between sewage pipes and the concrete slab at pipe penetration points on the ground floor, which could cause future water leaks. Also observed: 6-inch and 2-inch openings that were handled incorrectly and not fully closed. Requesting that all mentioned gaps be sealed with waterproof materials per code requirements for closing the annular gap around pipe penetrations, and confirming proper execution before finishing works begin.",
-  "reply_en": null,
+  "reply_en": "Treatment of the unsealed gaps has been approved through full waterproofing in the bathroom and drainage areas, and insulation testing has been carried out to verify proper execution and prevent future leaks.",
   "content_hash": "9aaf9e18928d",
-  "last_modified": null
+  "last_modified": "2026-09-02"
  },
  {
   "id": 84,
@@ -1648,17 +1649,15 @@
   "cat": "استفسار فني توضيحي",
   "status": "معتمدة",
   "answered": true,
-  "owner": "م/أحمد ملحم",
-  "month": "2026-09",
+  "owner": null,
+  "month": "2026-08",
   "closed": true,
-  "meetings": [
-   "الاجتماع الخامس"
-  ],
+  "meetings": [],
   "note": "استفساراً عن مدى مطابقة فتحة شفاط دورة المياه المطلة على الحوش الأمامي للمنزل لكود البناء السعودي، وهل هذا التوجيه ممنوع نظاماً",
-  "reply": "يُعزى الاختلاف الملاحظ إلى تباين مناسيب الوحدات وارتفاعات الأسقف بين الفلل، وقد تم اعتماد توحيد الارتفاع الصافي من البلاطة إلى البلاطة ليصبح 2.65 متر بدلاً من 2.50 متر.",
+  "reply": "وفقاً لكود البناء السعودي SBC 1101/1102 (قسم البنود الميكانيكية)، فتحة عادم الشفاط الميكانيكي ليست ممنوعة عند إطلالتها على الحوش الأمامي، ويُشترط فقط ألا تقل المسافة عن 900مم من خط الملكية ومن أي فتحة قابلة للاستعمال (نافذة أو مأخذ تكييف) مجاورة، وذلك لمنع ارتداد الرائحة. كما يُحظر نظاماً إعادة تدوير هواء عادم الحمامات داخل المسكن، ويجب تصريفه مباشرة للهواء الطلق",
   "note_en": "An inquiry about whether the bathroom exhaust fan opening facing the home's front yard complies with the Saudi Building Code, and whether this orientation is prohibited by code.",
-  "reply_en": "The observed variation is due to differences in unit levels and ceiling heights between villas. A unified clear slab-to-slab height of 2.65 m has been approved, replacing 2.50 m.",
+  "reply_en": "Per the Saudi Building Code SBC 1101/1102 (mechanical provisions section), a mechanical exhaust fan opening facing the front yard is not prohibited, provided the distance is no less than 900mm from the property line and from any adjacent usable opening (window or A/C intake), to prevent odor backflow. It is also prohibited by code to recirculate bathroom exhaust air inside the dwelling — it must be vented directly outdoors.",
   "content_hash": "6fbb17a64f89",
-  "last_modified": "2026-09-02"
+  "last_modified": "2026-08-22"
  }
 ]

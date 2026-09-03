@@ -3932,16 +3932,17 @@ const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", stat
 /* answered عمود boolean حقيقي بقاعدة البيانات (بخلاف closed اللي نص) — نحوّلها بالحدين:
    نص "نعم/لا" أثناء العرض والمقارنة بالإدارة (اتساقًا مع closed)، وBoolean فعلي عند الكتابة الفعلية لقاعدة البيانات */
 const REAL_BOOL_FIELDS = ["answered"];
+const toYesNo = (v) => (v === true ? "نعم" : v === false ? "لا" : v);
+const toDbBool = (v) => (v === "نعم" ? true : v === "لا" ? false : typeof v === "boolean" ? v : !!v);
 /* ── مقارنة القيم بين الملف المرفوع والسجل الحالي ──
    المقارنة النصية الحرفية كانت تُبلّغ عن "تعديل" على صفوف ما تغيّرت فعليًا:
    مسافة زائدة، همزة مختلفة، تشكيل، أرقام عربية-هندية، أو تاريخ منسّق بدل YYYY-MM.
    هذي الدوال توحّد الطرفين قبل المقارنة، فما يُعرض إلا التغيير الحقيقي. */
 const isBlankCell = (v) => v == null || String(v).trim() === "";
-const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9" };
 const toMonthKey = (v) => {
   if (isBlankCell(v)) return "";
   if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, "0")}`;
-  const t = String(v).replace(/[٠-٩]/g, (d) => AR_DIGITS[d]).trim();
+  const t = String(v).replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).trim();
   let m = t.match(/^(\d{4})[-/](\d{1,2})/);                 // 2026-09 / 2026/9
   if (m) return `${m[1]}-${String(+m[2]).padStart(2, "0")}`;
   m = t.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);     // 9/2/26 — يوم/شهر/سنة بصيغة الملف
@@ -3957,10 +3958,8 @@ const cmpVal = (field, v) => {
     return ["نعم", "مقفل", "مغلق", "تم الرد", "true", "1"].some((k) => norm(k) === t) ? "نعم"
       : ["لا", "مفتوح", "بانتظار الرد", "false", "0"].some((k) => norm(k) === t) ? "لا" : t;
   }
-  return norm(String(v).replace(/[٠-٩]/g, (d) => AR_DIGITS[d]));
+  return norm(String(v).replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))));
 };
-const toYesNo = (v) => (v === true ? "نعم" : v === false ? "لا" : v);
-const toDbBool = (v) => (v === "نعم" ? true : v === "لا" ? false : typeof v === "boolean" ? v : !!v);
 const ADMIN_TARGETS = [
   { key: "inquiries", label: "الاستفسارات", fields: INQ_FIELDS_ADMIN, keyField: "id" },
   { key: "progress", label: "تقدّم التنفيذ", fields: ["planned", "actual"], keyField: "month" },
