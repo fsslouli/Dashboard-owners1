@@ -1153,6 +1153,38 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.14.0",
+    dateAr: "3 سبتمبر 2026",
+    dateEn: "September 3, 2026",
+    ar: [
+      "فرز جديد بقائمة الاستفسارات في لوحة الإدارة: \"تاريخ الرد\" — يرتّب حسب تاريخ الرد الخاص بالاستفسار نفسه، الأحدث فوق، وصار هو الترتيب الافتراضي",
+      "الاستفسارات التي لم يصدر بشأنها رد بعد تنزل آخر القائمة بدل أن تتصدّرها، ويظهر بجانبها \"بانتظار الرد\"",
+      "عند تساوي شهر الرد، يُرتَّب الأحدث إضافة أولاً",
+    ],
+    en: [
+      "New sort in the admin inquiries list: \"Reply date\" — orders by the inquiry's own reply date, newest first, and is now the default",
+      "Inquiries with no reply yet drop to the bottom instead of leading the list, and are labelled \"awaiting reply\"",
+      "Ties within the same reply month are ordered by newest added first",
+    ],
+  },
+  {
+    version: "1.13.1",
+    dateAr: "2 سبتمبر 2026",
+    dateEn: "September 2, 2026",
+    ar: [
+      "إصلاح: كان الرسم البياني \"مسار الردود والتراكم\" يظهر فاضيًا — السبب أن عمود شهر الرد انمسح من قاعدة البيانات بالكامل أثناء رفع سابق. تم استرجاع القيم وإصلاح سبب المسح",
+      "إصلاح جوهري بالتدقيق: كان الرفع يُبلّغ عن \"تعديل\" على كل الاستفسارات في كل مرة. الآن تُوحَّد القيم قبل المقارنة (مسافات زائدة، همزات، تشكيل، أرقام عربية-هندية، وصيغ التواريخ)، فما يُعرض إلا التغيير الحقيقي فعلًا",
+      "حماية جديدة: خلية فاضية بالملف المرفوع ما تعود تمسح قيمة موجودة — تُعامَل كـ\"ما فيه بيانات\" بدل \"احذف\". هذي هي الثغرة التي مسحت عمود الشهر",
+      "قراءة أذكى لعمود الشهر: يقبل التاريخ بأي صيغة ويحوّله لـ YYYY-MM، ولا يسمح لعمود المعادلة الفاضي بطمس عمود التاريخ الصحيح",
+    ],
+    en: [
+      "Fix: the \"Reply Trend & Cumulative\" chart was rendering empty — the reply-month column had been wiped from the database entirely during an earlier import. Values restored and the underlying cause fixed",
+      "Major diff fix: every import was reporting a change on every single inquiry. Values are now normalized before comparison (extra spaces, hamza forms, diacritics, Arabic-Indic digits, and date formats), so only genuine changes are shown",
+      "New safeguard: a blank cell in an uploaded file no longer clears an existing value — it is treated as \"no data\" rather than \"delete\". This was the exact gap that wiped the month column",
+      "Smarter month parsing: accepts dates in any format and converts them to YYYY-MM, and no longer lets an empty formula column overwrite a valid date column",
+    ],
+  },
+  {
     version: "1.13.0",
     dateAr: "2 سبتمبر 2026",
     dateEn: "September 2, 2026",
@@ -3900,6 +3932,33 @@ const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", stat
 /* answered عمود boolean حقيقي بقاعدة البيانات (بخلاف closed اللي نص) — نحوّلها بالحدين:
    نص "نعم/لا" أثناء العرض والمقارنة بالإدارة (اتساقًا مع closed)، وBoolean فعلي عند الكتابة الفعلية لقاعدة البيانات */
 const REAL_BOOL_FIELDS = ["answered"];
+/* ── مقارنة القيم بين الملف المرفوع والسجل الحالي ──
+   المقارنة النصية الحرفية كانت تُبلّغ عن "تعديل" على صفوف ما تغيّرت فعليًا:
+   مسافة زائدة، همزة مختلفة، تشكيل، أرقام عربية-هندية، أو تاريخ منسّق بدل YYYY-MM.
+   هذي الدوال توحّد الطرفين قبل المقارنة، فما يُعرض إلا التغيير الحقيقي. */
+const isBlankCell = (v) => v == null || String(v).trim() === "";
+const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9" };
+const toMonthKey = (v) => {
+  if (isBlankCell(v)) return "";
+  if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, "0")}`;
+  const t = String(v).replace(/[٠-٩]/g, (d) => AR_DIGITS[d]).trim();
+  let m = t.match(/^(\d{4})[-/](\d{1,2})/);                 // 2026-09 / 2026/9
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2, "0")}`;
+  m = t.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);     // 9/2/26 — يوم/شهر/سنة بصيغة الملف
+  if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2, "0")}`; }
+  const d = new Date(t);
+  return isNaN(d) ? t : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+const cmpVal = (field, v) => {
+  if (isBlankCell(v)) return "";
+  if (field === "month") return toMonthKey(v);
+  if (field === "closed" || field === "answered") {
+    const t = norm(toYesNo(v));
+    return ["نعم", "مقفل", "مغلق", "تم الرد", "true", "1"].some((k) => norm(k) === t) ? "نعم"
+      : ["لا", "مفتوح", "بانتظار الرد", "false", "0"].some((k) => norm(k) === t) ? "لا" : t;
+  }
+  return norm(String(v).replace(/[٠-٩]/g, (d) => AR_DIGITS[d]));
+};
 const toYesNo = (v) => (v === true ? "نعم" : v === false ? "لا" : v);
 const toDbBool = (v) => (v === "نعم" ? true : v === "لا" ? false : typeof v === "boolean" ? v : !!v);
 const ADMIN_TARGETS = [
@@ -4142,7 +4201,10 @@ function smartSheetToJson(sheet, categories) {
   }
   const rows = XLSX.utils.sheet_to_json(sheet, { range: bestIdx, defval: "", raw: false });
   return rows.map(normalizeRow).map(normalizeBooleanFields).map((r) => {
-    if (typeof r.month === "string" && /^\d{4}-\d{2}/.test(r.month)) r.month = r.month.slice(0, 7);
+    /* عمودا "شهر الرد" (تاريخ) و"شهر الرد (نص)" (معادلة) ينطبق عليهما نفس الوسم؛ نعتمد
+       أيّهما أعطى مفتاح شهر صالح، وما نسمح لعمود فاضي (معادلة بلا قيمة مخزّنة) إنه يطمس الآخر. */
+    const mk = toMonthKey(r.month);
+    r.month = /^\d{4}-\d{2}$/.test(mk) ? mk : "";
     return r;
   }).map((r) => canonicalizeRow(r, categories));
 }
@@ -4571,19 +4633,35 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   useEffect(() => {
     supabase.from("inquiries").select("created_at").limit(1).then(({ error }) => { if (error) setHasCreatedAtCol(false); });
   }, []);
-  const [sortBy, setSortBy] = useState("updated_desc");
+  const [sortBy, setSortBy] = useState("reply_desc");
   const SORT_OPTIONS = [
+    { value: "reply_desc", label: "تاريخ الرد" },
     { value: "updated_desc", label: "آخر تعديل" },
     { value: "created_desc", label: "أحدث إضافة" },
     { value: "id_asc", label: "الرقم" },
   ];
+  /* فرز حسب تاريخ الرد الخاص بالاستفسار نفسه (عمود الشهر) — الأحدث فوق. الاستفسارات
+     اللي ما لها تاريخ رد بعد (بانتظار الرد) تنزل آخر القائمة بدل ما تتصدّرها، ويُفكّ
+     التعادل داخل نفس الشهر برقم الاستفسار تنازليًا (الأحدث إضافة أولاً). */
+  const replyMonthOf = (r) => {
+    const mk = toMonthKey(r.month);
+    return /^\d{4}-\d{2}$/.test(mk) ? mk : "";
+  };
   const sortedInquiries = useMemo(() => {
     const arr = [...inquiries];
+    if (sortBy === "reply_desc") return arr.sort((a, b) => {
+      const ma = replyMonthOf(a), mb = replyMonthOf(b);
+      if (!ma && !mb) return b.id - a.id;
+      if (!ma) return 1;
+      if (!mb) return -1;
+      return mb.localeCompare(ma) || b.id - a.id;
+    });
     if (sortBy === "updated_desc") return arr.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
     if (sortBy === "created_desc" && hasCreatedAtCol) return arr.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0) || b.id - a.id);
     return arr.sort((a, b) => a.id - b.id);
   }, [inquiries, sortBy, hasCreatedAtCol]);
   const rowDateLabel = (r) => {
+    if (sortBy === "reply_desc") { const mk = replyMonthOf(r); return mk ? `تاريخ الرد: ${mk}` : "بانتظار الرد"; }
     if (sortBy === "created_desc" && hasCreatedAtCol) return r.created_at ? `أُضيف: ${fmtAdminDate(r.created_at)}` : null;
     if (sortBy === "updated_desc") return r.updated_at ? `آخر تعديل: ${fmtAdminDate(r.updated_at)}` : null;
     return null;
@@ -4613,7 +4691,12 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
      نصية بينها وبين true/false الفعلي بقاعدة البيانات كانت راح تفشل دائمًا وتُحسب "تغيّر" زورًا */
   const fieldsThatDiffer = (fields, row, cur) => fields.filter((f) => {
     const curVal = REAL_BOOL_FIELDS.includes(f) ? toYesNo(cur[f]) : cur[f];
-    return String(row[f] ?? "") !== String(curVal ?? "");
+    const inRaw = row[f], curRaw = curVal;
+    /* خلية فاضية بالملف ما تعني "امسح القيمة" — تعني "ما فيه بيانات لهذا الحقل بهذا الملف".
+       بدون هذي الحماية، أي عمود ما يقرأه المحرك (معادلة بدون قيمة مخزّنة، أو شيت جزئي)
+       كان يمسح بيانات صحيحة ويُحسب "تعديل" على كل صف — وهذا اللي مسح عمود الشهر فعليًا. */
+    if (isBlankCell(inRaw) && !isBlankCell(curRaw)) return false;
+    return cmpVal(f, inRaw) !== cmpVal(f, curRaw);
   });
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
