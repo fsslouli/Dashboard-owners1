@@ -1309,6 +1309,19 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "1.16.1",
+    dateAr: "7 سبتمبر 2026",
+    dateEn: "September 7, 2026",
+    ar: [
+      "إصلاح عاجل: النوافذ المنبثقة (الإقرار القانوني، الإشعارات، تفاصيل الاستفسار، عارض المستندات) كانت تظهر مدمجة داخل الصفحة بدل أن تطفو فوقها بعد تحديث ١٫١٦٫٠ — رجعت لوضعها الصحيح",
+      "أُصلح معها شريط تقدّم القراءة وزر الرجوع للأعلى",
+    ],
+    en: [
+      "Hotfix: pop-up panels (legal notice, notices, inquiry details, document viewer) were rendering inline in the page instead of floating above it after 1.16.0 — now restored",
+      "The reading-progress bar and the back-to-top button are fixed along with them",
+    ],
+  },
+  {
     version: "1.16.0",
     dateAr: "7 سبتمبر 2026",
     dateEn: "September 7, 2026",
@@ -3602,7 +3615,7 @@ ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;o
   background-size:46px 46px;
   -webkit-mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);
   mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);}` : ""}
-.dash > *:not(.skin-aurora):not(.skin-grid){position:relative;z-index:1;}
+${(SKIN.aurora || SKIN.grid) ? `.dash > *:not(.skin-aurora):not(.skin-grid):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}` : ""}
         `}</style>
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
         {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
