@@ -225,8 +225,10 @@ const MODEL_EN = { "امانيثير": "Amanither", "اورورا": "Aurora", "�
 const SCOPE_EN = {
   "جميع النماذج": "All models", "جميع النماذج عدا امانيثير": "All models except Amanither",
   "أورورا": "Aurora", "امانيثير و آلبا": "Amanither & Alba", "البا و امانيثير": "Alba & Amanither",
+  /* نطاق نموذج واحد — يرد بقاعدة البيانات بصيغ إملائية متفاوتة، والبحث المُوحَّد أدناه يلتقطها كلها */
+  "امانيثير": "Amanither", "البا": "Alba", "البادا": "Bada",
 };
-const trScope = (lang, v) => (lang === "en" ? SCOPE_EN[v] || v : v);
+const trScope = (lang, v) => (lang === "en" ? trLookup(SCOPE_EN, v) : v);
 const ZONE_EN = {
   roof: "Roof", first: "First Floor", slab: "Ground + First", ground: "Ground Floor",
   wet: "Kitchen & Bathrooms", stairs: "Staircase", whole: "Whole Villa",
@@ -239,25 +241,52 @@ const LOC_EN = {
   "كامل الفيلا (بين الفلل المتلاصقة)": "Whole Villa (Party Wall)", "الدور الأرضي والأول": "Ground + First Floor",
   "موقع الخزان": "Tank Location", "الحوش الخلفي (الدور الأرضي)": "Backyard (Ground Floor)",
   "الحوش الخلفي (الدور الأرضي) والسطح": "Backyard (Ground Floor) & Roof",
+  /* صيغ موجودة فعليًا بقاعدة البيانات وكانت تسقط بلا ترجمة بالوضع الإنجليزي */
+  "الطابق الأرضي": "Ground Floor", "الطابق الأول": "First Floor", "الأرضي والأول": "Ground + First Floor",
+  "الحوش الخلفي (الأرضي)": "Backyard (Ground Floor)", "الحوش الخلفي (الأرضي) والسطح": "Backyard (Ground Floor) & Roof",
+  "الحوش الأمامي": "Front Yard", "الكهرباء": "Electrical",
 };
 const CAT_EN = {
   "تصحيح عيب تنفيذي": "Execution Defect Fix", "تصميمي/جمالي": "Design / Aesthetic",
   "ترقية": "Upgrade", "استفسار فني توضيحي": "Technical Clarification",
   "تجاري": "Commercial", "إداري/نظامي": "Administrative / Regulatory",
 };
-const OWN_EN = { "م/محمد عبدالمعطي": "Eng. Mohammed Abdulmuti", "م/رواحه": "Eng. Rawaha", "غير محدد": "Unspecified", "أبو سلطان": "Abu Sultan", "م/إبراهيم (مالك)": "Eng. Ibrahim (Owner)" };
+const OWN_EN = {
+  "م/محمد عبدالمعطي": "Eng. Mohammed Abdulmuti", "م/رواحه": "Eng. Rawaha", "غير محدد": "Unspecified",
+  "أبو سلطان": "Abu Sultan", "م/إبراهيم (مالك)": "Eng. Ibrahim (Owner)",
+  /* جهات موجودة فعليًا بقاعدة البيانات وكانت تسقط بلا ترجمة */
+  "م/أحمد ملحم": "Eng. Ahmed Malham", "أبو سلطان (مالك)": "Abu Sultan (Owner)", "أبو علي (مالك)": "Abu Ali (Owner)",
+};
 const MEETING_ORDER = ["الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
 const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting" };
 const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const trPri = (lang, v) => (lang === "en" ? PRI_EN[v] || v : v);
-const trSta = (lang, v) => (lang === "en" ? STA_EN[v] || v : v);
-const trModel = (lang, v) => (lang === "en" ? MODEL_EN[v] || v : v);
+/* ── بحث مُتسامح بالترجمة ──
+   بيانات الإكسل تجي بإملاء متفاوت لنفس القيمة (أمانيثير/امانيثير، أورورا/اورورا،
+   الطابق الأرضي/الدور الأرضي...)، فالمطابقة الحرفية كانت تفشل وتترك النص عربيًا
+   بالوضع الإنجليزي. نجرّب المطابقة الحرفية أولًا، وإلا نطابق بالنسخة المُوحَّدة عبر norm().
+   ملاحظة: norm معرَّفة أدناه، والاستدعاء هنا يحصل وقت العرض لا وقت التحميل — فما فيه مشكلة. */
+const normMapCache = new WeakMap();
+function trLookup(map, v) {
+  if (v == null || v === "") return v;
+  if (map[v] != null) return map[v];
+  let nm = normMapCache.get(map);
+  if (!nm) {
+    nm = {};
+    for (const k of Object.keys(map)) { const n = norm(k); if (nm[n] == null) nm[n] = map[k]; }
+    normMapCache.set(map, nm);
+  }
+  return nm[norm(v)] ?? v;
+}
+
+const trPri = (lang, v) => (lang === "en" ? trLookup(PRI_EN, v) : v);
+const trSta = (lang, v) => (lang === "en" ? trLookup(STA_EN, v) : v);
+const trModel = (lang, v) => (lang === "en" ? trLookup(MODEL_EN, v) : v);
 const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.find((z) => z.key === k) || {}).label || k);
-const trLoc = (lang, v) => (lang === "en" ? LOC_EN[v] || v : v);
-const trOwn = (lang, v) => (lang === "en" ? OWN_EN[v] || v : v);
-const trCat = (lang, v) => (lang === "en" ? CAT_EN[v] || v : v);
-const trMeeting = (lang, v) => (lang === "en" ? MEETING_EN[v] || v : v);
+const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
+const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
+const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : v);
+const trMeeting = (lang, v) => (lang === "en" ? trLookup(MEETING_EN, v) : v);
 const trMonth = (lang, m) => {
   if (!/^\d{4}-\d{2}$/.test(m || "")) return lang === "en" ? "—" : "—";
   const i = +m.slice(5, 7) - 1;
@@ -587,6 +616,23 @@ async function loadShared(key = SKEY) {
   try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }
   catch { return null; }
 }
+
+/* ── تفضيلات الزائر (ثيم/لغة/شكل العرض) ──
+   كانت تُحفَظ سابقًا في window.storage، وهذي واجهة موجودة فقط داخل بيئة المعاينة
+   ومو موجودة بالمتصفح بعد النشر على Vercel — فكانت اختيارات الزائر تضيع مع كل زيارة.
+   الآن الاعتماد على localStorage (يشتغل بالمتصفح فعليًا)، مع الإبقاء على window.storage
+   ككتابة إضافية لو كانت متوفرة. القراءة متزامنة عشان ما يومض الوضع الافتراضي أولًا. */
+function readPref(key, allowed, fallback) {
+  try {
+    const v = typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
+    if (v && (!allowed || allowed.includes(v))) return v;
+  } catch { /* وضع التصفح الخاص أو منع الكوكيز — نرجع للافتراضي بهدوء */ }
+  return fallback;
+}
+function writePref(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* تجاهل */ }
+  if (hasStore()) { try { window.storage.set(key, value, false); } catch { /* تجاهل */ } }
+}
 /* ── ٨. الخطافات المخصّصة (Hooks) ── */
 function usePrefersReduced() {
   const [r, setR] = useState(false);
@@ -640,7 +686,8 @@ function useBackClose(isOpen, onClose) {
 
 /* ── الوضع التلقائي: يتبع إعداد الجهاز ويتغيّر معه فورًا ── */
 function useThemeMode() {
-  const [mode, setMode] = useState("auto"); /* افتراضيًا يتبع وضع جهاز الزائر مباشرة */
+  /* يُقرأ المحفوظ فورًا عند أول رسم — وإلا "auto" ويتبع وضع جهاز الزائر مباشرة */
+  const [mode, setMode] = useState(() => readPref(TKEY, ["auto", "light", "dark"], "auto"));
   const [sysDark, setSysDark] = useState(true);
 
   useEffect(() => {
@@ -651,19 +698,7 @@ function useThemeMode() {
     return () => mq.removeEventListener?.("change", h);
   }, []);
 
-  useEffect(() => {
-    if (!hasStore()) return;
-    let alive = true;
-    window.storage.get(TKEY, false)
-      .then((r) => { if (alive && r && ["auto", "light", "dark"].includes(r.value)) setMode(r.value); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
-
-  const pick = (m) => {
-    setMode(m);
-    if (hasStore()) { try { window.storage.set(TKEY, m, false); } catch { /* تجاهل */ } }
-  };
+  const pick = (m) => { setMode(m); writePref(TKEY, m); };
 
   const resolved = mode === "auto" ? (sysDark ? "dark" : "light") : mode;
   return { mode, setMode: pick, resolved };
@@ -672,19 +707,16 @@ function useThemeMode() {
 /* لغة العرض — تُحفظ للمستخدم نفسه فقط، افتراضيًا عربي */
 const LKEY = "owners-inquiries-lang";
 function useLangMode() {
-  const [lang, setLang] = useState("ar");
+  const [lang, setLang] = useState(() => readPref(LKEY, ["ar", "en"], "ar"));
+  /* وسم <html> بالـ index.html مثبَّت على العربية؛ نزامنه مع اختيار الزائر عشان
+     قارئات الشاشة تنطق المحتوى بلغته الصحيحة، ويضبط اتجاه المتصفح نفسه */
   useEffect(() => {
-    if (!hasStore()) return;
-    let alive = true;
-    window.storage.get(LKEY, false)
-      .then((r) => { if (alive && r && ["ar", "en"].includes(r.value)) setLang(r.value); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
-  const pick = (l) => {
-    setLang(l);
-    if (hasStore()) { try { window.storage.set(LKEY, l, false); } catch { /* تجاهل */ } }
-  };
+    try {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
+    } catch { /* تجاهل */ }
+  }, [lang]);
+  const pick = (l) => { setLang(l); writePref(LKEY, l); };
   return { lang, setLang: pick };
 }
 
@@ -695,7 +727,7 @@ function useLangMode() {
 const VKEY = "owners-inquiries-view";
 const WIDE_Q = "(min-width: 1024px)";
 function useViewMode() {
-  const [pref, setPref] = useState("auto");
+  const [pref, setPref] = useState(() => readPref(VKEY, ["auto", "cards", "table"], "auto"));
   /* تُقرأ فورًا عند أول رسم حتى لا تومض البطاقات ثم يظهر الجدول على الحاسب */
   const [wide, setWide] = useState(() =>
     typeof window !== "undefined" && window.matchMedia ? window.matchMedia(WIDE_Q).matches : false);
@@ -708,20 +740,11 @@ function useViewMode() {
     return () => mq.removeEventListener?.("change", h);
   }, []);
 
-  useEffect(() => {
-    if (!hasStore()) return;
-    let alive = true;
-    window.storage.get(VKEY, false)
-      .then((r) => { if (alive && r && ["auto", "cards", "table"].includes(r.value)) setPref(r.value); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
-
   /* التسجيل هنا فقط — عند ضغط المستخدم على الزر، وليس عند تغيّر حجم الشاشة */
   const pick = (v) => {
     setPref(v);
     logEvent("filter", "view", v, null);
-    if (hasStore()) { try { window.storage.set(VKEY, v, false); } catch { /* تجاهل */ } }
+    writePref(VKEY, v);
   };
 
   /* الافتراضي يتبع حجم الشاشة، والاختيار اليدوي يتجاوزه على أي جهاز */
@@ -1152,6 +1175,27 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.15.0",
+    dateAr: "7 سبتمبر 2026",
+    dateEn: "September 7, 2026",
+    ar: [
+      "اختياراتك صارت تُحفظ فعليًا: الوضع الليلي/النهاري، اللغة، وشكل العرض (بطاقات أو جدول) تبقى كما تركتها عند كل زيارة بدل أن ترجع للافتراضي",
+      "إصلاح عطل كان يوقف رفع ملف \"تقدّم الوحدة والمراحل\" في خطوته الأخيرة",
+      "إصلاح عطل بلوحة الإدارة عند اختيار قرار لقيمة فلترة جديدة أثناء المزامنة",
+      "استكمال الترجمة الإنجليزية لمواقع وجهات كانت تظهر بالعربية (منها \"الطابق الأرضي\" و\"م/أحمد ملحم\")، مع مطابقة تتحمّل اختلاف الإملاء",
+      "ضبط لغة واتجاه الصفحة تلقائيًا عند التبديل للإنجليزية — يخدم قارئات الشاشة",
+      "تحسين سرعة تبويب الزيارات والتحليلات، وتنسيق صناديق التنبيه بلوحة الرفع",
+    ],
+    en: [
+      "Your choices now actually persist: light/dark mode, language, and view style (cards or table) stay as you left them on every visit instead of resetting",
+      "Fixed a crash that stopped the \"unit & phase progress\" upload at its final step",
+      "Fixed a crash in the admin panel when choosing a decision for a new filter value during sync",
+      "Completed English translations for locations and owners that were still showing in Arabic (including \"Ground Floor\" and \"Eng. Ahmed Malham\"), with spelling-tolerant matching",
+      "Page language and direction now switch automatically in English mode — helps screen readers",
+      "Faster analytics tab, and properly styled alert boxes in the upload panel",
+    ],
+  },
   {
     version: "1.14.0",
     dateAr: "3 سبتمبر 2026",
@@ -4019,6 +4063,15 @@ function AdminLogin() {
 }
 
 /* أدوات مساعدة عامة لواجهة الإدارة */
+/* صندوق ملاحظة/تحذير داخل لوحة الإدارة.
+   كان يستخدم class="note-box"، لكن تعريف الـ CSS يعيش داخل <style> تبع الموقع العام
+   وما يُرسَم إطلاقًا على مسار #admin — فكانت الصناديق تطلع نصًا عاريًا بلا خلفية.
+   الآن التنسيق مضمّن مباشرة فيشتغل بالمسارين. */
+const aNoteStyle = (T, color) => ({
+  padding: "12px 14px", borderRadius: 12, background: T.sunken,
+  color: color || T.muted, fontSize: 12, lineHeight: 1.85,
+});
+
 function ABadge({ kind, children }) {
   const T = useSystemTheme();
   const map = { add: { bg: "#1E8E5A14", fg: "#1E8E5A", icon: PlusCircle }, change: { bg: "#B8790F14", fg: "#B8790F", icon: Pencil }, missing: { bg: "#C0392B14", fg: "#C0392B", icon: MinusCircle } };
@@ -4425,7 +4478,7 @@ function parseKpiWorkbook(wb, firstColYear) {
   const allMonthKeys = [...new Set([...phaseMonths.map((m) => m.key), ...blockMonths.map((m) => m.key)])].sort();
   const monthRows = allMonthKeys.map((mk) => ({
     month: mk,
-    phases: Object.fromEntries(PHASE_ROW_KEYS.map((k) => [k, phaseValues[k]?.[mk] ?? null]).filter(([, v]) => v != null)),
+    phases: Object.fromEntries(PHASE_ROW_DEFS.map(({ key: k }) => [k, phaseValues[k]?.[mk] ?? null]).filter(([, v]) => v != null)),
     blocks: Object.fromEntries(Object.entries(blockValues).map(([b, vals]) => [b, vals[mk] ?? null]).filter(([, v]) => v != null)),
   }));
   const monthLabels = allMonthKeys.map((mk) => { const { y, m } = monthKeyParts(mk); return `${MONTH_AR[m - 1]} ${y}`; });
@@ -4546,7 +4599,7 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
       </div>
 
       {parsed?.error && (
-        <div className="note-box" style={{ marginTop: 14, color: "#c0392b" }}>{parsed.error}</div>
+        <div style={{ ...aNoteStyle(T, "#c0392b"), marginTop: 14 }}>{parsed.error}</div>
       )}
 
       {parsed && !parsed.error && (
@@ -4559,7 +4612,7 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
           </div>
 
           {parsed.warnings?.length > 0 && (
-            <div className="note-box" style={{ marginBottom: 12, color: "#b8860b" }}>
+            <div style={{ ...aNoteStyle(T, "#b8860b"), marginBottom: 12 }}>
               {parsed.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
             </div>
           )}
@@ -4587,7 +4640,7 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
           </div>
 
           {diffSummary.some((r) => r.dataLoss) && (
-            <div className="note-box" style={{ marginBottom: 12, color: "#c0392b" }}>
+            <div style={{ ...aNoteStyle(T, "#c0392b"), marginBottom: 12 }}>
               ⚠ فيه أشهر مستبعدة تلقائيًا من هذا التحديث لأن الملف أعطى بيانات أقل بكثير مما هو مسجَّل حاليًا لها (يدل غالبًا على خطأ بقراءة الملف لا تحديث حقيقي). راجعها أعلاه، ولا تؤكّدها إلا لو متأكد إن الشهر فعلًا لازم يصير فاضي.
             </div>
           )}
@@ -4776,6 +4829,9 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   };
   const runCompare = () => runCompareWith(sheets, mapping);
   const toggleSheetSelected = (name) => setMapping((m) => ({ ...m, [name]: { ...m[name], selected: m[name]?.selected === false } }));
+  /* تحديد قرار قيمة واحدة — المفتاح هو نفس التوقيع المستخدم بالعرض: categoryKey::value */
+  const setValueDecision = (sig, decision) =>
+    setNewValues((prev) => prev.map((v) => (v.categoryKey + "::" + v.value === sig ? { ...v, decision } : v)));
   const decideAllValues = (decision) => setNewValues((prev) => prev.map((v) => ({ ...v, decision })));
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
