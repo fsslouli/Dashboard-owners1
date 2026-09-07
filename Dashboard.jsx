@@ -334,6 +334,139 @@ const THEMES = {
   },
 };
 
+/* ═══════════════════════════════════════════════════════════
+   ٤ب. أطقم الثيمات (Theme sets) — يختار الأدمن الطقم المعتمد من لوحة
+   الإدارة، ويُحفظ بجدول site_settings، وينتقل لكل الزوّار فورًا عبر Realtime.
+   كل طقم يوفّر نفس مفاتيح الألوان بالضبط (حتى يركّب بلا تعديل أي مكوّن)،
+   بالإضافة إلى skin: هوية بصرية (خطوط، استدارة، تأثيرات خلفية).
+   لوحة الإدارة تبقى دائمًا على الطقم الكلاسيكي.
+   ═══════════════════════════════════════════════════════════ */
+const SKIN_CLASSIC = { key: "classic", display: null, body: null, radius: 16, glass: false, aurora: false, grid: false, rule: false };
+const SKIN_UFUQ    = { key: "ufuq",    display: "'IBM Plex Sans Arabic'", body: "'IBM Plex Sans Arabic'", radius: 18, glass: true,  aurora: true,  grid: true,  rule: false };
+const SKIN_MAHDAR  = { key: "mahdar",  display: "'Amiri'",               body: "'IBM Plex Sans Arabic'", radius: 3,  glass: true,  aurora: false, grid: false, rule: true  };
+
+const THEME_SETS = {
+  classic: {
+    label: "الكلاسيكي", labelEn: "Classic",
+    note: "الهوية الحالية — تيل ورمادي، فصل بالمسافات.",
+    swatch: ["#F7F9FB", "#1B7F8E", "#1F2C35"],
+    skin: SKIN_CLASSIC,
+    light: THEMES.light, dark: THEMES.dark,
+  },
+  ufuq: {
+    label: "أُفق", labelEn: "Ufuq",
+    note: "كحلي معماري ونحاسي دافئ، ألواح زجاجية وشفق متحرك.",
+    swatch: ["#080D14", "#C9A227", "#3FBFA8"],
+    skin: SKIN_UFUQ,
+    dark: {
+      bg: "#080D14", surface: "#141D29", sunken: "#0B111A",
+      paper: "#E8EEF4", muted: "#93A5B6", faint: "#64798D",
+      brass: "#C9A227", line: "rgba(201,162,39,.17)", lineSoft: "rgba(255,255,255,.055)",
+      shadow: "0 2px 6px rgba(0,0,0,.34), 0 16px 38px -24px rgba(0,0,0,.8)",
+      shadowUp: "0 4px 12px rgba(0,0,0,.44), 0 28px 60px -26px rgba(0,0,0,.9)",
+      zone: "#7E97AC", zoneOn: "#E3C765",
+      sta: { "معتمدة": "#4FD1A5", "تم الرفض": "#E4756B", "قيد الدراسة": "#E8B84B", "تم التصويت": "#8FA8BE" },
+      pri: { "عالية جدًا": "#E4756B", "عالية": "#E8B84B", "متوسطة": "#6FA8C4", "عادية": "#8FA8BE" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#E4756B", "تصميمي/جمالي": "#B49CD8", "ترقية": "#4FD1A5",
+        "استفسار فني توضيحي": "#6FA8C4", "تجاري": "#E8B84B", "إداري/نظامي": "#8FA8BE",
+      },
+      extra: ["#B49CD8", "#4FD1A5", "#C99A86", "#8FA8BE"],
+      onAccent: "#0B1017",
+    },
+    light: {
+      bg: "#F2F5F8", surface: "#FFFFFF", sunken: "#E9EEF4",
+      paper: "#15212C", muted: "#53687A", faint: "#7B8C9C",
+      brass: "#96751A", line: "rgba(21,33,44,.11)", lineSoft: "rgba(21,33,44,.06)",
+      shadow: "0 1px 3px rgba(21,33,44,.05), 0 10px 26px -18px rgba(21,33,44,.2)",
+      shadowUp: "0 3px 8px rgba(21,33,44,.08), 0 22px 46px -20px rgba(21,33,44,.26)",
+      zone: "#7B94A8", zoneOn: "#96751A",
+      sta: { "معتمدة": "#12795A", "تم الرفض": "#B04A40", "قيد الدراسة": "#8A6318", "تم التصويت": "#4E6474" },
+      pri: { "عالية جدًا": "#B04A40", "عالية": "#8A6318", "متوسطة": "#2E6C86", "عادية": "#53687A" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#B04A40", "تصميمي/جمالي": "#5E5488", "ترقية": "#12795A",
+        "استفسار فني توضيحي": "#2E6C86", "تجاري": "#8A6318", "إداري/نظامي": "#4E6474",
+      },
+      extra: ["#5E5488", "#12795A", "#84544A", "#4E6474"],
+      onAccent: "#FFFFFF",
+    },
+  },
+  mahdar: {
+    label: "المَحضر", labelEn: "Mahdar",
+    note: "سجل أرشيفي — خط نسخي للعناوين، خطوط شعرة، نحاسي مكسور.",
+    swatch: ["#0A0E12", "#B08D4F", "#4A8A6E"],
+    skin: SKIN_MAHDAR,
+    dark: {
+      bg: "#0A0E12", surface: "#11161C", sunken: "#0D1218",
+      paper: "#E6E9EB", muted: "#8C959D", faint: "#5C666E",
+      brass: "#B08D4F", line: "rgba(255,255,255,.078)", lineSoft: "rgba(255,255,255,.045)",
+      shadow: "0 1px 2px rgba(0,0,0,.3), 0 10px 26px -22px rgba(0,0,0,.7)",
+      shadowUp: "0 2px 6px rgba(0,0,0,.4), 0 20px 44px -24px rgba(0,0,0,.85)",
+      zone: "#78838C", zoneOn: "#B08D4F",
+      sta: { "معتمدة": "#4A8A6E", "تم الرفض": "#AC554C", "قيد الدراسة": "#9A7838", "تم التصويت": "#6E8092" },
+      pri: { "عالية جدًا": "#AC554C", "عالية": "#9A7838", "متوسطة": "#6E8092", "عادية": "#5C666E" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#AC554C", "تصميمي/جمالي": "#8A7FA8", "ترقية": "#4A8A6E",
+        "استفسار فني توضيحي": "#6E8092", "تجاري": "#9A7838", "إداري/نظامي": "#78838C",
+      },
+      extra: ["#8A7FA8", "#4A8A6E", "#A0796B", "#6E8092"],
+      onAccent: "#0A0E12",
+    },
+    light: {
+      bg: "#FAF9F6", surface: "#FFFFFF", sunken: "#F3F2ED",
+      paper: "#14181C", muted: "#5A646C", faint: "#8A939B",
+      brass: "#8A6A2F", line: "rgba(20,24,28,.1)", lineSoft: "rgba(20,24,28,.055)",
+      shadow: "0 1px 2px rgba(20,24,28,.04), 0 8px 20px -18px rgba(20,24,28,.18)",
+      shadowUp: "0 2px 5px rgba(20,24,28,.06), 0 18px 40px -22px rgba(20,24,28,.24)",
+      zone: "#7B848C", zoneOn: "#8A6A2F",
+      sta: { "معتمدة": "#2F6B52", "تم الرفض": "#96423A", "قيد الدراسة": "#7A5C25", "تم التصويت": "#4E6072" },
+      pri: { "عالية جدًا": "#96423A", "عالية": "#7A5C25", "متوسطة": "#4E6072", "عادية": "#5A646C" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#96423A", "تصميمي/جمالي": "#5E5488", "ترقية": "#2F6B52",
+        "استفسار فني توضيحي": "#4E6072", "تجاري": "#7A5C25", "إداري/نظامي": "#4E6072",
+      },
+      extra: ["#5E5488", "#2F6B52", "#7E5347", "#4E6072"],
+      onAccent: "#FFFFFF",
+    },
+  },
+};
+const THEME_KEYS = ["classic", "ufuq", "mahdar"];
+const DEFAULT_THEME_KEY = "classic";
+
+/* خطوط إضافية تُحمَّل فقط عند اعتماد طقم يحتاجها — ما نثقّل الزائر بلا داعٍ */
+const SKIN_FONTS = {
+  mahdar: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap",
+};
+function useSkinFont(themeKey) {
+  useEffect(() => {
+    const href = SKIN_FONTS[themeKey];
+    if (!href || document.querySelector(`link[data-skin-font="${themeKey}"]`)) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = href; l.dataset.skinFont = themeKey;
+    document.head.appendChild(l);
+  }, [themeKey]);
+}
+
+/* الطقم المعتمد — يُقرأ من قاعدة البيانات ويتحدّث لحظيًا لكل الزوّار */
+function useActiveTheme() {
+  const [key, setKey] = useState(DEFAULT_THEME_KEY);
+  useEffect(() => {
+    let alive = true;
+    const pull = async () => {
+      try {
+        const { data } = await supabase.from("site_settings").select("active_theme").eq("id", 1).single();
+        if (alive && data && THEME_KEYS.includes(data.active_theme)) setKey(data.active_theme);
+      } catch { /* يبقى الافتراضي */ }
+    };
+    pull();
+    const ch = supabase.channel("public-site-settings-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, pull)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+  }, []);
+  return key;
+}
+
 const ThemeCtx = createContext({ T: THEMES.light, mode: "light", setMode: () => {}, resolved: "light" });
 const useT = () => useContext(ThemeCtx);
 
@@ -1175,6 +1308,23 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.16.0",
+    dateAr: "7 سبتمبر 2026",
+    dateEn: "September 7, 2026",
+    ar: [
+      "مظهر الموقع صار قابلاً للتبديل من لوحة الإدارة: ثلاثة أطقم — الكلاسيكي، «أُفق»، و«المَحضر» — والاعتماد ينتقل لكل الزوّار فورًا بدون إعادة نشر",
+      "«أُفق»: كحلي معماري ونحاسي دافئ، ألواح زجاجية وخلفية شفق متحرك",
+      "«المَحضر»: هوية أرشيفية رسمية بخط نسخي للعناوين وخطوط شعرة ونحاسي مكسور",
+      "كل طقم فيه نسخة نهارية وليلية تتبع إعداد جهاز الزائر تلقائيًا",
+    ],
+    en: [
+      "The public site's look can now be switched from the admin panel: three sets — Classic, Ufuq, and Mahdar — and the choice reaches every visitor instantly with no redeploy",
+      "Ufuq: architectural navy with warm brass, glass panels and a drifting aurora backdrop",
+      "Mahdar: a formal archival identity with a naskh serif for headings, hairline rules and muted brass",
+      "Each set ships light and dark variants that follow the visitor's device setting automatically",
+    ],
+  },
   {
     version: "1.15.0",
     dateAr: "7 سبتمبر 2026",
@@ -2642,7 +2792,12 @@ function PublicSite() {
   const { view, setView } = useViewMode();
   const { deskOn, toggleDesk, smallDevice } = useDesktopView();
   const L = (ar, en) => (lang === "en" ? en : ar);
-  const T = THEMES[resolved];
+  /* الطقم المعتمد من لوحة الإدارة — يسري على كل الزوّار لحظيًا */
+  const themeKey = useActiveTheme();
+  useSkinFont(themeKey);
+  const SET = THEME_SETS[themeKey] || THEME_SETS[DEFAULT_THEME_KEY];
+  const SKIN = SET.skin;
+  const T = SET[resolved] || SET.dark || SET.light;
 
   const [tab, setTab] = useState("overview");
   const [docView, setDocView] = useState(null);
@@ -3421,7 +3576,36 @@ function PublicSite() {
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 @media print{.no-print{display:none!important;}.dash{background:#fff;color:#000;}.card,.surf,.stats{box-shadow:none!important;}.tabs{position:static;}
   .tbl{min-width:0!important;}.tbl-wrap{overflow:visible!important;}.cat-pill{border-color:currentColor!important;background:none!important;}}
+
+/* ══ طبقة الهوية البصرية للطقم المعتمد — تُضاف فوق الأساس ولا تستبدله ══ */
+${SKIN.body ? `.dash{font-family:${SKIN.body},system-ui,-apple-system,sans-serif;}` : ""}
+${SKIN.display ? `.dash h1,.dash h2,.dash .hero-t,.dash .sec-t{font-family:${SKIN.display},Georgia,serif;font-weight:400;letter-spacing:-.005em;}` : ""}
+${SKIN.radius !== 16 ? `.dash .card,.dash .surf,.dash .stats,.dash .sheet,.dash .note-box{border-radius:${SKIN.radius}px;}` : ""}
+${SKIN.glass ? `.dash .card,.dash .surf,.dash .stats{background:color-mix(in srgb,${T.surface} 74%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);}
+.dash .tabs-glass{-webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);}` : ""}
+${SKIN.rule ? `.dash .card,.dash .surf{box-shadow:none;border:1px solid ${T.line};}
+.dash .card{position:relative;}
+.dash .card::before{content:"";position:absolute;top:0;bottom:0;right:0;width:2px;background:${T.brass};
+  transform:scaleY(0);transform-origin:top;transition:transform .4s cubic-bezier(.16,1,.3,1);}
+.dash .card:hover::before{transform:scaleY(1);}
+.dash .tag,.dash .chip{border-radius:3px;}
+.dash .mono{font-variant-numeric:tabular-nums;font-weight:300;}` : ""}
+${SKIN.aurora ? `.skin-aurora{position:fixed;inset:-25%;z-index:0;filter:blur(72px);opacity:${resolved === "dark" ? ".46" : ".26"};pointer-events:none;}
+.skin-aurora i{position:absolute;display:block;border-radius:50%;animation:skindrift 28s cubic-bezier(.22,1,.36,1) infinite alternate;}
+.skin-aurora i:nth-child(1){width:52vw;height:52vw;top:1%;right:-7%;background:radial-gradient(circle,${T.brass} 0%,transparent 68%);}
+.skin-aurora i:nth-child(2){width:46vw;height:46vw;top:33%;left:-11%;background:radial-gradient(circle,#1E6E8C 0%,transparent 70%);animation-delay:-10s;}
+.skin-aurora i:nth-child(3){width:40vw;height:40vw;bottom:-5%;right:13%;background:radial-gradient(circle,${T.sta["معتمدة"]} 0%,transparent 72%);animation-delay:-18s;}
+@keyframes skindrift{to{transform:translate3d(-7%,9%,0) scale(1.16);}}` : ""}
+${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(${T.lineSoft} 1px,transparent 1px),linear-gradient(90deg,${T.lineSoft} 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);
+  mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);}` : ""}
+.dash > *:not(.skin-aurora):not(.skin-grid){position:relative;z-index:1;}
         `}</style>
+        {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
+        {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
 
@@ -4074,8 +4258,8 @@ const aNoteStyle = (T, color) => ({
 
 function ABadge({ kind, children }) {
   const T = useSystemTheme();
-  const map = { add: { bg: "#1E8E5A14", fg: "#1E8E5A", icon: PlusCircle }, change: { bg: "#B8790F14", fg: "#B8790F", icon: Pencil }, missing: { bg: "#C0392B14", fg: "#C0392B", icon: MinusCircle } };
-  const { bg, fg, icon: Icon } = map[kind];
+  const map = { add: { bg: "#1E8E5A14", fg: "#1E8E5A", icon: PlusCircle }, change: { bg: "#B8790F14", fg: "#B8790F", icon: Pencil }, missing: { bg: "#C0392B14", fg: "#C0392B", icon: MinusCircle }, ok: { bg: "#1E8E5A14", fg: "#1E8E5A", icon: Check } };
+  const { bg, fg, icon: Icon } = map[kind] || map.add;
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, color: fg, fontSize: 11.5, fontWeight: 600, padding: "3px 9px", borderRadius: 999 }}><Icon size={12} /> {children}</span>;
 }
 /* ملخص مختصر لكل صف تغيّر — أي حقول بالضبط اختلفت (الرد، الحالة..) بدل رقم عام بس،
@@ -5861,12 +6045,100 @@ function ADashboardTab({ inquiries }) {
   );
 }
 
+/* ── مظهر الموقع العام — اختيار الطقم المعتمد لكل الزوّار ── */
+function AThemeTab({ flashToast, log, canManage }) {
+  const T = useSystemTheme();
+  const [active, setActive] = useState(null);
+  const [pick, setPick] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => supabase.from("site_settings").select("*").eq("id", 1).single()
+    .then(({ data }) => { const k = data?.active_theme || DEFAULT_THEME_KEY; setActive(k); setPick((p) => p || k); });
+  useEffect(() => { load(); }, []);
+
+  const apply = async () => {
+    if (!pick || pick === active) return;
+    setBusy(true);
+    const { error } = await supabase.from("site_settings")
+      .update({ active_theme: pick, updated_at: new Date().toISOString() }).eq("id", 1);
+    setBusy(false);
+    if (error) { flashToast("تعذّر الاعتماد — تأكد من صلاحيتك"); return; }
+    setActive(pick);
+    log("اعتماد مظهر الموقع", THEME_SETS[pick].label);
+    flashToast("تم الاعتماد — انتقل للزوّار فورًا");
+  };
+
+  if (!canManage) return <ALocked text="حسابك ما عنده صلاحية تغيير مظهر الموقع العام." />;
+  if (active === null) return <div style={{ color: T.muted, fontSize: 13, padding: 20 }}>جارٍ التحميل...</div>;
+
+  return (
+    <div>
+      <div style={{ ...aNoteStyle(T), marginBottom: 16 }}>
+        اختر الهوية البصرية للموقع العام. الاعتماد ينتقل لكل زائر مفتوح عنده الموقع
+        <b> فورًا وبدون إعادة نشر</b>. لوحة الإدارة تبقى على شكلها الحالي دائمًا.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        {THEME_KEYS.map((k) => {
+          const set = THEME_SETS[k];
+          const on = pick === k;
+          const live = active === k;
+          return (
+            <button key={k} onClick={() => setPick(k)} style={{
+              textAlign: "right", cursor: "pointer", font: "inherit", padding: "14px 15px",
+              borderRadius: 14, background: T.surface, color: T.paper,
+              border: `${on ? 2 : 1}px solid ${on ? T.brass : T.line}`,
+              boxShadow: on ? T.shadow : "none", display: "flex", alignItems: "center", gap: 13,
+            }}>
+              <span style={{ display: "flex", flex: "none", borderRadius: 9, overflow: "hidden", border: `1px solid ${T.line}` }}>
+                {set.swatch.map((c, i) => (
+                  <span key={i} style={{ width: 17, height: 42, background: c, display: "block" }} />
+                ))}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <b style={{ fontSize: 14 }}>{set.label}</b>
+                  <span style={{ fontSize: 10.5, color: T.faint }}>{set.labelEn}</span>
+                  {live && <ABadge kind="ok">معتمد الآن</ABadge>}
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: T.muted, marginTop: 4, lineHeight: 1.7 }}>{set.note}</span>
+              </span>
+              <span style={{
+                width: 19, height: 19, flex: "none", borderRadius: "50%", display: "grid", placeItems: "center",
+                border: `1.5px solid ${on ? T.brass : T.line}`, background: on ? T.brass : "transparent",
+              }}>{on && <Check size={11} color={T.onAccent} />}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", gap: 9, marginTop: 18, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={apply} disabled={busy || pick === active} style={{
+          display: "flex", alignItems: "center", gap: 7, border: "none", borderRadius: 11,
+          padding: "11px 18px", fontSize: 13.5, fontWeight: 700, fontFamily: "inherit",
+          cursor: pick === active ? "default" : "pointer",
+          background: pick === active ? T.sunken : T.brass, color: pick === active ? T.faint : T.onAccent,
+        }}><ShieldCheck size={15} /> {busy ? "جارٍ الاعتماد..." : pick === active ? "هذا المظهر معتمد" : `اعتماد «${THEME_SETS[pick].label}»`}</button>
+        <a href={`${window.location.origin}${window.location.pathname}`} target="_blank" rel="noopener noreferrer"
+          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.muted,
+            textDecoration: "none", border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 14px" }}>
+          <ExternalLink size={13} /> معاينة الموقع العام
+        </a>
+      </div>
+      <div style={{ fontSize: 11.5, color: T.faint, marginTop: 12, lineHeight: 1.85 }}>
+        كل طقم فيه نسخة نهارية وليلية، ويتبع إعداد جهاز الزائر تلقائيًا كالمعتاد.
+      </div>
+    </div>
+  );
+}
+
 const ADMIN_TABS = [
   { key: "dashboard", label: "لوحة القرار", perms: ["view_dashboard"] },
   { key: "sync", label: "المزامنة والبيانات", perms: ["import_excel", "add_inquiry", "edit_inquiry", "delete_inquiry", "flag_urgent"] },
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
+  { key: "theme", label: "مظهر الموقع", perms: ["manage_notices"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
 ];
@@ -5926,6 +6198,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
+        {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
       </div>
