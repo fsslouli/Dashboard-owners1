@@ -344,6 +344,8 @@ const THEMES = {
 const SKIN_CLASSIC = { key: "classic", display: null, body: null, radius: 16, glass: false, aurora: false, grid: false, rule: false };
 const SKIN_UFUQ    = { key: "ufuq",    display: "'IBM Plex Sans Arabic'", body: "'IBM Plex Sans Arabic'", radius: 18, glass: true,  aurora: true,  grid: true,  rule: false };
 const SKIN_MAHDAR  = { key: "mahdar",  display: "'Amiri'",               body: "'IBM Plex Sans Arabic'", radius: 3,  glass: true,  aurora: false, grid: false, rule: true  };
+const SKIN_MUKHATTAT = { key: "mukhattat", display: null, body: "'IBM Plex Sans Arabic'", radius: 0, glass: false, aurora: false, grid: false, rule: false, draft: true };
+const SKIN_MASAR   = { key: "masar", display: null, body: "'IBM Plex Sans Arabic'", radius: 12, glass: false, aurora: false, grid: false, rule: false, spine: true };
 
 const THEME_SETS = {
   classic: {
@@ -429,8 +431,82 @@ const THEME_SETS = {
       onAccent: "#FFFFFF",
     },
   },
+  mukhattat: {
+    label: "المُخطَّط", labelEn: "Mukhattat",
+    note: "لغة الرسم التنفيذي — ورق شبكة، علامات زوايا، وخطوط أبعاد.",
+    swatch: ["#06182B", "#5CC8DE", "#FF7A5C"],
+    skin: SKIN_MUKHATTAT,
+    dark: {
+      bg: "#06182B", surface: "#0B2540", sunken: "#04111F",
+      paper: "#DCEAF5", muted: "#7FA3BE", faint: "#527892",
+      brass: "#5CC8DE", line: "rgba(92,200,222,.21)", lineSoft: "rgba(92,200,222,.08)",
+      shadow: "none", shadowUp: "0 0 0 1px rgba(92,200,222,.34)",
+      zone: "#7FA3BE", zoneOn: "#5CC8DE",
+      sta: { "معتمدة": "#3FC7A4", "تم الرفض": "#FF7A5C", "قيد الدراسة": "#E8A33D", "تم التصويت": "#7FA3BE" },
+      pri: { "عالية جدًا": "#FF7A5C", "عالية": "#E8A33D", "متوسطة": "#7FA3BE", "عادية": "#527892" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#FF7A5C", "تصميمي/جمالي": "#A79BE0", "ترقية": "#3FC7A4",
+        "استفسار فني توضيحي": "#5CC8DE", "تجاري": "#E8A33D", "إداري/نظامي": "#7FA3BE",
+      },
+      extra: ["#A79BE0", "#3FC7A4", "#D69A87", "#7FA3BE"],
+      onAccent: "#04111F",
+    },
+    light: {
+      bg: "#EFF3F7", surface: "#FFFFFF", sunken: "#E4EBF2",
+      paper: "#0C2136", muted: "#4A6B85", faint: "#7A93A8",
+      brass: "#0B6E92", line: "rgba(11,110,146,.27)", lineSoft: "rgba(11,110,146,.1)",
+      shadow: "none", shadowUp: "0 0 0 1px rgba(11,110,146,.42)",
+      zone: "#4A6B85", zoneOn: "#0B6E92",
+      sta: { "معتمدة": "#12795F", "تم الرفض": "#C4432B", "قيد الدراسة": "#8A6318", "تم التصويت": "#4A6B85" },
+      pri: { "عالية جدًا": "#C4432B", "عالية": "#8A6318", "متوسطة": "#4A6B85", "عادية": "#7A93A8" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#C4432B", "تصميمي/جمالي": "#5A4E8C", "ترقية": "#12795F",
+        "استفسار فني توضيحي": "#0B6E92", "تجاري": "#8A6318", "إداري/نظامي": "#4A6B85",
+      },
+      extra: ["#5A4E8C", "#12795F", "#8A5140", "#4A6B85"],
+      onAccent: "#FFFFFF",
+    },
+  },
+  masar: {
+    label: "المسار", labelEn: "Masar",
+    note: "ترتيب زمني — عمود فقري تتفرّع منه القيود، بلون الطين الدافئ.",
+    swatch: ["#0E1211", "#CE7A56", "#5AA37E"],
+    skin: SKIN_MASAR,
+    dark: {
+      bg: "#0E1211", surface: "#161C1A", sunken: "#0A0D0C",
+      paper: "#E9EDEA", muted: "#93A09A", faint: "#66736D",
+      brass: "#CE7A56", line: "rgba(233,237,234,.095)", lineSoft: "rgba(233,237,234,.05)",
+      shadow: "0 1px 2px rgba(0,0,0,.3), 0 12px 30px -24px rgba(0,0,0,.75)",
+      shadowUp: "0 3px 8px rgba(0,0,0,.4), 0 24px 52px -26px rgba(0,0,0,.88)",
+      zone: "#93A09A", zoneOn: "#CE7A56",
+      sta: { "معتمدة": "#5AA37E", "تم الرفض": "#CE6B5E", "قيد الدراسة": "#C69A4A", "تم التصويت": "#8494A0" },
+      pri: { "عالية جدًا": "#CE6B5E", "عالية": "#C69A4A", "متوسطة": "#8494A0", "عادية": "#66736D" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#CE6B5E", "تصميمي/جمالي": "#A392C4", "ترقية": "#5AA37E",
+        "استفسار فني توضيحي": "#8494A0", "تجاري": "#C69A4A", "إداري/نظامي": "#93A09A",
+      },
+      extra: ["#A392C4", "#5AA37E", "#C08A72", "#8494A0"],
+      onAccent: "#0E1211",
+    },
+    light: {
+      bg: "#F6F5F1", surface: "#FFFFFF", sunken: "#ECEBE5",
+      paper: "#171D1B", muted: "#5A6763", faint: "#87938E",
+      brass: "#A85434", line: "rgba(23,29,27,.1)", lineSoft: "rgba(23,29,27,.055)",
+      shadow: "0 1px 2px rgba(23,29,27,.04), 0 10px 24px -20px rgba(23,29,27,.2)",
+      shadowUp: "0 2px 6px rgba(23,29,27,.07), 0 22px 46px -22px rgba(23,29,27,.26)",
+      zone: "#5A6763", zoneOn: "#A85434",
+      sta: { "معتمدة": "#2E6B4E", "تم الرفض": "#A34438", "قيد الدراسة": "#8A6318", "تم التصويت": "#4E5E6A" },
+      pri: { "عالية جدًا": "#A34438", "عالية": "#8A6318", "متوسطة": "#4E5E6A", "عادية": "#87938E" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#A34438", "تصميمي/جمالي": "#5A4E8C", "ترقية": "#2E6B4E",
+        "استفسار فني توضيحي": "#4E5E6A", "تجاري": "#8A6318", "إداري/نظامي": "#5A6763",
+      },
+      extra: ["#5A4E8C", "#2E6B4E", "#8A5140", "#4E5E6A"],
+      onAccent: "#FFFFFF",
+    },
+  },
 };
-const THEME_KEYS = ["classic", "ufuq", "mahdar"];
+const THEME_KEYS = ["classic", "ufuq", "mahdar", "mukhattat", "masar"];
 const DEFAULT_THEME_KEY = "classic";
 
 /* خطوط إضافية تُحمَّل فقط عند اعتماد طقم يحتاجها — ما نثقّل الزائر بلا داعٍ */
@@ -1308,6 +1384,36 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "1.18.0",
+    dateAr: "7 سبتمبر 2026",
+    dateEn: "September 7, 2026",
+    ar: [
+      "مظهر خامس: «المسار» — ترتيب زمني بدل القائمة المسطحة؛ عمود فقري يمتد على طول الصفحة تتفرّع منه القيود بعُقد وخطوط وصل",
+      "لون الطين الدافئ على خلفية خضراء داكنة — لوحة لون لم تُستخدم في أي مظهر سابق",
+      "المظاهر الأربعة السابقة باقية كما هي، والاختيار بينها كلها من تبويب «مظهر الموقع»",
+    ],
+    en: [
+      "A fifth look: Masar — a chronological arrangement instead of a flat list; a spine runs down the page with entries branching off it via nodes and connector lines",
+      "Warm clay on deep green — a palette used in none of the earlier looks",
+      "The four earlier looks are unchanged, and all five are selectable from the site appearance tab",
+    ],
+  },
+  {
+    version: "1.17.0",
+    dateAr: "7 سبتمبر 2026",
+    dateEn: "September 7, 2026",
+    ar: [
+      "مظهر رابع: «المُخطَّط» — مبني على لغة الرسم التنفيذي، بورق شبكة وعلامات زوايا وخطوط أبعاد، ومقابض تحديد تظهر عند المرور على أي بند",
+      "الأولوية العالية تُعلَّم باللون الأحمر الاصطلاحي للتأشير على المخططات",
+      "المظاهر الثلاثة السابقة باقية كما هي، والاختيار بينها كلها من تبويب «مظهر الموقع»",
+    ],
+    en: [
+      "A fourth look: Mukhattat — built on architectural drafting language, with grid paper, corner ticks, dimension lines, and selection handles that appear on hover",
+      "High priority is marked in the red conventionally used for drawing markup",
+      "The three earlier looks are unchanged, and all four are selectable from the site appearance tab",
+    ],
+  },
   {
     version: "1.16.1",
     dateAr: "7 سبتمبر 2026",
@@ -3610,15 +3716,40 @@ ${SKIN.aurora ? `.skin-aurora{position:fixed;inset:-25%;z-index:0;filter:blur(72
 .skin-aurora i:nth-child(2){width:46vw;height:46vw;top:33%;left:-11%;background:radial-gradient(circle,#1E6E8C 0%,transparent 70%);animation-delay:-10s;}
 .skin-aurora i:nth-child(3){width:40vw;height:40vw;bottom:-5%;right:13%;background:radial-gradient(circle,${T.sta["معتمدة"]} 0%,transparent 72%);animation-delay:-18s;}
 @keyframes skindrift{to{transform:translate3d(-7%,9%,0) scale(1.16);}}` : ""}
+${SKIN.spine ? `.dash .cards{position:relative;padding-inline-end:38px;}
+@media(min-width:900px){.dash .cards{grid-template-columns:1fr;}}
+.dash .cards::before{content:"";position:absolute;top:6px;bottom:6px;inset-inline-end:12px;width:1px;background:${T.line};}
+.dash .cards > .card{position:relative;}
+.dash .cards > .card::after{content:"";position:absolute;inset-inline-end:-32px;top:24px;width:7px;height:7px;
+  border-radius:50%;background:${T.line};transition:background .3s cubic-bezier(.2,.9,.3,1),box-shadow .3s;}
+.dash .cards > .card::before{content:"";position:absolute;inset-inline-end:-25px;top:27px;width:25px;height:1px;background:${T.line};}
+.dash .cards > .card:hover::after{background:${T.brass};box-shadow:0 0 0 4px ${T.brass}38;}
+@media(max-width:520px){.dash .cards{padding-inline-end:26px;}
+  .dash .cards::before{inset-inline-end:8px;}
+  .dash .cards > .card::after{inset-inline-end:-22px;}
+  .dash .cards > .card::before{inset-inline-end:-16px;width:16px;}}` : ""}
+${SKIN.draft ? `.skin-paper{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;
+  background-image:linear-gradient(${T.line} 1px,transparent 1px),linear-gradient(90deg,${T.line} 1px,transparent 1px),
+    linear-gradient(${T.lineSoft} 1px,transparent 1px),linear-gradient(90deg,${T.lineSoft} 1px,transparent 1px);
+  background-size:88px 88px,88px 88px,11px 11px,11px 11px;}
+.dash .card,.dash .surf,.dash .stats,.dash .sheet{box-shadow:none;border:1px solid ${T.line};background:${T.surface};}
+.dash .card{position:relative;}
+.dash .card::after{content:"";position:absolute;inset:0;border:1px dashed ${T.brass};
+  opacity:0;transition:opacity .3s cubic-bezier(.2,.9,.3,1);pointer-events:none;}
+.dash .card:hover::after{opacity:.55;}
+.dash .tag,.dash .chip,.dash .cat-pill,.dash .icon-btn,.dash .big-btn{border-radius:0;}
+.dash .tag{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;}
+.dash .mono{font-variant-numeric:tabular-nums;}` : ""}
 ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
   background-image:linear-gradient(${T.lineSoft} 1px,transparent 1px),linear-gradient(90deg,${T.lineSoft} 1px,transparent 1px);
   background-size:46px 46px;
   -webkit-mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);
   mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);}` : ""}
-${(SKIN.aurora || SKIN.grid) ? `.dash > *:not(.skin-aurora):not(.skin-grid):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}` : ""}
+${(SKIN.aurora || SKIN.grid || SKIN.draft) ? `.dash > *:not(.skin-aurora):not(.skin-grid):not(.skin-paper):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}` : ""}
         `}</style>
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
         {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
+        {SKIN.draft && <div className="skin-paper no-print" aria-hidden="true" />}
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
 
