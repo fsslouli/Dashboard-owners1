@@ -1392,6 +1392,33 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.1.0",
+    dateAr: "8 سبتمبر 2026",
+    dateEn: "September 8, 2026",
+    ar: [
+      "إصلاح: نافذة الإقرار كانت تنزل بأعلى الصفحة بدل ما تكون فوق المحتوى — رجعت نافذة مستقلة بالنص، وزر «أوافق» ظهر واضحًا بعد ما كان أبيض على أبيض",
+      "الإقرار صار بخانة قائمة بذاتها: رأس ملوّن، وكل بند داخل صندوق مستقل، وتذييل ثابت يحمل زر الموافقة",
+      "إعادة ترتيب «نظرة عامة»: عمودان على الشاشات الكبيرة — «أحدث الملاحظات» و«طبيعة البنود» جنب بعض بدل ما تكون تحت بعض",
+      "«حالة السجل» صارت بعمودين: العنوان والرقم على جهة، وشريط التوزيع ومفاتيح الحالة على الجهة الثانية",
+      "مفاتيح الحالة صارت بلاطات مستقلة بحدود، بدل صفوف مسطحة",
+      "الترويسة صارت لوحة بارزة بحد خفيف وهالة لونية، وأزرار الأدوات تجمّعت داخل حبّة زجاجية",
+      "«أحدث الملاحظات» صارت خطًا زمنيًا بعمود وعُقد بدل قائمة عادية",
+      "ثلاثة أعمدة للبطاقات على الشاشات العريضة جدًا، وعمودان لقائمة المخططات",
+      "عرض الصفحة اتّسع من 1120 إلى 1240 بكسل للاستفادة من الشاشات الكبيرة",
+    ],
+    en: [
+      "Fix: the disclaimer was dropping into the top of the page instead of floating above it — it is a standalone centred dialog again, and the Agree button is visible after rendering white-on-white",
+      "The disclaimer now stands on its own: a tinted header, each clause in its own box, and a fixed footer holding the agree button",
+      "Overview reorganised: two columns on large screens — Latest Notes and Item Categories now sit side by side instead of stacked",
+      "Record Status is now a two-column panel: heading and total on one side, distribution bar and status keys on the other",
+      "Status keys are now bordered tiles instead of flat rows",
+      "The header is a raised panel with a hairline edge and a colour bloom; toolbar buttons are grouped inside a glass pill",
+      "Latest Notes is now a timeline with a spine and nodes instead of a plain list",
+      "Three-column cards on very wide screens, and a two-column document list",
+      "Page width widened from 1120 to 1240px to make use of large screens",
+    ],
+  },
+  {
     version: "2.0.0",
     dateAr: "8 سبتمبر 2026",
     dateEn: "September 8, 2026",
@@ -2041,9 +2068,9 @@ function LegalDisclaimer({ onAgree: onAgreeParent }) {
   const c = LEGAL_COPY[lang];
   const onAgree = () => { setAgreed(true); onAgreeParent?.(); };
   return (
-    <div className="ovl" style={{ zIndex: 90 }}>
-      <div className="sheet" style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
-        <div className="sheet-top" style={{ borderBottom: `1px solid ${T.line}` }}>
+    <div className="ovl lgl-ovl" data-modal="legal" style={{ zIndex: 90 }}>
+      <div className="sheet lgl" data-sheet="legal" style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
+        <div className="sheet-top lgl-top" style={{ borderBottom: `1px solid ${T.line}` }}>
           <div className="flex items-center gap-2">
             <span style={{
               width: 36, height: 36, borderRadius: 11, background: T.brass + "14",
@@ -2058,17 +2085,17 @@ function LegalDisclaimer({ onAgree: onAgreeParent }) {
           </div>
           <LangToggle />
         </div>
-        <div className="sheet-body">
+        <div className="sheet-body lgl-body">
           {c.points.map(([label, body], i) => (
-            <div key={i} style={{ marginBottom: i < c.points.length - 1 ? 18 : 0 }}>
+            <div className="lgl-pt" key={i} style={{ marginBottom: i < c.points.length - 1 ? 18 : 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: T.paper, marginBottom: 5 }}>{label}</div>
               <p style={{ fontSize: 13, lineHeight: 1.9, color: T.muted, margin: 0 }}>{body}</p>
             </div>
           ))}
         </div>
-        <div style={{ padding: "18px 19px 22px", borderTop: `1px solid ${T.line}`, background: T.sunken }}>
+        <div className="lgl-foot" style={{ padding: "18px 19px 22px", borderTop: `1px solid ${T.line}`, background: T.sunken }}>
           <p style={{ fontSize: 11.5, lineHeight: 1.8, color: T.faint, margin: "0 0 14px" }}>{c.consent}</p>
-          <button onClick={onAgree} className="big-btn" style={{ marginTop: 0 }}>{c.agree}</button>
+          <button onClick={onAgree} className="big-btn lgl-agree" style={{ marginTop: 0 }}>{c.agree}</button>
         </div>
       </div>
     </div>
@@ -3898,9 +3925,9 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
           )}
 
           {tab === "overview" && (
-            <div className="tab-panel">
+            <div className="tab-panel" data-tab="overview">
               {/* حالة السجل */}
-              <section className="surf stats">
+              <section className="surf stats" data-sec="status">
                 <div className="stats-top">
                   <div>
                     <div className="sec-t">{L("حالة السجل", "Record Status")}</div>
@@ -3941,7 +3968,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
               </section>
 
               {/* أحدث الملاحظات */}
-              <section className="surf" style={{ padding: "20px 18px", marginBottom: 14 }}>
+              <section className="surf" data-sec="latest" style={{ padding: "20px 18px", marginBottom: 14 }}>
                 <div className="sec-t">{L("أحدث الملاحظات", "Latest Notes")}</div>
                 <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>{L("آخر ما أُضيف أو جرى عليه رد", "Most recently added or replied to")}</div>
                 <div className="latest">
@@ -3964,7 +3991,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
               </section>
 
               {/* المخطط + المواقع */}
-              <section className="surf" style={{ padding: "20px 18px", marginBottom: 14 }}>
+              <section className="surf" data-sec="where" style={{ padding: "20px 18px", marginBottom: 14 }}>
                 <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 18 }}>
                   <div className="lg:col-span-2">
                     <div className="sec-t">{L("أين ظهرت الملاحظات؟", "Where did the notes come from?")}</div>
@@ -3997,7 +4024,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
 
               {/* فئات البنود — طبيعة كل استفسار: عيب تنفيذي، تحسين تصميمي، ترقية، استفسار… */}
               {cats.cat.length > 0 && (
-                <section className="surf" style={{ padding: "20px 18px", marginBottom: 14 }}>
+                <section className="surf" data-sec="cats" style={{ padding: "20px 18px", marginBottom: 14 }}>
                   <div className="sec-t">{L("طبيعة البنود", "Item Categories")}</div>
                   <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>
                     {L("اضغط أي فئة لعرض بنودها", "Tap any category to view its items")}
@@ -4035,7 +4062,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
               )}
 
               {/* الزمن + الأولوية */}
-              <section className="grid grid-cols-1 lg:grid-cols-5" style={{ gap: 14 }}>
+              <section className="grid grid-cols-1 lg:grid-cols-5" data-sec="charts" style={{ gap: 14 }}>
                 <div className="surf lg:col-span-3" style={{ padding: "20px 16px 12px" }}>
                   <div style={{ paddingRight: 4 }}>
                     <div className="sec-t">{L("مسار الردود والتراكم", "Reply Trend & Cumulative")}</div>
