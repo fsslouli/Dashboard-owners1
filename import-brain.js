@@ -1,14 +1,18 @@
 /* ═══════════════════════════════════════════════════════════
-   عقل المزامنة — منطق خالص بلا React وبلا شبكة، عشان يكون قابل للاختبار.
+   مدقّق ملفات الاستفسارات — حتمي بالكامل، بلا شبكة وبلا خدمة خارجية.
 
-   وظيفته: يقرأ صفوف ملف الإكسل المرفوع، يقارنها بالسجل الحالي، ويطلع
-   بثلاث نتائج:
-     ١) تصحيحات آمنة يقدر يسويها بنفسه (مسافات، أرقام عربية، نعم/لا…)
-     ٢) ملاحظات تدقيق تحتاج قرار بشري (تناقض، قيمة غير معتمدة، تكرار…)
-     ٣) ملخّص عربي مقروء لما تغيّر فعليًا
+   نفس الملف يعطي نفس النتيجة دائمًا. كل قاعدة مكتوبة هنا صراحة، فتقدر
+   تراجعها وتحتج عليها — مو رأي يتغيّر من مرة لمرة.
 
-   المراجعة بالذكاء الاصطناعي تجي فوق هذي الطبقة لا بدلها — لو الخدمة
-   كانت مقطوعة أو المفتاح ناقص، كل اللي تحت يظل شغّالًا كما هو.
+   خمس طبقات:
+     ١) بنية الملف    — ربط الأعمدة، المتجاهَل منها، أخطاء إكسل
+     ٢) تعريف الأعمدة — نمط كل عمود، والخلايا الشاذة عنه
+     ٣) قواعد المنطق  — التناقضات بين الحقول داخل الصف
+     ٤) عابر الصفوف   — إزاحة الصفوف، انزياح التوزيع، الحذف الجماعي
+     ٥) الملف المرجعي — بصمة إحصائية من السجل الحالي يُقاس عليها الجديد
+
+   المستويات: blocker (أوقف واقرأ) ← high ← medium ← low
+   المستوى ما يمنع الاعتماد — يُعرض بوضوح والقرار للمشرف.
    ═══════════════════════════════════════════════════════════ */
 
 /* ── ١. توحيد النص العربي ── */
@@ -136,118 +140,405 @@ export function closestApproved(value, approved, floor = 0.62) {
   return score >= floor ? { value: best, score } : null;
 }
 
-/* ── ٥. التدقيق ──
-   كل ملاحظة فيها: المستوى، الصف، الحقل، الرسالة، واقتراح لو فيه. */
-const L_HIGH = "high", L_MED = "medium", L_LOW = "low";
-const OPEN_STATUSES = ["قيد الدراسة", "تم التصويت"];
-const DECIDED_STATUSES = ["معتمدة", "تم الرفض"];
-
-export function auditRows({ rows = [], existing = [], approved = {}, keyOf = (r) => r.id } = {}) {
-  const out = [];
-  const add = (level, key, field, msg, suggest) => out.push({ level, key: String(key ?? "—"), field: field || "", msg, suggest: suggest ?? "" });
-  const byId = new Map(existing.map((r) => [String(r.id), r]));
-  const seen = new Map();
-
-  rows.forEach((row) => {
-    const key = keyOf(row);
-    const k = String(key ?? "").trim();
-
-    /* ٥-١ سلامة الصف نفسه */
-    if (isBlank(row.note)) add(L_HIGH, k || "—", "note", "صف بلا نص ملاحظة — ما له معنى بالسجل");
-    if (k) {
-      if (seen.has(k)) add(L_HIGH, k, "id", `الرقم مكرر داخل نفس الملف (تكرر مع صف «${String(seen.get(k)).slice(0, 40)}…»)`);
-      else seen.set(k, row.note || "");
-      if (!/^\d+$/.test(toLatinDigits(k))) add(L_MED, k, "id", "الرقم مو رقمًا صحيحًا");
-    }
-
-    /* ٥-٢ تناقضات منطقية */
-    const closed = toYesNoSmart(row.closed);
-    const answered = toYesNoSmart(row.answered);
-    const st = String(row.status ?? "").trim();
-    if (closed === "نعم" && OPEN_STATUSES.some((s) => sameValue(s, st)))
-      add(L_HIGH, k, "closed", `مقفلة = نعم مع حالة «${st}» — تناقض`, "لا");
-    if (closed === "لا" && DECIDED_STATUSES.some((s) => sameValue(s, st)))
-      add(L_MED, k, "closed", `الحالة «${st}» محسومة والبند مفتوح`, "نعم");
-    if (DECIDED_STATUSES.some((s) => sameValue(s, st)) && isBlank(row.reply))
-      add(L_MED, k, "reply", `حالة «${st}» بلا نص رد`);
-    if (answered === "نعم" && isBlank(row.reply))
-      add(L_MED, k, "answered", "تم الرد = نعم لكن خانة الرد فاضية", "لا");
-    if (answered === "لا" && !isBlank(row.reply))
-      add(L_LOW, k, "answered", "فيه نص رد لكن تم الرد = لا", "نعم");
-
-    /* ٥-٣ قيم خارج المعتمد */
-    Object.entries(approved).forEach(([field, list]) => {
-      const v = row[field];
-      if (isBlank(v) || !Array.isArray(list) || !list.length) return;
-      if (list.some((a) => sameValue(a, v))) return;
-      const near = closestApproved(v, list);
-      add(near ? L_MED : L_LOW, k, field,
-        `القيمة «${String(v).slice(0, 40)}» مو ضمن القيم المعتمدة`,
-        near ? near.value : "");
-    });
-
-    /* ٥-٤ مقارنة بالسجل الحالي */
-    const cur = byId.get(k);
-    if (cur) {
-      ["note", "reply", "status", "cat", "loc", "model", "month", "owner", "pri"].forEach((f) => {
-        if (!isBlank(cur[f]) && isBlank(row[f]))
-          add(L_HIGH, k, f, `الملف يفرّغ حقل «${f}» وهو معبّأ حاليًا — غالبًا شيت ناقص مو حذفًا مقصودًا`);
-      });
-      if (!isBlank(cur.note) && !isBlank(row.note) && similarity(cur.note, row.note) < 0.4)
-        add(L_MED, k, "note", "نص الملاحظة تغيّر جذريًا على نفس الرقم — يحتمل إزاحة صفوف بالملف");
-      if (DECIDED_STATUSES.some((s) => sameValue(s, cur.status)) && OPEN_STATUSES.some((s) => sameValue(s, st)))
-        add(L_MED, k, "status", `رجوع للخلف: من «${cur.status}» إلى «${st}»`);
-    }
-  });
-
-  /* ٥-٥ تكرار داخل الملف بالمعنى لا بالرقم.
-     المقارنة زوجية (n²)، فنحميها بحدّين: سقف صفوف، واستبعاد مبكر للأزواج
-     المتباعدة بالطول — بدونهما ملف كبير يجمّد الواجهة بلا فائدة. */
-  const DUP_ROW_CAP = 800;   // فوقه نتخطى الفحص الزوجي كليًا
-  const DUP_HIT_CAP = 50;    // بعده الرسالة صارت واضحة، والزيادة ضجيج
-  if (rows.length <= DUP_ROW_CAP) {
-    const notes = rows.map((r) => (isBlank(r.note) ? "" : normLoose(r.note)));
-    const grams = notes.map((n) => (n ? bigrams(n) : null));
-    let hits = 0;
-    outer:
-    for (let i = 0; i < rows.length; i++) {
-      if (!notes[i]) continue;
-      for (let j = i + 1; j < rows.length; j++) {
-        if (!notes[j]) continue;
-        if (String(keyOf(rows[i])) === String(keyOf(rows[j]))) continue;
-        const lo = Math.min(notes[i].length, notes[j].length), hi = Math.max(notes[i].length, notes[j].length);
-        if (lo / hi < 0.75) continue; // فرق طول كبير = مستحيل يتجاوز عتبة 0.9
-        if (diceFromGrams(grams[i], grams[j]) >= 0.9) {
-          add(L_MED, keyOf(rows[i]), "note", `يشبه صف «${keyOf(rows[j])}» بنسبة عالية — يحتمل تكرار بصياغة مختلفة`);
-          hits++;
-          if (hits >= DUP_HIT_CAP) break outer;
-          break; // تنبيه واحد لكل صف يكفي — ما نكرر نفس الصف مع كل شبيه له
-        }
-      }
-    }
-  }
-
-  const rank = { high: 0, medium: 1, low: 2 };
-  out.sort((x, y) => rank[x.level] - rank[y.level]);
-  /* سقف عام: ملف فوضوي ممكن يولّد آلاف الملاحظات فيغرق الواجهة ويخفي المهم.
-     نرجّع الأهم فقط ونعلّم على الباقي بعدّاد. */
-  const CAP = 400;
-  if (out.length > CAP) {
-    const kept = out.slice(0, CAP);
-    kept.push({ level: "low", key: "—", field: "", msg: `و${out.length - CAP} ملاحظة إضافية لم تُعرض — عالج الحرج أولًا ثم أعد الرفع`, suggest: "" });
-    return kept;
-  }
-  return out;
-}
-
-/* ── ٦. ملخّص عربي لما تغيّر ── */
+/* ══════════ مسمّيات ومستويات ══════════ */
 const FIELD_AR = {
-  model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", status: "الحالة",
-  owner: "المسؤول", month: "الشهر", note: "الملاحظة", reply: "الرد",
-  closed: "الإغلاق", answered: "حالة الرد", meetings: "الاجتماعات",
+  id: "الرقم", model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", status: "الحالة",
+  owner: "المسؤول", month: "الشهر", note: "الملاحظة", note_en: "الملاحظة (EN)",
+  reply: "الرد", reply_en: "الرد (EN)", closed: "الإغلاق", answered: "حالة الرد", meetings: "الاجتماعات",
 };
 export const fieldLabel = (f) => FIELD_AR[f] || f;
 
+const LEVEL_RANK = { blocker: 0, high: 1, medium: 2, low: 3 };
+export const LEVEL_AR = { blocker: "أوقف واقرأ", high: "حرج", medium: "يستحق المراجعة", low: "ملاحظة" };
+
+const OPEN_STATUSES = ["قيد الدراسة", "تم التصويت"];
+const DECIDED_STATUSES = ["معتمدة", "تم الرفض"];
+
+/* مصنع الملاحظات — يوحّد الشكل ويبني عنوان خلية إكسل حقيقي متى ما توفّر */
+function makeCollector(ctx = {}) {
+  const list = [];
+  const add = (level, code, msg, opts = {}) => {
+    const { key = "—", field = "", excelRow = null, suggest = "" } = opts;
+    let cell = "";
+    const letter = ctx.colLetterOf && ctx.colLetterOf[field];
+    if (excelRow && letter) cell = letter + excelRow;
+    else if (excelRow) cell = "صف " + excelRow;
+    list.push({ level, code, sheet: ctx.sheet || "", key: String(key), field, cell, msg, suggest });
+  };
+  return { list, add };
+}
+
+/* ══════════ ١) بنية الملف ══════════ */
+export function auditStructure(meta = {}, { sheet = "", requiredFields = ["note"] } = {}) {
+  const { add, list } = makeCollector({ sheet, colLetterOf: meta.colLetterOf || {} });
+  const cols = meta.columns || [];
+  const mapped = cols.filter((c) => c.field);
+
+  requiredFields.forEach((f) => {
+    if (!mapped.some((c) => c.field === f))
+      add("blocker", "MISSING_REQUIRED",
+        `ما فيه عمود انربط بحقل «${fieldLabel(f)}» — الشيت ما يصلح للمزامنة بدونه`, { field: f });
+  });
+
+  const ignored = cols.filter((c) => !c.field && c.nonEmpty > 0);
+  if (ignored.length)
+    add("high", "IGNORED_COLUMNS",
+      `${ignored.length} عمود فيه بيانات ما انربط بأي حقل وراح يُهمل بالكامل: ${ignored.map((c) => `${c.letter} «${c.raw || "بلا عنوان"}»`).join("، ")}`,
+      { suggest: "عدّل عنوان العمود بالملف ليطابق المعتمد، أو تجاهله بوعي" });
+
+  const groups = new Map();
+  mapped.forEach((c) => groups.set(c.field, [...(groups.get(c.field) || []), c]));
+  groups.forEach((group, field) => {
+    if (group.length > 1)
+      add("medium", "DUPLICATE_COLUMNS",
+        `عمودان أو أكثر انربطوا بحقل «${fieldLabel(field)}»: ${group.map((c) => `${c.letter} «${c.raw}»`).join("، ")} — تُعتمد أول قيمة غير فارغة`,
+        { field });
+  });
+
+  (meta.errorCells || []).slice(0, 20).forEach((e) =>
+    add("high", "EXCEL_ERROR", `خلية فيها خطأ إكسل (${e.value})`,
+      { key: e.key ?? "—", field: e.field || "", excelRow: e.excelRow }));
+  if ((meta.errorCells || []).length > 20)
+    add("high", "EXCEL_ERROR_MORE", `و${meta.errorCells.length - 20} خلية أخرى فيها أخطاء إكسل`);
+
+  if (meta.headerRowIndex > 0)
+    add("low", "HEADER_OFFSET", `صف العناوين مو أول صف بالشيت — اعتُمد الصف ${meta.headerRowIndex + 1}`);
+  if (!meta.rowCount)
+    add("blocker", "EMPTY_SHEET", "الشيت ما فيه أي صف بيانات بعد صف العناوين");
+
+  return list;
+}
+
+/* ══════════ ٢) تعريف الأعمدة ══════════ */
+const isNumeric = (v) => /^\d+([.,]\d+)?$/.test(toLatinDigits(v).trim());
+
+export function profileColumns(rows = [], meta = {}, { sheet = "" } = {}) {
+  const { add, list } = makeCollector({ sheet, colLetterOf: meta.colLetterOf || {} });
+  if (rows.length < 8) return list;   // عيّنة صغيرة = استنتاج غير موثوق
+
+  const fields = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  fields.forEach((f) => {
+    if (["note", "reply", "note_en", "reply_en", "meetings"].includes(f)) return;
+    const vals = rows.map((r, i) => ({ v: r[f], i })).filter((x) => !isBlank(x.v));
+    if (vals.length < 8) return;
+    const ratio = vals.filter((x) => isNumeric(x.v)).length / vals.length;
+
+    if (ratio >= 0.9 && ratio < 1)
+      vals.filter((x) => !isNumeric(x.v)).slice(0, 6).forEach((x) =>
+        add("medium", "TYPE_OUTLIER",
+          `قيمة نصية داخل عمود «${fieldLabel(f)}» أغلبه أرقام: «${String(x.v).slice(0, 30)}»`,
+          { key: rows[x.i]?.id ?? "—", field: f, excelRow: meta.excelRowOf?.[x.i] }));
+
+    if (ratio > 0 && ratio <= 0.1)
+      vals.filter((x) => isNumeric(x.v)).slice(0, 6).forEach((x) =>
+        add("low", "TYPE_OUTLIER",
+          `قيمة رقمية داخل عمود «${fieldLabel(f)}» أغلبه نصوص: «${String(x.v).slice(0, 30)}»`,
+          { key: rows[x.i]?.id ?? "—", field: f, excelRow: meta.excelRowOf?.[x.i] }));
+  });
+
+  const shapes = new Set();
+  rows.forEach((r) => {
+    if (isBlank(r.month)) return;
+    const s = toLatinDigits(r.month).trim();
+    if (/^\d{4}-\d{2}$/.test(s)) shapes.add("YYYY-MM");
+    else if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) shapes.add("D/M/Y");
+    else if (/^\d{4}$/.test(s)) shapes.add("YYYY");
+    else shapes.add("نص حر");
+  });
+  if (shapes.size > 1)
+    add("medium", "MIXED_DATE_FORMATS",
+      `عمود الشهر فيه ${shapes.size} صيغ مختلفة (${[...shapes].join("، ")}) — بعضها ممكن ما يُقرأ`, { field: "month" });
+
+  return list;
+}
+
+/* ══════════ ٣) قواعد المنطق داخل الصف ══════════ */
+export function auditLogic(rows = [], { existing = [], approved = {}, meta = {}, sheet = "", projectStart = "2024-01" } = {}) {
+  const { add, list } = makeCollector({ sheet, colLetterOf: meta.colLetterOf || {} });
+  const byId = new Map(existing.map((r) => [String(r.id), r]));
+  const seenIds = new Map();
+  const nowMonth = new Date().toISOString().slice(0, 7);
+
+  rows.forEach((row, i) => {
+    const key = String(row.id ?? "").trim() || "—";
+    const at = { key, excelRow: meta.excelRowOf?.[i] };
+
+    if (isBlank(row.note)) add("high", "EMPTY_NOTE", "صف بلا نص ملاحظة — ما له معنى بالسجل", { ...at, field: "note" });
+
+    if (key !== "—") {
+      if (seenIds.has(key))
+        add("high", "DUP_ID", `الرقم مكرر داخل نفس الملف (تكرر مع صف إكسل ${seenIds.get(key)})`, { ...at, field: "id" });
+      else seenIds.set(key, meta.excelRowOf?.[i] ?? "?");
+      if (!/^\d+$/.test(toLatinDigits(key)))
+        add("medium", "BAD_ID", "الرقم مو رقمًا صحيحًا", { ...at, field: "id" });
+    }
+
+    const closed = toYesNoSmart(row.closed);
+    const answered = toYesNoSmart(row.answered);
+    const st = String(row.status ?? "").trim();
+    const isOpen = OPEN_STATUSES.some((s) => sameValue(s, st));
+    const isDecided = DECIDED_STATUSES.some((s) => sameValue(s, st));
+
+    if (closed === "نعم" && isOpen)
+      add("high", "CONTRA_CLOSED", `مقفلة = نعم مع حالة «${st}» — تناقض`, { ...at, field: "closed", suggest: "لا" });
+    if (closed === "لا" && isDecided)
+      add("medium", "CONTRA_OPEN", `الحالة «${st}» محسومة والبند مفتوح`, { ...at, field: "closed", suggest: "نعم" });
+    if (isDecided && isBlank(row.reply))
+      add("medium", "DECIDED_NO_REPLY", `حالة «${st}» بلا نص رد`, { ...at, field: "reply" });
+    if (answered === "نعم" && isBlank(row.reply))
+      add("medium", "ANSWERED_NO_REPLY", "تم الرد = نعم لكن خانة الرد فاضية", { ...at, field: "answered", suggest: "لا" });
+    if (answered === "لا" && !isBlank(row.reply))
+      add("low", "REPLY_NOT_ANSWERED", "فيه نص رد لكن تم الرد = لا", { ...at, field: "answered", suggest: "نعم" });
+    if (!isBlank(row.reply) && isBlank(row.owner) && row.owner !== undefined)
+      add("low", "REPLY_NO_OWNER", "فيه رد بلا مهندس مسؤول مسجّل", { ...at, field: "owner" });
+
+    const mk = toLatinDigits(row.month || "").trim();
+    if (/^\d{4}-\d{2}$/.test(mk)) {
+      if (mk > nowMonth) add("medium", "FUTURE_MONTH", `الشهر «${mk}» بالمستقبل`, { ...at, field: "month" });
+      if (mk < projectStart) add("low", "OLD_MONTH", `الشهر «${mk}» قبل بداية المشروع`, { ...at, field: "month" });
+    }
+
+    Object.entries(approved).forEach(([field, vlist]) => {
+      const v = row[field];
+      if (isBlank(v) || !Array.isArray(vlist) || !vlist.length) return;
+      if (vlist.some((a) => sameValue(a, v))) return;
+      const near = closestApproved(v, vlist);
+      add(near ? "medium" : "low", "UNAPPROVED_VALUE",
+        `القيمة «${String(v).slice(0, 40)}» مو ضمن القيم المعتمدة لحقل «${fieldLabel(field)}»`,
+        { ...at, field, suggest: near ? near.value : "" });
+    });
+
+    const cur = byId.get(key);
+    if (cur) {
+      ["note", "reply", "status", "cat", "loc", "model", "month", "owner", "pri"].forEach((f) => {
+        if (row[f] !== undefined && !isBlank(cur[f]) && isBlank(row[f]))
+          add("high", "CLEARS_FIELD",
+            `الملف يفرّغ حقل «${fieldLabel(f)}» وهو معبّأ حاليًا — غالبًا شيت ناقص مو حذفًا مقصودًا`, { ...at, field: f });
+      });
+      if (!isBlank(cur.note) && !isBlank(row.note) && similarity(cur.note, row.note) < 0.4)
+        add("medium", "NOTE_REPLACED", "نص الملاحظة تغيّر جذريًا على نفس الرقم", { ...at, field: "note" });
+      if (DECIDED_STATUSES.some((s) => sameValue(s, cur.status)) && isOpen)
+        add("medium", "STATUS_BACKWARDS", `رجوع للخلف: من «${cur.status}» إلى «${st}»`, { ...at, field: "status" });
+    }
+  });
+
+  return list;
+}
+
+/* ══════════ ٤) عابر الصفوف ══════════ */
+
+/* إزاحة الصفوف: أخطر عطل صامت. لو نص البند ٤٧ الجديد يطابق نص البند ٤٦
+   القديم وتكرر النمط، فالملف كله مزاح — والمقارنة العادية تعتبرها تعديلات
+   مشروعة وتستبدل بيانات صحيحة ببيانات بند ثاني. */
+export function detectRowShift(rows = [], existing = [], { sheet = "", minRun = 4 } = {}) {
+  const { add, list } = makeCollector({ sheet });
+  if (rows.length < minRun || existing.length < minRun) return list;
+  const byId = new Map(existing.map((r) => [String(r.id), r]));
+
+  let best = null;
+  for (const offset of [-1, 1]) {
+    let checked = 0, wins = 0, sumSh = 0, sumOwn = 0;
+    const examples = [];
+    rows.forEach((row) => {
+      const id = Number(toLatinDigits(row.id));
+      if (!id || isBlank(row.note)) return;
+      const shifted = byId.get(String(id + offset));
+      const own = byId.get(String(id));
+      if (!shifted || !own || isBlank(shifted.note) || isBlank(own.note)) return;
+      checked++;
+      const sh = similarity(row.note, shifted.note);
+      const ow = similarity(row.note, own.note);
+      sumSh += sh; sumOwn += ow;
+      if (sh >= 0.85 && sh > ow + 0.02) {
+        wins++;
+        if (examples.length < 3) examples.push(`#${id} يحمل نص #${id + offset}`);
+      }
+    });
+    if (checked < minRun || wins < minRun) continue;
+    const meanSh = sumSh / checked, meanOwn = sumOwn / checked, ratio = wins / checked;
+
+    /* الشرط ليس «التشابه عالٍ» بل «المحاذاة المزاحة أفضل بشكل منهجي».
+       بالملفات ذات الصياغة القالبية يكون التشابه عاليًا بالحالتين، فالفارق
+       وحده هو الدليل. وشرط meanOwn < 0.98 يمنع الإنذار الكاذب حين تكون
+       المحاذاة الصحيحة مطابقة أصلًا وما فيه إزاحة أساسًا. */
+    if (ratio >= 0.6 && meanSh >= 0.85 && meanSh > meanOwn + 0.02 && meanOwn < 0.98) {
+      const score = ratio * (meanSh - meanOwn);
+      if (!best || score > best.score) best = { score, offset, wins, checked, ratio, examples };
+    }
+  }
+
+  if (best)
+    add("blocker", "ROW_SHIFT",
+      `يبدو أن صفوف الملف مزاحة بمقدار ${Math.abs(best.offset)} — ${best.wins} من ${best.checked} صف يطابق نص بند مجاور أكثر من بنده هو (${best.examples.join("، ")}). الاعتماد بهذا الشكل يستبدل بيانات صحيحة ببيانات بند ثاني.`,
+      { suggest: "افتح الملف وتأكد من محاذاة عمود الرقم مع بقية الأعمدة" });
+
+  return list;
+}
+
+/* انزياح التوزيع: انقلاب مفاجئ بنسب حقل = مؤشر على عمود بمكان غلط */
+export function detectDistributionShift(rows = [], existing = [], { fields = ["status", "cat", "pri", "model"], sheet = "", minRows = 20, threshold = 0.35 } = {}) {
+  const { add, list } = makeCollector({ sheet });
+  if (rows.length < minRows || existing.length < minRows) return list;
+
+  const dist = (arr, f) => {
+    const m = new Map(); let n = 0;
+    arr.forEach((r) => { if (isBlank(r[f])) return; const k = normLoose(r[f]); m.set(k, (m.get(k) || 0) + 1); n++; });
+    return { m, n };
+  };
+
+  fields.forEach((f) => {
+    const a = dist(existing, f), b = dist(rows, f);
+    if (a.n < minRows || b.n < minRows) return;
+    const keys = new Set([...a.m.keys(), ...b.m.keys()]);
+    let tv = 0;
+    keys.forEach((k) => { tv += Math.abs((a.m.get(k) || 0) / a.n - (b.m.get(k) || 0) / b.n); });
+    tv /= 2;
+    if (tv >= threshold)
+      add("high", "DIST_SHIFT",
+        `توزيع «${fieldLabel(f)}» تغيّر بنسبة ${Math.round(tv * 100)}٪ دفعة واحدة مقابل السجل الحالي — راجع أن العمود بمكانه الصحيح`,
+        { field: f });
+  });
+  return list;
+}
+
+/* الحذف الجماعي: نسبة كبيرة «غير موجودة بالملف» = شيت جزئي، مو قرار حذف */
+export function detectMassRemoval(diffResults = []) {
+  const { add, list } = makeCollector({});
+  diffResults.forEach((r) => {
+    if (r.mode === "replace") {
+      const incoming = (r.newRows || []).length;
+      if (r.removedCount > 0 && incoming < r.removedCount * 0.5)
+        add("blocker", "MASS_REPLACE",
+          `«${r.sheetName}» بوضع الاستبدال الكامل: ${incoming} صف يحل محل ${r.removedCount} — أكثر من نصف السجل بينمسح`,
+          { suggest: "لو المقصود تحديث جزئي، بدّل الوضع إلى «دمج»" });
+      return;
+    }
+    const missing = (r.missing || []).length;
+    const base = r.currentCount ?? (missing + (r.changed || []).length);
+    if (!missing || !base) return;
+    const ratio = missing / base;
+    if (ratio >= 0.5)
+      add("blocker", "MASS_MISSING",
+        `«${r.sheetName}»: ${missing} بند بالسجل ما ورد بالملف (${Math.round(ratio * 100)}٪) — الغالب أنه شيت جزئي`,
+        { suggest: "تجاهل «غير الموجود بالملف» إلا إذا كنت فعلاً تبي حذفها" });
+    else if (ratio >= 0.2)
+      add("medium", "SOME_MISSING", `«${r.sheetName}»: ${missing} بند بالسجل ما ورد بالملف`, {});
+  });
+  return list;
+}
+
+/* تكرار بالمعنى داخل الملف — لفظي لا دلالي، بسقوف تمنع تجميد الواجهة */
+export function detectDuplicates(rows = [], { sheet = "", meta = {}, rowCap = 800, hitCap = 50, floor = 0.9 } = {}) {
+  const { add, list } = makeCollector({ sheet, colLetterOf: meta.colLetterOf || {} });
+  if (rows.length > rowCap) return list;
+
+  const notes = rows.map((r) => (isBlank(r.note) ? "" : normLoose(r.note)));
+  const grams = notes.map((n) => (n ? bigrams(n) : null));
+  let hits = 0;
+  outer:
+  for (let i = 0; i < rows.length; i++) {
+    if (!notes[i]) continue;
+    for (let j = i + 1; j < rows.length; j++) {
+      if (!notes[j]) continue;
+      if (String(rows[i].id) === String(rows[j].id)) continue;
+      const lo = Math.min(notes[i].length, notes[j].length), hi = Math.max(notes[i].length, notes[j].length);
+      if (lo / hi < 0.75) continue;
+      if (diceFromGrams(grams[i], grams[j]) >= floor) {
+        add("medium", "NEAR_DUP",
+          `يشبه صف «${rows[j].id ?? "—"}» بنسبة عالية — يحتمل تكرار بصياغة مختلفة`,
+          { key: rows[i].id ?? "—", field: "note", excelRow: meta.excelRowOf?.[i] });
+        hits++;
+        if (hits >= hitCap) break outer;
+        break;
+      }
+    }
+  }
+  return list;
+}
+
+/* ══════════ ٥) الملف المرجعي من السجل الحالي ══════════ */
+export function buildProfile(existing = []) {
+  const freq = {};
+  const pairs = new Set();
+  const noteLens = [];
+  ["model", "loc", "pri", "cat", "status", "owner"].forEach((f) => {
+    freq[f] = new Map();
+    existing.forEach((r) => {
+      if (isBlank(r[f])) return;
+      const k = normLoose(r[f]);
+      freq[f].set(k, (freq[f].get(k) || 0) + 1);
+    });
+  });
+  existing.forEach((r) => {
+    if (!isBlank(r.model) && !isBlank(r.loc)) pairs.add(normLoose(r.model) + "|" + normLoose(r.loc));
+    if (!isBlank(r.note)) noteLens.push(String(r.note).trim().length);
+  });
+  noteLens.sort((a, b) => a - b);
+  const q = (p) => (noteLens.length ? noteLens[Math.min(noteLens.length - 1, Math.floor(noteLens.length * p))] : null);
+  return { n: existing.length, freq, pairs, noteLen: { p05: q(0.05), p50: q(0.5), p95: q(0.95) } };
+}
+
+export function auditAgainstProfile(rows = [], profile, { sheet = "", meta = {} } = {}) {
+  const { add, list } = makeCollector({ sheet, colLetterOf: meta.colLetterOf || {} });
+  if (!profile || profile.n < 20) return list;   // مرجع ضعيف = استنتاج غير موثوق
+  const { noteLen, pairs } = profile;
+
+  rows.forEach((row, i) => {
+    const at = { key: row.id ?? "—", excelRow: meta.excelRowOf?.[i] };
+
+    if (!isBlank(row.note) && noteLen.p05 != null) {
+      const len = String(row.note).trim().length;
+      if (len < Math.max(8, noteLen.p05 * 0.4))
+        add("low", "NOTE_TOO_SHORT",
+          `الملاحظة أقصر بكثير من المعتاد بسجلك (${len} حرف مقابل وسيط ${noteLen.p50}) — قد تكون مبتورة`,
+          { ...at, field: "note" });
+      if (noteLen.p95 && len > noteLen.p95 * 3)
+        add("low", "NOTE_TOO_LONG",
+          `الملاحظة أطول بكثير من المعتاد (${len} حرف) — قد تكون خليتان اندمجتا`, { ...at, field: "note" });
+    }
+
+    if (!isBlank(row.model) && !isBlank(row.loc) && !pairs.has(normLoose(row.model) + "|" + normLoose(row.loc)))
+      add("low", "NEW_PAIR",
+        `تركيبة «${row.model} + ${row.loc}» ما ظهرت من قبل بسجلك — تأكد أنها صحيحة`, { ...at, field: "loc" });
+  });
+
+  return list;
+}
+
+/* ══════════ المشغّل الموحّد ══════════ */
+export function runFullAudit({ sheets = [], existing = [], approved = {}, diffResults = [], projectStart } = {}) {
+  let findings = [];
+  const structure = [];
+  const profile = buildProfile(existing);
+
+  sheets.forEach((s) => {
+    if (s.target && s.target !== "inquiries") return;
+    const meta = s.meta || {};
+    const rows = s.rows || [];
+    const sheet = s.name || "";
+    structure.push({ sheet, columns: meta.columns || [], rowCount: rows.length });
+    findings = findings.concat(
+      auditStructure(meta, { sheet, requiredFields: ["note"] }),
+      profileColumns(rows, meta, { sheet }),
+      auditLogic(rows, { existing, approved, meta, sheet, projectStart }),
+      detectRowShift(rows, existing, { sheet }),
+      detectDistributionShift(rows, existing, { sheet }),
+      detectDuplicates(rows, { sheet, meta }),
+      auditAgainstProfile(rows, profile, { sheet, meta }),
+    );
+  });
+
+  findings = findings.concat(detectMassRemoval(diffResults));
+  findings.sort((a, b) => LEVEL_RANK[a.level] - LEVEL_RANK[b.level]);
+
+  const CAP = 400;
+  let truncated = 0;
+  if (findings.length > CAP) { truncated = findings.length - CAP; findings = findings.slice(0, CAP); }
+  const counts = findings.reduce((a, f) => { a[f.level] = (a[f.level] || 0) + 1; return a; }, {});
+  return { findings, counts, truncated, structure };
+}
+
+/* ══════════ ملخّص التغيير ══════════ */
 export function changeDigest(results = []) {
   const lines = [];
   let tAdd = 0, tChg = 0, tMiss = 0;
@@ -268,8 +559,7 @@ export function changeDigest(results = []) {
     lines.push(`• «${r.sheetName}»: ${bits.length ? bits.join("، ") : "بلا فروقات"}.`);
   });
 
-  const top = [...fieldTally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
-    .map(([f, n]) => `${fieldLabel(f)} (${n})`);
+  const top = [...fieldTally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([f, n]) => `${fieldLabel(f)} (${n})`);
   if (top.length) lines.push(`• أكثر الحقول تغيّرًا: ${top.join("، ")}.`);
 
   const head = (tAdd || tChg || tMiss)
@@ -279,19 +569,30 @@ export function changeDigest(results = []) {
   return { head, lines, totals: { added: tAdd, changed: tChg, missing: tMiss } };
 }
 
-/* ── ٧. تجهيز حمولة مختصرة للمراجعة بالذكاء الاصطناعي ──
-   نرسل عيّنة محدودة فقط: نص كبير = بطء وتكلفة بلا فائدة إضافية. */
-export function buildReviewPayload(results, approved, cap = 40) {
-  const changed = [], added = [];
-  results.forEach((r) => {
-    (r.changed || []).slice(0, cap).forEach((c) => {
-      const before = {}, after = {};
-      (c.fieldDiffs || []).forEach((f) => { before[f] = c.cur?.[f] ?? null; after[f] = c.row?.[f] ?? null; });
-      changed.push({ key: c.key, note: String(c.cur?.note || c.row?.note || "").slice(0, 160), before, after });
-    });
-    (r.added || []).slice(0, cap).forEach((a) => {
-      added.push({ key: a.id ?? "—", note: String(a.note || "").slice(0, 160), status: a.status, cat: a.cat, closed: a.closed, reply: String(a.reply || "").slice(0, 120) });
-    });
+/* ══════════ تصدير التقرير ══════════ */
+export function auditToText(audit, digest) {
+  const out = ["تقرير تدقيق ملف الاستفسارات", `التاريخ: ${new Date().toLocaleString("ar-SA")}`, ""];
+  if (digest) out.push(digest.head, ...digest.lines, "");
+
+  (audit.structure || []).forEach((s) => {
+    out.push(`الشيت: ${s.sheet} — ${s.rowCount} صف`);
+    (s.columns || []).forEach((c) =>
+      out.push(`  ${c.letter}  «${c.raw || "بلا عنوان"}»  →  ${c.field ? fieldLabel(c.field) : "(مُهمَل)"}`));
+    out.push("");
   });
-  return { approved, changed: changed.slice(0, cap), added: added.slice(0, cap) };
+
+  ["blocker", "high", "medium", "low"].forEach((lv) => {
+    const g = audit.findings.filter((f) => f.level === lv);
+    if (!g.length) return;
+    out.push(`${LEVEL_AR[lv]} (${g.length})`, "─".repeat(20));
+    g.forEach((f) => {
+      const where = [f.cell, f.key !== "—" ? `#${f.key}` : ""].filter(Boolean).join(" · ");
+      out.push(`• ${where ? where + " — " : ""}${f.msg}${f.suggest ? ` ← المقترح: ${f.suggest}` : ""}`);
+    });
+    out.push("");
+  });
+
+  if (audit.truncated) out.push(`و${audit.truncated} ملاحظة إضافية لم تُعرض.`);
+  if (!audit.findings.length) out.push("ما فيه أي ملاحظة — الملف نظيف.");
+  return out.join("\n");
 }

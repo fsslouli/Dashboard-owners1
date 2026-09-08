@@ -1394,6 +1394,37 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.3.0",
+    dateAr: "8 سبتمبر 2026",
+    dateEn: "September 8, 2026",
+    ar: [
+      "مدقّق ملف الاستفسارات صار محليًا بالكامل: بلا إنترنت ولا خدمة خارجية، ونفس الملف يعطي نفس النتيجة دائمًا",
+      "خريطة ربط الأعمدة: كل عمود بالملف ووين انربط — والأهم أنها تكشف أي عمود فيه بيانات كان يُهمل بصمت",
+      "الملاحظة صارت تشير لعنوان الخلية بإكسل (مثل «H53») بدل رقم البند فقط، فتفتح الملف وتصلح مباشرة",
+      "كشف إزاحة الصفوف: لو الملف مزاح صفًا فكل بند يحمل نص بند مجاور — يُرصد قبل ما يستبدل بيانات صحيحة ببيانات بند ثاني",
+      "كشف انزياح التوزيع: انقلاب مفاجئ بنسب الحالة أو الفئة مؤشر على عمود بمكان غلط",
+      "تحذير عند الحذف الجماعي: ملف يغطي أقل من نصف السجل غالبًا شيت جزئي مو قرار حذف",
+      "تعريف الأعمدة: خلية نصية داخل عمود كله أرقام تُرصد، وتعدّد صيغ التاريخ بعمود الشهر يُنبّه له",
+      "قياس على سجلك أنت: ملاحظة أقصر أو أطول بكثير من المعتاد، وتركيبة نموذج وموقع ما ظهرت من قبل",
+      "خلايا أخطاء إكسل (‏#REF!‎ وأمثالها) تُرصد بموقعها بدل ما تدخل السجل كنص",
+      "أربعة مستويات للملاحظات، وتقرير تدقيق كامل تنسخه أو تنزّله",
+      "مستوى «أوقف واقرأ» يُعرض بوضوح لكنه ما يمنع الاعتماد — القرار يبقى لك",
+    ],
+    en: [
+      "The inquiry file auditor is now fully local: no internet, no external service, and the same file always yields the same result",
+      "A column mapping view: every column in the file and where it landed — and, most importantly, it exposes any column holding data that was being silently dropped",
+      "Findings now point at the Excel cell address (such as H53) rather than just the item number, so you can open the file and fix it directly",
+      "Row-shift detection: if the file is off by one row, every item carries its neighbour's text — caught before it overwrites correct data with another item's",
+      "Distribution-shift detection: a sudden flip in status or category proportions signals a column in the wrong place",
+      "A mass-deletion warning: a file covering less than half the record is usually a partial sheet, not a decision to delete",
+      "Column profiling: a text cell inside an all-numeric column is flagged, and mixed date formats in the month column raise a warning",
+      "Measured against your own record: notes far shorter or longer than usual, and model/location pairings never seen before",
+      "Excel error cells (#REF! and the like) are caught with their location instead of entering the record as text",
+      "Four finding levels, plus a full audit report you can copy or download",
+      "The stop-and-read level is shown clearly but never blocks the import — the decision stays yours",
+    ],
+  },
+  {
     version: "2.2.0",
     dateAr: "8 سبتمبر 2026",
     dateEn: "September 8, 2026",
@@ -4646,6 +4677,68 @@ function canonicalizeRow(row, categories) {
 /* يكتشف صف العناوين الحقيقي تلقائيًا حتى لو فيه صف عنوان تجميعي فوقه (خلايا مدمجة) —
    يستخدم نفس محرك المطابقة التقريبية للعناوين، مو بس تطابق حرفي، عشان يلقط صف العناوين
    الصحيح حتى لو صياغته مختلفة شوي عن القوالب المعروفة */
+/* ═══════════════════════════════════════════════════════════
+   قارئ الشيت مع بيانات وصفية — النسخة اللي يعتمد عليها المدقّق.
+
+   الفرق عن smartSheetToJson: يرجّع معه خريطة الأعمدة (وين انربط كل عمود
+   وأيّها أُهمل)، ورقم صف إكسل الحقيقي لكل صف، وخلايا الأخطاء. بدون هالمعلومات
+   ما نقدر نقول للمشرف «العمود G الصف ٤٩» ولا نكشف عمودًا يُهمل بصمت.
+   ═══════════════════════════════════════════════════════════ */
+function readSheetWithMeta(sheet, categories) {
+  const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+
+  /* صف العناوين: الصف اللي انربطت منه أكبر عدد من الأعمدة ضمن أول ٦ صفوف */
+  let headerRowIndex = 0, bestScore = -1;
+  for (let i = 0; i < Math.min(6, grid.length); i++) {
+    const score = (grid[i] || []).filter((cell) => resolveHeaderKey(String(cell))).length;
+    if (score > bestScore) { bestScore = score; headerRowIndex = i; }
+  }
+
+  const headerCells = grid[headerRowIndex] || [];
+  const width = Math.max(headerCells.length, ...grid.slice(headerRowIndex + 1).map((r) => (r || []).length), 0);
+  const columns = [];
+  for (let c = 0; c < width; c++) {
+    const rawHead = String(headerCells[c] ?? "").trim();
+    let nonEmpty = 0;
+    for (let r = headerRowIndex + 1; r < grid.length; r++) {
+      if (String((grid[r] || [])[c] ?? "").trim() !== "") nonEmpty++;
+    }
+    columns.push({ idx: c, letter: XLSX.utils.encode_col(c), raw: rawHead, field: resolveHeaderKey(rawHead), nonEmpty });
+  }
+
+  /* أول عمود غير فارغ لكل حقل هو المرجع بعنوان الخلية — لو تكرر الحقل بعمودين */
+  const colLetterOf = {};
+  columns.forEach((c) => { if (c.field && !colLetterOf[c.field]) colLetterOf[c.field] = c.letter; });
+
+  const EXCEL_ERRS = ["#REF!", "#N/A", "#VALUE!", "#DIV/0!", "#NAME?", "#NULL!", "#NUM!", "#SPILL!"];
+  const rawRows = [], excelRowOf = [], errorCells = [];
+
+  for (let r = headerRowIndex + 1; r < grid.length; r++) {
+    const line = grid[r] || [];
+    if (columns.every((c) => String(line[c.idx] ?? "").trim() === "")) continue; // صف فاصل فارغ
+    const obj = {};
+    columns.forEach((c) => {
+      if (!c.field) return;
+      const cell = String(line[c.idx] ?? "").trim();
+      if (EXCEL_ERRS.includes(cell.toUpperCase()))
+        errorCells.push({ excelRow: r + 1, field: c.field, value: cell, key: line[columns.find((x) => x.field === "id")?.idx] ?? "—" });
+      /* عمودان بنفس الحقل: تُعتمد أول قيمة غير فارغة — وهذا اللي يخلّي
+         «شهر الرد» و«شهر الرد (نص)» ما يطمس أحدهما الآخر */
+      if (obj[c.field] === undefined || String(obj[c.field]).trim() === "") obj[c.field] = line[c.idx] ?? "";
+    });
+    rawRows.push(obj);
+    excelRowOf.push(r + 1);
+  }
+
+  const rows = rawRows.map(normalizeRow).map(normalizeBooleanFields).map((r) => {
+    const mk = toMonthKey(r.month);
+    r.month = /^\d{4}-\d{2}$/.test(mk) ? mk : "";
+    return r;
+  }).map((r) => canonicalizeRow(r, categories));
+
+  return { rows, meta: { headerRowIndex, columns, colLetterOf, excelRowOf, errorCells, rowCount: rows.length } };
+}
+
 function smartSheetToJson(sheet, categories) {
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
   let bestIdx = 0, bestScore = -1;
@@ -5064,6 +5157,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   const [mapping, setMapping] = useState({});
   const [stage, setStage] = useState(null); // null | "select" (اختيار الشيتات) | "results" (نتيجة المقارنة)
   const [diffResults, setDiffResults] = useState(null);
+  const [sheetMeta, setSheetMeta] = useState({});
   const [newValues, setNewValues] = useState([]);
   const [newColumns, setNewColumns] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -5205,7 +5299,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
         if (fdiffs.length) changed.push({ key: k, row, cur, fieldDiffs: fdiffs });
       });
       const missing = current.filter((r) => !incomingKeys.has(String(r[keyField])));
-      results.push({ sheetName, target: cfg.target, mode: "merge", added, changed, missing, keyField });
+      results.push({ sheetName, target: cfg.target, mode: "merge", added, changed, missing, keyField, currentCount: current.length });
       if (cfg.target === "inquiries") scanRows = scanRows.concat(added, changed.map((c) => c.row));
     });
     setDiffResults(results);
@@ -5231,14 +5325,18 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           if (f && Array.isArray(c.values) && c.values.length) approvedMap[f] = c.values;
         });
         let fixCount = 0;
-        const parsed = {}; wb.SheetNames.forEach((name) => {
-          parsed[name] = smartSheetToJson(wb.Sheets[name], categories).map((raw) => {
+        const parsed = {}, parsedMeta = {};
+        wb.SheetNames.forEach((name) => {
+          const { rows, meta } = readSheetWithMeta(wb.Sheets[name], categories);
+          parsedMeta[name] = meta;
+          parsed[name] = rows.map((raw) => {
             const a = Brain.autoFixRow(raw);
             const b = Brain.canonicalizeToApproved(a.row, approvedMap);
             fixCount += a.fixes.length + b.fixes.length;
             return b.row;
           });
         });
+        setSheetMeta(parsedMeta);
         if (fixCount) flashToast(`نُظّف الملف تلقائيًا — ${fixCount} تصحيح قبل المقارنة`);
         const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name), selected: parsed[name].length > 0 }; });
         setSheets(parsed); setMapping(initMap); setDiffResults(null);
@@ -5527,7 +5625,8 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
             <span style={{ fontSize: 14, fontWeight: 700 }}>الخطوة ٢ — نتيجة المقارنة</span>
             <button onClick={() => setStage("select")} style={{ background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", textDecoration: "underline" }}>تعديل اختيار الشيتات</button>
           </div>
-          <AImportAudit diffResults={diffResults} inquiries={inquiries} categories={categories} flashToast={flashToast} />
+          <AImportAudit diffResults={diffResults} inquiries={inquiries} categories={categories}
+            sheets={sheets} sheetMeta={sheetMeta} mapping={mapping} flashToast={flashToast} />
           {(() => {
             const totals = diffResults.reduce((acc, res) => {
               if (res.mode === "replace") { acc.added += res.newRows.length; acc.removed += res.removedCount; }
@@ -6452,19 +6551,19 @@ function AThemeTab({ flashToast, log, canManage }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ١٥ب. التدقيق الذكي للمزامنة — يشتغل فوق نتيجة المقارنة.
+   ١٥ب. مدقّق ملف الاستفسارات — واجهة الطبقات الخمس.
 
-   طبقتان: فحوصات محلية دائمة (منطق خالص بملف import-brain.js)، وفوقها
-   مراجعة اختيارية بالذكاء الاصطناعي عبر دالة import-assist. لو المفتاح
-   ناقص أو الخدمة مقطوعة، الفحوصات المحلية تظل شغّالة كما هي.
+   كل ما يُعرض هنا محسوب محليًا بملف import-brain.js: لا شبكة، لا خدمة
+   خارجية، ولا مفتاح. نفس الملف يعطي نفس النتيجة دائمًا.
+
+   مستوى «أوقف واقرأ» يُعرض بوضوح وما يمنع الاعتماد — القرار للمشرف.
    ═══════════════════════════════════════════════════════════ */
-function AImportAudit({ diffResults, inquiries, categories, flashToast }) {
+function AImportAudit({ diffResults, inquiries, categories, sheets, sheetMeta, mapping, flashToast }) {
   const T = useSystemTheme();
-  const [ai, setAi] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(true);
+  const [openLevels, setOpenLevels] = useState({ blocker: true, high: true, medium: false, low: false });
+  const [showCols, setShowCols] = useState(false);
 
-  /* القيم المعتمدة لكل حقل — من جدول الفلاتر نفسه، فما نثبّت شيء بالكود */
+  /* القيم المعتمدة من جدول الفلاتر نفسه — ما نثبّت أي قيمة بالكود */
   const approved = useMemo(() => {
     const map = {};
     (categories || []).forEach((c) => {
@@ -6474,164 +6573,152 @@ function AImportAudit({ diffResults, inquiries, categories, flashToast }) {
     return map;
   }, [categories]);
 
-  const rows = useMemo(() => {
-    const out = [];
-    (diffResults || []).forEach((r) => {
-      if (r.target && r.target !== "inquiries") return;
-      if (r.mode === "replace") out.push(...(r.newRows || []));
-      else out.push(...(r.added || []), ...(r.changed || []).map((c) => ({ ...c.cur, ...c.row })));
-    });
-    return out;
-  }, [diffResults]);
+  const auditSheets = useMemo(() => {
+    if (!sheets) return [];
+    return Object.entries(sheets)
+      .filter(([name]) => {
+        const cfg = (mapping || {})[name];
+        return cfg && cfg.selected !== false && cfg.target !== "ignore";
+      })
+      .map(([name, rows]) => ({
+        name, rows,
+        meta: (sheetMeta || {})[name] || {},
+        target: (mapping || {})[name]?.target,
+      }));
+  }, [sheets, sheetMeta, mapping]);
 
-  const findings = useMemo(
-    () => Brain.auditRows({ rows, existing: inquiries || [], approved }),
-    [rows, inquiries, approved]
+  const audit = useMemo(
+    () => Brain.runFullAudit({ sheets: auditSheets, existing: inquiries || [], approved, diffResults: diffResults || [] }),
+    [auditSheets, inquiries, approved, diffResults]
   );
   const digest = useMemo(() => Brain.changeDigest(diffResults || []), [diffResults]);
 
-  const counts = findings.reduce((a, f) => { a[f.level] = (a[f.level] || 0) + 1; return a; }, {});
-  const askAi = async () => {
-    setBusy(true);
-    try {
-      const payload = Brain.buildReviewPayload(diffResults || [], approved);
-      const { data, error } = await supabase.functions.invoke("import-assist", { body: { mode: "review", payload } });
-      if (error) throw error;
-      setAi(data || { available: false, reason: "رد فارغ" });
-      if (data && data.available === false) flashToast("المراجعة الذكية غير مفعّلة — الفحوصات المحلية شغّالة");
-    } catch (e) {
-      setAi({ available: false, reason: String(e).slice(0, 160) });
-      flashToast("تعذّرت المراجعة الذكية — الفحوصات المحلية شغّالة");
-    }
-    setBusy(false);
+  const tone = {
+    blocker: T.pri["عالية جدًا"],
+    high: T.pri["عالية"] || T.pri["عالية جدًا"],
+    medium: T.brass,
+    low: T.muted,
+  };
+  const LEVELS = ["blocker", "high", "medium", "low"];
+
+  const exportReport = () => {
+    const text = Brain.auditToText(audit, digest);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `تقرير-تدقيق-${isoAdminDate(new Date())}.txt`;
+    a.click(); URL.revokeObjectURL(a.href);
   };
 
-  const tone = { high: T.pri["عالية جدًا"], medium: T.pri["عالية"], low: T.muted };
-  const label = { high: "حرج", medium: "يستحق المراجعة", low: "ملاحظة" };
+  const copyReport = async () => {
+    try { await navigator.clipboard.writeText(Brain.auditToText(audit, digest)); flashToast("نُسخ تقرير التدقيق"); }
+    catch { flashToast("المتصفح منع النسخ"); }
+  };
+
+  const blockers = audit.counts.blocker || 0;
 
   return (
-    <div style={{ border: `1px solid ${T.line}`, borderRadius: 14, padding: 14, margin: "12px 0 16px", background: T.sunken }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-        <b style={{ fontSize: 13 }}>التدقيق الذكي</b>
-        {["high", "medium", "low"].map((lv) => counts[lv] ? (
-          <span key={lv} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999, color: T.onAccent, background: tone[lv] }}>
-            {label[lv]}: {counts[lv]}
-          </span>
-        ) : null)}
-        {!findings.length && <span style={{ fontSize: 11.5, color: T.sta["معتمدة"] }}>ما فيه ملاحظات — الملف نظيف</span>}
-        <span style={{ flex: 1 }} />
-        <button onClick={askAi} disabled={busy} style={{
-          fontSize: 11.5, padding: "6px 12px", borderRadius: 10, cursor: busy ? "default" : "pointer",
-          border: `1px solid ${T.line}`, background: T.surface, color: T.brass, fontFamily: "inherit",
-        }}>{busy ? "جارٍ المراجعة..." : "مراجعة ذكية إضافية"}</button>
-        {findings.length > 0 && (
-          <button onClick={() => setOpen((o) => !o)} style={{
-            fontSize: 11.5, background: "none", border: "none", color: T.muted, cursor: "pointer", fontFamily: "inherit",
-          }}>{open ? "إخفاء" : "عرض"}</button>
-        )}
-      </div>
-
-      <div style={{ fontSize: 12, color: T.muted, marginTop: 9, lineHeight: 1.9 }}>
-        {digest.head}
-        {digest.lines.map((l, i) => <div key={i}>{l}</div>)}
-      </div>
-
-      {open && findings.length > 0 && (
-        <div style={{ marginTop: 11, display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
-          {findings.slice(0, 80).map((f, i) => (
-            <div key={i} style={{
-              display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12, lineHeight: 1.7,
-              background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `3px solid ${tone[f.level]}`,
-              borderRadius: 10, padding: "8px 10px",
-            }}>
-              <span className="mono" style={{ fontSize: 11, color: T.faint, flex: "none", minWidth: 34 }}>#{f.key}</span>
-              <span style={{ flex: 1 }}>
-                {f.field && <b style={{ color: T.paper }}>{Brain.fieldLabel(f.field)}: </b>}
-                <span style={{ color: T.muted }}>{f.msg}</span>
-                {f.suggest && <span style={{ color: T.sta["معتمدة"] }}> ← المقترح: {f.suggest}</span>}
-              </span>
-            </div>
-          ))}
-          {findings.length > 80 && <div style={{ fontSize: 11.5, color: T.faint }}>و{findings.length - 80} ملاحظة أخرى…</div>}
+    <div style={{ margin: "12px 0 16px" }}>
+      {/* شريط «أوقف واقرأ» — يظهر فقط عند وجود ما يستحق */}
+      {blockers > 0 && (
+        <div style={{
+          background: `${T.pri["عالية جدًا"]}14`, border: `1.5px solid ${T.pri["عالية جدًا"]}`,
+          borderRadius: 13, padding: "12px 14px", marginBottom: 11,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+            <AlertTriangle size={16} color={T.pri["عالية جدًا"]} />
+            <b style={{ fontSize: 13, color: T.pri["عالية جدًا"] }}>
+              {blockers === 1 ? "ملاحظة واحدة تستحق التوقّف" : `${blockers} ملاحظات تستحق التوقّف`}
+            </b>
+          </div>
+          <div style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.8 }}>
+            الاعتماد ما زال متاحًا — لكن اقرأها قبل ما تكمّل.
+          </div>
         </div>
       )}
 
-      {ai && (
-        <div style={{ marginTop: 12, borderTop: `1px solid ${T.line}`, paddingTop: 11 }}>
-          {ai.available === false ? (
-            <div style={{ fontSize: 11.5, color: T.faint, lineHeight: 1.8 }}>
-              المراجعة الذكية غير متاحة ({ai.reason || "غير مفعّلة"}). لتفعيلها: أضف السر
-              <b className="mono"> ANTHROPIC_API_KEY </b> بإعدادات دوال Supabase. الفحوصات أعلاه ما تعتمد عليها.
-            </div>
-          ) : (
-            <>
-              {ai.summary && <div style={{ fontSize: 12.5, color: T.paper, lineHeight: 1.9, marginBottom: 8 }}>{ai.summary}</div>}
-              {(ai.findings || []).map((f, i) => (
-                <div key={i} style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
-                  • <span className="mono" style={{ fontSize: 11 }}>#{f.key}</span> {f.field ? `${Brain.fieldLabel(f.field)}: ` : ""}{f.msg}
-                  {f.suggest ? <span style={{ color: T.sta["معتمدة"] }}> ← {f.suggest}</span> : null}
-                </div>
-              ))}
-              {!(ai.findings || []).length && <div style={{ fontSize: 12, color: T.sta["معتمدة"] }}>المراجعة الذكية ما لقت ملاحظات إضافية.</div>}
-            </>
+      <div style={{ border: `1px solid ${T.line}`, borderRadius: 14, padding: 14, background: T.sunken }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", marginBottom: 9 }}>
+          <b style={{ fontSize: 13 }}>تدقيق الملف</b>
+          {LEVELS.map((lv) => audit.counts[lv] ? (
+            <button key={lv} onClick={() => setOpenLevels((o) => ({ ...o, [lv]: !o[lv] }))} style={{
+              fontSize: 11, padding: "3px 10px", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+              border: `1px solid ${tone[lv]}`, background: openLevels[lv] ? tone[lv] : "transparent",
+              color: openLevels[lv] ? T.onAccent : tone[lv],
+            }}>{Brain.LEVEL_AR[lv]}: {audit.counts[lv]}</button>
+          ) : null)}
+          {!audit.findings.length && (
+            <span style={{ fontSize: 11.5, color: T.sta["معتمدة"] }}>ما فيه أي ملاحظة — الملف نظيف</span>
           )}
+          <span style={{ flex: 1 }} />
+          <button onClick={() => setShowCols((v) => !v)} style={{
+            fontSize: 11.5, background: "none", border: "none", color: T.brass, cursor: "pointer", fontFamily: "inherit",
+          }}>{showCols ? "إخفاء ربط الأعمدة" : "ربط الأعمدة"}</button>
+          <button onClick={copyReport} style={{
+            fontSize: 11.5, background: "none", border: "none", color: T.brass, cursor: "pointer", fontFamily: "inherit",
+          }}>نسخ التقرير</button>
+          <button onClick={exportReport} style={{
+            fontSize: 11.5, background: "none", border: "none", color: T.brass, cursor: "pointer", fontFamily: "inherit",
+          }}>تنزيل</button>
         </div>
-      )}
-    </div>
-  );
-}
 
-/* ═══ ١٥د. أثر البند — من أدخله ومن عدّله ═══ */
-function AInquiryTrail({ id, row }) {
-  const T = useSystemTheme();
-  const [revs, setRevs] = useState(null);
-  const [open, setOpen] = useState(false);
+        <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.9 }}>
+          {digest.head}
+          {digest.lines.map((l, i) => <div key={i}>{l}</div>)}
+        </div>
 
-  useEffect(() => {
-    let alive = true;
-    supabase.from("inquiry_revisions").select("*").eq("inquiry_id", id)
-      .order("changed_at", { ascending: false }).limit(25)
-      .then(({ data }) => { if (alive) setRevs(data || []); });
-    return () => { alive = false; };
-  }, [id]);
-
-  const opAr = { insert: "إضافة", update: "تعديل", delete: "حذف", bulk: "استبدال كامل", restore: "استرجاع نسخة" };
-  const line = { display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11.5, color: T.muted, lineHeight: 1.9 };
-
-  return (
-    <div style={{ background: T.sunken, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 12px", marginBottom: 14 }}>
-      <div style={line}>
-        <span>أدخله: <b style={{ color: T.paper }}>{row?.created_by || "—"}</b></span>
-        <span style={{ color: T.faint }}>·</span>
-        <span>آخر تعديل: <b style={{ color: T.paper }}>{row?.updated_by || "—"}</b></span>
-        {row?.updated_at && <><span style={{ color: T.faint }}>·</span><span className="mono">{fmtAdminDate(row.updated_at)}</span></>}
-        <span style={{ flex: 1 }} />
-        {revs && revs.length > 0 && (
-          <button onClick={() => setOpen((o) => !o)} style={{
-            background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit",
-          }}>{open ? "إخفاء الأثر" : `عرض الأثر (${revs.length})`}</button>
-        )}
-      </div>
-
-      {open && (
-        <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 7, maxHeight: 240, overflowY: "auto" }}>
-          {revs.map((r) => (
-            <div key={r.id} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 9, padding: "7px 9px" }}>
-              <div style={{ fontSize: 11, color: T.faint }}>
-                {opAr[r.op] || r.op} · {r.changed_by || "غير معروف"} · <span className="mono">{fmtAdminDate(r.changed_at)}</span>
-              </div>
-              {Object.entries(r.changes || {}).map(([f, v]) => (
-                <div key={f} style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.8 }}>
-                  <b style={{ color: T.paper }}>{Brain.fieldLabel(f)}:</b>{" "}
-                  <span style={{ textDecoration: "line-through", opacity: .7 }}>{String(v?.from ?? "—").slice(0, 60)}</span>
-                  {" ← "}
-                  <span style={{ color: T.sta["معتمدة"] }}>{String(v?.to ?? "—").slice(0, 60)}</span>
+        {/* خريطة ربط الأعمدة — تكشف أي عمود يُهمل بصمت */}
+        {showCols && audit.structure.map((sec, i) => (
+          <div key={i} style={{ marginTop: 11, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 12px" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 7 }}>{sec.sheet} — {sec.rowCount} صف</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {(sec.columns || []).map((c) => (
+                <div key={c.letter} style={{ fontSize: 11.5, display: "flex", gap: 8, alignItems: "center" }}>
+                  <span className="mono" style={{ color: T.faint, minWidth: 22 }}>{c.letter}</span>
+                  <span style={{ flex: 1, minWidth: 0, color: T.paper, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {c.raw || <i style={{ color: T.faint }}>بلا عنوان</i>}
+                  </span>
+                  <span style={{ color: c.field ? T.sta["معتمدة"] : (c.nonEmpty ? T.pri["عالية جدًا"] : T.faint) }}>
+                    {c.field ? Brain.fieldLabel(c.field) : (c.nonEmpty ? `مُهمَل (${c.nonEmpty} قيمة)` : "فارغ")}
+                  </span>
                 </div>
               ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+
+        {/* الملاحظات مجمّعة بالمستوى */}
+        {LEVELS.map((lv) => {
+          const group = audit.findings.filter((f) => f.level === lv);
+          if (!group.length || !openLevels[lv]) return null;
+          return (
+            <div key={lv} style={{ marginTop: 11, display: "flex", flexDirection: "column", gap: 6, maxHeight: 340, overflowY: "auto" }}>
+              {group.map((f, i) => (
+                <div key={i} style={{
+                  display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12, lineHeight: 1.7,
+                  background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `3px solid ${tone[lv]}`,
+                  borderRadius: 10, padding: "8px 10px",
+                }}>
+                  <span className="mono" style={{ fontSize: 10.5, color: T.faint, flex: "none", minWidth: 46, textAlign: "start" }}>
+                    {f.cell || (f.key !== "—" ? `#${f.key}` : "—")}
+                  </span>
+                  <span style={{ flex: 1 }}>
+                    {f.field && <b style={{ color: T.paper }}>{Brain.fieldLabel(f.field)}: </b>}
+                    <span style={{ color: T.muted }}>{f.msg}</span>
+                    {f.suggest && <span style={{ color: T.sta["معتمدة"] }}> ← المقترح: {f.suggest}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+
+        {audit.truncated > 0 && (
+          <div style={{ fontSize: 11.5, color: T.faint, marginTop: 9 }}>
+            و{audit.truncated} ملاحظة إضافية لم تُعرض — عالج الأعلى مستوى ثم أعد الرفع.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
