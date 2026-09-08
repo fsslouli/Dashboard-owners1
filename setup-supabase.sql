@@ -377,3 +377,17 @@ create policy "كتابة - نسخ تقدم الوحدة" on public.progress_mat
 -- insert into public.profiles (id, name, role, perms) values
 --   ('ضع-الـ-UUID-هنا', 'اسمك', 'owner',
 --    array['sync_data','flag_urgent','manage_filters','view_analytics','export_data','view_audit_log','manage_users']);
+
+-- ══════════════════════════════════════════════════════════
+-- v2.0.0 — مفتاح التصميم (الكلاسيكي / نوفا)
+-- يُقرأ من الموقع العام لحظيًا عبر Realtime، ويُكتب من لوحة الإدارة.
+-- ══════════════════════════════════════════════════════════
+alter table public.site_settings
+  add column if not exists active_design text not null default 'classic';
+
+alter table public.site_settings
+  drop constraint if exists site_settings_active_design_chk;
+
+alter table public.site_settings
+  add constraint site_settings_active_design_chk
+  check (active_design in ('classic','nova'));

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, createCon
 import INQUIRIES_DATA from "./inquiries.json";
 import { createClient } from "@supabase/supabase-js";
 import * as XLSX from "xlsx";
+import { DESIGNS, DESIGN_KEYS, DEFAULT_DESIGN_KEY, NovaLayers, useNovaRuntime, novaCss } from "./design-nova.jsx";
 
 /* ═══════════════════════════════════════════════════════════
    فهرس الملف — لتسهيل القراءة والتعديل المستقبلي.
@@ -523,15 +524,21 @@ function useSkinFont(themeKey) {
   }, [themeKey]);
 }
 
-/* الطقم المعتمد — يُقرأ من قاعدة البيانات ويتحدّث لحظيًا لكل الزوّار */
-function useActiveTheme() {
-  const [key, setKey] = useState(DEFAULT_THEME_KEY);
+/* الطقم والتصميم المعتمدان — يُقرآن من قاعدة البيانات ويتحدّثان لحظيًا لكل الزوّار.
+   active_theme  = طقم الألوان (كلاسيكي/أفق/محضر/مخطط/مسار)
+   active_design = هيكل التصميم نفسه (classic = القديم، nova = الجديد المتحرّك) */
+function useSiteConfig() {
+  const [cfg, setCfg] = useState({ theme: DEFAULT_THEME_KEY, design: DEFAULT_DESIGN_KEY });
   useEffect(() => {
     let alive = true;
     const pull = async () => {
       try {
-        const { data } = await supabase.from("site_settings").select("active_theme").eq("id", 1).single();
-        if (alive && data && THEME_KEYS.includes(data.active_theme)) setKey(data.active_theme);
+        const { data } = await supabase.from("site_settings").select("active_theme,active_design").eq("id", 1).single();
+        if (!alive || !data) return;
+        setCfg({
+          theme: THEME_KEYS.includes(data.active_theme) ? data.active_theme : DEFAULT_THEME_KEY,
+          design: DESIGN_KEYS.includes(data.active_design) ? data.active_design : DEFAULT_DESIGN_KEY,
+        });
       } catch { /* يبقى الافتراضي */ }
     };
     pull();
@@ -540,7 +547,7 @@ function useActiveTheme() {
       .subscribe();
     return () => { alive = false; supabase.removeChannel(ch); };
   }, []);
-  return key;
+  return cfg;
 }
 
 const ThemeCtx = createContext({ T: THEMES.light, mode: "light", setMode: () => {}, resolved: "light" });
@@ -1384,6 +1391,33 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.0.0",
+    dateAr: "8 سبتمبر 2026",
+    dateEn: "September 8, 2026",
+    ar: [
+      "تصميم جديد كليًا باسم «نوفا» — ألواح زجاجية شفافة، خلفية شفقية متحركة، وحبيبات ناعمة تكسر تدرّج الألوان",
+      "ظهور تدريجي للأقسام مع التمرير، ودخول متتابع للبطاقات واحدة بعد الأخرى",
+      "إضاءة تتبع مؤشر الفأرة داخل البطاقات، ولمعة تمر على الأزرار عند التحويم (أجهزة سطح المكتب)",
+      "شريط التبويبات صار حبّة عائمة زجاجية، والتبويب النشط بتدرّج لوني بدل الخط السفلي",
+      "الرقم الإجمالي وعنوان الصفحة بتدرّج لوني، وأشرطة الحالة فيها لمعة متحركة",
+      "مفتاح تبديل التصميم بلوحة الإدارة: «الكلاسيكي» أو «نوفا» — التبديل ينتقل لكل الزوّار فورًا بدون إعادة نشر",
+      "التصميم مستقل عن طقم الألوان: أي طقم من الخمسة يشتغل مع أي تصميم من الاثنين",
+      "التصميم القديم باقٍ كما هو حرفيًا — الرجوع له بضغطة واحدة",
+      "احترام كامل لإعداد «تقليل الحركة» بالجهاز: كل التأثيرات تنطفئ تلقائيًا",
+    ],
+    en: [
+      "A brand-new design called Nova — translucent glass panels, a drifting aurora backdrop, and fine grain to break up the gradients",
+      "Sections fade and rise into view as you scroll, with cards entering one after another",
+      "Cursor-tracking light inside cards and a shine sweeping across buttons on hover (desktop)",
+      "The tab bar is now a floating glass pill, with the active tab filled by a gradient instead of an underline",
+      "Gradient treatment on the headline and the total count, plus an animated sheen across the status bars",
+      "A design switch in the admin panel: Classic or Nova — the change reaches every visitor instantly, with no redeploy",
+      "Design and colour set are independent: any of the five sets works with either design",
+      "The old design is preserved exactly as it was — one click to go back",
+      "Full respect for the device's reduce-motion setting: every effect switches off automatically",
+    ],
+  },
   {
     version: "1.18.0",
     dateAr: "7 سبتمبر 2026",
@@ -2911,9 +2945,11 @@ function PublicSite() {
   const { view, setView } = useViewMode();
   const { deskOn, toggleDesk, smallDevice } = useDesktopView();
   const L = (ar, en) => (lang === "en" ? en : ar);
-  /* الطقم المعتمد من لوحة الإدارة — يسري على كل الزوّار لحظيًا */
-  const themeKey = useActiveTheme();
+  /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
+  const { theme: themeKey, design: designKey } = useSiteConfig();
   useSkinFont(themeKey);
+  const nova = designKey === "nova";
+  useNovaRuntime(nova, reduced);
   const SET = THEME_SETS[themeKey] || THEME_SETS[DEFAULT_THEME_KEY];
   const SKIN = SET.skin;
   const T = SET[resolved] || SET.dark || SET.light;
@@ -3257,7 +3293,7 @@ function PublicSite() {
   return (
     <ThemeCtx.Provider value={{ T, mode, setMode, resolved }}>
       <LangCtx.Provider value={{ lang, setLang }}>
-      <div dir={lang === "ar" ? "rtl" : "ltr"} className="dash" style={{ minHeight: "100%" }}>
+      <div dir={lang === "ar" ? "rtl" : "ltr"} className="dash" data-design={designKey} style={{ minHeight: "100%" }}>
         <style>{`
 @import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400..600&display=block');
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -3746,7 +3782,9 @@ ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;o
   -webkit-mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);
   mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);}` : ""}
 ${(SKIN.aurora || SKIN.grid || SKIN.draft) ? `.dash > *:not(.skin-aurora):not(.skin-grid):not(.skin-paper):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}` : ""}
+${nova ? novaCss(T, resolved, reduced) : ""}
         `}</style>
+        {nova && <NovaLayers />}
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
         {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
         {SKIN.draft && <div className="skin-paper no-print" aria-hidden="true" />}
@@ -6192,23 +6230,35 @@ function ADashboardTab({ inquiries }) {
 /* ── مظهر الموقع العام — اختيار الطقم المعتمد لكل الزوّار ── */
 function AThemeTab({ flashToast, log, canManage }) {
   const T = useSystemTheme();
-  const [active, setActive] = useState(null);
+  const [active, setActive] = useState(null);   /* { theme, design } */
   const [pick, setPick] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = () => supabase.from("site_settings").select("*").eq("id", 1).single()
-    .then(({ data }) => { const k = data?.active_theme || DEFAULT_THEME_KEY; setActive(k); setPick((p) => p || k); });
+    .then(({ data }) => {
+      const cur = {
+        theme: THEME_KEYS.includes(data?.active_theme) ? data.active_theme : DEFAULT_THEME_KEY,
+        design: DESIGN_KEYS.includes(data?.active_design) ? data.active_design : DEFAULT_DESIGN_KEY,
+      };
+      setActive(cur); setPick((p) => p || cur);
+    });
   useEffect(() => { load(); }, []);
 
+  const dirty = !!pick && !!active && (pick.theme !== active.theme || pick.design !== active.design);
+
   const apply = async () => {
-    if (!pick || pick === active) return;
+    if (!dirty) return;
     setBusy(true);
     const { error } = await supabase.from("site_settings")
-      .update({ active_theme: pick, updated_at: new Date().toISOString() }).eq("id", 1);
+      .update({ active_theme: pick.theme, active_design: pick.design, updated_at: new Date().toISOString() })
+      .eq("id", 1);
     setBusy(false);
     if (error) { flashToast("تعذّر الاعتماد — تأكد من صلاحيتك"); return; }
+    const parts = [];
+    if (pick.design !== active.design) parts.push(`التصميم: ${DESIGNS[pick.design].label}`);
+    if (pick.theme !== active.theme) parts.push(`الطقم: ${THEME_SETS[pick.theme].label}`);
     setActive(pick);
-    log("اعتماد مظهر الموقع", THEME_SETS[pick].label);
+    log("اعتماد مظهر الموقع", parts.join(" — "));
     flashToast("تم الاعتماد — انتقل للزوّار فورًا");
   };
 
@@ -6217,18 +6267,75 @@ function AThemeTab({ flashToast, log, canManage }) {
 
   return (
     <div>
-      <div style={{ ...aNoteStyle(T), marginBottom: 16 }}>
-        اختر الهوية البصرية للموقع العام. الاعتماد ينتقل لكل زائر مفتوح عنده الموقع
+      <div style={{ ...aNoteStyle(T), marginBottom: 18 }}>
+        من هنا تتحكّم بشكل الموقع العام. الاعتماد ينتقل لكل زائر مفتوح عنده الموقع
         <b> فورًا وبدون إعادة نشر</b>. لوحة الإدارة تبقى على شكلها الحالي دائمًا.
       </div>
 
+      {/* ── ١) التصميم: القديم أو الجديد ── */}
+      <style>{`
+@keyframes admv{to{transform:translate3d(-14%,16%,0) scale(1.3);}}
+.dsn-prev{position:relative;overflow:hidden;width:74px;height:56px;border-radius:11px;flex:none;
+  border:1px solid ${T.line};background:${T.sunken};}
+.dsn-prev b{position:absolute;display:block;border-radius:3px;background:${T.line};}
+.dsn-prev b:nth-child(1){top:9px;inset-inline-start:9px;width:26px;height:4px;background:${T.brass};}
+.dsn-prev b:nth-child(2){top:19px;inset-inline-start:9px;width:56px;height:10px;}
+.dsn-prev b:nth-child(3){top:33px;inset-inline-start:9px;width:24px;height:14px;}
+.dsn-prev b:nth-child(4){top:33px;inset-inline-start:37px;width:28px;height:14px;}
+.dsn-prev.nv{background:${T.paper};}
+.dsn-prev.nv i{position:absolute;width:44px;height:44px;border-radius:50%;filter:blur(11px);opacity:.85;
+  animation:admv 5.5s ease-in-out infinite alternate;}
+.dsn-prev.nv i:nth-of-type(1){top:-12px;inset-inline-end:-10px;background:${T.brass};}
+.dsn-prev.nv i:nth-of-type(2){bottom:-14px;inset-inline-start:-12px;background:${T.sta["معتمدة"]};animation-delay:-2.4s;}
+.dsn-prev.nv b{background:rgba(255,255,255,.22);backdrop-filter:blur(3px);border-radius:5px;}
+.dsn-prev.nv b:nth-child(3){background:${T.brass};}
+@media(prefers-reduced-motion:reduce){.dsn-prev.nv i{animation:none;}}
+      `}</style>
+      <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, marginBottom: 9 }}>التصميم</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 26 }}>
+        {DESIGN_KEYS.map((k) => {
+          const d = DESIGNS[k];
+          const on = pick.design === k;
+          const live = active.design === k;
+          return (
+            <button key={k} onClick={() => setPick((p) => ({ ...p, design: k }))} style={{
+              textAlign: "right", cursor: "pointer", font: "inherit", padding: "14px 15px",
+              borderRadius: 14, background: T.surface, color: T.paper,
+              border: `${on ? 2 : 1}px solid ${on ? T.brass : T.line}`,
+              boxShadow: on ? T.shadow : "none", display: "flex", alignItems: "center", gap: 13,
+            }}>
+              <span className={`dsn-prev${k === "nova" ? " nv" : ""}`} aria-hidden="true">
+                {k === "nova" && <><i /><i /></>}
+                <b /><b /><b /><b />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                  <b style={{ fontSize: 14 }}>{d.label}</b>
+                  <span style={{ fontSize: 10.5, color: T.faint }}>{d.labelEn}</span>
+                  {live && <ABadge kind="ok">معتمد الآن</ABadge>}
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: T.muted, marginTop: 4, lineHeight: 1.7 }}>{d.note}</span>
+              </span>
+              <span style={{
+                width: 19, height: 19, flex: "none", borderRadius: "50%", display: "grid", placeItems: "center",
+                border: `1.5px solid ${on ? T.brass : T.line}`, background: on ? T.brass : "transparent",
+              }}>{on && <Check size={11} color={T.onAccent} />}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── ٢) طقم الألوان ── */}
+      <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, marginBottom: 9 }}>
+        طقم الألوان <span style={{ fontWeight: 400, color: T.faint }}>— يشتغل مع التصميمين</span>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         {THEME_KEYS.map((k) => {
           const set = THEME_SETS[k];
-          const on = pick === k;
-          const live = active === k;
+          const on = pick.theme === k;
+          const live = active.theme === k;
           return (
-            <button key={k} onClick={() => setPick(k)} style={{
+            <button key={k} onClick={() => setPick((p) => ({ ...p, theme: k }))} style={{
               textAlign: "right", cursor: "pointer", font: "inherit", padding: "14px 15px",
               borderRadius: 14, background: T.surface, color: T.paper,
               border: `${on ? 2 : 1}px solid ${on ? T.brass : T.line}`,
@@ -6257,12 +6364,13 @@ function AThemeTab({ flashToast, log, canManage }) {
       </div>
 
       <div style={{ display: "flex", gap: 9, marginTop: 18, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={apply} disabled={busy || pick === active} style={{
+        <button onClick={apply} disabled={busy || !dirty} style={{
           display: "flex", alignItems: "center", gap: 7, border: "none", borderRadius: 11,
           padding: "11px 18px", fontSize: 13.5, fontWeight: 700, fontFamily: "inherit",
-          cursor: pick === active ? "default" : "pointer",
-          background: pick === active ? T.sunken : T.brass, color: pick === active ? T.faint : T.onAccent,
-        }}><ShieldCheck size={15} /> {busy ? "جارٍ الاعتماد..." : pick === active ? "هذا المظهر معتمد" : `اعتماد «${THEME_SETS[pick].label}»`}</button>
+          cursor: dirty ? "pointer" : "default",
+          background: dirty ? T.brass : T.sunken, color: dirty ? T.onAccent : T.faint,
+        }}><ShieldCheck size={15} /> {busy ? "جارٍ الاعتماد..." : !dirty ? "المظهر الحالي معتمد"
+          : `اعتماد «${DESIGNS[pick.design].label} · ${THEME_SETS[pick.theme].label}»`}</button>
         <a href={`${window.location.origin}${window.location.pathname}`} target="_blank" rel="noopener noreferrer"
           style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.muted,
             textDecoration: "none", border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 14px" }}>
@@ -6271,6 +6379,7 @@ function AThemeTab({ flashToast, log, canManage }) {
       </div>
       <div style={{ fontSize: 11.5, color: T.faint, marginTop: 12, lineHeight: 1.85 }}>
         كل طقم فيه نسخة نهارية وليلية، ويتبع إعداد جهاز الزائر تلقائيًا كالمعتاد.
+        التصميم والطقم مستقلّين: تقدر تجرّب «نوفا» بأي طقم ألوان، وترجع للكلاسيكي بضغطة وحدة لو ما عجبك.
       </div>
     </div>
   );
