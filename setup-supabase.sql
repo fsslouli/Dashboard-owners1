@@ -391,3 +391,90 @@ alter table public.site_settings
 alter table public.site_settings
   add constraint site_settings_active_design_chk
   check (active_design in ('classic','nova'));
+
+-- ══════════════════════════════════════════════════════════
+-- v2.2.0 — تحصين أمني + تتبّع مصدر الإدخال
+-- كل ما تحت مطبَّق فعلاً على المشروع. النص هنا للتوثيق ولإعادة البناء
+-- على أي نسخة ثانية من قاعدة البيانات.
+-- ══════════════════════════════════════════════════════════
+
+-- (١) سدّ تصعيد الصلاحيات: سياسة تحديث الملف الشخصي كانت تسمح للمستخدم
+--     يعدّل صف نفسه بالكامل — ومنه عمود perms. يعني يمنح نفسه أي صلاحية.
+create or replace function public.guard_profile_privileges()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (new.perms is distinct from old.perms or new.role is distinct from old.role)
+     and not public.has_perm('edit_permissions') then
+    raise exception 'تعديل الصلاحيات أو الدور يحتاج صلاحية إدارة المستخدمين';
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_guard_profile_privileges on public.profiles;
+create trigger trg_guard_profile_privileges before update on public.profiles
+  for each row execute function public.guard_profile_privileges();
+
+-- (٢) صلاحيات تنفيذ الدوال.
+--     ⚠ الفخ: revoke ... from anon وحده ما ينفع، لأن EXECUTE ممنوح ضمنيًا
+--     لـ PUBLIC. لازم السحب من PUBLIC ثم المنح صراحة لمن يحتاج.
+revoke execute on function public.guard_profile_privileges() from public, anon, authenticated;
+revoke execute on function public.stamp_inquiry_author() from public, anon, authenticated;
+revoke execute on function public.log_inquiry_revision() from public, anon, authenticated;
+revoke execute on function public.current_perms() from public, anon;
+revoke execute on function public.has_perm(text) from public, anon;
+revoke execute on function public.is_known_admin() from public, anon;
+revoke execute on function public.replace_inquiries_full(jsonb) from public, anon;
+revoke execute on function public.replace_progress_full(jsonb) from public, anon;
+revoke execute on function public.restore_inquiries_backup(bigint) from public, anon;
+grant execute on function public.current_perms() to authenticated;
+grant execute on function public.has_perm(text) to authenticated;
+grant execute on function public.is_known_admin() to authenticated;
+grant execute on function public.replace_inquiries_full(jsonb) to authenticated;
+grant execute on function public.replace_progress_full(jsonb) to authenticated;
+grant execute on function public.restore_inquiries_backup(bigint) to authenticated;
+
+-- (٣) أصوات الإشعارات: كانت مقروءة للجميع. صارت للإدارة، والزائر يقرأ
+--     أصوات جهازه هو فقط عبر دالة مخصّصة.
+drop policy if exists "قراءة عامة - الأصوات" on public.notice_votes;
+create policy "قراءة - الأصوات (إدارة)" on public.notice_votes
+  for select using (public.is_known_admin());
+create or replace function public.my_notice_votes(p_device text)
+returns setof bigint language sql stable security definer set search_path = public as $$
+  select notice_id from public.notice_votes where device_id = p_device;
+$$;
+revoke execute on function public.my_notice_votes(text) from public;
+grant execute on function public.my_notice_votes(text) to anon, authenticated;
+
+-- (٤) كبح العبث بسجل الزيارات المفتوح للزوار
+alter table public.logs drop constraint if exists logs_sane_payload_chk;
+alter table public.logs add constraint logs_sane_payload_chk check (
+  coalesce(length(event_type),0) <= 40 and coalesce(length(category),0) <= 80
+  and coalesce(length(value),0) <= 200 and coalesce(length(extra),0) <= 500
+  and coalesce(length(session_id),0) <= 80);
+
+-- (٥) تتبّع مصدر الإدخال والتعديل + سجل تعديلات حقلًا بحقل
+alter table public.inquiries add column if not exists created_by text;
+alter table public.inquiries add column if not exists updated_by text;
+
+create table if not exists public.inquiry_revisions (
+  id bigserial primary key,
+  inquiry_id integer not null,
+  op text not null,
+  changed_by text,
+  changed_at timestamptz not null default now(),
+  changes jsonb not null default '{}'::jsonb);
+create index if not exists inquiry_revisions_inq_idx on public.inquiry_revisions (inquiry_id, changed_at desc);
+alter table public.inquiry_revisions enable row level security;
+drop policy if exists "قراءة - سجل تعديلات الاستفسارات" on public.inquiry_revisions;
+create policy "قراءة - سجل تعديلات الاستفسارات" on public.inquiry_revisions
+  for select using (public.is_known_admin());
+
+-- (٦) هذي الأعمدة داخلية: يُمنع الزائر منها على مستوى العمود نفسه، مو على
+--     ثقة الواجهة. لو رجع أي كود مستقبلًا لـ select('*') كزائر، بيفشل بدل ما يسرّب.
+revoke select on public.inquiries from anon;
+grant select (id, model, loc, pri, cat, status, owner, month, note, note_en, reply, reply_en,
+              closed, urgent, answered, meetings, updated_at, last_modified, important,
+              created_at, urgent_until, important_until)
+  on public.inquiries to anon;
+
+-- ملاحظة تبقى بيدك: «حماية كلمات المرور المسرّبة» معطّلة بإعدادات المصادقة.
+-- تُفعَّل من Authentication ← Policies بلوحة Supabase (ما تنضبط بـ SQL).

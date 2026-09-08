@@ -3,6 +3,8 @@ import INQUIRIES_DATA from "./inquiries.json";
 import { createClient } from "@supabase/supabase-js";
 import * as XLSX from "xlsx";
 import { DESIGNS, DESIGN_KEYS, DEFAULT_DESIGN_KEY, NovaLayers, useNovaRuntime, novaCss } from "./design-nova.jsx";
+import * as Brain from "./import-brain.js";
+import { buildBrief, briefToText, briefToMarkdown } from "./admin-brief.js";
 
 /* ═══════════════════════════════════════════════════════════
    فهرس الملف — لتسهيل القراءة والتعديل المستقبلي.
@@ -1391,6 +1393,39 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.2.0",
+    dateAr: "8 سبتمبر 2026",
+    dateEn: "September 8, 2026",
+    ar: [
+      "قارئ ملف الاستفسارات صار ينظّف الملف قبل أي مقارنة: مسافات ورموز اتجاه مخفية، أرقام عربية، وصيغ «نعم/لا» المتعددة",
+      "توحيد إملاء القيم على الصيغة المعتمدة — «معتمده» تُحفظ «معتمدة»، فما تتراكم صيغ متعددة لنفس القيمة وتكسر الفلاتر",
+      "المقارنة صارت تتجاهل الفروق الشكلية: صف ما يظهر «معدّلًا» لمجرد مسافة أو همزة أو علامة ترقيم",
+      "تدقيق تلقائي للملف المرفوع: تناقض بين الإغلاق والحالة، حالة محسومة بلا رد، رقم مكرر، وقيم خارج القائمة المعتمدة مع اقتراح أقرب قيمة صحيحة",
+      "كشف الصفوف المكرّرة بالمعنى لا بالرقم — نفس الملاحظة بصياغة مختلفة تُرفع للمراجعة",
+      "تحذير حرج لما يفرّغ الملف حقلًا معبّأً حاليًا، لأن الغالب شيت ناقص مو حذفًا مقصودًا",
+      "كشف رجوع الحالة للخلف (من محسومة إلى قيد الدراسة) وتغيّر نص الملاحظة جذريًا على نفس الرقم",
+      "ملخّص عربي لكل مزامنة: كم إضافة وكم تعديل وأكثر الحقول تغيّرًا",
+      "مراجعة ذكية اختيارية فوق الفحوصات المحلية — وإذا كانت مقطوعة يظل التدقيق شغّالًا كما هو",
+      "الترجمة للإنجليزية صارت دفعة واحدة بدل صف صف، فالمزامنة الكبيرة تخلص أسرع بكثير",
+      "زر «ملخص» انتقل من ترويسة الموقع إلى لوحة الإدارة وتوسّع — الزائر ما كان يحتاجه",
+      "إصلاحات أمنية بقاعدة البيانات: سدّ تصعيد الصلاحيات، إقفال دوال حساسة كانت مكشوفة، ومنع بيانات داخلية من الوصول للزوار",
+    ],
+    en: [
+      "The inquiry import now cleans the file before any comparison: stray spaces, hidden direction marks, Arabic-Indic digits, and the many spellings of yes/no",
+      "Values are snapped to their approved spelling, so variants of the same value stop accumulating and breaking the filters",
+      "Comparison now ignores cosmetic differences — a row no longer reads as changed over a space, a hamza, or a punctuation mark",
+      "Automatic auditing of the uploaded file: closed/status contradictions, decided items with no reply, duplicate ids, and values outside the approved list with the nearest valid one suggested",
+      "Near-duplicate detection by meaning rather than by id — the same note reworded is raised for review",
+      "A critical warning when the file would blank a field that currently holds data, since that usually means a partial sheet rather than an intentional deletion",
+      "Detection of status moving backwards (decided back to under review) and of a note changing wholesale under the same id",
+      "An Arabic digest for every sync: how many additions, how many edits, and which fields changed most",
+      "Optional AI review layered on top of the local checks — if it is unavailable the auditing carries on unchanged",
+      "English translation now runs in batches instead of row by row, so large syncs finish far faster",
+      "The Summary button moved from the site header into the admin panel and grew — visitors did not need it",
+      "Database security fixes: privilege escalation closed, sensitive functions locked down, and internal data kept away from visitors",
+    ],
+  },
   {
     version: "2.1.0",
     dateAr: "8 سبتمبر 2026",
@@ -2912,8 +2947,11 @@ function NoticesModal({ enabled }) {
   }, []);
   useEffect(() => {
     if (!notices.length) return;
-    supabase.from("notice_votes").select("notice_id").eq("device_id", getDeviceId()).then(({ data }) => {
-      const v = {}; (data || []).forEach((r) => { v[r.notice_id] = true; }); setVoted(v);
+    /* عبر دالة تُرجّع أصوات هذا الجهاز فقط — جدول الأصوات نفسه صار مقفلًا على
+       الزوار، فما عاد أحد يقدر يقرأ أصوات بقية الأجهزة أو يحصي التصويت من الخارج. */
+    supabase.rpc("my_notice_votes", { p_device: getDeviceId() }).then(({ data }) => {
+      const v = {}; (data || []).forEach((row) => { v[typeof row === "object" ? row.my_notice_votes : row] = true; });
+      setVoted(v);
     });
   }, [notices]);
 
@@ -3003,7 +3041,11 @@ function PublicSite() {
     });
     const fetchLive = async () => {
       try {
-        const { data: rows, error } = await supabase.from("inquiries").select("*").order("id");
+        /* أعمدة محدّدة لا select("*") — أسماء من أدخل البند وعدّله بيانات داخلية
+           ما تنزل للزائر أصلاً (وقاعدة البيانات تمنعها عنه بصلاحية عمود مستقلة). */
+        const PUBLIC_COLS = "id,model,loc,pri,cat,status,owner,month,note,note_en,reply,reply_en," +
+          "closed,urgent,answered,meetings,updated_at,last_modified,important,created_at,urgent_until,important_until";
+        const { data: rows, error } = await supabase.from("inquiries").select(PUBLIC_COLS).order("id");
         if (error || !rows || !rows.length) return;
         setData((d) => ({ ...d, records: rows.map(mapRow) }));
       } catch {}
@@ -3019,7 +3061,6 @@ function PublicSite() {
   const [loading, setLoading] = useState(true);
   const [pg, setPg] = useState(PG_BASE);
   const [pgLoading, setPgLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [f, setF] = useState(EMPTY_F);
   const [sort, setSort] = useState("id");
   const [sel, setSel] = useState(null);
@@ -3288,34 +3329,6 @@ function PublicSite() {
     if (f.urgent) out.push({ k: "urgent", l: L("يجب الاطلاع فقط", "Needs review only") });
     return out;
   }, [f, lang]);
-
-  const copySummary = async () => {
-    const lines = [
-      L("سجل استفسارات الملاك", "Owner Inquiries Log"),
-      data.updatedAt ? `${L("آخر تحديث:", "Last updated:")} ${fmtDate(data.updatedAt)}${data.label ? " — " + data.label : ""}` : "",
-      "",
-      `${L("الإجمالي:", "Total:")} ${ALL.length}`,
-      `${L("معتمدة:", "Approved:")} ${overview.byS["معتمدة"] || 0}`,
-      `${L("مرفوضة:", "Rejected:")} ${overview.byS["تم الرفض"] || 0}`,
-      `${L("ما زالت مفتوحة:", "Still open:")} ${openCount}`,
-      "",
-    ];
-    if (newCount) {
-      lines.push(`${L("الجديد هذا التحديث", "New in this update")} (${newCount}):`);
-      ALL.filter((r) => r.isNew).forEach((r) => lines.push(`• [${trSta(lang, r.sta)}] ${trNote(lang, r).slice(0, 110)}`));
-      lines.push("");
-    }
-    const openItems = ALL.filter((r) => !r.closed);
-    if (openItems.length) {
-      lines.push(`${L("بنود ما زالت مفتوحة", "Items still open")} (${openItems.length}):`);
-      openItems.forEach((r) => lines.push(`• ${trNote(lang, r).slice(0, 110)}`));
-    }
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      setCopied(true); setTimeout(() => setCopied(false), 1650);
-      logEvent("click", "copy_summary", null, null);
-    } catch { /* المتصفح منع النسخ */ }
-  };
 
   return (
     <ThemeCtx.Provider value={{ T, mode, setMode, resolved }}>
@@ -3839,10 +3852,6 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                   </button>
                 )}
                 <button className="icon-btn" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
-                <button className="icon-btn copy-host" onClick={copySummary}>
-                  <Copy size={13} /> {L("ملخص", "Summary")}
-                  {copied && <span className="copy-ok show"><Check size={13} /> {L("تم النسخ", "Copied")}</span>}
-                </button>
               </div>
             </div>
 
@@ -5212,7 +5221,25 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
     reader.onload = (evt) => {
       try {
         const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
-        const parsed = {}; wb.SheetNames.forEach((name) => { parsed[name] = smartSheetToJson(wb.Sheets[name], categories); });
+        /* ═══ تنظيف تلقائي قبل أي مقارنة ═══
+           مسافات ورموز اتجاه، أرقام عربية، صيغ نعم/لا، وتثبيت إملاء القيم على
+           الصيغة المعتمدة بجدول الفلاتر. الغرض مو التجميل: بدونه كل صف كان
+           يظهر «معدّلًا» لمجرد اختلاف مسافة أو همزة، فيغرق الفرق الحقيقي. */
+        const approvedMap = {};
+        (categories || []).forEach((c) => {
+          const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner" }[c.key];
+          if (f && Array.isArray(c.values) && c.values.length) approvedMap[f] = c.values;
+        });
+        let fixCount = 0;
+        const parsed = {}; wb.SheetNames.forEach((name) => {
+          parsed[name] = smartSheetToJson(wb.Sheets[name], categories).map((raw) => {
+            const a = Brain.autoFixRow(raw);
+            const b = Brain.canonicalizeToApproved(a.row, approvedMap);
+            fixCount += a.fixes.length + b.fixes.length;
+            return b.row;
+          });
+        });
+        if (fixCount) flashToast(`نُظّف الملف تلقائيًا — ${fixCount} تصحيح قبل المقارنة`);
         const initMap = {}; wb.SheetNames.forEach((name) => { initMap[name] = { target: guessTarget(name), mode: guessMode(name), selected: parsed[name].length > 0 }; });
         setSheets(parsed); setMapping(initMap); setDiffResults(null);
         setStage("select"); /* الخطوة الأولى: اختيار الشيتات ومراجعة طريقة التعامل معها قبل أي مقارنة */
@@ -5245,24 +5272,34 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
   };
   /* ترجمة خلفية غير معطّلة — تشتغل بعد اعتماد المزامنة بدون ما توقف الواجهة، وحدة وحدة بفاصل بسيط
      عشان ما نضغط على خدمة الترجمة المجانية دفعة وحدة */
+  /* ترجمة دفعة واحدة بعد اعتماد المزامنة — بدل صف صف بفاصل ٣٠٠ملي.
+     الدالة import-assist تترجم حتى ١٢٠ بندًا بطلب واحد، وترجع تلقائيًا
+     للمترجم المجاني لو مفتاح الذكاء الاصطناعي مو مضبوط. */
   const backgroundTranslate = async (ids) => {
-    for (const id of ids) {
-      try {
-        const { data: row } = await supabase.from("inquiries").select("note,note_en,reply,reply_en").eq("id", id).single();
-        if (!row) continue;
-        const patch = {};
-        if (row.note && !row.note_en) {
-          const { data } = await supabase.functions.invoke("translate-text", { body: { text: row.note } });
-          if (data?.translated) patch.note_en = data.translated;
-        }
-        if (row.reply && !row.reply_en) {
-          const { data } = await supabase.functions.invoke("translate-text", { body: { text: row.reply } });
-          if (data?.translated) patch.reply_en = data.translated;
-        }
-        if (Object.keys(patch).length) await supabase.from("inquiries").update(patch).eq("id", id);
-      } catch { /* نتجاوز أي صف فشلت ترجمته ونكمل الباقي */ }
-      await new Promise((r) => setTimeout(r, 300));
-    }
+    if (!ids || !ids.length) return;
+    try {
+      const { data: rows } = await supabase.from("inquiries")
+        .select("id,note,note_en,reply,reply_en").in("id", ids.slice(0, 300));
+      const need = (rows || []).filter((r) => (r.note && !r.note_en) || (r.reply && !r.reply_en));
+      for (let i = 0; i < need.length; i += 60) {
+        const batch = need.slice(i, i + 60);
+        const items = batch.map((r) => ({
+          id: String(r.id),
+          note: r.note_en ? "" : (r.note || ""),
+          reply: r.reply_en ? "" : (r.reply || ""),
+        }));
+        const { data } = await supabase.functions.invoke("import-assist", { body: { mode: "translate", items } });
+        const byId = new Map((data?.results || []).map((x) => [String(x.id), x]));
+        await Promise.all(batch.map(async (r) => {
+          const t = byId.get(String(r.id));
+          if (!t) return;
+          const patch = {};
+          if (!r.note_en && t.note_en) patch.note_en = t.note_en;
+          if (!r.reply_en && t.reply_en) patch.reply_en = t.reply_en;
+          if (Object.keys(patch).length) await supabase.from("inquiries").update(patch).eq("id", r.id);
+        }));
+      }
+    } catch { /* الترجمة تحسين مو شرط — المزامنة نفسها خلصت */ }
     refreshInquiries();
   };
   /* يبني كائن الحقول الجاهز للكتابة الفعلية بقاعدة البيانات — يحوّل حقول boolean الحقيقية
@@ -5490,6 +5527,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
             <span style={{ fontSize: 14, fontWeight: 700 }}>الخطوة ٢ — نتيجة المقارنة</span>
             <button onClick={() => setStage("select")} style={{ background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", textDecoration: "underline" }}>تعديل اختيار الشيتات</button>
           </div>
+          <AImportAudit diffResults={diffResults} inquiries={inquiries} categories={categories} flashToast={flashToast} />
           {(() => {
             const totals = diffResults.reduce((acc, res) => {
               if (res.mode === "replace") { acc.added += res.newRows.length; acc.removed += res.removedCount; }
@@ -5640,6 +5678,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       {form && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>{editing === "new" ? "إضافة استفسار يدويًا" : `تعديل الاستفسار #${editing}`}</div>
+          {editing !== "new" && <AInquiryTrail id={editing} row={form} />}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             {afieldInput(ADMIN_FIELD_LABEL.model, form.model, (v) => setForm((f) => ({ ...f, model: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.loc, form.loc, (v) => setForm((f) => ({ ...f, loc: v })))}
@@ -6412,12 +6451,256 @@ function AThemeTab({ flashToast, log, canManage }) {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════
+   ١٥ب. التدقيق الذكي للمزامنة — يشتغل فوق نتيجة المقارنة.
+
+   طبقتان: فحوصات محلية دائمة (منطق خالص بملف import-brain.js)، وفوقها
+   مراجعة اختيارية بالذكاء الاصطناعي عبر دالة import-assist. لو المفتاح
+   ناقص أو الخدمة مقطوعة، الفحوصات المحلية تظل شغّالة كما هي.
+   ═══════════════════════════════════════════════════════════ */
+function AImportAudit({ diffResults, inquiries, categories, flashToast }) {
+  const T = useSystemTheme();
+  const [ai, setAi] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(true);
+
+  /* القيم المعتمدة لكل حقل — من جدول الفلاتر نفسه، فما نثبّت شيء بالكود */
+  const approved = useMemo(() => {
+    const map = {};
+    (categories || []).forEach((c) => {
+      const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner" }[c.key];
+      if (f && Array.isArray(c.values) && c.values.length) map[f] = c.values;
+    });
+    return map;
+  }, [categories]);
+
+  const rows = useMemo(() => {
+    const out = [];
+    (diffResults || []).forEach((r) => {
+      if (r.target && r.target !== "inquiries") return;
+      if (r.mode === "replace") out.push(...(r.newRows || []));
+      else out.push(...(r.added || []), ...(r.changed || []).map((c) => ({ ...c.cur, ...c.row })));
+    });
+    return out;
+  }, [diffResults]);
+
+  const findings = useMemo(
+    () => Brain.auditRows({ rows, existing: inquiries || [], approved }),
+    [rows, inquiries, approved]
+  );
+  const digest = useMemo(() => Brain.changeDigest(diffResults || []), [diffResults]);
+
+  const counts = findings.reduce((a, f) => { a[f.level] = (a[f.level] || 0) + 1; return a; }, {});
+  const askAi = async () => {
+    setBusy(true);
+    try {
+      const payload = Brain.buildReviewPayload(diffResults || [], approved);
+      const { data, error } = await supabase.functions.invoke("import-assist", { body: { mode: "review", payload } });
+      if (error) throw error;
+      setAi(data || { available: false, reason: "رد فارغ" });
+      if (data && data.available === false) flashToast("المراجعة الذكية غير مفعّلة — الفحوصات المحلية شغّالة");
+    } catch (e) {
+      setAi({ available: false, reason: String(e).slice(0, 160) });
+      flashToast("تعذّرت المراجعة الذكية — الفحوصات المحلية شغّالة");
+    }
+    setBusy(false);
+  };
+
+  const tone = { high: T.pri["عالية جدًا"], medium: T.pri["عالية"], low: T.muted };
+  const label = { high: "حرج", medium: "يستحق المراجعة", low: "ملاحظة" };
+
+  return (
+    <div style={{ border: `1px solid ${T.line}`, borderRadius: 14, padding: 14, margin: "12px 0 16px", background: T.sunken }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <b style={{ fontSize: 13 }}>التدقيق الذكي</b>
+        {["high", "medium", "low"].map((lv) => counts[lv] ? (
+          <span key={lv} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999, color: T.onAccent, background: tone[lv] }}>
+            {label[lv]}: {counts[lv]}
+          </span>
+        ) : null)}
+        {!findings.length && <span style={{ fontSize: 11.5, color: T.sta["معتمدة"] }}>ما فيه ملاحظات — الملف نظيف</span>}
+        <span style={{ flex: 1 }} />
+        <button onClick={askAi} disabled={busy} style={{
+          fontSize: 11.5, padding: "6px 12px", borderRadius: 10, cursor: busy ? "default" : "pointer",
+          border: `1px solid ${T.line}`, background: T.surface, color: T.brass, fontFamily: "inherit",
+        }}>{busy ? "جارٍ المراجعة..." : "مراجعة ذكية إضافية"}</button>
+        {findings.length > 0 && (
+          <button onClick={() => setOpen((o) => !o)} style={{
+            fontSize: 11.5, background: "none", border: "none", color: T.muted, cursor: "pointer", fontFamily: "inherit",
+          }}>{open ? "إخفاء" : "عرض"}</button>
+        )}
+      </div>
+
+      <div style={{ fontSize: 12, color: T.muted, marginTop: 9, lineHeight: 1.9 }}>
+        {digest.head}
+        {digest.lines.map((l, i) => <div key={i}>{l}</div>)}
+      </div>
+
+      {open && findings.length > 0 && (
+        <div style={{ marginTop: 11, display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+          {findings.slice(0, 80).map((f, i) => (
+            <div key={i} style={{
+              display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12, lineHeight: 1.7,
+              background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `3px solid ${tone[f.level]}`,
+              borderRadius: 10, padding: "8px 10px",
+            }}>
+              <span className="mono" style={{ fontSize: 11, color: T.faint, flex: "none", minWidth: 34 }}>#{f.key}</span>
+              <span style={{ flex: 1 }}>
+                {f.field && <b style={{ color: T.paper }}>{Brain.fieldLabel(f.field)}: </b>}
+                <span style={{ color: T.muted }}>{f.msg}</span>
+                {f.suggest && <span style={{ color: T.sta["معتمدة"] }}> ← المقترح: {f.suggest}</span>}
+              </span>
+            </div>
+          ))}
+          {findings.length > 80 && <div style={{ fontSize: 11.5, color: T.faint }}>و{findings.length - 80} ملاحظة أخرى…</div>}
+        </div>
+      )}
+
+      {ai && (
+        <div style={{ marginTop: 12, borderTop: `1px solid ${T.line}`, paddingTop: 11 }}>
+          {ai.available === false ? (
+            <div style={{ fontSize: 11.5, color: T.faint, lineHeight: 1.8 }}>
+              المراجعة الذكية غير متاحة ({ai.reason || "غير مفعّلة"}). لتفعيلها: أضف السر
+              <b className="mono"> ANTHROPIC_API_KEY </b> بإعدادات دوال Supabase. الفحوصات أعلاه ما تعتمد عليها.
+            </div>
+          ) : (
+            <>
+              {ai.summary && <div style={{ fontSize: 12.5, color: T.paper, lineHeight: 1.9, marginBottom: 8 }}>{ai.summary}</div>}
+              {(ai.findings || []).map((f, i) => (
+                <div key={i} style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
+                  • <span className="mono" style={{ fontSize: 11 }}>#{f.key}</span> {f.field ? `${Brain.fieldLabel(f.field)}: ` : ""}{f.msg}
+                  {f.suggest ? <span style={{ color: T.sta["معتمدة"] }}> ← {f.suggest}</span> : null}
+                </div>
+              ))}
+              {!(ai.findings || []).length && <div style={{ fontSize: 12, color: T.sta["معتمدة"] }}>المراجعة الذكية ما لقت ملاحظات إضافية.</div>}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══ ١٥د. أثر البند — من أدخله ومن عدّله ═══ */
+function AInquiryTrail({ id, row }) {
+  const T = useSystemTheme();
+  const [revs, setRevs] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    supabase.from("inquiry_revisions").select("*").eq("inquiry_id", id)
+      .order("changed_at", { ascending: false }).limit(25)
+      .then(({ data }) => { if (alive) setRevs(data || []); });
+    return () => { alive = false; };
+  }, [id]);
+
+  const opAr = { insert: "إضافة", update: "تعديل", delete: "حذف", bulk: "استبدال كامل", restore: "استرجاع نسخة" };
+  const line = { display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11.5, color: T.muted, lineHeight: 1.9 };
+
+  return (
+    <div style={{ background: T.sunken, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 12px", marginBottom: 14 }}>
+      <div style={line}>
+        <span>أدخله: <b style={{ color: T.paper }}>{row?.created_by || "—"}</b></span>
+        <span style={{ color: T.faint }}>·</span>
+        <span>آخر تعديل: <b style={{ color: T.paper }}>{row?.updated_by || "—"}</b></span>
+        {row?.updated_at && <><span style={{ color: T.faint }}>·</span><span className="mono">{fmtAdminDate(row.updated_at)}</span></>}
+        <span style={{ flex: 1 }} />
+        {revs && revs.length > 0 && (
+          <button onClick={() => setOpen((o) => !o)} style={{
+            background: "none", border: "none", color: T.brass, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit",
+          }}>{open ? "إخفاء الأثر" : `عرض الأثر (${revs.length})`}</button>
+        )}
+      </div>
+
+      {open && (
+        <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 7, maxHeight: 240, overflowY: "auto" }}>
+          {revs.map((r) => (
+            <div key={r.id} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 9, padding: "7px 9px" }}>
+              <div style={{ fontSize: 11, color: T.faint }}>
+                {opAr[r.op] || r.op} · {r.changed_by || "غير معروف"} · <span className="mono">{fmtAdminDate(r.changed_at)}</span>
+              </div>
+              {Object.entries(r.changes || {}).map(([f, v]) => (
+                <div key={f} style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.8 }}>
+                  <b style={{ color: T.paper }}>{Brain.fieldLabel(f)}:</b>{" "}
+                  <span style={{ textDecoration: "line-through", opacity: .7 }}>{String(v?.from ?? "—").slice(0, 60)}</span>
+                  {" ← "}
+                  <span style={{ color: T.sta["معتمدة"] }}>{String(v?.to ?? "—").slice(0, 60)}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══ ١٥ج. الملخّص التنفيذي — لوحة الإدارة فقط ═══ */
+function ABriefTab({ inquiries, flashToast }) {
+  const T = useSystemTheme();
+  const brief = useMemo(() => buildBrief(inquiries || []), [inquiries]);
+  const [copied, setCopied] = useState("");
+
+  const copy = async (kind) => {
+    const text = kind === "md" ? briefToMarkdown(brief) : briefToText(brief);
+    try { await navigator.clipboard.writeText(text); setCopied(kind); setTimeout(() => setCopied(""), 1600); }
+    catch { flashToast("المتصفح منع النسخ"); }
+  };
+  const download = () => {
+    const blob = new Blob([briefToMarkdown(brief)], { type: "text/markdown;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `ملخص-الاستفسارات-${isoAdminDate(new Date())}.md`;
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  const btn = (on) => ({
+    display: "flex", alignItems: "center", gap: 7, border: `1px solid ${T.line}`, borderRadius: 11,
+    padding: "9px 14px", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer",
+    background: on ? T.brass : T.surface, color: on ? T.onAccent : T.paper,
+  });
+
+  return (
+    <div>
+      <div style={{ ...aNoteStyle(T), marginBottom: 14 }}>
+        تقرير داخلي يُبنى لحظيًا من السجل الحالي. كان زر «ملخص» بترويسة الموقع العام —
+        نُقل هنا لأن الزائر ما يحتاجه، وتوسّع ليشمل حركة السجل والأقدم فتحًا ومصدر الإدخال.
+      </div>
+
+      <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginBottom: 16 }}>
+        <button onClick={() => copy("txt")} style={btn(copied === "txt")}>
+          <Copy size={14} /> {copied === "txt" ? "تم النسخ" : "نسخ كنص"}
+        </button>
+        <button onClick={() => copy("md")} style={btn(copied === "md")}>
+          <Copy size={14} /> {copied === "md" ? "تم النسخ" : "نسخ Markdown"}
+        </button>
+        <button onClick={download} style={btn(false)}><Download size={14} /> تنزيل ملف</button>
+      </div>
+
+      <div style={{ display: "grid", gap: 12 }}>
+        {brief.sections.map((sec, i) => (
+          <div key={i} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 15px" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: T.paper, marginBottom: 8 }}>{sec.title}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {sec.lines.map((l, j) => (
+                <div key={j} style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.8 }}>• {l}</div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const ADMIN_TABS = [
   { key: "dashboard", label: "لوحة القرار", perms: ["view_dashboard"] },
   { key: "sync", label: "المزامنة والبيانات", perms: ["import_excel", "add_inquiry", "edit_inquiry", "delete_inquiry", "flag_urgent"] },
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
+  { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_notices"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
@@ -6478,6 +6761,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
+        {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
