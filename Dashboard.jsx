@@ -1093,10 +1093,48 @@ function VillaPlan({ counts, active, onPick, built }) {
     </div>
   );
 
+  const archOp = built ? 0.55 : 0;
+  const archStyle = { transition: "opacity .6s ease", pointerEvents: "none" };
+  const partyClip = "villaPartyHatch";
+  const groundClip = "villaGroundHatch";
+
   return (
     <div style={{ position: "relative" }}>
       <svg viewBox="0 0 560 430" className="w-full" style={{ height: "auto", display: "block" }}
         role="group" aria-label={lang === "en" ? "Interactive villa plan" : "مخطط الفيلا التفاعلي"}>
+        <defs>
+          <clipPath id={partyClip}><rect x="124" y="58" width="10" height="292" /></clipPath>
+          <clipPath id={groundClip}><rect x="112" y="350" width="336" height="14" /></clipPath>
+        </defs>
+
+        {/* ── خط معماري زخرفي: سماكة الجدران، البروة، النوافذ، البلاطات ── لا يعترض النقر */}
+        <g style={{ ...archStyle, opacity: archOp }} fill="none" stroke={T.brass} strokeWidth="0.8">
+          {/* بروة السطح */}
+          <rect x="146" y="58" width="280" height="8" rx="3" />
+          {/* الخط الداخلي لسماكة الجدار الخارجي */}
+          <rect x="148" y="66" width="276" height="276" rx="7" strokeOpacity="0.55" />
+          {/* خطوط البلاطات بين السطح/الأول والأول/الأرضي */}
+          <line x1="150" y1="104" x2="422" y2="104" strokeOpacity="0.4" />
+          {/* نوافذ على الواجهة الجانبية */}
+          <rect x="404" y="128" width="10" height="26" rx="1.5" strokeOpacity="0.55" />
+          <rect x="404" y="252" width="10" height="30" rx="1.5" strokeOpacity="0.55" />
+          <rect x="158" y="128" width="10" height="26" rx="1.5" strokeOpacity="0.35" />
+          {/* باب المدخل من جهة الشارع */}
+          <rect x="398" y="316" width="8" height="26" rx="1.5" fill={T.brass} fillOpacity="0.18" strokeOpacity="0.6" />
+          {/* قلبات الدرج */}
+          <polyline points="358,330 358,308 376,308 376,286 358,286 358,264 376,264 376,242 358,242 358,220 376,220 376,198 358,198 358,176 376,176 376,154 358,154 358,132"
+            strokeOpacity="0.4" strokeLinejoin="round" />
+        </g>
+
+        {/* تهشير الجدار المشترك (قطاع مايل) */}
+        <g clipPath={`url(#${partyClip})`} stroke={T.brass} strokeOpacity={archOp * 0.5} strokeWidth="0.7" style={archStyle}>
+          <line x1="114" y1="70" x2="134" y2="50" /><line x1="114" y1="100" x2="134" y2="80" />
+          <line x1="114" y1="130" x2="134" y2="110" /><line x1="114" y1="160" x2="134" y2="140" />
+          <line x1="114" y1="190" x2="134" y2="170" /><line x1="114" y1="220" x2="134" y2="200" />
+          <line x1="114" y1="250" x2="134" y2="230" /><line x1="114" y1="280" x2="134" y2="260" />
+          <line x1="114" y1="310" x2="134" y2="290" /><line x1="114" y1="340" x2="134" y2="320" />
+        </g>
+
         {/* جسم الفيلا = كامل الفيلا */}
         <rect x="140" y="58" width="292" height="292" rx="10" {...zone("whole", 560)} />
 
@@ -1122,18 +1160,35 @@ function VillaPlan({ counts, active, onPick, built }) {
         {/* الدرج */}
         <rect x="352" y="120" width="62" height="214" rx="6" {...zone("stairs", 260)} />
 
-        {/* منسوب الأرض */}
+        {/* منسوب الأرض + تهشير التأسيس */}
         <rect x="112" y="350" width="336" height="2" rx="1" fill={T.muted}
           opacity={built ? 0.28 : 0} style={{ transition: "opacity .5s ease" }} />
+        <g clipPath={`url(#${groundClip})`} stroke={T.muted} strokeOpacity={archOp * 0.4} strokeWidth="0.6" style={archStyle}>
+          <line x1="118" y1="362" x2="130" y2="350" /><line x1="140" y1="362" x2="152" y2="350" />
+          <line x1="162" y1="362" x2="174" y2="350" /><line x1="308" y1="362" x2="320" y2="350" />
+          <line x1="330" y1="362" x2="342" y2="350" /><line x1="352" y1="362" x2="364" y2="350" />
+          <line x1="374" y1="362" x2="386" y2="350" /><line x1="396" y1="362" x2="408" y2="350" />
+          <line x1="418" y1="362" x2="430" y2="350" /><line x1="440" y1="362" x2="452" y2="350" />
+        </g>
 
         {/* الخزان الأرضي */}
         <rect x="176" y="360" width="120" height="32" rx="7" {...zone("tank", 100)} />
 
         {/* الشارع */}
         <rect x="446" y="352" width="96" height="26" rx="7" {...zone("street", 60)} />
+        <line x1="452" y1="365" x2="536" y2="365" stroke={T.zoneOn} strokeOpacity={archOp * 0.5}
+          strokeWidth="1" strokeDasharray="6 5" style={archStyle} />
 
         {/* غير محدد */}
         <rect x="470" y="72" width="76" height="30" rx="8" {...zone("na", 600)} />
+
+        {/* علامات مناسيب على الحافة اليمنى */}
+        <g fill={T.brass} fillOpacity={archOp * 0.7} style={archStyle}>
+          <polygon points="428,60 438,60 433,68" />
+          <polygon points="428,102 438,102 433,110" />
+          <polygon points="428,212 438,212 433,220" />
+          <polygon points="428,340 438,340 433,348" />
+        </g>
       </svg>
 
       {/* النصوص العربية كطبقة HTML — عنصر SVG text لا يُشكّل العربية بشكل موثوق */}
