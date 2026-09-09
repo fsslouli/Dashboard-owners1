@@ -16,7 +16,7 @@ import { buildBrief, briefToText, briefToMarkdown } from "./admin-brief.js";
    ٤. نظام الألوان (فاتح/داكن) والسياقات (Theme/Lang)
    ٥. أدوات نص عربي، تحليل النماذج، ومناطق المخطط
    ٦. تقدّم التنفيذ — بيانات KPI والخطة الخطّية
-   ٧. الترتيب المنطقي والتخزين المشترك (window.storage)
+   ٧. الترتيب المنطقي وتفضيلات الزائر (localStorage)
    ٨. الخطافات المخصّصة (Hooks): ثيم، لغة، عرض، سطح مكتب...
    ٩. عناصر صغيرة قابلة لإعادة الاستخدام (عدّادات، رقاقات، أيقونات)
    ١٠. سجل الإصدارات (CHANGELOG)
@@ -654,6 +654,7 @@ const BASE = INQUIRIES_DATA.map((r) => ({
    جدولان: متوسط تقدم المراحل مقابل الهدف، وتقدم كل بلوك.
    ═══════════════════════════════════════════════════════════ */
 const PG_MONTHS = ["فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس"];
+const PG_MONTH_KEYS = ["2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"];
 const PG_TARGET = [31.25, 34.38, 37.5, 40.62, 43.75, 46.88, 50];
 const PG_PHASES = [
   { key: "total", label: "إجمالي المشروع", note: "كل البلوكات", v: [37.1, 39.05, 40.91, 41.73, 43.43, null, 46.97] },
@@ -685,7 +686,7 @@ const PG_NOTE = "بلوك ٢٣: لا توجد بيانات جديدة لمايو
    البيانات مستقبلًا (تحافظ على نفس التسميات والترتيب الثابت بغض النظر عن مصدر الأرقام) */
 const PG_PHASES_META = PG_PHASES.map(({ key, label, note }) => ({ key, label, note }));
 const PG_PHASE_NAME = { p1: "المرحلة الأولى", p2: "المرحلة الثانية", p3: "المرحلة الثالثة", p4: "المرحلة الرابعة", p_unassigned: "غير مصنّف" };
-const PG_BASE = { months: PG_MONTHS, target: PG_TARGET, phases: PG_PHASES, blocks: PG_BLOCKS, note: PG_NOTE, updatedAt: null, label: "", start: { y: 2026, m: 2 } };
+const PG_BASE = { months: PG_MONTHS, monthKeys: PG_MONTH_KEYS, target: PG_TARGET, phases: PG_PHASES, blocks: PG_BLOCKS, note: PG_NOTE, monthNotes: {}, updatedAt: null, label: "", start: { y: 2026, m: 2 } };
 
 /* ── هدف التنفيذ: خطة خطّية تُحسب من التقويم ──
    الخطوة ٣٫١٢٥ نقطة شهريًا = ١٠٠٪ خلال ٣٢ شهرًا، من مايو ٢٠٢٥ حتى ديسمبر ٢٠٢٧.
@@ -700,10 +701,12 @@ const planTarget = (y, m) =>
   Math.max(0, Math.min(100, +(PLAN_STEP * ((y - PLAN_ANCHOR_Y) * 12 + (m - PLAN_ANCHOR_M))).toFixed(2)));
 
 /* ═══════════════════════════════════════════════════════════
-   ٦ب. تقدّم التنفيذ من قاعدة البيانات (progress_matrix) — يحلّ محلّ
-   الاعتماد الكامل على PG_BASE الثابت بالكود. كل شهر مخزَّن كصف واحد
-   بجدول progress_matrix: {month:'YYYY-MM', phases:{...}, blocks:{...}}.
-   الهدف (target) ما يُخزَّن إطلاقًا — يُحسب دائمًا آليًا بصيغة planTarget()
+   ٦ب. تقدّم التنفيذ من قاعدة البيانات — يحلّ محلّ الاعتماد الكامل على
+   PG_BASE الثابت بالكود. المصدر الحقيقي بقاعدة البيانات هو جدول
+   progress_readings (بلوك واحد + شهر واحد + نسبة لكل صف)، وview باسم
+   progress_matrix_v يحسب منه تلقائيًا نفس شكل {month, phases, blocks}
+   القديم — فالدالة buildPgFromRows تحتها ما احتاجت أي تعديل. الهدف
+   (target) ما يُخزَّن إطلاقًا — يُحسب دائمًا آليًا بصيغة planTarget()
    لأي شهر موجود، تمامًا متل فلسفة الخطة الخطية أعلاه.
    ═══════════════════════════════════════════════════════════ */
 /* البلوكات الأصلية بترتيب عرضها الحالي + تصنيف كل بلوك لمرحلته — يبقى ثابتًا
@@ -767,7 +770,7 @@ function buildPgFromRows(rows) {
   }));
 
   const updatedAt = rows.reduce((a, r) => (r.updated_at && r.updated_at > (a || "") ? r.updated_at : a), null);
-  return { months, target, phases, blocks, note: PG_NOTE, updatedAt, label: "", start: { y: startY, m: startM } };
+  return { months, monthKeys, target, phases, blocks, note: PG_NOTE, updatedAt, label: "", start: { y: startY, m: startM } };
 }
 
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
@@ -793,6 +796,7 @@ function extendPlan(data, now) {
   if (!add) return { ...data, years, added: 0 };
 
   const outM = [...months], outT = [...data.target];
+  const outK = Array.isArray(data.monthKeys) ? [...data.monthKeys] : [];
   for (let k = 1; k <= add; k++) {
     const t = (lastM - 1) + k;
     const y = lastY + Math.floor(t / 12);
@@ -800,11 +804,12 @@ function extendPlan(data, now) {
     outM.push(MONTH_AR[m - 1]);
     years.push(y);
     outT.push(planTarget(y, m));
+    if (outK.length) outK.push(monthKeyOf(y, m));
   }
   const pad = (v) => [...(Array.isArray(v) ? v : []), ...Array(add).fill(null)];
   return {
     ...data,
-    months: outM, target: outT, years, added: add,
+    months: outM, monthKeys: outK.length ? outK : data.monthKeys, target: outT, years, added: add,
     phases: (data.phases || []).map((p) => ({ ...p, v: pad(p.v) })),
     blocks: (data.blocks || []).map((b) => ({ ...b, v: pad(b.v) })),
   };
@@ -820,26 +825,15 @@ const trPGLabel = (lang, v) => (lang === "en" ? PG_LABEL_EN[v] || v : v);
 const trPGPNote = (lang, v) => (lang === "en" ? PG_PNOTE_EN[v] || v : v);
 
 /* ── الترتيب المنطقي ── */
-/* ── ٧. الترتيب المنطقي والتخزين المشترك (window.storage) ── */
+/* ── ٧. الترتيب المنطقي وتفضيلات الزائر ── */
 const rank = (order) => (v) => { const i = order.indexOf(v); return i === -1 ? order.length + 1 : i; };
 const uniqSorted = (arr, order) => [...new Set(arr)].filter(Boolean).sort((a, b) => rank(order)(a) - rank(order)(b) || a.localeCompare(b, "ar"));
 
-/* ── تخزين ── */
-const SKEY = "owners-inquiries-v1";
-const PGKEY = "owners-progress-v1";
 const TKEY = "owners-inquiries-theme";
-const hasStore = () => typeof window !== "undefined" && !!window.storage;
-async function loadShared(key = SKEY) {
-  if (!hasStore()) return null;
-  try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }
-  catch { return null; }
-}
-
-/* ── تفضيلات الزائر (ثيم/لغة/شكل العرض) ──
-   كانت تُحفَظ سابقًا في window.storage، وهذي واجهة موجودة فقط داخل بيئة المعاينة
-   ومو موجودة بالمتصفح بعد النشر على Vercel — فكانت اختيارات الزائر تضيع مع كل زيارة.
-   الآن الاعتماد على localStorage (يشتغل بالمتصفح فعليًا)، مع الإبقاء على window.storage
-   ككتابة إضافية لو كانت متوفرة. القراءة متزامنة عشان ما يومض الوضع الافتراضي أولًا. */
+/* ── تفضيلات الزائر (ثيم/لغة/شكل العرض) — محفوظة بـ localStorage الخاص
+   بمتصفح الزائر نفسه (شخصية بحتة، غير مرتبطة بمشروع الملاك، فما داعي
+   لقاعدة البيانات هنا). كل بيانات المشروع الفعلية (الاستفسارات وتقدّم
+   التنفيذ) تُقرأ وتُكتب حصرًا عبر Supabase — راجع قسمي ٦ب و٣ أعلاه. */
 function readPref(key, allowed, fallback) {
   try {
     const v = typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
@@ -849,7 +843,6 @@ function readPref(key, allowed, fallback) {
 }
 function writePref(key, value) {
   try { localStorage.setItem(key, value); } catch { /* تجاهل */ }
-  if (hasStore()) { try { window.storage.set(key, value, false); } catch { /* تجاهل */ } }
 }
 /* ── ٨. الخطافات المخصّصة (Hooks) ── */
 function usePrefersReduced() {
@@ -1393,6 +1386,71 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.5.0",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "ملف بيانات التقدّم صار مرجعًا متصلًا بلا فجوات صامتة — شهر بلا قراءة من المطوّر يُسجَّل بسطر صريح واحد (\"لا قراءة\" + سبب مختصر) بدل ما يختفي من الملف",
+      "زر \"تنزيل الملف الحالي\" يُصدِّر الآن كل التاريخ متضمّنًا أسطر \"لا قراءة\" هذي، فيبقى الملف نفسه دليلًا كاملًا يحكي القصة وحده",
+      "لوحة الرفع تعرض أشهر \"لا قراءة\" المكتشفة بالملف كقسم مستقل قبل التحديث، وتحفظها بجدول جديد (progress_month_notes)",
+      "تبويب \"تقدّم التنفيذ\" العام يعرض السبب الفعلي عند تمرير المؤشر على شهر باهت (بدل نص عام واحد لكل الحالات)، مع ملاحظة تفصيلية أسفل شريط الأشهر عند اختيار ذاك الشهر",
+      "تصحيح: الملاحظة التوضيحية عن الأشهر الباهتة كانت تظهر فقط للأشهر الممتدة تلقائيًا حتى تاريخ اليوم، وما تظهر لفجوة داخل تاريخ مسجَّل فعليًا (مثل يوليو ٢٠٢٦) — صارت تظهر بالحالتين",
+      "تسجيل الفجوة الحقيقية المعروفة حاليًا (يوليو ٢٠٢٦ — سحب المطوّر تقريره) بقاعدة البيانات، فتظهر بنصّها الفعلي من أول تحميل للموقع",
+    ],
+    en: [
+      "The progress-data file is now a continuous reference with no silent gaps — a month with no developer reading gets one explicit row (\"No reading\" + a short reason) instead of simply vanishing from the file",
+      "The \"Download current file\" button now exports the full history including these \"No reading\" rows, so the file alone tells the whole story",
+      "The upload panel shows detected \"No reading\" months as a separate section before applying, and saves them to a new table (progress_month_notes)",
+      "The public Execution Progress tab now shows the actual reason on hover for a faded month (instead of one generic line for every case), plus a detailed note under the month bar when that month is selected",
+      "Fixed: the explanatory note about faded months only appeared for months auto-extended up to today, not for a gap inside already-recorded history (such as July 2026) — it now appears in both cases",
+      "Recorded the one currently known real gap (July 2026 — developer withdrew that month's report) in the database, so it shows its actual reason from the first page load",
+    ],
+  },
+  {
+    version: "2.4.1",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "حذف آخر بقايا كود غير متصلة بقاعدة البيانات: مسار قراءة قديم لبيانات الاستفسارات كان يعتمد على window.storage (واجهة بيئة المعاينة فقط) ولا يعمل شيئًا فعليًا بعد النشر على Vercel — بيانات الاستفسارات دائمًا كانت تُقرأ من Supabase مباشرة عبر مسار آخر، وهذا كان مجرد كود ميت لا يفعل شيئاً",
+      "تبسيط حفظ تفضيلات الزائر (الوضع الليلي/الفاتح واللغة) إلى localStorage وحدها — كانت تحاول الكتابة لـ window.storage أيضًا بلا أي فائدة فعلية",
+      "كل بيانات المشروع الآن مصدرها الوحيد قاعدة البيانات مباشرة: الاستفسارات (inquiries)، وتقدّم التنفيذ (progress_readings/progress_blocks)، والإعدادات والفلاتر والوثائق — لا يوجد أي مسار بديل أو مخبّأ محليًا",
+    ],
+    en: [
+      "Removed the last piece of code not actually connected to the database: an old inquiries-loading path relied on window.storage (a preview-environment-only API) and did nothing once deployed to Vercel — inquiry data was always being read from Supabase through a separate path regardless, so this was simply dead code doing nothing",
+      "Simplified visitor preference storage (light/dark mode and language) to localStorage only — it was also attempting a pointless write to window.storage",
+      "Every piece of project data now has a single source of truth in the database: inquiries, execution progress (progress_readings/progress_blocks), settings, filters, and documents — no alternate or locally-cached path remains",
+    ],
+  },
+  {
+    version: "2.4.0",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "إعادة بناء كاملة لنظام تقدّم التنفيذ من الصفر — ملف الرفع، القارئ، وقاعدة البيانات",
+      "ملف الرفع صار بتنسيق مسطّح بسيط: عمود لكل من رقم البلوك / الشهر / نسبة الإنجاز، صف واحد لكل بلوك بكل شهر — بدل جدول عريض بأعمدة أشهر متحركة كان يحتاج تأكيد سنة أول عمود يدويًا",
+      "الإجمالي ومتوسط كل مرحلة ما يُدخَلان ولا يُقرآن من الملف بعد الآن — قاعدة البيانات تحسبهم دائمًا آليًا من أرقام البلوكات نفسها، فيستحيل يتناقضا مع بعض بالتصميم",
+      "هذا التغيير صحّح تناقضًا كان موجودًا فعليًا ببيانات أغسطس ٢٠٢٦ المنشورة: رقم الإجمالي المخزَّن ما كان يطابق متوسط البلوكات الفعلي لنفس الشهر",
+      "زر جديد \"تنزيل الملف الحالي\" بلوحة الرفع — ينزّل كل التاريخ المسجَّل بنفس تنسيق الرفع، جاهز لإضافة سطور الشهر الجديد بأسفله وإعادة رفعه",
+      "بلوك جديد بالمشروع يُسجَّل من نفس لوحة الرفع (رقمه ومرحلته) وقت وروده بالملف، بدل ما يُصنَّف تلقائيًا \"غير مصنّف\" بالكود",
+      "معاينة الرفع صارت بدقّة بلوك واحد لكل شهر (جديد/تغيّر/بدون تغيير)، بدل ملخّص شهر كامل فقط",
+      "حماية فقدان البيانات انتقلت لنفس الدقة: شهر تُستبعد بلوكاته الناقصة تلقائيًا ويحتاج تأكيدًا صريحًا، بدل استبعاد الشهر كاملًا",
+      "رسائل الأخطاء تشير لعنوان الخلية بالملف (مثل \"C42\") مباشرة",
+      "حُذف جدول progress_matrix القديم نهائيًا بعد ترحيل كل بياناته التاريخية بنجاح لهذا النظام الجديد",
+    ],
+    en: [
+      "Full rebuild of the execution-progress system from the ground up — upload file, reader, and database",
+      "The upload file is now a simple flat format: one column each for block number / month / progress percentage, one row per block per month — replacing a wide table with shifting month columns that needed manual confirmation of the first column's year",
+      "The total and each phase's average are no longer entered into or read from the file — the database always computes them live from the block figures themselves, making them structurally impossible to contradict each other",
+      "This change fixed a real contradiction that was live in the published August 2026 data: the stored total did not match the actual average of that month's blocks",
+      "New \"Download current file\" button in the upload panel — exports the full recorded history in the same upload format, ready to append the new month's rows and re-upload",
+      "A new project block is registered (its number and phase) from the same upload panel the moment it appears in a file, instead of falling back to an \"unclassified\" bucket in the code",
+      "Upload preview is now accurate to a single block per month (new/changed/unchanged), instead of only a whole-month summary",
+      "Data-loss protection moved to the same precision: a month with missing blocks has just those blocks excluded automatically and needs explicit confirmation, instead of excluding the whole month",
+      "Error messages point at the file's cell address (such as \"C42\") directly",
+      "The old progress_matrix table was permanently dropped after all its historical data was successfully migrated to this new system",
+    ],
+  },
   {
     version: "2.3.0",
     dateAr: "8 سبتمبر 2026",
@@ -2640,6 +2698,8 @@ function ProgressTab({ reduced, data, loading }) {
   const L = (ar, en) => (lang === "en" ? en : ar);
   const D = useMemo(() => extendPlan(data, new Date()), [data]);
   const MONTHS = D.months, TARGET = D.target, PHASES = D.phases, BLOCKS = D.blocks, NOTE = D.note;
+  const MONTH_KEYS = D.monthKeys || [], MONTH_NOTES = D.monthNotes || {};
+  const noteFor = (i) => MONTH_NOTES[MONTH_KEYS[i]] || null;
   const YEARS = D.years, ADDED = D.added || 0;
   const PHASE_NAME = data.phaseName || (lang === "en" ? PG_PHASE_NAME_EN : PG_PHASE_NAME);
   const last = MONTHS.length - 1;
@@ -2877,22 +2937,31 @@ function ProgressTab({ reduced, data, loading }) {
           <div className="mseg no-print">
             {MONTHS.map((m, i) => {
               const empty = total.v[i] == null;
+              const note = empty ? noteFor(i) : null;
               return (
                 <button key={`${m}-${i}`} className="mseg-b" data-on={mi === i ? "1" : "0"} onClick={() => setMi(i)}
-                  title={empty ? L("بانتظار بيانات المطور", "Awaiting developer data") : undefined}
+                  title={empty ? (note || L("بانتظار بيانات المطور", "Awaiting developer data")) : undefined}
                   style={{
                     ...(mi === i ? { background: T.brass, color: T.onAccent } : null),
                     ...(empty && mi !== i ? { opacity: 0.5 } : null),
+                    ...(note ? { borderBottom: `2px dotted ${T.muted}` } : null),
                   }}>{mLabel(i)}</button>
               );
             })}
           </div>
         </div>
 
-        {ADDED > 0 && (
+        {mi != null && total.v[mi] == null && noteFor(mi) && (
+          <div className="note-box" style={{ marginTop: 10 }}>
+            <ShieldAlert size={13} style={{ verticalAlign: "-2px", marginLeft: 5 }} />
+            {L(`${mFull(mi)}: `, `${mFull(mi)}: `)}{noteFor(mi)}
+          </div>
+        )}
+
+        {(ADDED > 0 || total.v.some((v) => v == null)) && (
           <div className="eyebrow" style={{ marginTop: 10 }}>
-            {L("الأشهر الباهتة لم تصل قراءتها بعد — الهدف فيها محسوب من الخطة والإنجاز بانتظار المطور.",
-               "Faded months have no reading yet — their target comes from the plan and actual progress awaits the developer.")}
+            {L("الأشهر الباهتة لم تصل قراءتها بعد — الهدف فيها محسوب من الخطة والإنجاز بانتظار المطور. مرّر المؤشر على الشهر لمعرفة السبب إن وُجد.",
+               "Faded months have no reading yet — their target comes from the plan and actual progress awaits the developer. Hover a month for the specific reason, if noted.")}
           </div>
         )}
 
@@ -3077,9 +3146,9 @@ function PublicSite() {
         const PUBLIC_COLS = "id,model,loc,pri,cat,status,owner,month,note,note_en,reply,reply_en," +
           "closed,urgent,answered,meetings,updated_at,last_modified,important,created_at,urgent_until,important_until";
         const { data: rows, error } = await supabase.from("inquiries").select(PUBLIC_COLS).order("id");
-        if (error || !rows || !rows.length) return;
-        setData((d) => ({ ...d, records: rows.map(mapRow) }));
+        if (!error && rows && rows.length) setData((d) => ({ ...d, records: rows.map(mapRow) }));
       } catch {}
+      finally { setLoading(false); }
     };
     fetchLive();
     const channel = supabase
@@ -3199,31 +3268,32 @@ function PublicSite() {
 
   useEffect(() => {
     let alive = true;
-    loadShared().then((s) => {
-      if (!alive) return;
-      if (s?.records?.length) setData({ records: s.records, newKeys: s.newKeys || [], updatedAt: s.updatedAt, label: s.label || "" });
-      setLoading(false);
-    });
-    return () => { alive = false; };
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
     const fetchPg = async () => {
       try {
-        const { data: rows, error } = await supabase.from("progress_matrix").select("*").order("month");
+        /* progress_matrix_v = عرض (view) محسوب آليًا من progress_readings —
+           نفس شكل progress_matrix القديم حرفيًا، فـ buildPgFromRows ما تغيّرت. */
+        const [{ data: rows, error }, { data: noteRows }] = await Promise.all([
+          supabase.from("progress_matrix_v").select("*").order("month"),
+          supabase.from("progress_month_notes").select("*"),
+        ]);
         if (!alive) return;
         if (!error && rows && rows.length) {
           const built = buildPgFromRows(rows);
-          if (built) setPg(built);
+          if (built) {
+            built.monthNotes = Object.fromEntries((noteRows || []).map((n) => [n.month, n.note]));
+            setPg(built);
+          }
         }
       } catch {}
       if (alive) setPgLoading(false);
     };
     fetchPg();
+    /* الاستماع الحي على الجداول الأساسية (الـ views ما ترسل أحداث Realtime
+       مباشرة) — أي تغيير بأي منهم يُعيد قراءة العرض المحسوب فورًا. */
     const channel = supabase
-      .channel("public-progress-matrix-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "progress_matrix" }, fetchPg)
+      .channel("public-progress-readings-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "progress_readings" }, fetchPg)
+      .on("postgres_changes", { event: "*", schema: "public", table: "progress_month_notes" }, fetchPg)
       .subscribe();
     return () => { alive = false; supabase.removeChannel(channel); };
   }, []);
@@ -4782,11 +4852,20 @@ function findNewColumnsAdmin(rows, categories) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   محرك قراءة ملف «تقدّم الوحدة والمراحل» (شيت KPIs) — رفع تلقائي بالكامل:
-   يكتشف جدول متوسط تقدّم المراحل وجدول تقدّم البلوكات، وأعمدة الأشهر تحتهما،
-   بدون أي تعيين يدوي لعمود. الاستثناء الوحيد: الشيت يذكر اسم الشهر بدون سنة،
-   فيحتاج تأكيد سنة أول عمود من الأدمن (مع تخمين تلقائي من اسم الملف).
+   محرك قراءة ملف «بيانات تقدّم التنفيذ» — v2.
+   تنسيق مسطّح بسيط بدل جدول عريض: عمود لكل من رقم البلوك / الشهر /
+   نسبة الإنجاز، وصف واحد لكل (بلوك + شهر). ما فيه جدول يُكتشف مكانه
+   ولا عمود شهر يُحسب ترتيبه — قراءة الملف صارت مطابقة أعمدة بالاسم
+   فقط، فبالتالي أبسط وأصعب على الكسر بكثير من محرك KPIs القديم.
+   الإجمالي ومتوسط كل مرحلة ما يُقرآن من الملف إطلاقًا بعد الآن —
+   قاعدة البيانات تحسبهم دائمًا من البلوكات (progress_matrix_v)، فيستحيل
+   يتناقضا مع بعض (كان هذا التناقض موجودًا فعليًا ببيانات حقيقية —
+   راجع ملاحظة سبتمبر ٢٠٢٦ بقسم التغييرات).
    ═══════════════════════════════════════════════════════════ */
+
+/* يحوّل خلية شهر بأي صيغة معقولة إلى مفتاح YYYY-MM: تاريخ إكسل حقيقي،
+   نص "2026-02" أو "2026/02"، أو اسم شهر عربي/إنجليزي مع سنة بأي ترتيب
+   ("فبراير 2026"، "February 2026"، حتى لو بأرقام عربية). */
 function monthIndexOf(text) {
   if (typeof text !== "string" || !text.trim()) return -1;
   const t = text.trim();
@@ -4795,280 +4874,289 @@ function monthIndexOf(text) {
   i = MONTH_AR.findIndex((m) => normalizeArabic(m) === normalizeArabic(t));
   return i;
 }
-/* يلقط سلسلة أعمدة متتالية تمثّل أسماء أشهر بادئة من عمود معيّن بصف — يوقف عند
-   أول خلية مو اسم شهر بعد ما يبدأ الالتقاط (يتجاوز الفراغات قبل أول اسم شهر) */
-function scanMonthRow(row) {
-  const out = []; let started = false;
-  for (let c = 0; c < (row ? row.length : 0); c++) {
-    const mi = monthIndexOf(row[c]);
-    if (mi < 0) { if (started) break; else continue; }
-    started = true;
-    out.push({ col: c, monthIdx: mi });
+function parseMonthCell(v) {
+  if (v instanceof Date && !isNaN(v)) return monthKeyOf(v.getFullYear(), v.getMonth() + 1);
+  if (typeof v === "number" && v > 20000 && v < 80000) {
+    /* رقم تسلسلي بصيغة إكسل — احتياط إضافي لو ما انقرأت كتاريخ حقيقي */
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400000);
+    return monthKeyOf(d.getUTCFullYear(), d.getUTCMonth() + 1);
   }
-  return out;
-}
-function toNumOrNull(v) {
-  if (v == null || v === "") return null;
-  if (typeof v === "string" && v.trim().toUpperCase() === "#N/A") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-/* يحوّل كسر (0.4696..) لنسبة مئوية بمنزلتين عشريتين (46.97) — نفس صيغة عرض
-   الموقع الحالية بكل مكان (PG_PHASES/PG_BLOCKS القديمة كانت مكتوبة بنفس الصيغة) */
-function toPct(v) { const n = toNumOrNull(v); return n == null ? null : Math.round(n * 10000) / 100; }
-function findRowIndexContaining(raw, needleNorm) {
-  for (let i = 0; i < raw.length; i++) {
-    const row = raw[i] || [];
-    if (row.some((c) => typeof c === "string" && normalizeArabic(c).includes(needleNorm))) return i;
-  }
-  return -1;
-}
-function findColIndexInRow(row, needleNorm) {
-  for (let c = 0; c < (row ? row.length : 0); c++) {
-    if (typeof row[c] === "string" && normalizeArabic(row[c]).includes(needleNorm)) return c;
-  }
-  return -1;
-}
-/* يحوّل قائمة أعمدة أشهر مكتشفة (بأي اتجاه ظهرت بالشيت) لمفاتيح تقويمية فعلية
-   (YYYY-MM) اعتمادًا على سنة العمود الأول فقط — يتحقق إن كل عمود تالٍ يمثّل فعلًا
-   الشهر السابق أو اللاحق مباشرة (تسلسل متصل بلا فجوة ولا قفزة)، وإلا يتوقف
-   ويرجع null بدل ما يخمّن سنة غلط. */
-function assignMonthKeys(monthCols, firstColYear) {
-  if (!monthCols.length) return null;
-  if (monthCols.length === 1) {
-    return [{ ...monthCols[0], year: firstColYear, key: monthKeyOf(firstColYear, monthCols[0].monthIdx + 1) }];
-  }
-  const d = ((monthCols[1].monthIdx - monthCols[0].monthIdx) % 12 + 12) % 12;
-  const step = d === 1 ? 1 : d === 11 ? -1 : null;
-  if (step == null) return null;
-  let y = firstColYear, m = monthCols[0].monthIdx;
-  const out = [{ ...monthCols[0], year: y, key: monthKeyOf(y, m + 1) }];
-  for (let i = 1; i < monthCols.length; i++) {
-    const expected = ((m + step) % 12 + 12) % 12;
-    if (monthCols[i].monthIdx !== expected) return null;
-    if (step === 1 && expected === 0) y += 1;
-    if (step === -1 && expected === 11) y -= 1;
-    m = expected;
-    out.push({ ...monthCols[i], year: y, key: monthKeyOf(y, m + 1) });
-  }
-  return out;
-}
-/* يفتش عن أول صف ضمن مدى معيّن يحتوي أسماء أشهر متتالية (٢ على الأقل) — بدل
-   افتراض إنه دائمًا الصف اللي بعد العنوان مباشرة، عشان يتحمّل صف فاضي إضافي أو
-   أي اختلاف بسيط بشكل الملف. */
-function findMonthHeaderRow(raw, startIdx, endIdx) {
-  for (let i = startIdx; i <= endIdx && i < raw.length; i++) {
-    const cols = scanMonthRow(raw[i]);
-    if (cols.length >= 2) return { idx: i, cols };
+  if (typeof v !== "string" || !v.trim()) return null;
+  const t = Brain.toLatinDigits(v.trim());
+  let m = t.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (m) { const mm = +m[2]; return mm >= 1 && mm <= 12 ? monthKeyOf(+m[1], mm) : null; }
+  m = t.match(/^(\d{1,2})[-/](\d{4})$/);
+  if (m) { const mm = +m[1]; return mm >= 1 && mm <= 12 ? monthKeyOf(+m[2], mm) : null; }
+  const yearMatch = t.match(/(\d{4})/);
+  const monthName = t.replace(/\d{4}/, "").trim();
+  if (yearMatch && monthName) {
+    const mi = monthIndexOf(monthName);
+    if (mi >= 0) return monthKeyOf(+yearMatch[1], mi + 1);
   }
   return null;
 }
-/* يفتش عن أول صف ضمن مدى معيّن فيه خلية نصّها يطابق أحد النصوص المطلوبة (بعد
-   التطبيع) — نفس محرك findRowIndexContaining بس محدود بمدى صفوف معيّن. */
-function findRowMatchingIn(raw, startIdx, endIdx, needles) {
-  for (let i = startIdx; i <= endIdx && i < raw.length; i++) {
-    const row = raw[i] || [];
-    if (row.some((c) => typeof c === "string" && needles.some((n) => normalizeArabic(c).includes(n)))) return i;
-  }
-  return -1;
+/* يحوّل خلية نسبة بأي صيغة معقولة لرقم مئوي بمنزلتين عشريتين (٠-١٠٠):
+   "47.64%"، "47.64"، أو كسر عشري "0.4764" (يُكتشف تلقائيًا: قيمة بلا
+   علامة % و≤١ تُضرب ×١٠٠، غير كذا تُؤخذ كما هي). */
+function parsePctCell(v) {
+  if (v == null || v === "") return { error: "فاضية" };
+  let s = Brain.toLatinDigits(String(v)).trim();
+  const hadPercentSign = s.includes("%");
+  s = s.replace(/%/g, "").replace(/,/g, "").trim();
+  const n = Number(s);
+  if (!Number.isFinite(n)) return { error: `"${v}" مو رقمًا` };
+  const pct = (!hadPercentSign && n > 0 && n <= 1) ? n * 100 : n;
+  if (pct < 0 || pct > 100) return { error: `${pct}٪ خارج المدى المنطقي (٠–١٠٠٪)` };
+  return { value: Math.round(pct * 100) / 100 };
 }
-/* المحرّك الرئيسي: ياخذ ملف إكسل مقروء (XLSX.read) وسنة أول عمود، ويرجع
-   {sheetName, monthRows, warnings, monthLabels} أو {error} لو تعذّرت القراءة —
-   بدون رمي استثناء، عشان واجهة الرفع تقدر تعرض رسالة عربية واضحة دائمًا.
-   كل صف بيانات (المراحل الخمسة، وأرقام البلوكات) يُلقَط بمطابقة محتواه هو نفسه
-   لا بعدّ صفوف ثابت من العنوان — عشان ما ينكسر لو انزاح صف واحد لأي سبب. */
-function parseKpiWorkbook(wb, firstColYear) {
-  const sheetName = wb.SheetNames.find((n) => /kpi/i.test(n))
+const PROGRESS_COL_MATCH = {
+  block: (h) => /block/i.test(h) || normalizeArabic(h).includes(normalizeArabic("رقم البلوك")) || normalizeArabic(h) === normalizeArabic("بلوك"),
+  month: (h) => /month/i.test(h) || normalizeArabic(h).includes(normalizeArabic("الشهر")) || normalizeArabic(h) === normalizeArabic("تاريخ"),
+  pct: (h) => /percent|progress|pct/i.test(h) || normalizeArabic(h).includes(normalizeArabic("نسبة الإنجاز")) || normalizeArabic(h).includes(normalizeArabic("نسبة")),
+  note: (h) => /note/i.test(h) || normalizeArabic(h).includes(normalizeArabic("ملاحظة")),
+};
+function findProgressHeaderRow(raw) {
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    const row = raw[i] || [];
+    const cols = {};
+    row.forEach((cell, c) => {
+      if (typeof cell !== "string" || !cell.trim()) return;
+      if (cols.block == null && PROGRESS_COL_MATCH.block(cell)) cols.block = c;
+      else if (cols.month == null && PROGRESS_COL_MATCH.month(cell)) cols.month = c;
+      else if (cols.pct == null && PROGRESS_COL_MATCH.pct(cell)) cols.pct = c;
+      else if (cols.note == null && PROGRESS_COL_MATCH.note(cell)) cols.note = c;
+    });
+    if (cols.block != null && cols.month != null && cols.pct != null) return { idx: i, ...cols };
+  }
+  return null;
+}
+/* نصوص تدل إن السطر "لا قراءة لهذا الشهر" بدل قراءة بلوك فعلية — يُكتب أي منها
+   بعمود "رقم البلوك" مع ترك عمود "نسبة الإنجاز" فاضيًا. */
+const SKIP_MONTH_MARKERS = ["لا قراءة", "بدون قراءة", "لا يوجد قراءة", "-", "no reading", "skip", "none"].map(normalizeArabic);
+function isSkipMarker(v) {
+  if (v == null) return false;
+  const n = normalizeArabic(String(v));
+  return n !== "" && SKIP_MONTH_MARKERS.includes(n);
+}
+/* المحرّك الرئيسي — ياخذ ملف إكسل مقروء (XLSX.read) وقائمة أرقام البلوكات
+   المعروفة حاليًا بقاعدة البيانات، ويرجع {sheetName, readings, skips, errors,
+   unknownBlocks, monthsFound} أو {error} لو ما لقى شيت أو صف عناوين صالح.
+   بدون رمي استثناء أبدًا — لتقدر الواجهة تعرض رسالة عربية واضحة دائمًا. */
+function parseProgressWorkbook(wb, knownBlockNumbers) {
+  const sheetName = wb.SheetNames.find((n) => /تقدم|progress/i.test(n))
     || wb.SheetNames.find((n) => {
       const raw = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null });
-      return raw.some((row) => (row || []).some((c) => typeof c === "string" && normalizeArabic(c).includes(normalizeArabic("متوسط تقدم المشروع"))));
+      return !!findProgressHeaderRow(raw);
     });
-  if (!sheetName) return { error: "ما لقيت شيت يحتوي جدول \"متوسط تقدم المشروع والمراحل\" بهذا الملف. تأكد إنه نفس ملف «تقدم الوحدة والمراحل» المعتاد." };
+  if (!sheetName) return { error: "ما لقيت شيت فيه أعمدة (رقم البلوك / الشهر / نسبة الإنجاز) بهذا الملف. تأكد إنه نفس ملف بيانات التقدم المعتاد." };
+
   const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: null });
-  const warnings = [];
+  const header = findProgressHeaderRow(raw);
+  if (!header) return { error: `ما لقيت صف عناوين يحتوي "رقم البلوك" و"الشهر" و"نسبة الإنجاز" بشيت "${sheetName}".` };
 
-  const phaseTitleIdx = findRowIndexContaining(raw, normalizeArabic("متوسط تقدم المشروع والمراحل"));
-  if (phaseTitleIdx < 0) return { error: "ما لقيت عنوان جدول \"متوسط تقدم المشروع والمراحل\" بشيت KPIs." };
-  const phaseHeader = findMonthHeaderRow(raw, phaseTitleIdx + 1, phaseTitleIdx + 6);
-  if (!phaseHeader) return { error: "ما لقيت صف عناوين الأشهر تحت جدول المراحل خلال أول ٦ صفوف بعد العنوان — تأكد إن الشيت ما تغيّر شكله." };
-  const phaseMonths = assignMonthKeys(phaseHeader.cols, firstColYear);
-  if (!phaseMonths) return { error: "أعمدة الأشهر بجدول المراحل مو متتالية بشكل منتظم (شهر بعد شهر) — راجع الشيت أو صحّح السنة." };
-
-  /* كل صف يُلقَط بمطابقة نصّه هو (مو بعدّ صفوف من العنوان) — ضمن نطاق واسع
-     (١٥ صف) بعد صف عناوين الأشهر، يكفي أي صفوف فاضية أو ملاحظات إضافية بينهم. */
-  const PHASE_ROW_DEFS = [
-    { key: "total", needles: [normalizeArabic("اجمالي")] },
-    { key: "p1", needles: [normalizeArabic("الأولى"), normalizeArabic("الاولى")] },
-    { key: "p2", needles: [normalizeArabic("الثانية")] },
-    { key: "p3", needles: [normalizeArabic("الثالثة")] },
-    { key: "p4", needles: [normalizeArabic("الرابعة")] },
-  ];
-  const phaseValues = {}; const missingPhaseRows = []; const phaseRowIdx = {};
-  PHASE_ROW_DEFS.forEach(({ key, needles }) => {
-    const idx = findRowMatchingIn(raw, phaseHeader.idx + 1, phaseHeader.idx + 15, needles);
-    phaseValues[key] = {};
-    if (idx < 0) { missingPhaseRows.push(key); return; }
-    phaseRowIdx[key] = idx;
-    const row = raw[idx] || [];
-    phaseMonths.forEach(({ col, key: mk }) => { phaseValues[key][mk] = toPct(row[col]); });
-  });
-  /* حماية صارمة: لو أي صف من الأربعة (p1-p4) ما انلقى بمطابقة محتواه، نوقف بخطأ
-     صريح — بس صف "الإجمالي" نفسه معاملته مختلفة تحت (بعض التحديثات اليدوية على
-     الملف تسيب خلية الإجمالي فاضية بعد ما تتعدَّل خلايا المراحل الأربعة يدويًا،
-     لأنها كانت مرتبطة بصيغة حسابية انكسرت). */
-  const missingRequired = missingPhaseRows.filter((k) => k !== "total");
-  if (missingRequired.length) {
-    return { error: `ما لقيت صف بيانات مطابق لـ: ${missingRequired.join("، ")} تحت جدول المراحل — توقّفت القراءة حماية من كتابة أرقام غلط. راجع شكل شيت KPIs.` };
-  }
-  /* تعويض تلقائي: لو خلية "الإجمالي" فاضية لشهر معيّن لكن كل المراحل الأربعة له
-     معبّاة، نحسب الإجمالي كمتوسط المراحل الأربعة — نفس الأسلوب المعتمد فعليًا
-     بملف تقدّم الوحدة (راجع عمود "ملاحظات" بشيت بيانات التقدم: "إجمالي المشروع =
-     متوسط نسب المراحل الأربعة"). هذا يغطّي حالة تعديل خلايا المراحل يدويًا بدون
-     ما ينكسر الإجمالي التابع لها. */
-  const recoveredTotalMonths = [];
-  phaseMonths.forEach(({ key: mk }) => {
-    if (phaseValues.total[mk] == null) {
-      const vals = ["p1", "p2", "p3", "p4"].map((k) => phaseValues[k][mk]);
-      if (vals.every((v) => v != null)) {
-        phaseValues.total[mk] = Math.round((vals.reduce((a, v) => a + v, 0) / 4) * 100) / 100;
-        recoveredTotalMonths.push(mk);
-      }
-    }
-  });
-  if (recoveredTotalMonths.length) {
-    warnings.push(`خلية "الإجمالي" كانت فاضية لأشهر (${recoveredTotalMonths.map((mk) => { const { y, m } = monthKeyParts(mk); return `${MONTH_AR[m - 1]} ${y}`; }).join("، ")})، فاتحسبت تلقائيًا كمتوسط المراحل الأربعة لذاك الشهر.`);
-  }
-  if (!Object.values(phaseValues.total).some((v) => v != null)) {
-    return { error: "صف \"إجمالي المشروع\" موجود لكن كل قيمه فاضية حتى بعد محاولة حسابه من متوسط المراحل — يبدو إن الأعمدة انزاحت. توقّفت القراءة حماية من كتابة أرقام غلط." };
-  }
-
-  const blockTitleIdx = findRowIndexContaining(raw, normalizeArabic("حسب البلوك"));
-  if (blockTitleIdx < 0) return { error: "ما لقيت عنوان جدول \"تقدم نسب الإنجاز - حسب البلوك\" بشيت KPIs." };
-  let blockNumColIdx = -1;
-  for (let i = blockTitleIdx; i <= blockTitleIdx + 3 && i < raw.length; i++) {
-    const c = findColIndexInRow(raw[i] || [], normalizeArabic("رقم البلوك"));
-    if (c >= 0) { blockNumColIdx = c; break; }
-  }
-  if (blockNumColIdx < 0) return { error: "ما لقيت عمود \"رقم البلوك\" بجدول البلوكات." };
-  const blockHeader = findMonthHeaderRow(raw, blockTitleIdx + 1, blockTitleIdx + 6);
-  if (!blockHeader) return { error: "ما لقيت صف عناوين الأشهر تحت جدول البلوكات." };
-  const blockMonths = assignMonthKeys(blockHeader.cols, firstColYear);
-  if (!blockMonths) return { error: "أعمدة الأشهر بجدول البلوكات مو متتالية بشكل منتظم — راجع الشيت أو صحّح السنة." };
-
-  const blockValues = {};
-  for (let i = blockHeader.idx + 1; i < raw.length; i++) {
+  const readings = [], skips = [], errors = [], seen = new Map(), seenSkip = new Map();
+  for (let i = header.idx + 1; i < raw.length; i++) {
     const row = raw[i] || [];
-    const bnum = toNumOrNull(row[blockNumColIdx]);
-    if (bnum == null) { if (Object.keys(blockValues).length) break; else continue; }
-    blockValues[bnum] = {};
-    blockMonths.forEach(({ col, key: mk }) => { blockValues[bnum][mk] = toPct(row[col]); });
+    const excelRow = i + 1;
+    const blockCell = row[header.block], monthCell = row[header.month], pctCell = row[header.pct];
+    const noteCell = header.note != null ? row[header.note] : null;
+    if (blockCell == null && monthCell == null && pctCell == null) continue; /* صف فاضي كليًا — يُتجاوز بصمت */
+
+    const cellRef = (col) => `${XLSX.utils.encode_col(col)}${excelRow}`;
+
+    /* سطر "لا قراءة لهذا الشهر" — بلا رقم بلوك ولا نسبة، يسجَّل كملاحظة شهر
+       بدل قراءة بلوك، فيظهر بالموقع كسبب صريح بدل تخمين صامت. */
+    if (isSkipMarker(blockCell)) {
+      const mk = parseMonthCell(monthCell);
+      if (!mk) { errors.push(`${cellRef(header.month)}: سطر "لا قراءة" بشهر غير مفهوم ("${monthCell ?? ""}")`); continue; }
+      if (seenSkip.has(mk)) { errors.push(`${cellRef(header.block)}: سطر "لا قراءة" مكرّر لشهر ${mk} (أول ظهور بـ${seenSkip.get(mk)})`); continue; }
+      seenSkip.set(mk, cellRef(header.block));
+      skips.push({ month: mk, note: noteCell ? String(noteCell).trim() : "", cellRef: cellRef(header.block) });
+      continue;
+    }
+
+    const bnum = Number(Brain.toLatinDigits(String(blockCell ?? "")).trim());
+    if (!Number.isInteger(bnum) || bnum <= 0) { errors.push(`${cellRef(header.block)}: رقم بلوك غير صالح ("${blockCell ?? ""}")`); continue; }
+
+    const mk = parseMonthCell(monthCell);
+    if (!mk) { errors.push(`${cellRef(header.month)}: تعذّر فهم الشهر ("${monthCell ?? ""}") — استخدم صيغة 2026-02 أو "فبراير 2026"`); continue; }
+
+    const pr = parsePctCell(pctCell);
+    if (pr.error) { errors.push(`${cellRef(header.pct)}: ${pr.error}`); continue; }
+
+    const dupKey = `${bnum}|${mk}`;
+    if (seen.has(dupKey)) { errors.push(`${cellRef(header.block)}: بلوك ${bnum} مكرّر لنفس الشهر ${mk} (أول ظهور بـ${seen.get(dupKey)}) — احذف أحد الصفّين`); continue; }
+    seen.set(dupKey, cellRef(header.block));
+
+    readings.push({ block: bnum, month: mk, pct: pr.value, cellRef: cellRef(header.pct) });
   }
-  if (!Object.keys(blockValues).length) return { error: "ما لقيت أي صف بلوك تحت جدول البلوكات." };
 
-  const unknownBlocks = Object.keys(blockValues).map(Number).filter((b) => !(b in PG_BLOCK_PHASE));
-  if (unknownBlocks.length) {
-    warnings.push(`بلوكات جديدة ما إلها مرحلة معروفة بكود الموقع: ${unknownBlocks.join("، ")} — راح تظهر تحت "غير مصنّف" لين ما تُضاف لخريطة البلوكات بالكود.`);
-  }
+  /* شهر ما ينفع يكون له كل من قراءات بلوكات فعلية وسطر "لا قراءة" بنفس الوقت —
+     تناقض بالملف نفسه، يحتاج تصحيح لا تخمين. */
+  const readingMonths = new Set(readings.map((r) => r.month));
+  skips.filter((s) => readingMonths.has(s.month)).forEach((s) => {
+    errors.push(`${s.cellRef}: شهر ${s.month} عنده قراءات بلوكات فعلية وسطر "لا قراءة" بنفس الوقت — احذف أحدهما`);
+  });
+  const cleanSkips = skips.filter((s) => !readingMonths.has(s.month));
 
-  const allMonthKeys = [...new Set([...phaseMonths.map((m) => m.key), ...blockMonths.map((m) => m.key)])].sort();
-  const monthRows = allMonthKeys.map((mk) => ({
-    month: mk,
-    phases: Object.fromEntries(PHASE_ROW_DEFS.map(({ key: k }) => [k, phaseValues[k]?.[mk] ?? null]).filter(([, v]) => v != null)),
-    blocks: Object.fromEntries(Object.entries(blockValues).map(([b, vals]) => [b, vals[mk] ?? null]).filter(([, v]) => v != null)),
-  }));
-  const monthLabels = allMonthKeys.map((mk) => { const { y, m } = monthKeyParts(mk); return `${MONTH_AR[m - 1]} ${y}`; });
-
-  return { sheetName, monthRows, warnings, monthLabels };
+  if (!readings.length && !cleanSkips.length && !errors.length) return { error: `شيت "${sheetName}" ما فيه أي صف بيانات تحت صف العناوين.` };
+  const unknownBlocks = [...new Set(readings.filter((r) => !knownBlockNumbers.has(r.block)).map((r) => r.block))].sort((a, b) => a - b);
+  const monthsFound = [...new Set(readings.map((r) => r.month))].sort();
+  return { sheetName, readings, skips: cleanSkips, errors, unknownBlocks, monthsFound };
 }
 
-/* ── لوحة رفع ملف «تقدّم الوحدة والمراحل» — تكتب بجدول progress_matrix، ومنه
-   يقرأ تبويب «تقدّم التنفيذ» بالموقع العام مباشرة (مباشرة عبر Supabase Realtime،
-   بدون أي تعديل كود ولا إعادة نشر). خطوتين فقط: رفع الملف، ثم تأكيد التحديث. ── */
-function ProgressMatrixSync({ flashToast, canImport, log }) {
+/* ينشئ ملف إكسل بنفس التنسيق المسطّح من قراءات وملاحظات "لا قراءة" موجودة
+   حاليًا بقاعدة البيانات — زر "تنزيل الملف الحالي" بلوحة الرفع: الأدمن ينزّل
+   مرجعًا كاملًا متصلًا بلا فجوات صامتة، يضيف سطور الشهر الجديد بالأسفل، ويرفع
+   نفس الملف مرة ثانية. */
+function downloadProgressTemplate(rows, blocksMeta, monthNotes) {
+  const phaseLabel = { p1: "الأولى", p2: "الثانية", p3: "الثالثة", p4: "الرابعة" };
+  const byBlock = Object.fromEntries((blocksMeta || []).map((b) => [b.block_number, b]));
+  const monthsWithRows = new Set(rows.map((r) => r.month));
+  /* أشهر "لا قراءة" — تُدرَج كسطر واحد بكل شهر بدل ما تبقى غيابًا صامتًا،
+     فيفضل الملف مرجعًا متصلًا يحكي القصة كاملة لوحده. */
+  const skipEntries = Object.entries(monthNotes || {}).filter(([mk]) => !monthsWithRows.has(mk));
+  const dataRows = [
+    ...rows.map((r) => ({ month: r.month, block: r.block_number, cells: [r.block_number, (byBlock[r.block_number] ? `المرحلة ${phaseLabel[byBlock[r.block_number].phase] || byBlock[r.block_number].phase}` : ""), r.month, r.pct / 100, ""] })),
+    ...skipEntries.map(([mk, note]) => ({ month: mk, block: -1, cells: ["لا قراءة", "", mk, "", note || ""] })),
+  ].sort((a, b) => a.month.localeCompare(b.month) || a.block - b.block);
+
+  const aoa = [["رقم البلوك", "المرحلة", "الشهر", "نسبة الإنجاز", "ملاحظة"], ...dataRows.map((r) => r.cells)];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{ wch: 11 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 38 }];
+  for (let i = 1; i < aoa.length; i++) { const cell = ws[XLSX.utils.encode_cell({ r: i, c: 3 })]; if (cell) cell.z = "0.00%"; }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "بيانات_التقدم");
+  XLSX.writeFile(wb, `تقدم_التنفيذ_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+/* ── لوحة رفع ملف «بيانات تقدّم التنفيذ» — تكتب بجدول progress_readings (بلوك
+   واحد + شهر واحد + نسبة لكل صف)، ومنه يُحسب كل شي آخر تلقائيًا عبر
+   progress_matrix_v ويظهر بتبويب «تقدّم التنفيذ» بالموقع العام مباشرة لكل
+   الزوّار عبر Supabase Realtime، بدون أي تعديل كود ولا إعادة نشر. ── */
+function ProgressReadingsSync({ flashToast, canImport, log }) {
   const T = useSystemTheme();
   const fileRef = useRef(null);
   const wbRef = useRef(null);
   const [fileName, setFileName] = useState("");
   const [parsed, setParsed] = useState(null);
-  const [firstYear, setFirstYear] = useState(new Date().getFullYear());
   const [current, setCurrent] = useState([]);
+  const [blocksMeta, setBlocksMeta] = useState([]);
+  const [monthNotes, setMonthNotes] = useState({});
+  const [newBlockPhase, setNewBlockPhase] = useState({});
+  const [forceMonths, setForceMonths] = useState(new Set());
   const [applying, setApplying] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
-  const loadCurrent = () => supabase.from("progress_matrix").select("*").order("month").then(({ data }) => setCurrent(data || []));
-  useEffect(() => { loadCurrent(); }, []);
+  const loadCurrent = () => supabase.from("progress_readings").select("*").then(({ data }) => setCurrent(data || []));
+  const loadBlocks = () => supabase.from("progress_blocks").select("*").order("sort_order").then(({ data }) => setBlocksMeta(data || []));
+  const loadNotes = () => supabase.from("progress_month_notes").select("*").then(({ data }) => setMonthNotes(Object.fromEntries((data || []).map((n) => [n.month, n.note]))));
+  useEffect(() => { loadCurrent(); loadBlocks(); loadNotes(); }, []);
 
-  const runParse = (yr) => { setFirstYear(yr); if (wbRef.current) setParsed(parseKpiWorkbook(wbRef.current, yr)); };
+  const knownBlockNumbers = useMemo(() => new Set(blocksMeta.map((b) => b.block_number)), [blocksMeta]);
 
   const handleFile = (e) => {
     const file = e.target.files?.[0]; if (!file) return;
     setFileName(file.name);
-    const ym = file.name.match(/20\d{2}/);
-    const guessYear = ym ? Number(ym[0]) : new Date().getFullYear();
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: false });
+        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
         wbRef.current = wb;
-        setFirstYear(guessYear);
-        setParsed(parseKpiWorkbook(wb, guessYear));
+        setParsed(parseProgressWorkbook(wb, knownBlockNumbers));
+        setForceMonths(new Set()); setNewBlockPhase({});
       } catch { wbRef.current = null; setParsed({ error: "تعذّرت قراءة الملف — تأكد إنه ملف إكسل صالح (.xlsx)." }); }
     };
     reader.readAsArrayBuffer(file);
     e.target.value = "";
   };
 
-  const currentByMonth = useMemo(() => new Map(current.map((r) => [r.month, r])), [current]);
-  /* حماية من فقدان البيانات: لو الملف المرفوع أعطى عدد قيم أقل بكثير مما هو مسجّل
-     فعليًا لشهر معيّن (يدل على خطأ بقراءة الملف، لا على تحديث حقيقي)، نستثني هذا
-     الشهر تلقائيًا من التحديث بدل الكتابة فوق بيانات صحيحة ببيانات فاضية أو ناقصة —
-     ويحتاج المدير تأكيد صريح لكل شهر منها لو كان فعلًا يقصد ذلك. */
-  const diffSummary = useMemo(() => {
-    if (!parsed || parsed.error) return null;
-    return parsed.monthRows.map((row) => {
-      const cur = currentByMonth.get(row.month);
-      const isNew = !cur;
-      const changed = !isNew && (JSON.stringify(cur.phases || {}) !== JSON.stringify(row.phases) || JSON.stringify(cur.blocks || {}) !== JSON.stringify(row.blocks));
-      const curCount = isNew ? 0 : Object.keys(cur.phases || {}).length + Object.keys(cur.blocks || {}).length;
-      const newCount = Object.keys(row.phases || {}).length + Object.keys(row.blocks || {}).length;
-      const dataLoss = !isNew && curCount >= 4 && newCount < curCount / 2;
-      return { ...row, isNew, changed, dataLoss };
+  const currentByKey = useMemo(() => new Map(current.map((r) => [`${r.block_number}|${r.month}`, r.pct])), [current]);
+  const currentCountByMonth = useMemo(() => {
+    const m = new Map(); current.forEach((r) => m.set(r.month, (m.get(r.month) || 0) + 1)); return m;
+  }, [current]);
+
+  /* حماية من فقدان البيانات، على مستوى الشهر: لو الملف أعطى عدد بلوكات أقل
+     بكثير مما هو مسجَّل فعليًا لشهر معيّن، يُستبعد هذا الشهر تلقائيًا من
+     التحديث ويحتاج تأكيدًا صريحًا — تمامًا نفس فلسفة الحماية بالنظام القديم،
+     لكن على مستوى بلوك واحد بدل ملف كامل، فالتشخيص أدق. */
+  const diffByMonth = useMemo(() => {
+    if (!parsed || parsed.error || !parsed.readings.length) return [];
+    const byMonth = new Map();
+    parsed.readings.forEach((r) => { (byMonth.get(r.month) || byMonth.set(r.month, []).get(r.month)).push(r); });
+    return [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, rows]) => {
+      const curCount = currentCountByMonth.get(month) || 0;
+      const dataLoss = curCount >= 4 && rows.length < curCount / 2;
+      const items = rows.map((r) => {
+        const prev = currentByKey.get(`${r.block}|${r.month}`);
+        const isNew = prev == null;
+        const changed = !isNew && Math.abs(prev - r.pct) > 0.004;
+        return { ...r, isNew, changed, prev };
+      });
+      return {
+        month, items, dataLoss, curCount,
+        newCount: items.filter((x) => x.isNew).length,
+        changedCount: items.filter((x) => x.changed).length,
+      };
     });
-  }, [parsed, currentByMonth]);
-  const [forceMonths, setForceMonths] = useState(new Set());
+  }, [parsed, currentByKey, currentCountByMonth]);
+
   const toggleForce = (mk) => setForceMonths((s) => { const n = new Set(s); n.has(mk) ? n.delete(mk) : n.add(mk); return n; });
 
-  const writeMonth = async (r) => {
-    const { error } = await supabase.from("progress_matrix").upsert(
-      { month: r.month, phases: r.phases, blocks: r.blocks, updated_at: new Date().toISOString() },
-      { onConflict: "month" }
-    );
-    return !error;
+  const registerNewBlocks = async () => {
+    const entries = Object.entries(newBlockPhase).filter(([, ph]) => ph);
+    if (!entries.length) { flashToast("اختر مرحلة كل بلوك جديد أولًا"); return; }
+    setRegistering(true);
+    try {
+      const maxOrder = blocksMeta.reduce((m, b) => Math.max(m, b.sort_order), 0);
+      const rows = entries.map(([bnum, phase], i) => ({ block_number: +bnum, phase, sort_order: maxOrder + i + 1 }));
+      const { error } = await supabase.from("progress_blocks").insert(rows);
+      if (error) throw error;
+      log("تسجيل بلوكات جديدة بتقدّم التنفيذ", entries.map(([b, p]) => `${b}→${p}`).join("، "));
+      flashToast("تم تسجيل البلوكات الجديدة");
+      await loadBlocks();
+      if (wbRef.current) setParsed(parseProgressWorkbook(wbRef.current, new Set([...knownBlockNumbers, ...entries.map(([b]) => +b)])));
+    } catch { flashToast("تعذّر تسجيل البلوكات الجديدة"); }
+    setRegistering(false);
   };
 
   const apply = async () => {
-    if (!canImport) { flashToast("ما عندك صلاحية \"رفع ومزامنة بيانات من إكسل\" اللازمة"); return; }
-    if (!diffSummary || !diffSummary.length) return;
-    const toWrite = diffSummary.filter((r) => !r.dataLoss || forceMonths.has(r.month));
-    if (!toWrite.length) { flashToast("كل الأشهر مستثناة بسبب حماية فقدان البيانات — راجع التحذيرات."); return; }
+    if (!canImport) { flashToast('ما عندك صلاحية "رفع ومزامنة بيانات من إكسل" اللازمة'); return; }
+    if (!parsed || parsed.error) return;
+    if (!diffByMonth.length && !parsed.skips.length) return;
+    if (parsed.unknownBlocks.length) { flashToast("سجّل مرحلة البلوكات الجديدة أولًا قبل التحديث — تحت قائمة التحذيرات."); return; }
+    const monthsToWrite = diffByMonth.filter((m) => !m.dataLoss || forceMonths.has(m.month));
+    const toWrite = monthsToWrite.flatMap((m) => m.items);
+    if (!toWrite.length && !parsed.skips.length) { flashToast("كل الأشهر مستثناة بسبب حماية فقدان البيانات — راجع التحذيرات."); return; }
     setApplying(true);
     try {
-      const { data: backupRows } = await supabase.from("progress_matrix").select("*");
-      await supabase.from("progress_matrix_backups").insert({
-        label: `قبل رفع تقدّم الوحدة بتاريخ ${fmtAdminDate(new Date())}`,
-        rows: backupRows || [],
-      });
-      const { data: oldBackups } = await supabase.from("progress_matrix_backups").select("id").order("created_at", { ascending: false });
-      if (oldBackups && oldBackups.length > 5) {
-        await supabase.from("progress_matrix_backups").delete().in("id", oldBackups.slice(5).map((b) => b.id));
+      if (toWrite.length) {
+        const { data: backupRows } = await supabase.from("progress_readings").select("*");
+        await supabase.from("progress_readings_backups").insert({
+          label: `قبل رفع بيانات التقدم بتاريخ ${fmtAdminDate(new Date())}`,
+          rows: backupRows || [],
+        });
+        const { data: oldBackups } = await supabase.from("progress_readings_backups").select("id").order("created_at", { ascending: false });
+        if (oldBackups && oldBackups.length > 5) {
+          await supabase.from("progress_readings_backups").delete().in("id", oldBackups.slice(5).map((b) => b.id));
+        }
+        const rows = toWrite.map((r) => ({ block_number: r.block, month: r.month, pct: r.pct, updated_at: new Date().toISOString() }));
+        const { error } = await supabase.from("progress_readings").upsert(rows, { onConflict: "block_number,month" });
+        if (error) throw error;
       }
-      const rows = toWrite.map((r) => ({ month: r.month, phases: r.phases, blocks: r.blocks, updated_at: new Date().toISOString() }));
-      const { error } = await supabase.from("progress_matrix").upsert(rows, { onConflict: "month" });
-      if (error) throw error;
-      log("رفع بيانات تقدّم الوحدة (KPIs)", `${rows.length} شهر — ${fileName}`);
-      const skipped = diffSummary.length - toWrite.length;
+      if (parsed.skips.length) {
+        const noteRows = parsed.skips.map((s) => ({ month: s.month, note: s.note, updated_at: new Date().toISOString() }));
+        const { error } = await supabase.from("progress_month_notes").upsert(noteRows, { onConflict: "month" });
+        if (error) throw error;
+      }
+      const parts = [];
+      if (toWrite.length) parts.push(`${toWrite.length} قراءة عبر ${monthsToWrite.length} شهر`);
+      if (parsed.skips.length) parts.push(`${parsed.skips.length} ملاحظة "لا قراءة"`);
+      log("رفع بيانات تقدّم التنفيذ", `${parts.join(" + ")} — ${fileName}`);
+      const skipped = diffByMonth.length - monthsToWrite.length;
       flashToast(skipped > 0 ? `تم التحديث — استُثني ${skipped} شهر بسبب حماية فقدان البيانات` : "تم تحديث تقدّم التنفيذ بالموقع");
       setParsed(null); wbRef.current = null; setFileName(""); setForceMonths(new Set());
-      loadCurrent();
+      loadCurrent(); loadNotes();
     } catch {
       flashToast("تعذّر تحديث تقدّم التنفيذ — لم يتغيّر شي بالبيانات الحالية");
     }
@@ -5076,73 +5164,131 @@ function ProgressMatrixSync({ flashToast, canImport, log }) {
   };
 
   if (!canImport) return null;
+  const PHASE_LABEL = { p1: "الأولى", p2: "الثانية", p3: "الثالثة", p4: "الرابعة" };
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <TrendingUp size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>تحديث تقدّم الوحدة والمراحل (KPIs)</span>
+        <TrendingUp size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>تحديث بيانات تقدّم التنفيذ</span>
       </div>
       <p style={{ fontSize: 12.5, color: T.muted, margin: "4px 0 14px", lineHeight: 1.7 }}>
-        ارفع نفس ملف «تقدم الوحدة والمراحل» كل شهر — يُقرأ شيت KPIs تلقائيًا (المراحل والبلوكات) ويحدّث تبويب «تقدّم التنفيذ» بالموقع العام مباشرة لكل الزوّار، بدون أي تعديل يدوي على الكود أو إعادة نشر.
+        ملف بسيط بأعمدة: رقم البلوك، الشهر، نسبة الإنجاز — صف واحد لكل بلوك بكل شهر.
+        نزّل الملف الحالي، أضف سطور الشهر الجديد بالأسفل (١٦ سطرًا، بلوك بعد بلوك)، وارفعه هنا.
+        الإجمالي ومتوسط كل مرحلة يُحسبان تلقائيًا من أرقام البلوكات — ما تحتاج تكتبهم.
+        شهر ما وصلت فيه قراءة من المطوّر؟ سطر واحد بعمود رقم البلوك اكتب فيه <b>"لا قراءة"</b> مع الشهر وسبب مختصر
+        بعمود الملاحظة — يظهر للزائر بنص واضح بدل فجوة صامتة.
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <button onClick={() => fileRef.current?.click()} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
-          <Upload size={15} /> رفع ملف تقدّم الوحدة
+          <Upload size={15} /> رفع ملف بيانات التقدم
         </button>
         <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
+        <button onClick={() => downloadProgressTemplate(current, blocksMeta, monthNotes)} disabled={!current.length}
+          style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", color: T.brass, border: `1px solid ${T.brass}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: current.length ? "pointer" : "default", opacity: current.length ? 1 : 0.5 }}>
+          <FileSpreadsheet size={15} /> تنزيل الملف الحالي
+        </button>
         {fileName && <span style={{ fontSize: 12, color: T.muted }}>{fileName}</span>}
       </div>
 
-      {parsed?.error && (
-        <div style={{ ...aNoteStyle(T, "#c0392b"), marginTop: 14 }}>{parsed.error}</div>
-      )}
+      {parsed?.error && <div style={{ ...aNoteStyle(T, "#c0392b"), marginTop: 14 }}>{parsed.error}</div>}
 
       {parsed && !parsed.error && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-            <label style={{ fontSize: 12.5, color: T.muted }}>سنة أول شهر بالملف ({parsed.monthLabels?.[0]?.split(" ")[0]}):</label>
-            <input type="number" value={firstYear} onChange={(e) => runParse(Number(e.target.value))}
-              style={{ width: 90, padding: "6px 8px", borderRadius: 8, border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, fontSize: 13 }} />
-            <span style={{ fontSize: 11.5, color: T.muted }}>عدّلها لو التخمين غلط — المعاينة تحت تتحدّث فورًا</span>
-          </div>
-
-          {parsed.warnings?.length > 0 && (
-            <div style={{ ...aNoteStyle(T, "#b8860b"), marginBottom: 12 }}>
-              {parsed.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
-            </div>
-          )}
-
-          <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
-            الأشهر المكتشفة: {parsed.monthLabels.join(" · ")}
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
-            {diffSummary.map((r) => (
-              <div key={r.month} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: r.dataLoss ? "#c0392b22" : T.sunken, border: r.dataLoss ? "1px solid #c0392b" : "none", borderRadius: 9, padding: "8px 12px" }}>
-                <span style={{ fontSize: 12.5 }}>{MONTH_AR[monthKeyParts(r.month).m - 1]} {monthKeyParts(r.month).y}</span>
-                {r.dataLoss ? (
-                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#c0392b", cursor: "pointer" }}>
-                    <input type="checkbox" checked={forceMonths.has(r.month)} onChange={() => toggleForce(r.month)} />
-                    ⚠ الملف فيه بيانات أقل بكثير من المسجَّل — استُبعد تلقائيًا، أكّد هنا لو تقصد هذا فعلًا
-                  </label>
-                ) : (
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: r.isNew ? T.brass : r.changed ? "#b8860b" : T.muted }}>
-                    {r.isNew ? "جديد" : r.changed ? "تغيّر" : "بدون تغيير"}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {diffSummary.some((r) => r.dataLoss) && (
+          {parsed.errors?.length > 0 && (
             <div style={{ ...aNoteStyle(T, "#c0392b"), marginBottom: 12 }}>
-              ⚠ فيه أشهر مستبعدة تلقائيًا من هذا التحديث لأن الملف أعطى بيانات أقل بكثير مما هو مسجَّل حاليًا لها (يدل غالبًا على خطأ بقراءة الملف لا تحديث حقيقي). راجعها أعلاه، ولا تؤكّدها إلا لو متأكد إن الشهر فعلًا لازم يصير فاضي.
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>{parsed.errors.length} صف تجاوزناه — صحّح بالملف وأعد الرفع:</div>
+              {parsed.errors.slice(0, 30).map((w, i) => <div key={i}>⚠ {w}</div>)}
+              {parsed.errors.length > 30 && <div>… و{parsed.errors.length - 30} صفًا آخر</div>}
             </div>
           )}
 
-          <button onClick={apply} disabled={applying} style={{ display: "flex", alignItems: "center", gap: 7, background: applying ? T.muted : T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: applying ? "wait" : "pointer" }}>
-            <RefreshCw size={15} /> {applying ? "جارٍ التحديث..." : "تحديث الموقع الآن"}
-          </button>
+          {parsed.unknownBlocks?.length > 0 && (
+            <div style={{ ...aNoteStyle(T, "#b8860b"), marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>بلوكات جديدة غير مسجّلة — اختر مرحلة كل بلوك ثم سجّلها قبل التحديث:</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {parsed.unknownBlocks.map((b) => (
+                  <div key={b} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                    <span>بلوك {b}</span>
+                    <select value={newBlockPhase[b] || ""} onChange={(e) => setNewBlockPhase((s) => ({ ...s, [b]: e.target.value }))}
+                      style={{ padding: "5px 8px", borderRadius: 7, border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, fontSize: 12.5 }}>
+                      <option value="">اختر المرحلة…</option>
+                      <option value="p1">المرحلة الأولى</option>
+                      <option value="p2">المرحلة الثانية</option>
+                      <option value="p3">المرحلة الثالثة</option>
+                      <option value="p4">المرحلة الرابعة</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <button onClick={registerNewBlocks} disabled={registering} style={{ marginTop: 8, background: "#b8860b", color: "#fff", border: "none", borderRadius: 9, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                {registering ? "جارٍ التسجيل..." : "تسجيل البلوكات الجديدة"}
+              </button>
+            </div>
+          )}
+
+          {parsed.readings.length > 0 && (
+            <>
+              <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
+                {parsed.readings.length} قراءة صالحة عبر {parsed.monthsFound.length} شهر: {parsed.monthsFound.join(" · ")}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                {diffByMonth.map((m) => {
+                  const { y, m: mm } = monthKeyParts(m.month);
+                  return (
+                    <div key={m.month} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", background: m.dataLoss ? "#c0392b22" : T.sunken, border: m.dataLoss ? "1px solid #c0392b" : "none", borderRadius: 9, padding: "8px 12px" }}>
+                      <span style={{ fontSize: 12.5 }}>{MONTH_AR[mm - 1]} {y} — {m.items.length} بلوك</span>
+                      {m.dataLoss ? (
+                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#c0392b", cursor: "pointer" }}>
+                          <input type="checkbox" checked={forceMonths.has(m.month)} onChange={() => toggleForce(m.month)} />
+                          ⚠ الملف فيه بلوكات أقل بكثير من المسجَّل ({m.items.length} من {m.curCount}) — أكّد لو تقصد هذا فعلًا
+                        </label>
+                      ) : (
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: T.muted }}>
+                          {m.newCount > 0 && <span style={{ color: T.brass }}>{m.newCount} جديد</span>}
+                          {m.newCount > 0 && m.changedCount > 0 && " · "}
+                          {m.changedCount > 0 && <span style={{ color: "#b8860b" }}>{m.changedCount} تغيّر</span>}
+                          {!m.newCount && !m.changedCount && "بدون تغيير"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {diffByMonth.some((m) => m.dataLoss) && (
+                <div style={{ ...aNoteStyle(T, "#c0392b"), marginBottom: 12 }}>
+                  ⚠ فيه أشهر مستبعدة تلقائيًا من هذا التحديث لأن الملف أعطى بلوكات أقل بكثير مما هو مسجَّل حاليًا لها (يدل غالبًا على خطأ بقراءة الملف لا تحديث حقيقي). راجعها أعلاه، ولا تؤكّدها إلا لو متأكد إن الشهر فعلًا لازم يصير ناقصًا.
+                </div>
+              )}
+            </>
+          )}
+
+          {parsed.skips.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
+                {parsed.skips.length} شهر "لا قراءة" سيُسجَّل بملاحظة واضحة للزائر:
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {parsed.skips.map((s) => {
+                  const { y, m: mm } = monthKeyParts(s.month);
+                  const existed = monthNotes[s.month] != null;
+                  return (
+                    <div key={s.month} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", background: T.sunken, borderRadius: 9, padding: "8px 12px" }}>
+                      <span style={{ fontSize: 12.5 }}>{MONTH_AR[mm - 1]} {y} {s.note ? `— ${s.note}` : ""}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: existed ? T.muted : T.brass }}>{existed ? "تحديث ملاحظة" : "جديد"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(parsed.readings.length > 0 || parsed.skips.length > 0) && (
+            <button onClick={apply} disabled={applying || parsed.unknownBlocks.length > 0}
+              style={{ display: "flex", alignItems: "center", gap: 7, background: (applying || parsed.unknownBlocks.length) ? T.muted : T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: (applying || parsed.unknownBlocks.length) ? "not-allowed" : "pointer" }}>
+              <RefreshCw size={15} /> {applying ? "جارٍ التحديث..." : "تحديث الموقع الآن"}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -5560,7 +5706,7 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
       </div>
       )}
 
-      {canImport && <ProgressMatrixSync flashToast={flashToast} canImport={canImport} log={log} />}
+      {canImport && <ProgressReadingsSync flashToast={flashToast} canImport={canImport} log={log} />}
 
       {canImport && backups.length > 0 && (
         <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>

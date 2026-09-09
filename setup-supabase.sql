@@ -332,41 +332,110 @@ end;
 $$;
 
 -- ═══════════════════════════════════════════════════════════
--- ٩) تقدّم الوحدة والمراحل (KPIs) — رفع تلقائي من لوحة الإدارة بدل التعديل
--- اليدوي بالكود. كل شهر = صف واحد بجدول progress_matrix: نسبة كل مرحلة
--- (إجمالي/مرحلة١-٤) ونسبة كل بلوك، كـ jsonb. الهدف (target) ما يُخزَّن هنا
--- إطلاقًا — يُحسب دائمًا آليًا بالكود من التقويم (planTarget)، فما يحتاج رفعه.
+-- ٩) تقدّم التنفيذ — v2 (يحلّ محلّ progress_matrix القديم كليًا، انحذف).
+-- مصدر حقيقة واحد: صف = بلوك واحد + شهر واحد + نسبة واحدة. الإجمالي
+-- ومتوسط كل مرحلة ما يُخزَّنان إطلاقًا بعد الآن — يُحسبان دائمًا من
+-- البلوكات عبر VIEW (progress_matrix_v)، فيستحيل يتناقضا مع بعض
+-- (القديم كان يخزّنهم منفصلين، وفعليًا تناقضا في بيانات حقيقية — راجع
+-- ملاحظة سبتمبر ٢٠٢٦ بقسم التغييرات). الهدف (target) نفس المنطق
+-- السابق: يُحسب آليًا بالكود من التقويم (planTarget)، ما يُخزَّن هنا.
 -- آمنة لإعادة التشغيل بالكامل — شغّلها مرة وحدة من SQL Editor.
 -- ═══════════════════════════════════════════════════════════
-create table if not exists public.progress_matrix (
-  month text primary key,                    -- 'YYYY-MM'
-  phases jsonb not null default '{}'::jsonb, -- {"total":46.97,"p1":55.79,...}
-  blocks jsonb not null default '{}'::jsonb, -- {"1":58.03,"2":56.13,...}
-  updated_at timestamptz default now()
-);
-alter table public.progress_matrix enable row level security;
 
-drop policy if exists "قراءة عامة - تقدم الوحدة" on public.progress_matrix;
-create policy "قراءة عامة - تقدم الوحدة" on public.progress_matrix for select using (true);
-drop policy if exists "كتابة - تقدم الوحدة" on public.progress_matrix;
-create policy "كتابة - تقدم الوحدة" on public.progress_matrix for all
+-- جدول مرجعي ثابت: كل بلوك ومرحلته وترتيب عرضه بالجداول والرسوم
+create table if not exists public.progress_blocks (
+  block_number int primary key,
+  phase        text not null check (phase in ('p1','p2','p3','p4')),
+  sort_order   int  not null unique
+);
+alter table public.progress_blocks enable row level security;
+drop policy if exists "قراءة عامة - بلوكات التقدم" on public.progress_blocks;
+create policy "قراءة عامة - بلوكات التقدم" on public.progress_blocks for select using (true);
+drop policy if exists "كتابة - بلوكات التقدم" on public.progress_blocks;
+create policy "كتابة - بلوكات التقدم" on public.progress_blocks for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+-- القراءات: مصدر الحقيقة الوحيد لتقدّم التنفيذ
+create table if not exists public.progress_readings (
+  block_number int  not null references public.progress_blocks(block_number) on delete restrict,
+  month        text not null check (month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'),
+  pct          numeric(5,2) not null check (pct >= 0 and pct <= 100),
+  updated_at   timestamptz not null default now(),
+  updated_by   text,
+  primary key (block_number, month)
+);
+create index if not exists progress_readings_month_idx on public.progress_readings (month);
+alter table public.progress_readings enable row level security;
+drop policy if exists "قراءة عامة - قراءات التقدم" on public.progress_readings;
+create policy "قراءة عامة - قراءات التقدم" on public.progress_readings for select using (true);
+drop policy if exists "كتابة - قراءات التقدم" on public.progress_readings;
+create policy "كتابة - قراءات التقدم" on public.progress_readings for all
   using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
 
 -- نسخ احتياطية تلقائية قبل كل رفع (يُحتفظ بآخر ٥ نسخ من واجهة الإدارة نفسها)
-create table if not exists public.progress_matrix_backups (
+create table if not exists public.progress_readings_backups (
   id bigserial primary key,
   label text,
   rows jsonb not null default '[]'::jsonb,
   created_at timestamptz default now()
 );
-alter table public.progress_matrix_backups enable row level security;
-
-drop policy if exists "قراءة - نسخ تقدم الوحدة" on public.progress_matrix_backups;
-create policy "قراءة - نسخ تقدم الوحدة" on public.progress_matrix_backups for select
+alter table public.progress_readings_backups enable row level security;
+drop policy if exists "قراءة - نسخ قراءات التقدم" on public.progress_readings_backups;
+create policy "قراءة - نسخ قراءات التقدم" on public.progress_readings_backups for select
   using (public.is_known_admin());
-drop policy if exists "كتابة - نسخ تقدم الوحدة" on public.progress_matrix_backups;
-create policy "كتابة - نسخ تقدم الوحدة" on public.progress_matrix_backups for all
+drop policy if exists "كتابة - نسخ قراءات التقدم" on public.progress_readings_backups;
+create policy "كتابة - نسخ قراءات التقدم" on public.progress_readings_backups for all
   using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+-- عرض متوافق شكليًا مع progress_matrix القديم (نفس الأعمدة: month/phases/blocks/
+-- updated_at) لكن phases محسوبة آليًا بالكامل من القراءات — الواجهة تقرأ منه
+-- مباشرة (progress_matrix_v)، ما يحتاج أي تعديل على كود بناء الرسوم بالموقع.
+create or replace view public.progress_matrix_v as
+select
+  r.month,
+  jsonb_strip_nulls(jsonb_build_object(
+    'total', round(avg(r.pct)::numeric, 2),
+    'p1',    round(avg(r.pct) filter (where b.phase = 'p1')::numeric, 2),
+    'p2',    round(avg(r.pct) filter (where b.phase = 'p2')::numeric, 2),
+    'p3',    round(avg(r.pct) filter (where b.phase = 'p3')::numeric, 2),
+    'p4',    round(avg(r.pct) filter (where b.phase = 'p4')::numeric, 2)
+  )) as phases,
+  jsonb_object_agg(r.block_number::text, r.pct) as blocks,
+  max(r.updated_at) as updated_at
+from public.progress_readings r
+join public.progress_blocks b on b.block_number = r.block_number
+group by r.month
+order by r.month;
+
+-- شهر بلا قراءة من المطوّر — حالة تتكرر فعليًا. بدل ما تبقى غيابًا صامتًا (فما تقدر
+-- تفرّق "المطوّر ما زوّد قراءة" عن "نسيت أرفع الملف")، تُسجَّل صراحة بسطر بالملف،
+-- ويعرضها الموقع للزائر بنص واضح بدل تخمين صامت. راجع README لصيغة سطر "لا قراءة".
+create table if not exists public.progress_month_notes (
+  month      text primary key check (month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'),
+  note       text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.progress_month_notes enable row level security;
+drop policy if exists "قراءة عامة - ملاحظات أشهر التقدم" on public.progress_month_notes;
+create policy "قراءة عامة - ملاحظات أشهر التقدم" on public.progress_month_notes for select using (true);
+drop policy if exists "كتابة - ملاحظات أشهر التقدم" on public.progress_month_notes;
+create policy "كتابة - ملاحظات أشهر التقدم" on public.progress_month_notes for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+-- تعبئة أولية للجدول المرجعي (البلوكات الـ١٦ المعروفة حاليًا بالمشروع) —
+-- آمنة للتكرار؛ بلوك جديد يُضاف مستقبلًا من لوحة الإدارة نفسها عند الحاجة.
+insert into public.progress_blocks (block_number, phase, sort_order) values
+  (1,'p1',1),(2,'p1',2),(3,'p1',3),(5,'p1',4),(4,'p1',5),
+  (7,'p2',6),(6,'p2',7),(8,'p2',8),
+  (9,'p3',9),(10,'p3',10),(14,'p3',11),(13,'p3',12),
+  (22,'p4',13),(12,'p3',14),(15,'p3',15),(23,'p4',16)
+on conflict (block_number) do nothing;
+
+-- تسجيل الفجوة التاريخية المعروفة (يوليو ٢٠٢٦ — سحب المطوّر تقريره) بدل فجوة صامتة
+insert into public.progress_month_notes (month, note) values
+  ('2026-07', 'المطوّر لم يُصدر تقرير تقدّم لهذا الشهر — تم سحبه')
+on conflict (month) do nothing;
 
 
 -- ═══════════════════════════════════════════════════════════
