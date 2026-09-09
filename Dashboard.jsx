@@ -529,27 +529,84 @@ function useSkinFont(themeKey) {
 /* الطقم والتصميم المعتمدان — يُقرآن من قاعدة البيانات ويتحدّثان لحظيًا لكل الزوّار.
    active_theme  = طقم الألوان (كلاسيكي/أفق/محضر/مخطط/مسار)
    active_design = هيكل التصميم نفسه (classic = القديم، nova = الجديد المتحرّك) */
+/* ── صدى محلي للطقم/التصميم المعتمد ──
+   المصدر الحقيقي يبقى قاعدة البيانات وحدها، لكن رحلة الشبكة تاخذ وقتًا، وخلالها
+   كان الموقع يرسم الافتراضي (الكلاسيكي) ثم يقلب للمعتمد أمام عين الزائر.
+   نحفظ آخر قيمة معروفة بمتصفح الزائر ونقرأها فورًا عند أول رسمة، فيبدأ الموقع
+   بالتصميم الصحيح مباشرة. لو تغيّر الاعتماد من لوحة الإدارة، الرد الحي يصحّح
+   القيمة ويحدّث الصدى — فالزيارة الجاية تبدأ صحيحة من البداية.
+   نحفظ معها ألوان الخلفية ورابط الخط عشان شاشة الإقلاع بـ index.html تقدر
+   ترسم اللون الصحيح قبل ما تُحمَّل حزمة الجافاسكربت أصلًا. */
+const CFGKEY = "owners-site-config";
+
+function readCachedCfg() {
+  try {
+    const o = JSON.parse(localStorage.getItem(CFGKEY) || "null");
+    if (!o || !THEME_KEYS.includes(o.theme) || !DESIGN_KEYS.includes(o.design)) return null;
+    return { theme: o.theme, design: o.design };
+  } catch { return null; }
+}
+
+function writeCachedCfg(theme, design) {
+  try {
+    const set = THEME_SETS[theme] || THEME_SETS[DEFAULT_THEME_KEY];
+    const lt = set.light || set.dark || {};
+    const dk = set.dark || set.light || {};
+    localStorage.setItem(CFGKEY, JSON.stringify({
+      theme, design,
+      bg: { light: lt.bg, dark: dk.bg },
+      fg: { light: lt.muted, dark: dk.muted },
+      font: SKIN_FONTS[theme] || null,
+    }));
+  } catch { /* تصفح خاص أو تخزين ممنوع — نتجاهل بهدوء */ }
+}
+
+/* شاشة الإقلاع بـ index.html: تغطّي الصفحة بلون الطقم المخبّأ لين يجهز التصميم
+   الصحيح. تُشال فورًا لو المخبّأ كان مطابقًا (الحالة الغالبة)، وبتلاشٍ قصير لو
+   انتظرنا رد القاعدة — فما يشوف الزائر أي تبديل تصميم تحت عينه. */
+function hideBoot(instant) {
+  if (typeof document === "undefined") return;
+  const b = document.getElementById("boot");
+  if (!b) return;
+  if (instant) { b.remove(); return; }
+  b.classList.add("boot-gone");
+  setTimeout(() => b.remove(), 420);
+}
+
 function useSiteConfig() {
-  const [cfg, setCfg] = useState({ theme: DEFAULT_THEME_KEY, design: DEFAULT_DESIGN_KEY });
+  const [cached] = useState(readCachedCfg);   /* يُقرأ مرة واحدة قبل أول رسمة */
+  const [cfg, setCfg] = useState(() => cached || { theme: DEFAULT_THEME_KEY, design: DEFAULT_DESIGN_KEY });
+  /* جاهز = نعرف يقينًا وش التصميم المطلوب رسمه (من المخبّأ أو من رد القاعدة) */
+  const [ready, setReady] = useState(!!cached);
+
   useEffect(() => {
     let alive = true;
+    /* لو تأخّرت القاعدة أو فشل الاتصال، ما نحبس الزائر — نكمل بالمتاح */
+    const guard = setTimeout(() => { if (alive) setReady(true); }, 1500);
     const pull = async () => {
       try {
         const { data } = await supabase.from("site_settings").select("active_theme,active_design").eq("id", 1).single();
-        if (!alive || !data) return;
-        setCfg({
-          theme: THEME_KEYS.includes(data.active_theme) ? data.active_theme : DEFAULT_THEME_KEY,
-          design: DESIGN_KEYS.includes(data.active_design) ? data.active_design : DEFAULT_DESIGN_KEY,
-        });
-      } catch { /* يبقى الافتراضي */ }
+        if (!alive) return;
+        if (data) {
+          const next = {
+            theme: THEME_KEYS.includes(data.active_theme) ? data.active_theme : DEFAULT_THEME_KEY,
+            design: DESIGN_KEYS.includes(data.active_design) ? data.active_design : DEFAULT_DESIGN_KEY,
+          };
+          /* لو المخبّأ كان مطابقًا نرجّع نفس الكائن — فما تصير إعادة رسم ولا انتقال ألوان */
+          setCfg((p) => (p.theme === next.theme && p.design === next.design ? p : next));
+          writeCachedCfg(next.theme, next.design);
+        }
+      } catch { /* يبقى المخبّأ أو الافتراضي */ }
+      finally { if (alive) { clearTimeout(guard); setReady(true); } }
     };
     pull();
     const ch = supabase.channel("public-site-settings-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, pull)
       .subscribe();
-    return () => { alive = false; supabase.removeChannel(ch); };
+    return () => { alive = false; clearTimeout(guard); supabase.removeChannel(ch); };
   }, []);
-  return cfg;
+
+  return { ...cfg, ready };
 }
 
 const ThemeCtx = createContext({ T: THEMES.light, mode: "light", setMode: () => {}, resolved: "light" });
@@ -1442,6 +1499,27 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.8.1",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "تصحيح: الموقع كان يفتح بالتصميم الكلاسيكي القديم ثم يقلب للتصميم المعتمد بعد ثانية تقريبًا — لأن التصميم والطقم يُقرآن من قاعدة البيانات، والموقع كان يرسم الافتراضي وهو ينتظر الرد",
+      "صار التصميم والطقم المعتمدان يُحفظان بمتصفح الزائر ويُقرآن فورًا عند أول رسمة، فالزيارة المتكرّرة تفتح بالتصميم الصحيح مباشرة بلا أي انتظار ولا تبديل",
+      "أول زيارة (ولا معلومات محفوظة بعد) تبدأ بشاشة إقلاع بلون الطقم بدل رسم تصميم يتبدّل بعدين — والموقع يجيب بياناته تحتها بنفس اللحظة، فما تأخّر شيء",
+      "لون خلفية الصفحة يُطبَّق قبل تحميل حزمة الجافاسكربت أصلًا، فانتهى الوميض الأبيض عند فتح الموقع بالوضع الليلي",
+      "خط الطقم المعتمد يبدأ تحميله من أول لحظة كذلك، فما يتبدّل شكل الخط تحت عين الزائر بعد ظهور النص",
+      "تغيير التصميم من لوحة الإدارة يبقى فوريًا لكل الزوّار كما هو — قاعدة البيانات هي المرجع دائمًا، والمحفوظ بالمتصفح يُصحَّح لحظة وصول الرد",
+    ],
+    en: [
+      "Fixed: the site opened in the old Classic design and then flipped to the approved design about a second later — the design and palette are read from the database, and the site was painting the default while it waited for the reply",
+      "The approved design and palette are now stored in the visitor's browser and read instantly on first paint, so a returning visitor opens straight into the correct design with no wait and no switch",
+      "A first-ever visit (nothing stored yet) starts on a boot screen tinted with the palette's own background instead of painting a design that changes later — and the site loads its data underneath it at the same moment, so nothing is delayed",
+      "The page background color is applied before the JavaScript bundle even loads, ending the white flash when opening the site in dark mode",
+      "The approved palette's font also starts loading from the first moment, so the lettering no longer changes shape after the text appears",
+      "Changing the design from the admin panel still reaches every visitor instantly — the database remains the source of truth, and the browser's stored copy is corrected the moment the reply arrives",
+    ],
+  },
   {
     version: "2.8.0",
     dateAr: "9 سبتمبر 2026",
@@ -3231,13 +3309,34 @@ function PublicSite() {
   const { deskOn, toggleDesk, smallDevice } = useDesktopView();
   const L = (ar, en) => (lang === "en" ? en : ar);
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
-  const { theme: themeKey, design: designKey } = useSiteConfig();
+  const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
   useSkinFont(themeKey);
   const nova = designKey === "nova";
   useNovaRuntime(nova, reduced);
+
+  /* رفع شاشة الإقلاع: الموقع يشتغل ويجيب بياناته من أول لحظة تحت الغطاء، والغطاء
+     ما يُرفع إلا والتصميم المعتمد جاهز. النتيجة: الزائر يشوف تصميمًا واحدًا فقط.
+     useLayoutEffect عشان الرفع يصير قبل رسمة المتصفح مباشرة بلا وميض بينهما. */
+  const firstPaintRef = useRef(true);
+  useLayoutEffect(() => {
+    if (!cfgReady) return;
+    hideBoot(firstPaintRef.current);   /* المخبّأ كان صحيحًا → رفع فوري بلا تلاشٍ */
+  }, [cfgReady]);
+  useEffect(() => { firstPaintRef.current = false; }, []);
   const SET = THEME_SETS[themeKey] || THEME_SETS[DEFAULT_THEME_KEY];
   const SKIN = SET.skin;
   const T = SET[resolved] || SET.dark || SET.light;
+
+  /* لون خلفية الصفحة نفسها (وسم html) يمشي مع الطقم الحالي — يخدم حالتين:
+     منطقة السحب الزائد بالجوال ما تبين بلون غريب، وشريط المتصفح يتلوّن صح.
+     نضبط كذلك color-scheme عشان عناصر المتصفح الافتراضية تتبع نفس الوضع. */
+  useLayoutEffect(() => {
+    if (!cfgReady) return;   /* لسه ما نعرف الطقم المعتمد — نخلي شاشة الإقلاع بلونها */
+    const d = document.documentElement;
+    d.style.setProperty("--boot-bg", T.bg);
+    d.style.setProperty("--boot-fg", T.muted);
+    d.style.colorScheme = resolved === "dark" ? "dark" : "light";
+  }, [cfgReady, T.bg, T.muted, resolved]);
 
   const [tab, setTab] = useState("overview");
   const [docView, setDocView] = useState(null);
@@ -7424,6 +7523,8 @@ function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+  /* لوحة الإدارة طقمها ثابت وما تنتظر إعدادات الموقع — نرفع شاشة الإقلاع فورًا */
+  useLayoutEffect(() => { if (route === "admin") hideBoot(true); }, [route]);
   return route === "admin" ? <AdminApp /> : <PublicSite />;
 }
 

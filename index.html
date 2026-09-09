@@ -17,9 +17,69 @@
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="استفسارات الملاك | Owner Inquiries" />
     <meta name="twitter:description" content="لوحة متابعة استفسارات الملاك وتقدم التنفيذ" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         شاشة الإقلاع — تمنع «وميض التصميم القديم».
+
+         المشكلة: الطقم والتصميم المعتمدان يُقرآن من قاعدة البيانات، فالموقع
+         كان يرسم التصميم الافتراضي (الكلاسيكي) أولًا ثم يقلب للمعتمد لما يوصل
+         الرد — لفة مزعجة يشوفها الزائر كل مرة.
+
+         الحل هنا: طبقة تُرسم قبل تحميل حزمة الجافاسكربت أصلًا، بلون خلفية
+         الطقم المحفوظ من آخر زيارة، وتغطي الصفحة لين يجهز التصميم الصحيح.
+         الزائر ما يشوف إلا تصميمًا واحدًا: الصحيح.
+         ══════════════════════════════════════════════════════════════ -->
+    <style>
+      html, body { margin: 0; height: 100%; background: var(--boot-bg, #141C22); }
+      #boot {
+        position: fixed; inset: 0; z-index: 2147483647;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--boot-bg, #141C22);
+        transition: opacity .32s ease;
+      }
+      #boot.boot-gone { opacity: 0; pointer-events: none; }
+      #boot i {
+        display: block; width: 26px; height: 2px; border-radius: 2px;
+        background: var(--boot-fg, #8FA0AB); opacity: .35;
+        animation: boot-pulse 1.15s ease-in-out infinite;
+      }
+      @keyframes boot-pulse { 0%,100% { opacity: .18; transform: scaleX(.6); } 50% { opacity: .55; transform: scaleX(1); } }
+      @media (prefers-reduced-motion: reduce) { #boot i { animation: none; opacity: .3; } }
+    </style>
+    <script>
+      (function () {
+        try {
+          var d = document.documentElement;
+          /* نفس مفتاح تفضيل الوضع المستخدم داخل التطبيق */
+          var mode = localStorage.getItem("owners-inquiries-theme") || "auto";
+          var dark = mode === "dark" || (mode !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var cfg = null;
+          try { cfg = JSON.parse(localStorage.getItem("owners-site-config") || "null"); } catch (e2) { cfg = null; }
+          var pick = function (o, fb) { return (o && (dark ? (o.dark || o.light) : (o.light || o.dark))) || fb; };
+          d.style.setProperty("--boot-bg", pick(cfg && cfg.bg, dark ? "#141C22" : "#F7F9FB"));
+          d.style.setProperty("--boot-fg", pick(cfg && cfg.fg, dark ? "#8FA0AB" : "#5F7280"));
+          d.style.colorScheme = dark ? "dark" : "light";
+          /* خط الطقم المعتمد يُحمَّل من الآن — عشان ما يتبدّل الخط تحت عين الزائر */
+          if (cfg && cfg.font) {
+            var l = document.createElement("link");
+            l.rel = "stylesheet"; l.href = cfg.font; l.dataset.skinFont = cfg.theme;
+            document.head.appendChild(l);
+          }
+        } catch (e) { /* تصفح خاص أو تخزين ممنوع — نكمل باللون الافتراضي */ }
+        /* شبكة أمان أخيرة: لو صار خطأ منع التطبيق من الإقلاع، ما نخلي الزائر أمام شاشة صامتة */
+        setTimeout(function () {
+          var b = document.getElementById("boot");
+          if (b) b.parentNode && b.parentNode.removeChild(b);
+        }, 8000);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot" aria-hidden="true"><i></i></div>
     <script type="module" src="/main.jsx"></script>
   </body>
 </html>
