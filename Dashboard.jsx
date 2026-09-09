@@ -1387,6 +1387,57 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.7.0",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "طريقة ثانية لتحديث تقدّم التنفيذ: إدخال مباشر بالموقع بدل ملف إكسل — تبديلة بأعلى لوحة الرفع بين \"ملف إكسل\" و\"إدخال مباشر بالموقع\"",
+      "الإدخال المباشر يعرض الـ١٦ بلوك كحقول أرقام جاهزة، معبّاة تلقائيًا بآخر نسبة معروفة لكل بلوك (أو بنسبه الفعلية لو الشهر مسجَّل من قبل وتبي تصححه) — تعدّل بس اللي تغيّر وتترك الباقي",
+      "تقدر تكتب نسبة مرحلة مباشرة من المطوّر أو تعلّم الشهر \"بلا قراءة\" من نفس النموذج",
+      "نفس حماية النسخة الاحتياطية التلقائية قبل أي تحديث، بغض النظر عن الطريقة المستخدمة",
+      "الطريقتان (ملف إكسل / إدخال مباشر) تكتبان لنفس الجداول بالضبط، فتقدر تبدّل بينهما شهر بشهر حسب الأسهل وقتها",
+    ],
+    en: [
+      "A second way to update execution progress: direct entry on the site instead of an Excel file — a toggle at the top of the upload panel switches between \"Excel file\" and \"Direct entry on the site\"",
+      "Direct entry shows all 16 blocks as ready number fields, pre-filled with each block's last known figure (or its actual figures if that month is already recorded and you're correcting it) — you only edit what changed and leave the rest",
+      "You can also type a direct phase figure from the developer or mark the month as \"No reading\" from the same form",
+      "Same automatic pre-update backup protection, regardless of which method is used",
+      "Both methods (Excel file / direct entry) write to the exact same tables, so you can switch between them month to month depending on what's easiest at the time",
+    ],
+  },
+  {
+    version: "2.6.1",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "زر \"تنزيل الملف الحالي\" صار يضيف تلقائيًا سطور الشهر القادم فاضية بآخر الملف (١٦ بلوك + ٤ مراحل اختيارية) — نفس الملف تنزّله، تعبّي الأرقام مباشرة، وترفعه، بدون تفكير بمكان الإضافة كل مرة",
+      "سطور النموذج الفاضية غير المستخدمة (بلوك أو مرحلة موجودة بس الشهر والنسبة فاضيين) تُتجاوز بصمت عند الرفع بدل ما تظهر كخطأ — ما تحتاج تحذفها يدويًا لو ما احتجتها",
+    ],
+    en: [
+      "The \"Download current file\" button now automatically appends blank next-month rows at the end of the file (16 blocks + 4 optional phases) — download, type the numbers straight in, upload, with no need to figure out where to add them each time",
+      "Unused blank template rows (a block or phase filled in but month and percentage left empty) are now silently skipped on upload instead of surfacing as an error — no need to manually delete the ones you don't need",
+    ],
+  },
+  {
+    version: "2.6.0",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "نسبة أي مرحلة ممكن تُدخَل الآن كرقم مباشر من المطوّر (سطر بالملف باسم المرحلة بدل رقم بلوك) بدل الاكتفاء بمتوسط بلوكاتها المرصودة — بعض المراحل تشمل بنودًا مثل \"الخدمات الأرضية\" غير مرصودة كبلوك مستقل، فرقم المطوّر أحيانًا يختلف عن المتوسط",
+      "الرقم المباشر لو موجود يُستخدم لتلك المرحلة/الشهر بالذات فقط؛ الأشهر الثانية وبقية المراحل تبقى محسوبة من متوسط البلوكات كالمعتاد",
+      "الإجمالي العام للمشروع صار = متوسط قيم المراحل الأربع الفعلية (بعد أي رقم مباشر)، بدل متوسط كل البلوكات الـ١٦ مباشرة — قرار مقصود لأن عدد البلوكات يختلف بين المراحل، وهذا غيّر أرقام الإجمالي المعروضة لكل الأشهر السابقة قليلًا (تصحيح لا خطأ)",
+      "لوحة الرفع تعرض نسب المراحل المباشرة المكتشفة بالملف كقسم مستقل قبل التحديث (جديد/تغيّر عن آخر رقم مسجَّل)",
+      "زر \"تنزيل الملف الحالي\" يُصدِّر هذي النسب المباشرة أيضًا، فيبقى الملف مرجعًا كاملًا يحكي القصة وحده",
+    ],
+    en: [
+      "Any phase's percentage can now be entered as a direct developer figure (a row in the file named for the phase instead of a block number) instead of relying only on the average of its tracked blocks — some phases include items like site infrastructure that aren't tracked as an independent block, so the developer's number sometimes differs from that average",
+      "A direct figure, when present, is used for that specific phase/month only; other months and other phases keep computing from the block average as before",
+      "The project's overall total is now the average of the four actual phase values (after any direct figures), instead of a flat average of all 16 blocks — a deliberate choice since phases don't have equal block counts, and this slightly shifted the displayed total for every past month (a correction, not a bug)",
+      "The upload panel shows detected direct phase figures as a separate section before applying (new / changed from the last recorded figure)",
+      "The \"Download current file\" button now exports these direct phase figures too, so the file alone remains a complete reference",
+    ],
+  },
+  {
     version: "2.5.0",
     dateAr: "9 سبتمبر 2026",
     dateEn: "September 9, 2026",
@@ -4938,6 +4989,25 @@ function isSkipMarker(v) {
   const n = normalizeArabic(String(v));
   return n !== "" && SKIP_MONTH_MARKERS.includes(n);
 }
+/* نسبة مرحلة كما يقرّرها المطوّر مباشرة (أحيانًا تشمل بنودًا زي "الخدمات
+   الأرضية" مو مرصودة كبلوك مستقل، فمو دايمًا مطابقة لمتوسط البلوكات) — يُكتب
+   اسم المرحلة بعمود "رقم البلوك" بدل رقم بلوك، مع النسبة بعمود "نسبة الإنجاز".
+   الصيغة "p1".."p4" مقصودة لمنع أي التباس مع رقم بلوك حقيقي (لا بلوك رقمه
+   بحرف)، وأسماء المراحل العربية مقبولة كمان لسهولة الكتابة. */
+const PHASE_MARKERS = {
+  p1: ["p1", "المرحلة الأولى", "المرحلة 1", "الأولى"],
+  p2: ["p2", "المرحلة الثانية", "المرحلة 2", "الثانية"],
+  p3: ["p3", "المرحلة الثالثة", "المرحلة 3", "الثالثة"],
+  p4: ["p4", "المرحلة الرابعة", "المرحلة 4", "الرابعة"],
+};
+const PHASE_MARKER_LOOKUP = new Map(
+  Object.entries(PHASE_MARKERS).flatMap(([phase, labels]) => labels.map((l) => [normalizeArabic(Brain.toLatinDigits(l)), phase]))
+);
+function matchPhaseMarker(v) {
+  if (v == null) return null;
+  const n = normalizeArabic(Brain.toLatinDigits(String(v)).trim());
+  return PHASE_MARKER_LOOKUP.get(n) || null;
+}
 /* المحرّك الرئيسي — ياخذ ملف إكسل مقروء (XLSX.read) وقائمة أرقام البلوكات
    المعروفة حاليًا بقاعدة البيانات، ويرجع {sheetName, readings, skips, errors,
    unknownBlocks, monthsFound} أو {error} لو ما لقى شيت أو صف عناوين صالح.
@@ -4954,7 +5024,7 @@ function parseProgressWorkbook(wb, knownBlockNumbers) {
   const header = findProgressHeaderRow(raw);
   if (!header) return { error: `ما لقيت صف عناوين يحتوي "رقم البلوك" و"الشهر" و"نسبة الإنجاز" بشيت "${sheetName}".` };
 
-  const readings = [], skips = [], errors = [], seen = new Map(), seenSkip = new Map();
+  const readings = [], skips = [], phaseOverrides = [], errors = [], seen = new Map(), seenSkip = new Map(), seenPhase = new Map();
   for (let i = header.idx + 1; i < raw.length; i++) {
     const row = raw[i] || [];
     const excelRow = i + 1;
@@ -4963,6 +5033,10 @@ function parseProgressWorkbook(wb, knownBlockNumbers) {
     if (blockCell == null && monthCell == null && pctCell == null) continue; /* صف فاضي كليًا — يُتجاوز بصمت */
 
     const cellRef = (col) => `${XLSX.utils.encode_col(col)}${excelRow}`;
+    const isBlank = (v) => v == null || String(v).trim() === "";
+    /* صف نموذج جاهز ما عُبّي بعد (رقم بلوك/اسم مرحلة موجود، بس الشهر والنسبة
+       فاضيين) — يُتجاوز بصمت، ما يحتاج حذفه يدويًا لو ما احتاجه هذا الشهر. */
+    if (isBlank(monthCell) && isBlank(pctCell) && !isSkipMarker(blockCell)) continue;
 
     /* سطر "لا قراءة لهذا الشهر" — بلا رقم بلوك ولا نسبة، يسجَّل كملاحظة شهر
        بدل قراءة بلوك، فيظهر بالموقع كسبب صريح بدل تخمين صامت. */
@@ -4975,8 +5049,28 @@ function parseProgressWorkbook(wb, knownBlockNumbers) {
       continue;
     }
 
+    /* سطر نسبة مرحلة مباشرة من المطوّر — تحلّ محل المتوسط المحسوب من بلوكات
+       تلك المرحلة لهذا الشهر بالذات فقط، وما تمس بقية الأشهر ولا البلوكات. */
+    const phaseMark = matchPhaseMarker(blockCell);
+    if (phaseMark) {
+      const mk = parseMonthCell(monthCell);
+      if (!mk) { errors.push(`${cellRef(header.month)}: سطر نسبة مرحلة بشهر غير مفهوم ("${monthCell ?? ""}")`); continue; }
+      const pr = parsePctCell(pctCell);
+      if (pr.error) { errors.push(`${cellRef(header.pct)}: ${pr.error}`); continue; }
+      const dupKey = `${phaseMark}|${mk}`;
+      if (seenPhase.has(dupKey)) { errors.push(`${cellRef(header.block)}: نسبة ${phaseMark} مكرّرة لنفس الشهر ${mk} (أول ظهور بـ${seenPhase.get(dupKey)})`); continue; }
+      seenPhase.set(dupKey, cellRef(header.block));
+      phaseOverrides.push({ phase: phaseMark, month: mk, pct: pr.value, cellRef: cellRef(header.pct) });
+      continue;
+    }
+
     const bnum = Number(Brain.toLatinDigits(String(blockCell ?? "")).trim());
-    if (!Number.isInteger(bnum) || bnum <= 0) { errors.push(`${cellRef(header.block)}: رقم بلوك غير صالح ("${blockCell ?? ""}")`); continue; }
+    if (!Number.isInteger(bnum) || bnum <= 0) {
+      /* سطر تعليمات/عنوان قسم (مثل "⬇ الشهر القادم...") بلا شهر ولا نسبة —
+         يُتجاوز بصمت بدل ما يُحسب خطأ، فما يحتاج المستخدم يحذفه يدويًا. */
+      if (monthCell == null && pctCell == null) continue;
+      errors.push(`${cellRef(header.block)}: رقم بلوك غير صالح ("${blockCell ?? ""}")`); continue;
+    }
 
     const mk = parseMonthCell(monthCell);
     if (!mk) { errors.push(`${cellRef(header.month)}: تعذّر فهم الشهر ("${monthCell ?? ""}") — استخدم صيغة 2026-02 أو "فبراير 2026"`); continue; }
@@ -4999,18 +5093,21 @@ function parseProgressWorkbook(wb, knownBlockNumbers) {
   });
   const cleanSkips = skips.filter((s) => !readingMonths.has(s.month));
 
-  if (!readings.length && !cleanSkips.length && !errors.length) return { error: `شيت "${sheetName}" ما فيه أي صف بيانات تحت صف العناوين.` };
+  if (!readings.length && !cleanSkips.length && !phaseOverrides.length && !errors.length) return { error: `شيت "${sheetName}" ما فيه أي صف بيانات تحت صف العناوين.` };
   const unknownBlocks = [...new Set(readings.filter((r) => !knownBlockNumbers.has(r.block)).map((r) => r.block))].sort((a, b) => a - b);
   const monthsFound = [...new Set(readings.map((r) => r.month))].sort();
-  return { sheetName, readings, skips: cleanSkips, errors, unknownBlocks, monthsFound };
+  return { sheetName, readings, skips: cleanSkips, phaseOverrides, errors, unknownBlocks, monthsFound };
 }
 
-/* ينشئ ملف إكسل بنفس التنسيق المسطّح من قراءات وملاحظات "لا قراءة" موجودة
-   حاليًا بقاعدة البيانات — زر "تنزيل الملف الحالي" بلوحة الرفع: الأدمن ينزّل
-   مرجعًا كاملًا متصلًا بلا فجوات صامتة، يضيف سطور الشهر الجديد بالأسفل، ويرفع
-   نفس الملف مرة ثانية. */
-function downloadProgressTemplate(rows, blocksMeta, monthNotes) {
+/* ينشئ ملف إكسل بنفس التنسيق المسطّح من قراءات وملاحظات "لا قراءة" ونسب
+   مراحل مباشرة موجودة حاليًا بقاعدة البيانات — زر "تنزيل الملف الحالي" بلوحة
+   الرفع. الملف ذاته يخرج جاهزًا للتحديث القادم: تاريخ كامل بلا فجوات + سطور
+   الشهر الجديد فاضية بالأسفل (١٦ بلوك + ٤ مراحل اختيارية) — تعبّي الأرقام
+   مباشرة وترفعه، فما يصير ازدواجية ولا لخبطة بمكان الإضافة كل شهر. */
+function downloadProgressTemplate(rows, blocksMeta, monthNotes, phaseOverrides) {
   const phaseLabel = { p1: "الأولى", p2: "الثانية", p3: "الثالثة", p4: "الرابعة" };
+  const phaseFullLabel = { p1: "المرحلة الأولى", p2: "المرحلة الثانية", p3: "المرحلة الثالثة", p4: "المرحلة الرابعة" };
+  const phaseSortRank = { p1: 91, p2: 92, p3: 93, p4: 94 };
   const byBlock = Object.fromEntries((blocksMeta || []).map((b) => [b.block_number, b]));
   const monthsWithRows = new Set(rows.map((r) => r.month));
   /* أشهر "لا قراءة" — تُدرَج كسطر واحد بكل شهر بدل ما تبقى غيابًا صامتًا،
@@ -5019,12 +5116,31 @@ function downloadProgressTemplate(rows, blocksMeta, monthNotes) {
   const dataRows = [
     ...rows.map((r) => ({ month: r.month, block: r.block_number, cells: [r.block_number, (byBlock[r.block_number] ? `المرحلة ${phaseLabel[byBlock[r.block_number].phase] || byBlock[r.block_number].phase}` : ""), r.month, r.pct / 100, ""] })),
     ...skipEntries.map(([mk, note]) => ({ month: mk, block: -1, cells: ["لا قراءة", "", mk, "", note || ""] })),
+    /* نسب مراحل مباشرة من المطوّر — تظهر بعد بلوكات نفس الشهر، آخر السطور. */
+    ...(phaseOverrides || []).map((o) => ({ month: o.month, block: phaseSortRank[o.phase] || 99, cells: [phaseFullLabel[o.phase] || o.phase, "", o.month, o.pct / 100, "رقم مباشر من المطوّر — يحلّ محلّ متوسط البلوكات لهذه المرحلة/الشهر"] })),
   ].sort((a, b) => a.month.localeCompare(b.month) || a.block - b.block);
 
   const aoa = [["رقم البلوك", "المرحلة", "الشهر", "نسبة الإنجاز", "ملاحظة"], ...dataRows.map((r) => r.cells)];
+
+  /* سطور الشهر القادم — فاضية جاهزة للتعبئة المباشرة، نفس الترتيب والبلوكات
+     كل مرة، فيصير مكان الإضافة معروفًا دائمًا وما يصير ازدواجية صفوف. */
+  const allMonths = dataRows.map((r) => r.month).filter(Boolean).sort();
+  const lastMonth = allMonths[allMonths.length - 1];
+  if (lastMonth) {
+    const nextMonth = nextMonthKey(lastMonth);
+    const orderedBlocks = (blocksMeta && blocksMeta.length ? blocksMeta.map((b) => b.block_number) : PG_BLOCK_DISPLAY_ORDER);
+    aoa.push([`⬇ الشهر القادم (${nextMonth}) — عبّي الشهر والنسبة بكل صف مباشرة`, "", "", "", ""]);
+    orderedBlocks.forEach((b) => {
+      const meta = byBlock[b];
+      aoa.push([b, meta ? `المرحلة ${phaseLabel[meta.phase] || meta.phase}` : "", "", "", ""]);
+    });
+    aoa.push([`⬇ رقم مرحلة مباشر من المطوّر (اختياري) — عبّيه بس لو مختلف عن متوسط بلوكاته`, "", "", "", ""]);
+    ["p1", "p2", "p3", "p4"].forEach((p) => aoa.push([phaseFullLabel[p], "", "", "", "رقم مباشر من المطوّر — اختياري"]));
+  }
+
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 11 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 38 }];
-  for (let i = 1; i < aoa.length; i++) { const cell = ws[XLSX.utils.encode_cell({ r: i, c: 3 })]; if (cell) cell.z = "0.00%"; }
+  ws["!cols"] = [{ wch: 26 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 38 }];
+  for (let i = 1; i < aoa.length; i++) { const cell = ws[XLSX.utils.encode_cell({ r: i, c: 3 })]; if (cell && typeof cell.v === "number") cell.z = "0.00%"; }
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "بيانات_التقدم");
   XLSX.writeFile(wb, `تقدم_التنفيذ_${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -5043,17 +5159,130 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
   const [current, setCurrent] = useState([]);
   const [blocksMeta, setBlocksMeta] = useState([]);
   const [monthNotes, setMonthNotes] = useState({});
+  const [currentPhaseOverrides, setCurrentPhaseOverrides] = useState([]);
   const [newBlockPhase, setNewBlockPhase] = useState({});
   const [forceMonths, setForceMonths] = useState(new Set());
   const [applying, setApplying] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [mode, setMode] = useState("file"); // "file" | "manual"
+  const [entryMonth, setEntryMonth] = useState("");
+  const [blockValues, setBlockValues] = useState({});
+  const [phaseValues, setPhaseValues] = useState({ p1: "", p2: "", p3: "", p4: "" });
+  const [skipMonth, setSkipMonth] = useState(false);
+  const [skipNote, setSkipNote] = useState("");
+  const [submittingManual, setSubmittingManual] = useState(false);
 
   const loadCurrent = () => supabase.from("progress_readings").select("*").then(({ data }) => setCurrent(data || []));
   const loadBlocks = () => supabase.from("progress_blocks").select("*").order("sort_order").then(({ data }) => setBlocksMeta(data || []));
   const loadNotes = () => supabase.from("progress_month_notes").select("*").then(({ data }) => setMonthNotes(Object.fromEntries((data || []).map((n) => [n.month, n.note]))));
-  useEffect(() => { loadCurrent(); loadBlocks(); loadNotes(); }, []);
+  const loadPhaseOverrides = () => supabase.from("progress_phase_overrides").select("*").then(({ data }) => setCurrentPhaseOverrides(data || []));
+  useEffect(() => { loadCurrent(); loadBlocks(); loadNotes(); loadPhaseOverrides(); }, []);
 
   const knownBlockNumbers = useMemo(() => new Set(blocksMeta.map((b) => b.block_number)), [blocksMeta]);
+
+  /* أول ما تتوفر البيانات، اقترح الشهر التالي تلقائيًا للإدخال المباشر —
+     الأدمن يقدر يغيّره لأي شهر ثاني يبي يراجعه أو يصححه. */
+  useEffect(() => {
+    if (entryMonth || !current.length) return;
+    const lastMonth = [...new Set(current.map((r) => r.month))].sort().pop();
+    if (lastMonth) setEntryMonth(nextMonthKey(lastMonth));
+  }, [current, entryMonth]);
+
+  /* تغيير الشهر بالإدخال المباشر: لو الشهر عنده بيانات مسجَّلة فعلًا، تُحمَّل
+     كما هي للتصحيح؛ غير كذا تُقترح آخر نسبة معروفة لكل بلوك كنقطة بداية بدل
+     ما يكتب الأدمن ١٦ رقم من الصفر كل مرة. */
+  useEffect(() => {
+    if (!entryMonth || !blocksMeta.length) return;
+    const monthRows = current.filter((r) => r.month === entryMonth);
+    if (monthRows.length) {
+      setBlockValues(Object.fromEntries(monthRows.map((r) => [r.block_number, String(r.pct)])));
+    } else {
+      const latest = {};
+      current.filter((r) => r.month < entryMonth).forEach((r) => {
+        if (!latest[r.block_number] || r.month > latest[r.block_number].month) latest[r.block_number] = r;
+      });
+      setBlockValues(Object.fromEntries(Object.entries(latest).map(([b, r]) => [b, String(r.pct)])));
+    }
+    const monthOverrides = currentPhaseOverrides.filter((o) => o.month === entryMonth);
+    setPhaseValues({
+      p1: monthOverrides.find((o) => o.phase === "p1")?.pct ?? "",
+      p2: monthOverrides.find((o) => o.phase === "p2")?.pct ?? "",
+      p3: monthOverrides.find((o) => o.phase === "p3")?.pct ?? "",
+      p4: monthOverrides.find((o) => o.phase === "p4")?.pct ?? "",
+    });
+    setSkipMonth(monthNotes[entryMonth] != null);
+    setSkipNote(monthNotes[entryMonth] || "");
+  }, [entryMonth, blocksMeta]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setBlockValue = (b, v) => setBlockValues((s) => ({ ...s, [b]: v }));
+  const setPhaseValue = (p, v) => setPhaseValues((s) => ({ ...s, [p]: v }));
+
+  const submitManual = async () => {
+    if (!canImport) { flashToast('ما عندك صلاحية "رفع ومزامنة بيانات من إكسل" اللازمة'); return; }
+    const mk = parseMonthCell(entryMonth);
+    if (!mk) { flashToast('اكتب الشهر بصيغة صحيحة، مثل 2026-09'); return; }
+    setSubmittingManual(true);
+    try {
+      if (skipMonth) {
+        const { error } = await supabase.from("progress_month_notes").upsert(
+          { month: mk, note: skipNote.trim(), updated_at: new Date().toISOString() }, { onConflict: "month" }
+        );
+        if (error) throw error;
+        log("تحديث تقدّم التنفيذ (إدخال مباشر)", `${mk}: لا قراءة — ${skipNote.trim() || "بلا سبب مذكور"}`);
+        flashToast("تم تسجيل الشهر كـ«لا قراءة» بالموقع");
+      } else {
+        const rows = [];
+        for (const b of blocksMeta.map((x) => x.block_number)) {
+          const raw = blockValues[b];
+          if (raw == null || String(raw).trim() === "") continue;
+          const pr = parsePctCell(raw);
+          if (pr.error) { flashToast(`نسبة البلوك ${b} غير صالحة: ${pr.error}`); setSubmittingManual(false); return; }
+          rows.push({ block_number: b, month: mk, pct: pr.value, updated_at: new Date().toISOString() });
+        }
+        if (!rows.length) { flashToast("ما فيه أي بلوك مُعبّى — اكتب نسبة بلوك واحد على الأقل، أو فعّل «لا قراءة»"); setSubmittingManual(false); return; }
+
+        const { data: backupRows } = await supabase.from("progress_readings").select("*");
+        await supabase.from("progress_readings_backups").insert({
+          label: `قبل إدخال مباشر لتقدّم التنفيذ بتاريخ ${fmtAdminDate(new Date())}`,
+          rows: backupRows || [],
+        });
+        const { data: oldBackups } = await supabase.from("progress_readings_backups").select("id").order("created_at", { ascending: false });
+        if (oldBackups && oldBackups.length > 5) {
+          await supabase.from("progress_readings_backups").delete().in("id", oldBackups.slice(5).map((x) => x.id));
+        }
+        const { error } = await supabase.from("progress_readings").upsert(rows, { onConflict: "block_number,month" });
+        if (error) throw error;
+
+        /* نسب مراحل مباشرة — تُكتب لو مُعبّاة، وتُحذف لو كانت موجودة وصارت فاضية
+           (يعني الأدمن رجع يعتمد متوسط البلوكات بدل الرقم المباشر). */
+        const upsertPhases = [], deletePhases = [];
+        for (const p of ["p1", "p2", "p3", "p4"]) {
+          const raw = phaseValues[p];
+          const hadBefore = currentPhaseOverrides.some((o) => o.phase === p && o.month === mk);
+          if (raw == null || String(raw).trim() === "") { if (hadBefore) deletePhases.push(p); continue; }
+          const pr = parsePctCell(raw);
+          if (pr.error) { flashToast(`نسبة ${PHASE_LABEL[p]} غير صالحة: ${pr.error}`); setSubmittingManual(false); return; }
+          upsertPhases.push({ phase: p, month: mk, pct: pr.value, updated_at: new Date().toISOString() });
+        }
+        if (upsertPhases.length) {
+          const { error } = await supabase.from("progress_phase_overrides").upsert(upsertPhases, { onConflict: "phase,month" });
+          if (error) throw error;
+        }
+        for (const p of deletePhases) {
+          await supabase.from("progress_phase_overrides").delete().eq("phase", p).eq("month", mk);
+        }
+        /* لو الشهر كان مسجَّلاً "لا قراءة" من قبل وصار له إدخال حقيقي الحين، نشيل الملاحظة. */
+        if (monthNotes[mk] != null) await supabase.from("progress_month_notes").delete().eq("month", mk);
+
+        log("تحديث تقدّم التنفيذ (إدخال مباشر)", `${mk}: ${rows.length} بلوك${upsertPhases.length ? ` + ${upsertPhases.length} نسبة مرحلة` : ""}`);
+        flashToast("تم تحديث تقدّم التنفيذ بالموقع");
+      }
+      loadCurrent(); loadNotes(); loadPhaseOverrides();
+    } catch {
+      flashToast("تعذّر تحديث تقدّم التنفيذ — لم يتغيّر شي بالبيانات الحالية");
+    }
+    setSubmittingManual(false);
+  };
 
   const handleFile = (e) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -5123,11 +5352,11 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
   const apply = async () => {
     if (!canImport) { flashToast('ما عندك صلاحية "رفع ومزامنة بيانات من إكسل" اللازمة'); return; }
     if (!parsed || parsed.error) return;
-    if (!diffByMonth.length && !parsed.skips.length) return;
+    if (!diffByMonth.length && !parsed.skips.length && !parsed.phaseOverrides.length) return;
     if (parsed.unknownBlocks.length) { flashToast("سجّل مرحلة البلوكات الجديدة أولًا قبل التحديث — تحت قائمة التحذيرات."); return; }
     const monthsToWrite = diffByMonth.filter((m) => !m.dataLoss || forceMonths.has(m.month));
     const toWrite = monthsToWrite.flatMap((m) => m.items);
-    if (!toWrite.length && !parsed.skips.length) { flashToast("كل الأشهر مستثناة بسبب حماية فقدان البيانات — راجع التحذيرات."); return; }
+    if (!toWrite.length && !parsed.skips.length && !parsed.phaseOverrides.length) { flashToast("كل الأشهر مستثناة بسبب حماية فقدان البيانات — راجع التحذيرات."); return; }
     setApplying(true);
     try {
       if (toWrite.length) {
@@ -5149,14 +5378,20 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
         const { error } = await supabase.from("progress_month_notes").upsert(noteRows, { onConflict: "month" });
         if (error) throw error;
       }
+      if (parsed.phaseOverrides.length) {
+        const phaseRows = parsed.phaseOverrides.map((o) => ({ phase: o.phase, month: o.month, pct: o.pct, updated_at: new Date().toISOString() }));
+        const { error } = await supabase.from("progress_phase_overrides").upsert(phaseRows, { onConflict: "phase,month" });
+        if (error) throw error;
+      }
       const parts = [];
       if (toWrite.length) parts.push(`${toWrite.length} قراءة عبر ${monthsToWrite.length} شهر`);
       if (parsed.skips.length) parts.push(`${parsed.skips.length} ملاحظة "لا قراءة"`);
+      if (parsed.phaseOverrides.length) parts.push(`${parsed.phaseOverrides.length} نسبة مرحلة مباشرة`);
       log("رفع بيانات تقدّم التنفيذ", `${parts.join(" + ")} — ${fileName}`);
       const skipped = diffByMonth.length - monthsToWrite.length;
       flashToast(skipped > 0 ? `تم التحديث — استُثني ${skipped} شهر بسبب حماية فقدان البيانات` : "تم تحديث تقدّم التنفيذ بالموقع");
       setParsed(null); wbRef.current = null; setFileName(""); setForceMonths(new Set());
-      loadCurrent(); loadNotes();
+      loadCurrent(); loadNotes(); loadPhaseOverrides();
     } catch {
       flashToast("تعذّر تحديث تقدّم التنفيذ — لم يتغيّر شي بالبيانات الحالية");
     }
@@ -5168,13 +5403,29 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <TrendingUp size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>تحديث بيانات تقدّم التنفيذ</span>
       </div>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: T.sunken, borderRadius: 11, padding: 4, width: "fit-content" }}>
+        <button onClick={() => setMode("file")}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: mode === "file" ? T.brass : "transparent", color: mode === "file" ? "#fff" : T.muted, border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+          <FileSpreadsheet size={13} /> ملف إكسل
+        </button>
+        <button onClick={() => setMode("manual")}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: mode === "manual" ? T.brass : "transparent", color: mode === "manual" ? "#fff" : T.muted, border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+          <TrendingUp size={13} /> إدخال مباشر بالموقع
+        </button>
+      </div>
+
+      {mode === "file" && (
+      <>
       <p style={{ fontSize: 12.5, color: T.muted, margin: "4px 0 14px", lineHeight: 1.7 }}>
         ملف بسيط بأعمدة: رقم البلوك، الشهر، نسبة الإنجاز — صف واحد لكل بلوك بكل شهر.
-        نزّل الملف الحالي، أضف سطور الشهر الجديد بالأسفل (١٦ سطرًا، بلوك بعد بلوك)، وارفعه هنا.
-        الإجمالي ومتوسط كل مرحلة يُحسبان تلقائيًا من أرقام البلوكات — ما تحتاج تكتبهم.
+        نزّل الملف الحالي — يجيك بآخره سطور الشهر الجديد فاضية جاهزة، بس عبّي الأرقام وارفعه هنا.
+        نسبة كل مرحلة تُحسب تلقائيًا من متوسط بلوكاتها، والإجمالي من متوسط المراحل الأربع — إلا لو كتبت رقمًا
+        مباشرًا من المطوّر (سطر بعمود رقم البلوك اكتب فيه اسم المرحلة مثل <b>"المرحلة الأولى"</b> بدل رقم بلوك)، فيُعتمد
+        هو بدل المتوسط لذاك الشهر بالذات.
         شهر ما وصلت فيه قراءة من المطوّر؟ سطر واحد بعمود رقم البلوك اكتب فيه <b>"لا قراءة"</b> مع الشهر وسبب مختصر
         بعمود الملاحظة — يظهر للزائر بنص واضح بدل فجوة صامتة.
       </p>
@@ -5183,7 +5434,7 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
           <Upload size={15} /> رفع ملف بيانات التقدم
         </button>
         <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
-        <button onClick={() => downloadProgressTemplate(current, blocksMeta, monthNotes)} disabled={!current.length}
+        <button onClick={() => downloadProgressTemplate(current, blocksMeta, monthNotes, currentPhaseOverrides)} disabled={!current.length}
           style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", color: T.brass, border: `1px solid ${T.brass}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: current.length ? "pointer" : "default", opacity: current.length ? 1 : 0.5 }}>
           <FileSpreadsheet size={15} /> تنزيل الملف الحالي
         </button>
@@ -5283,12 +5534,92 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
             </div>
           )}
 
-          {(parsed.readings.length > 0 || parsed.skips.length > 0) && (
+          {parsed.phaseOverrides.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
+                {parsed.phaseOverrides.length} نسبة مرحلة مباشرة من المطوّر — تحلّ محلّ متوسط البلوكات لذاك الشهر بالذات:
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {parsed.phaseOverrides.map((o) => {
+                  const { y, m: mm } = monthKeyParts(o.month);
+                  const prevRow = currentPhaseOverrides.find((c) => c.phase === o.phase && c.month === o.month);
+                  const isNew = !prevRow;
+                  const changed = prevRow && Math.abs(prevRow.pct - o.pct) > 0.004;
+                  return (
+                    <div key={`${o.phase}-${o.month}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", background: T.sunken, borderRadius: 9, padding: "8px 12px" }}>
+                      <span style={{ fontSize: 12.5 }}>{PHASE_LABEL[o.phase]} — {MONTH_AR[mm - 1]} {y} — {o.pct}%</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: isNew ? T.brass : changed ? "#b8860b" : T.muted }}>
+                        {isNew ? "جديد" : changed ? `تغيّر (كان ${prevRow.pct}%)` : "بدون تغيير"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(parsed.readings.length > 0 || parsed.skips.length > 0 || parsed.phaseOverrides.length > 0) && (
             <button onClick={apply} disabled={applying || parsed.unknownBlocks.length > 0}
               style={{ display: "flex", alignItems: "center", gap: 7, background: (applying || parsed.unknownBlocks.length) ? T.muted : T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: (applying || parsed.unknownBlocks.length) ? "not-allowed" : "pointer" }}>
               <RefreshCw size={15} /> {applying ? "جارٍ التحديث..." : "تحديث الموقع الآن"}
             </button>
           )}
+        </div>
+      )}
+      </>
+      )}
+
+      {mode === "manual" && (
+        <div>
+          <p style={{ fontSize: 12.5, color: T.muted, margin: "4px 0 14px", lineHeight: 1.7 }}>
+            اختر الشهر — لو كان مسجَّلًا تنعرض أرقامه للتصحيح، ولو شهر جديد تنعرض أقرب نسبة معروفة لكل بلوك كنقطة
+            بداية بدل ما تكتب من الصفر. عدّل اللي يحتاج تعديل واترك الباقي، ثم اضغط تحديث.
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+            <label style={{ fontSize: 12.5, fontWeight: 600 }}>الشهر</label>
+            <input type="text" value={entryMonth} onChange={(e) => setEntryMonth(e.target.value.trim())} placeholder="2026-09"
+              style={{ width: 110, padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, fontSize: 13, textAlign: "center" }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, cursor: "pointer", marginInlineStart: 10 }}>
+              <input type="checkbox" checked={skipMonth} onChange={(e) => setSkipMonth(e.target.checked)} />
+              هذا الشهر بلا قراءة من المطوّر
+            </label>
+          </div>
+
+          {skipMonth ? (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12.5, fontWeight: 600, display: "block", marginBottom: 6 }}>سبب مختصر (اختياري)</label>
+              <input type="text" value={skipNote} onChange={(e) => setSkipNote(e.target.value)} placeholder="مثال: المطوّر لم يُصدر تقرير هذا الشهر"
+                style={{ width: "100%", maxWidth: 420, padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, fontSize: 12.5 }} />
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8, marginBottom: 16 }}>
+                {blocksMeta.map((b) => (
+                  <div key={b.block_number} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
+                    <span style={{ fontSize: 12 }}>بلوك {b.block_number} <span style={{ color: T.muted }}>({PHASE_LABEL[b.phase]})</span></span>
+                    <input type="text" inputMode="decimal" value={blockValues[b.block_number] ?? ""} onChange={(e) => setBlockValue(b.block_number, e.target.value)}
+                      placeholder="%" style={{ width: 64, padding: "5px 6px", borderRadius: 7, border: `1px solid ${T.line}`, background: T.surface, color: T.paper, fontSize: 12.5, textAlign: "center" }} />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>نسب مراحل مباشرة من المطوّر (اختياري)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8, marginBottom: 16 }}>
+                {["p1", "p2", "p3", "p4"].map((p) => (
+                  <div key={p} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: T.sunken, borderRadius: 9, padding: "7px 10px" }}>
+                    <span style={{ fontSize: 12 }}>المرحلة {PHASE_LABEL[p]}</span>
+                    <input type="text" inputMode="decimal" value={phaseValues[p]} onChange={(e) => setPhaseValue(p, e.target.value)}
+                      placeholder="متوسط" style={{ width: 64, padding: "5px 6px", borderRadius: 7, border: `1px solid ${T.line}`, background: T.surface, color: T.paper, fontSize: 12.5, textAlign: "center" }} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button onClick={submitManual} disabled={submittingManual || !entryMonth}
+            style={{ display: "flex", alignItems: "center", gap: 7, background: (submittingManual || !entryMonth) ? T.muted : T.brass, color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: (submittingManual || !entryMonth) ? "not-allowed" : "pointer" }}>
+            <RefreshCw size={15} /> {submittingManual ? "جارٍ التحديث..." : "تحديث الموقع الآن"}
+          </button>
         </div>
       )}
     </div>

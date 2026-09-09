@@ -387,25 +387,64 @@ drop policy if exists "كتابة - نسخ قراءات التقدم" on public.
 create policy "كتابة - نسخ قراءات التقدم" on public.progress_readings_backups for all
   using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
 
+-- نسبة مرحلة كما يقرّرها المطوّر مباشرة — أحيانًا تشمل بنودًا مثل "الخدمات
+-- الأرضية" ما هي مرصودة كبلوك مستقل، فمو دايمًا مطابقة لمتوسط البلوكات
+-- المرصودة. لو موجودة لشهر/مرحلة، تُستخدم بدل المتوسط المحسوب من البلوكات؛
+-- لو غير موجودة، يبقى المتوسط المحسوب كما هو. راجع README لصيغة سطر المرحلة.
+create table if not exists public.progress_phase_overrides (
+  phase      text not null check (phase in ('p1','p2','p3','p4')),
+  month      text not null check (month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'),
+  pct        numeric(5,2) not null check (pct >= 0 and pct <= 100),
+  updated_at timestamptz not null default now(),
+  primary key (phase, month)
+);
+alter table public.progress_phase_overrides enable row level security;
+drop policy if exists "قراءة عامة - نسب المراحل المعتمدة" on public.progress_phase_overrides;
+create policy "قراءة عامة - نسب المراحل المعتمدة" on public.progress_phase_overrides for select using (true);
+drop policy if exists "كتابة - نسب المراحل المعتمدة" on public.progress_phase_overrides;
+create policy "كتابة - نسب المراحل المعتمدة" on public.progress_phase_overrides for all
+  using (public.has_perm('import_excel')) with check (public.has_perm('import_excel'));
+
+-- القيمة الفعلية لكل (شهر، مرحلة): رقم المطوّر المباشر لو موجود، وإلا متوسط
+-- بلوكات تلك المرحلة.
+create or replace view public.progress_phase_values as
+select
+  coalesce(bpa.month, ov.month) as month,
+  coalesce(bpa.phase, ov.phase) as phase,
+  coalesce(ov.pct, bpa.avg_pct) as pct,
+  (ov.pct is not null) as overridden,
+  bpa.avg_pct as block_avg_pct
+from (
+  select r.month, b.phase, avg(r.pct) as avg_pct
+  from public.progress_readings r
+  join public.progress_blocks b on b.block_number = r.block_number
+  group by r.month, b.phase
+) bpa
+full outer join public.progress_phase_overrides ov
+  on ov.month = bpa.month and ov.phase = bpa.phase;
+
 -- عرض متوافق شكليًا مع progress_matrix القديم (نفس الأعمدة: month/phases/blocks/
--- updated_at) لكن phases محسوبة آليًا بالكامل من القراءات — الواجهة تقرأ منه
--- مباشرة (progress_matrix_v)، ما يحتاج أي تعديل على كود بناء الرسوم بالموقع.
+-- updated_at) لكن phases محسوبة آليًا من progress_phase_values (تراعي أي رقم
+-- مباشر من المطوّر)، والإجمالي = متوسط قيم المراحل الأربع الفعلية (مو متوسط كل
+-- البلوكات مباشرة) — الواجهة تقرأ منه مباشرة، ما يحتاج أي تعديل على كود الرسوم.
 create or replace view public.progress_matrix_v as
 select
-  r.month,
+  pv.month,
   jsonb_strip_nulls(jsonb_build_object(
-    'total', round(avg(r.pct)::numeric, 2),
-    'p1',    round(avg(r.pct) filter (where b.phase = 'p1')::numeric, 2),
-    'p2',    round(avg(r.pct) filter (where b.phase = 'p2')::numeric, 2),
-    'p3',    round(avg(r.pct) filter (where b.phase = 'p3')::numeric, 2),
-    'p4',    round(avg(r.pct) filter (where b.phase = 'p4')::numeric, 2)
+    'total', round(avg(pv.pct)::numeric, 2),
+    'p1',    round(max(pv.pct) filter (where pv.phase = 'p1')::numeric, 2),
+    'p2',    round(max(pv.pct) filter (where pv.phase = 'p2')::numeric, 2),
+    'p3',    round(max(pv.pct) filter (where pv.phase = 'p3')::numeric, 2),
+    'p4',    round(max(pv.pct) filter (where pv.phase = 'p4')::numeric, 2)
   )) as phases,
-  jsonb_object_agg(r.block_number::text, r.pct) as blocks,
-  max(r.updated_at) as updated_at
-from public.progress_readings r
-join public.progress_blocks b on b.block_number = r.block_number
-group by r.month
-order by r.month;
+  (select jsonb_object_agg(r.block_number::text, r.pct) from public.progress_readings r where r.month = pv.month) as blocks,
+  greatest(
+    (select max(updated_at) from public.progress_readings r2 where r2.month = pv.month),
+    (select max(updated_at) from public.progress_phase_overrides o2 where o2.month = pv.month)
+  ) as updated_at
+from public.progress_phase_values pv
+group by pv.month
+order by pv.month;
 
 -- شهر بلا قراءة من المطوّر — حالة تتكرر فعليًا. بدل ما تبقى غيابًا صامتًا (فما تقدر
 -- تفرّق "المطوّر ما زوّد قراءة" عن "نسيت أرفع الملف")، تُسجَّل صراحة بسطر بالملف،
