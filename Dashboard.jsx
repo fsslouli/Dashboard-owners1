@@ -1443,6 +1443,19 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.8.0",
+    dateAr: "9 سبتمبر 2026",
+    dateEn: "September 9, 2026",
+    ar: [
+      "إعادة تصميم مخطط الفيلا التفاعلي (أين ظهرت الملاحظات) بشكل معماري: جدران بسماكة حقيقية، بروة فوق السطح، نوافذ وباب مدخل، درج بقلبات فعلية، وتهشير للجدار المتلاصق ومنسوب الأرض — بدل الكتل المصمتة السابقة",
+      "توحيد تسميات مواقع الملاحظات (عمود «موقع الملاحظة») لتطابق تسميات مناطق المخطط حرفيًا، بما فيها الحوش الأمامي والحوش الخلفي والطبلون الكهربائي — عشان تنحسب كل ملاحظة بالمنطقة الصح بدون أي «غير محدد» زايدة",
+    ],
+    en: [
+      "Redesigned the interactive villa plan (\"Where did the notes come from?\") with an architectural look: true-thickness walls, a roof parapet, windows and an entry door, real switchback stairs, and hatching for the party wall and ground level — replacing the previous solid-block shapes",
+      "Standardized the note-location names (the \"Location\" column) to match the plan's zone labels exactly, including the front yard, back yard, and the electrical panel — so every note counts toward the correct zone with no extra \"unspecified\" entries",
+    ],
+  },
+  {
     version: "2.7.0",
     dateAr: "9 سبتمبر 2026",
     dateEn: "September 9, 2026",
