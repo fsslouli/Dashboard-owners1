@@ -1107,34 +1107,6 @@ function VillaPlan({ counts, active, onPick, built }) {
           <clipPath id={groundClip}><rect x="112" y="350" width="336" height="14" /></clipPath>
         </defs>
 
-        {/* ── خط معماري زخرفي: سماكة الجدران، البروة، النوافذ، البلاطات ── لا يعترض النقر */}
-        <g style={{ ...archStyle, opacity: archOp }} fill="none" stroke={T.brass} strokeWidth="0.8">
-          {/* بروة السطح */}
-          <rect x="146" y="58" width="280" height="8" rx="3" />
-          {/* الخط الداخلي لسماكة الجدار الخارجي */}
-          <rect x="148" y="66" width="276" height="276" rx="7" strokeOpacity="0.55" />
-          {/* خطوط البلاطات بين السطح/الأول والأول/الأرضي */}
-          <line x1="150" y1="104" x2="422" y2="104" strokeOpacity="0.4" />
-          {/* نوافذ على الواجهة الجانبية */}
-          <rect x="404" y="128" width="10" height="26" rx="1.5" strokeOpacity="0.55" />
-          <rect x="404" y="252" width="10" height="30" rx="1.5" strokeOpacity="0.55" />
-          <rect x="158" y="128" width="10" height="26" rx="1.5" strokeOpacity="0.35" />
-          {/* باب المدخل من جهة الشارع */}
-          <rect x="398" y="316" width="8" height="26" rx="1.5" fill={T.brass} fillOpacity="0.18" strokeOpacity="0.6" />
-          {/* قلبات الدرج */}
-          <polyline points="358,330 358,308 376,308 376,286 358,286 358,264 376,264 376,242 358,242 358,220 376,220 376,198 358,198 358,176 376,176 376,154 358,154 358,132"
-            strokeOpacity="0.4" strokeLinejoin="round" />
-        </g>
-
-        {/* تهشير الجدار المشترك (قطاع مايل) */}
-        <g clipPath={`url(#${partyClip})`} stroke={T.brass} strokeOpacity={archOp * 0.5} strokeWidth="0.7" style={archStyle}>
-          <line x1="114" y1="70" x2="134" y2="50" /><line x1="114" y1="100" x2="134" y2="80" />
-          <line x1="114" y1="130" x2="134" y2="110" /><line x1="114" y1="160" x2="134" y2="140" />
-          <line x1="114" y1="190" x2="134" y2="170" /><line x1="114" y1="220" x2="134" y2="200" />
-          <line x1="114" y1="250" x2="134" y2="230" /><line x1="114" y1="280" x2="134" y2="260" />
-          <line x1="114" y1="310" x2="134" y2="290" /><line x1="114" y1="340" x2="134" y2="320" />
-        </g>
-
         {/* جسم الفيلا = كامل الفيلا */}
         <rect x="140" y="58" width="292" height="292" rx="10" {...zone("whole", 560)} />
 
@@ -1181,6 +1153,35 @@ function VillaPlan({ counts, active, onPick, built }) {
 
         {/* غير محدد */}
         <rect x="470" y="72" width="76" height="30" rx="8" {...zone("na", 600)} />
+
+        {/* ── خط معماري زخرفي فوق الكتل: سماكة الجدران، البروة، النوافذ، الباب، قلبات الدرج ──
+           مرسوم بعد كل مناطق النقر عشان يظهر فوقها لا تحته، وبدون ما يعترض النقر */}
+        <g style={{ ...archStyle, opacity: archOp }} fill="none" stroke={T.brass} strokeWidth="1.1">
+          {/* بروة السطح */}
+          <rect x="146" y="58" width="280" height="8" rx="3" strokeOpacity="0.9" />
+          {/* الخط الداخلي لسماكة الجدار الخارجي */}
+          <rect x="148" y="66" width="276" height="276" rx="7" strokeOpacity="0.85" />
+          {/* خط البلاطة بين السطح والأول */}
+          <line x1="150" y1="104" x2="422" y2="104" strokeOpacity="0.6" />
+          {/* نوافذ على الواجهة الجانبية */}
+          <rect x="404" y="128" width="10" height="26" rx="1.5" strokeOpacity="0.85" />
+          <rect x="404" y="252" width="10" height="30" rx="1.5" strokeOpacity="0.85" />
+          <rect x="158" y="128" width="10" height="26" rx="1.5" strokeOpacity="0.6" />
+          {/* باب المدخل من جهة الشارع */}
+          <rect x="398" y="316" width="8" height="26" rx="1.5" fill={T.bg || T.sunken || "none"} fillOpacity="0.9" strokeOpacity="0.9" />
+          {/* قلبات الدرج */}
+          <polyline points="358,330 358,308 376,308 376,286 358,286 358,264 376,264 376,242 358,242 358,220 376,220 376,198 358,198 358,176 376,176 358,154 376,154 358,132"
+            strokeOpacity="0.65" strokeLinejoin="round" />
+        </g>
+
+        {/* تهشير الجدار المشترك (قطاع مايل) — فوق كتلة party */}
+        <g clipPath={`url(#${partyClip})`} stroke={T.brass} strokeOpacity={archOp * 0.75} strokeWidth="0.7" style={archStyle}>
+          <line x1="114" y1="70" x2="134" y2="50" /><line x1="114" y1="100" x2="134" y2="80" />
+          <line x1="114" y1="130" x2="134" y2="110" /><line x1="114" y1="160" x2="134" y2="140" />
+          <line x1="114" y1="190" x2="134" y2="170" /><line x1="114" y1="220" x2="134" y2="200" />
+          <line x1="114" y1="250" x2="134" y2="230" /><line x1="114" y1="280" x2="134" y2="260" />
+          <line x1="114" y1="310" x2="134" y2="290" /><line x1="114" y1="340" x2="134" y2="320" />
+        </g>
 
         {/* علامات مناسيب على الحافة اليمنى */}
         <g fill={T.brass} fillOpacity={archOp * 0.7} style={archStyle}>
