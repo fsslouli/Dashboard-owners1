@@ -295,8 +295,16 @@ const trMonth = (lang, m) => {
   const i = +m.slice(5, 7) - 1;
   return lang === "en" ? `${MONTH_EN_LABEL[i]} ${m.slice(0, 4)}` : `${MONTH_AR[i]} ${m.slice(0, 4)}`;
 };
-const trNote = (lang, r) => (lang === "en" ? (r.note_en || r.note) : r.note);
-const trReply = (lang, r) => (lang === "en" ? (r.reply_en || r.reply) : r.reply);
+/* ═══ v2.8.3 — حارس ضد فشل خدمة الترجمة (MyMemory المجاني) ═══
+   أحيانًا (تجاوز الحصة المجانية اليومية غالبًا) ترجع الخدمة نص تحذيرها الخاص داخل حقل
+   الترجمة نفسه بدل رفض الطلب بوضوح — فيُحفظ بقاعدة البيانات وكأنه ترجمة صحيحة، ويظهر
+   للزائر الإنجليزي حرفيًا (مثل "MYMEMORY WARNING: YOU USED ALL AVAILABLE..."). هذا يكتشف
+   الصيغ الثابتة المعروفة لرسائل الخدمة ويتجاهلها، فترجع الواجهة للنص العربي الأصلي —
+   بالضبط نفس تصرفها المعتاد مع أي ملاحظة ما وصلتها ترجمة بعد. */
+const TR_FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE|IS AN INVALID (SOURCE|TARGET) LANGUAGE|PLEASE SELECT TWO DISTINCT LANGUAGES|INVALID EMAIL PROVIDED|NO TRANSLATIONS? (FOUND|AVAILABLE)/i;
+const isTrFail = (t) => typeof t === "string" && TR_FAIL_RX.test(t);
+const trNote = (lang, r) => (lang === "en" ? (r.note_en && !isTrFail(r.note_en) ? r.note_en : r.note) : r.note);
+const trReply = (lang, r) => (lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) ? r.reply_en : r.reply) : r.reply);
 
 /* ═══════════════════════════════════════════════════════════
    ٤. نظام الألوان (Theme) — فاتح للنهار وداكن لليل.
@@ -1499,6 +1507,21 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.8.3",
+    dateAr: "10 سبتمبر 2026",
+    dateEn: "September 10, 2026",
+    ar: [
+      "تصحيح: عند تجاوز الحصة اليومية لخدمة الترجمة المجانية، كانت رسالة تحذير الخدمة نفسها (بالإنجليزية) تُعرض للزائر كأنها ترجمة الملاحظة — ظهر هذا فعليًا بملاحظة واحدة بلوحة \u200f\"نظرة عامة\"\u200f بالعرض الإنجليزي",
+      "الموقع صار يتعرّف على رسائل خطأ خدمة الترجمة المعروفة ويتجاهلها، ويعرض النص العربي الأصلي بدلًا منها — تمامًا كما يتصرف مع أي ملاحظة ما توفرت ترجمتها بعد",
+      "المعالجة تشمل كل مكان يظهر فيه نص الملاحظة أو الرد بالإنجليزي: البطاقات، الجدول، لوحة التفاصيل، وأحدث الملاحظات بالنظرة العامة",
+    ],
+    en: [
+      "Fixed: when the free translation service's daily quota ran out, its own English warning message was shown to visitors as if it were the note's translation — this actually appeared on one note in English-language \"Overview\"",
+      "The site now recognizes known translation-service error messages and ignores them, showing the original Arabic text instead — the same fallback already used for any note without an English translation yet",
+      "This covers every place note or reply text appears in English: cards, the table, the detail sheet, and Overview's Latest Notes",
+    ],
+  },
   {
     version: "2.8.2",
     dateAr: "10 سبتمبر 2026",
