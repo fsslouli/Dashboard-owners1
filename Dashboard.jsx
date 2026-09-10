@@ -64,7 +64,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from "recharts";
 import {
-  Search, X, ChevronDown, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
+  Search, X, ChevronDown, ChevronUp, CheckCircle2, XCircle, Clock, Users, Layers, ShieldAlert,
   RotateCcw, User, Calendar, Hash, Ruler, Droplet, ArrowLeft, Home,
   RefreshCw, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
@@ -1296,9 +1296,9 @@ function Chip({ on, onClick, children, color, count }) {
   );
 }
 
-function Select({ value, onChange, options, placeholder, icon: Icon }) {
+function Select({ value, onChange, options, placeholder, icon: Icon, block }) {
   return (
-    <div className="sel-wrap">
+    <div className={block ? "sel-wrap sel-wrap-block" : "sel-wrap"}>
       {Icon && <Icon size={13} className="sel-ic" />}
       <select className="sel" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}>
         <option value="">{placeholder}</option>
@@ -1507,6 +1507,44 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.8.5",
+    dateAr: "10 سبتمبر 2026",
+    dateEn: "September 10, 2026",
+    ar: [
+      "تحكم إداري كامل بفئات الفلترة الأساسية (الأولوية، الفئة، الحالة، الجهة المجيبة، الاجتماع) من تبويب \u200f\"الفلاتر\"\u200f بلوحة الإدارة: إضافة قيمة جديدة، إعادة تسمية، حذف، وإعادة ترتيب — بدل ما كانت هذي الفئات مقفلة بالكامل",
+      "إعادة التسمية تُحدّث كل استفسار يستخدم القيمة تلقائيًا وفوريًا (وتدمج بذكاء لو سمّيت قيمة باسم موجود أصلاً بدل ما تكرّرها)",
+      "الحذف محمي: يرفض ويعرض عدد الاستفسارات المتأثرة لو القيمة مستخدمة فعليًا، ولا ينفّذ إلا بتأكيد صريح",
+      "فلاتر الموقع العام (لوحة \u200f\"تخصيص البحث\"\u200f) ونموذج إضافة/تعديل الاستفسار بلوحة الإدارة صارا يقرآن هذي القوائم حيّة من نفس المكان — أي تعديل إداري ينعكس فورًا بدون إعادة نشر",
+      "النموذج والموقع مستثنيان حاليًا من التعديل المباشر: قيمتهما نص حر يُصنَّف تلقائيًا بالكود، فيحتاجان تصميمًا مختلفًا — يظهران للعِلم فقط بهذا الإصدار",
+    ],
+    en: [
+      "Full admin control over the core filter categories (priority, category, status, responding engineer, meeting) from the admin panel's Filters tab: add a new value, rename, delete, and reorder — these were previously fully locked",
+      "Renaming a value updates every inquiry using it automatically and immediately (and merges intelligently if renamed to an already-existing value instead of duplicating it)",
+      "Deleting is protected: it's refused and shows how many inquiries are affected if the value is actually in use, and only proceeds with explicit confirmation",
+      "The public site's filters (the \"Customize Search\" panel) and the admin's add/edit-inquiry form now read these lists live from the same place — any admin change reflects immediately with no redeploy",
+      "Model and location are excluded from direct editing for now: their values are free text auto-classified by code, which needs a different design — shown for reference only in this release",
+    ],
+  },
+  {
+    version: "2.8.4",
+    dateAr: "10 سبتمبر 2026",
+    dateEn: "September 10, 2026",
+    ar: [
+      "إعادة تصميم أدوات لوحة المتابعة: بدل صندوق طويل بكل الفلاتر والترتيب مبعثرة فوق القائمة، صار فيه زر واحد \u200f\"الفلاتر والترتيب\"\u200f يفتح لوحة \u200f\"تخصيص البحث\"\u200f منظّمة بأقسام (الحالة، تمييز، الأولوية، الترتيب، التصنيف والنموذج، الموقع والمجيب، التوقيت)",
+      "التعديلات داخل لوحة التخصيص مسودة لا تُطبَّق على القائمة إلا بالضغط على زر \u200f\"عرض النتائج\"\u200f — يعرض عدد النتائج المتوقع مباشرة قبل ما تطبّق، فتقدر تجرّب عدة خيارات مرة وحدة بدل ما تعيد القائمة رسم نفسها مع كل ضغطة",
+      "مربع البحث النصي يبقى ظاهرًا دائمًا فوق القائمة ويشتغل فورًا كالمعتاد — خارج لوحة التخصيص تمامًا",
+      "زر الفلاتر يحمل شارة برقم الفلاتر النشطة (بدون احتساب نص البحث)، مع زر \u200f\"مسح\"\u200f سريع يظهر بجانبه لمسح الفلاتر فقط دون التأثير على نص البحث",
+      "الشريط المصغّر اللي يظهر أثناء التمرير لأسفل يفتح نفس لوحة التخصيص مباشرة بدل الرجوع للأعلى",
+    ],
+    en: [
+      "Redesigned the notes-board toolbar: instead of one long box with every filter and sort control laid out above the list, a single \"Filters & sort\" button now opens a \"Customize Search\" panel organized into sections (Status, Flags, Priority, Sort, Category & Model, Location & Engineer, Timing)",
+      "Changes inside the customize panel are a draft that only applies to the list when you press \"Show results\" — it shows the expected result count live before you apply, so you can try several options at once instead of the list redrawing after every tap",
+      "The text search box stays always visible above the list and works instantly as before — entirely separate from the customize panel",
+      "The Filters button carries a badge with the number of active filters (not counting the search text), with a quick \"Clear\" button beside it that clears filters only, leaving your search text untouched",
+      "The condensed bar that appears while scrolling down now opens the same customize panel directly instead of jumping back to the top",
+    ],
+  },
   {
     version: "2.8.3",
     dateAr: "10 سبتمبر 2026",
@@ -2511,6 +2549,133 @@ function ChangelogSheet({ open, onClose }) {
   );
 }
 
+/* ── لوحة "الفلاتر والترتيب" — كل معايير التصفية بمكان واحد بدل صندوق طويل فوق
+   لوحة المتابعة. الاختيارات هنا مسودة محلية ولا تُطبَّق على النتائج الفعلية إلا
+   بالضغط على "عرض النتائج"، فتقدر تجرّب عدة خيارات مرة وحدة بدل ما تعيد القائمة
+   رسم نفسها مع كل ضغطة. نص البحث يبقى خارج اللوحة ويشتغل فورًا كالمعتاد. ── */
+function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, nqId, urgentCount, importantCount, newCount, openCount }) {
+  const { T } = useT();
+  const { lang } = useLang();
+  const L = (ar, en) => (lang === "en" ? en : ar);
+  const staC = (s) => T.sta[s] || hashPick(s, T.extra);
+  const [draft, setDraft] = useState(f);
+  const [draftSort, setDraftSort] = useState(sort);
+  const [scrolled, setScrolled] = useState(false);
+
+  useBackClose(open, onClose);
+  /* مزامنة المسودة من الفلاتر الفعلية المطبّقة في كل مرة تُفتح فيها اللوحة —
+     عشان لو انفتحت بعد تغيّر الفلاتر من مكان ثاني (مثل روابط النظرة العامة) تبدأ صح */
+  useEffect(() => {
+    if (!open) return;
+    setDraft(f); setDraftSort(sort); setScrolled(false);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
+  if (!open) return null;
+
+  const dtoggle = (k, v) => setDraft((p) => ({ ...p, [k]: p[k] === v ? (typeof v === "boolean" ? !v : null) : v }));
+  const dval = (k, v) => setDraft((p) => ({ ...p, [k]: v }));
+  const draftCount = Object.entries(draft).filter(([k, v]) => k !== "q" && (typeof v === "boolean" ? v : v != null)).length;
+  const previewCount = ALL.filter((r) => passesFilters(r, draft, nq, nqId)).length;
+
+  return (
+    <div className="ovl" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }} role="dialog" aria-modal="true">
+        <div className="sheet-top" data-scrolled={scrolled ? "1" : "0"}>
+          <div>
+            <div className="sec-t">{L("تخصيص البحث", "Customize Search")}</div>
+            <div className="eyebrow" style={{ marginTop: 3 }}>{L("اختر المعايير ثم اعرض النتيجة", "Pick your criteria, then show the results")}</div>
+          </div>
+          <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
+        </div>
+
+        <div className="sheet-body" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
+          <div className="sec-lbl">{L("الحالة", "Status")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.sta.map((s) => (
+              <Chip key={s} on={draft.sta === s} onClick={() => dtoggle("sta", s)} color={staC(s)}
+                count={ALL.filter((r) => r.sta === s).length}>{trSta(lang, s)}</Chip>
+            ))}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("تمييز", "Flags")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            <Chip on={draft.open} onClick={() => dtoggle("open", true)} color={T.brass} count={openCount}>{L("مفتوحة", "Open")}</Chip>
+            <Chip on={draft.fresh} onClick={() => dtoggle("fresh", true)} color={T.sta["معتمدة"]} count={newCount}>{L("الجديد", "New")}</Chip>
+            {importantCount > 0 && (
+              <Chip on={draft.important} onClick={() => dtoggle("important", true)} color="#C0392B" count={importantCount}>{L("مهم", "Important")}</Chip>
+            )}
+            {urgentCount > 0 && (
+              <Chip on={draft.urgent} onClick={() => dtoggle("urgent", true)} color="#B8790F" count={urgentCount}>{L("يجب الاطلاع", "Needs review")}</Chip>
+            )}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الأولوية", "Priority")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.pri.map((p) => (
+              <Chip key={p} on={draft.pri === p} onClick={() => dtoggle("pri", p)}
+                count={ALL.filter((r) => r.pri === p).length}>{trPri(lang, p)}</Chip>
+            ))}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الترتيب", "Sort")}</div>
+          <Select block value={draftSort} onChange={(v) => setDraftSort(v || "id")} placeholder={L("ترتيب", "Sort")} icon={Hash}
+            options={[
+              { v: "id", l: L("الأرقام: الأحدث أولاً", "Number: newest first") },
+              { v: "date", l: L("الأحدث أولاً (بالتاريخ)", "Newest first (by date)") },
+              { v: "new", l: L("الجديد أولاً", "New first") },
+              { v: "pri", l: L("الأولوية أولاً", "Priority first") },
+              { v: "open", l: L("المفتوحة أولاً", "Open first") },
+            ]} />
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("التصنيف والنموذج", "Category & Model")}</div>
+          <div className="filt-grid">
+            <Select block value={draft.cat} onChange={(v) => dval("cat", v)} placeholder={L("كل الفئات", "All categories")} icon={Tag}
+              options={cats.cat.map((c) => ({ v: c, l: `${trCat(lang, c)} (${ALL.filter((r) => r.cat === c).length})` }))} />
+            <Select block value={draft.model} onChange={(v) => dval("model", v)} placeholder={L("كل النماذج", "All models")} icon={Home}
+              options={cats.models.map((m) => ({ v: m, l: `${trModel(lang, m)} (${ALL.filter((r) => r.models.includes(m)).length})` }))} />
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الموقع والمجيب", "Location & Engineer")}</div>
+          <div className="filt-grid">
+            <Select block value={draft.zone} onChange={(v) => dval("zone", v)} placeholder={L("كل المواقع", "All locations")} icon={Layers}
+              options={ZONES.filter((z) => ALL.some((r) => r.zone === z.key)).map((z) => ({ v: z.key, l: trZone(lang, z.key) }))} />
+            <Select block value={draft.own} onChange={(v) => dval("own", v)} placeholder={L("كل المجيبين", "All engineers")} icon={User}
+              options={cats.owners.map((m) => ({ v: m, l: trOwn(lang, m) }))} />
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("التوقيت", "Timing")}</div>
+          <Select block value={draft.mon} onChange={(v) => dval("mon", v)} placeholder={L("كل الأشهر", "All months")} icon={Calendar}
+            options={cats.months.map((m) => ({ v: m, l: trMonth(lang, m) }))} />
+          {cats.meetings.length > 0 && (
+            <div className="flex flex-wrap items-center" style={{ gap: 8, marginTop: 10 }}>
+              {cats.meetings.map((m) => (
+                <Chip key={m} on={draft.meeting === m} onClick={() => dtoggle("meeting", m)} color={T.zone}>
+                  {`${trMeeting(lang, m)} (${ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length})`}
+                </Chip>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="sheet-foot">
+          <button className="wide-btn" style={{ margin: 0, flex: 1 }} onClick={() => { setDraft(EMPTY_F); setDraftSort("id"); }}>
+            <RotateCcw size={13} /> {L("مسح الكل", "Clear all")}{draftCount > 0 ? ` (${draftCount})` : ""}
+          </button>
+          <button className="big-btn" style={{ margin: 0, flex: 2 }} onClick={() => { onApply(draft, draftSort); onClose(); }}>
+            <Search size={15} /> {L(`عرض ${previewCount} نتيجة`, `Show ${previewCount} results`)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── عارض المخططات — ملء الشاشة، تكبير بالإصبعين/نقرتين، تنقّل بين الصفحات ── */
 function DocViewerSheet({ doc, onClose }) {
   const { resolved } = useT();
@@ -3276,6 +3441,26 @@ function ProgressTab({ reduced, data, loading }) {
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false };
 
+/* ═══ v2.8.4 — منطق التصفية مستقل عن حالة اللوحة ═══
+   استُخرج من useMemo الخاص بـ match() عشان تقدر لوحة "الفلاتر" تحسب عدد نتائج
+   المسودة (قبل تطبيقها فعليًا) بنفس المنطق تمامًا، بدون أي احتمال تكرار أو تعارض. */
+function passesFilters(r, f, nq, nqId) {
+  if (f.zone && r.zone !== f.zone) return false;
+  if (f.pri && r.pri !== f.pri) return false;
+  if (f.cat && r.cat !== f.cat) return false;
+  if (f.sta && r.sta !== f.sta) return false;
+  if (f.model && !r.models.includes(f.model)) return false;
+  if (f.own && r.owner !== f.own) return false;
+  if (f.mon && r.month !== f.mon) return false;
+  if (f.meeting && !((r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(f.meeting))) return false;
+  if (f.open && r.closed) return false;
+  if (f.fresh && !r.isNew) return false;
+  if (f.important && !r.isImportantActive) return false;
+  if (f.urgent && !r.isUrgentActive) return false;
+  if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
+  return true;
+}
+
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
   try {
@@ -3432,6 +3617,36 @@ function PublicSite() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  /* ═══ v2.8.5 — فئات الفلترة الحية من لوحة الإدارة ═══
+     يجيب مصفوفة القيم لكل فئة (الأولوية، الفئة، الحالة، الجهة المجيبة، الاجتماع)
+     من نفس جدول filter_categories اللي تديره لوحة الإدارة، ويشترك بتحديثاتها
+     الفورية — أي تعديل/إضافة/حذف/ترتيب يسويه الأدمن ينعكس هنا مباشرة بدون
+     إعادة نشر. لو الجدول فاضي أو الاتصال فشل، تُستخدم القوائم الأساسية
+     المدمجة بالكود (PRI_ORDER/STA_ORDER/...) كخط رجوع آمن. */
+  const [liveCats, setLiveCats] = useState({});
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const { data: rows, error } = await supabase.from("filter_categories").select("key,values");
+        if (!error && rows && rows.length) {
+          const m = {};
+          rows.forEach((r) => { m[r.key] = (r.values || []).filter((v) => v != null && v !== ""); });
+          setLiveCats(m);
+        }
+      } catch {}
+    };
+    fetchCats();
+    const channel = supabase
+      .channel("public-filter-categories-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "filter_categories" }, fetchCats)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+  const priOrder = liveCats.pri && liveCats.pri.length ? liveCats.pri : PRI_ORDER;
+  const staOrder = liveCats.status && liveCats.status.length ? liveCats.status : STA_ORDER;
+  const catOrder = liveCats.cat && liveCats.cat.length ? liveCats.cat : CAT_ORDER;
+  const meetingOrder = liveCats.meeting && liveCats.meeting.length ? liveCats.meeting : MEETING_ORDER;
+
   const [loading, setLoading] = useState(true);
   const [pg, setPg] = useState(PG_BASE);
   const [pgLoading, setPgLoading] = useState(true);
@@ -3441,6 +3656,7 @@ function PublicSite() {
   const [navList, setNavList] = useState(null);
   const openRecord = (r, list) => { setSel(r); setNavList(list || null); };
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [legalAgreed, setLegalAgreed] = useState(false);
   const [limit, setLimit] = useState(12);
   const tabsRef = useRef(null);
@@ -3589,14 +3805,14 @@ function PublicSite() {
   }, [ALL, loading]);
 
   const cats = useMemo(() => ({
-    pri: uniqSorted(ALL.map((r) => r.pri), PRI_ORDER),
-    cat: uniqSorted(ALL.map((r) => r.cat), CAT_ORDER),
-    sta: uniqSorted(ALL.map((r) => r.sta), STA_ORDER),
+    pri: uniqSorted(ALL.map((r) => r.pri), priOrder),
+    cat: uniqSorted(ALL.map((r) => r.cat), catOrder),
+    sta: uniqSorted(ALL.map((r) => r.sta), staOrder),
     models: MODEL_LIST.filter((m) => ALL.some((r) => r.models.includes(m))),
-    owners: [...new Set(ALL.map((r) => r.owner))].filter(Boolean).sort((a, b) => a.localeCompare(b, "ar")),
+    owners: uniqSorted(ALL.map((r) => r.owner), liveCats.owner || []),
     months: [...new Set(ALL.map((r) => r.month))].filter(Boolean).sort(),
-    meetings: uniqSorted(ALL.flatMap((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting])), MEETING_ORDER),
-  }), [ALL]);
+    meetings: uniqSorted(ALL.flatMap((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting])), meetingOrder),
+  }), [ALL, priOrder, catOrder, staOrder, liveCats.owner, meetingOrder]);
 
   const newCount = ALL.filter((r) => r.isNew).length;
   const openCount = ALL.filter((r) => !r.closed).length;
@@ -3616,6 +3832,7 @@ function PublicSite() {
   };
   const set = (k, v) => { setF((p) => ({ ...p, [k]: p[k] === v ? (typeof v === "boolean" ? !v : null) : v })); setLimit(12); };
   const reset = () => { setF(EMPTY_F); setLimit(12); };
+  const clearFiltersOnly = () => { setF((p) => ({ ...EMPTY_F, q: p.q })); setLimit(12); };
   const nq = useMemo(() => norm(f.q.trim()), [f.q]);
   /* رقم الاستفسار: يقبل أرقامًا عربية أو إنجليزية، مع أو بدون # — يبحث بالتطابق التام على المعرّف */
   const nqId = useMemo(() => {
@@ -3623,34 +3840,19 @@ function PublicSite() {
     return /^\d+$/.test(raw) ? Number(raw) : null;
   }, [f.q]);
 
-  const match = useMemo(() => (r, skip = {}) => {
-    if (!skip.zone && f.zone && r.zone !== f.zone) return false;
-    if (!skip.pri && f.pri && r.pri !== f.pri) return false;
-    if (!skip.cat && f.cat && r.cat !== f.cat) return false;
-    if (!skip.sta && f.sta && r.sta !== f.sta) return false;
-    if (f.model && !r.models.includes(f.model)) return false;
-    if (f.own && r.owner !== f.own) return false;
-    if (f.mon && r.month !== f.mon) return false;
-    if (f.meeting && !((r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(f.meeting))) return false;
-    if (f.open && r.closed) return false;
-    if (f.fresh && !r.isNew) return false;
-    if (f.important && !r.isImportantActive) return false;
-    if (f.urgent && !r.isUrgentActive) return false;
-    if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
-    return true;
-  }, [f, nq, nqId]);
+  const match = useMemo(() => (r) => passesFilters(r, f, nq, nqId), [f, nq, nqId]);
 
   const rows = useMemo(() => ALL.filter((r) => match(r)), [ALL, match]);
 
   const sorted = useMemo(() => {
     const a = [...rows];
-    if (sort === "pri") a.sort((x, y) => rank(PRI_ORDER)(x.pri) - rank(PRI_ORDER)(y.pri) || x.id - y.id);
+    if (sort === "pri") a.sort((x, y) => rank(priOrder)(x.pri) - rank(priOrder)(y.pri) || x.id - y.id);
     else if (sort === "date") a.sort((x, y) => monthValue(y).localeCompare(monthValue(x)) || y.id - x.id);
-    else if (sort === "open") a.sort((x, y) => x.closed - y.closed || rank(PRI_ORDER)(x.pri) - rank(PRI_ORDER)(y.pri));
+    else if (sort === "open") a.sort((x, y) => x.closed - y.closed || rank(priOrder)(x.pri) - rank(priOrder)(y.pri));
     else if (sort === "new") a.sort((x, y) => (y.isNew ? 1 : 0) - (x.isNew ? 1 : 0) || x.id - y.id);
     else a.sort((x, y) => y.id - x.id);
     return a;
-  }, [rows, sort]);
+  }, [rows, sort, priOrder]);
 
   /* تحميل تلقائي: يزيد الحد المعروض عند اقتراب نهاية القائمة من الشاشة أثناء التمرير */
   useEffect(() => {
@@ -3704,6 +3906,9 @@ function PublicSite() {
     if (f.urgent) out.push({ k: "urgent", l: L("يجب الاطلاع فقط", "Needs review only") });
     return out;
   }, [f, lang]);
+  /* عدد الفلاتر النشطة بدون نص البحث — يُعرض كشارة على زر "الفلاتر" نفسه،
+     منفصل عن نص البحث لأن مربع البحث ظاهر دائمًا وله مؤشره الخاص أصلًا */
+  const filterOnlyCount = activeChips.filter((c) => c.k !== "q").length;
 
   return (
     <ThemeCtx.Provider value={{ T, mode, setMode, resolved }}>
@@ -3896,6 +4101,14 @@ function PublicSite() {
 .sel option{background:${T.surface};color:${T.paper};}
 .sel-ic{position:absolute;right:10px;color:${T.muted};pointer-events:none;}
 .sel-ch{position:absolute;left:8px;color:${T.muted};pointer-events:none;}
+.sel-wrap-block{display:flex;width:100%;}
+.sel-wrap-block .sel{width:100%;max-width:none;}
+/* v2.8.4 — لوحة "الفلاتر": شبكة عمودين للحقول المزدوجة تنكسر لعمود واحد على الجوال،
+   وذيل ثابت أسفل اللوحة لزرّي "مسح الكل" و"عرض النتائج" فوق أي محتوى قابل للتمرير */
+.filt-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:520px){.filt-grid{grid-template-columns:1fr 1fr;}}
+.sheet-foot{display:flex;gap:10px;flex:none;padding:14px 19px calc(14px + env(safe-area-inset-bottom));
+  border-top:1px solid ${T.line};background:${T.sunken};}
 
 .srch{width:100%;background:${T.surface};border:1px solid ${T.line};border-radius:13px;
   padding:13px 40px 13px 36px;color:${T.paper};font-size:14.5px;font-family:inherit;}
@@ -4305,7 +4518,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
 
           {tab === "notes" && stickyBar && (
             <div className="mini-bar no-print" style={{ top: tabsH }}>
-              <button className="mini-bar-jump" onClick={() => filtersRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })}>
+              <button className="mini-bar-jump" onClick={() => setFiltersOpen(true)}>
                 <SlidersHorizontal size={13} />
                 <span>{L("الفلاتر", "Filters")}</span>
                 {activeChips.length > 0 && <span className="mono mini-bar-n">{activeChips.length}</span>}
@@ -4524,7 +4737,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
             <div className="tab-panel">
               {/* أدوات لوحة المتابعة */}
               <section ref={filtersRef} className="surf no-print" style={{ padding: 18, marginBottom: 16 }}>
-                <div className="relative" style={{ marginBottom: 14 }}>
+                <div className="relative" style={{ marginBottom: 12 }}>
                   <Search size={17} style={{ position: "absolute", right: lang === "ar" ? 14 : "auto", left: lang === "ar" ? "auto" : 14, top: 14, color: T.faint }} />
                   <input className="srch" value={f.q} placeholder={L("ابحث في نص الملاحظة أو الرد…", "Search note or reply text…")}
                     onChange={(e) => { setF((p) => ({ ...p, q: e.target.value })); setLimit(12); }} />
@@ -4534,50 +4747,17 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
-                  {urgentCount > 0 && (
-                    <Chip on={f.urgent} onClick={() => set("urgent", true)} color="#B8790F" count={urgentCount}>{L("يجب الاطلاع", "Needs review")}</Chip>
+                {/* v2.8.4: بدل صندوق طويل بكل الفلاتر، زر واحد يفتح لوحة "تخصيص البحث" —
+                    نفس كل خيارات التصفية والترتيب، بس منظّمة داخل لوحة بدل مبعثرة هنا */}
+                <div className="flex items-center flex-wrap" style={{ gap: 8 }}>
+                  <button className="icon-btn" data-primary={filterOnlyCount > 0 ? "1" : "0"} onClick={() => setFiltersOpen(true)}>
+                    <SlidersHorizontal size={14} /> {L("الفلاتر والترتيب", "Filters & sort")}
+                    {filterOnlyCount > 0 && <span className="mono mini-bar-n">{filterOnlyCount}</span>}
+                  </button>
+                  {filterOnlyCount > 0 && (
+                    <button className="icon-btn" onClick={clearFiltersOnly}><RotateCcw size={12} /> {L("مسح", "Clear")}</button>
                   )}
-                  {importantCount > 0 && (
-                    <Chip on={f.important} onClick={() => set("important", true)} color="#C0392B" count={importantCount}>{L("مهم", "Important")}</Chip>
-                  )}
-                  <Chip on={f.fresh} onClick={() => set("fresh", true)} color={T.sta["معتمدة"]} count={newCount}>{L("الجديد", "New")}</Chip>
-                  <Chip on={f.open} onClick={() => set("open", true)} color={T.brass} count={openCount}>{L("مفتوحة", "Open")}</Chip>
-                  {cats.sta.map((s) => (
-                    <Chip key={s} on={f.sta === s} onClick={() => set("sta", s)} color={staC(s)}
-                      count={ALL.filter((r) => r.sta === s).length}>{trSta(lang, s)}</Chip>
-                  ))}
                 </div>
-
-                <div className="flex flex-wrap items-center" style={{ gap: 8, marginTop: 12 }}>
-                  <Select value={sort} onChange={(v) => setSort(v || "id")} placeholder={L("ترتيب", "Sort")} icon={Hash}
-                    options={[{ v: "id", l: L("الأرقام: الأحدث أولاً", "Number: newest first") }, { v: "date", l: L("الأحدث أولاً (بالتاريخ)", "Newest first (by date)") }, { v: "new", l: L("الجديد أولاً", "New first") }, { v: "pri", l: L("الأولوية أولاً", "Priority first") }, { v: "open", l: L("المفتوحة أولاً", "Open first") }]} />
-                  <Select value={f.pri} onChange={(v) => { setF((p) => ({ ...p, pri: v })); setLimit(12); }} placeholder={L("كل الأولويات", "All priorities")} icon={Layers} options={cats.pri.map((p) => ({ v: p, l: trPri(lang, p) }))} />
-                  <Select value={f.cat} onChange={(v) => { setF((p) => ({ ...p, cat: v })); setLimit(12); }} placeholder={L("كل الفئات", "All categories")} icon={Tag}
-                    options={cats.cat.map((c) => ({ v: c, l: `${trCat(lang, c)} (${ALL.filter((r) => r.cat === c).length})` }))} />
-                  <Select value={f.model} onChange={(v) => { setF((p) => ({ ...p, model: v })); setLimit(12); }} placeholder={L("كل النماذج", "All models")} icon={Home}
-                    options={cats.models.map((m) => ({ v: m, l: `${trModel(lang, m)} (${ALL.filter((r) => r.models.includes(m)).length})` }))} />
-                  <Select value={f.zone} onChange={(v) => { setF((p) => ({ ...p, zone: v })); setLimit(12); }} placeholder={L("كل المواقع", "All locations")} icon={Layers}
-                    options={ZONES.filter((z) => ALL.some((r) => r.zone === z.key)).map((z) => ({ v: z.key, l: trZone(lang, z.key) }))} />
-                  <Select value={f.own} onChange={(v) => { setF((p) => ({ ...p, own: v })); setLimit(12); }} placeholder={L("كل المجيبين", "All engineers")} icon={User} options={cats.owners.map((m) => ({ v: m, l: trOwn(lang, m) }))} />
-                  <Select value={f.mon} onChange={(v) => { setF((p) => ({ ...p, mon: v })); setLimit(12); }} placeholder={L("كل الأشهر", "All months")} icon={Calendar} options={cats.months.map((m) => ({ v: m, l: trMonth(lang, m) }))} />
-                  {cats.meetings.map((m) => (
-                    <Chip key={m} on={f.meeting === m} onClick={() => set("meeting", m)} color={T.zone}>{`${trMeeting(lang, m)} (${ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length})`}</Chip>
-                  ))}
-                </div>
-
-                {activeChips.length > 0 && (
-                  <div className="flex flex-wrap items-center" style={{ gap: 8, marginTop: 14 }}>
-                    <span style={{ fontSize: 11.5, color: T.muted }}>{L("مُصفّى على:", "Filtered by:")}</span>
-                    {activeChips.map((c) => (
-                      <button key={c.k} className="fchip"
-                        onClick={() => { setF((p) => ({ ...p, [c.k]: c.k === "open" || c.k === "fresh" || c.k === "important" || c.k === "urgent" ? false : c.k === "q" ? "" : null })); setLimit(12); }}>
-                        {c.l} <X size={12} />
-                      </button>
-                    ))}
-                    <button className="icon-btn" onClick={reset}><RotateCcw size={12} /> {L("مسح الكل", "Clear all")}</button>
-                  </div>
-                )}
               </section>
 
               <div className="flex items-baseline res-row" style={{ gap: 8, marginBottom: 14 }}>
@@ -4704,6 +4884,9 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
 
         <Sheet r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} />
         <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+        <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
+          nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount}
+          onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
         <DocViewerSheet doc={docView} onClose={() => setDocView(null)} />
 
         {showTop && (
@@ -4889,13 +5072,17 @@ function ALocked({ text }) {
   const T = useSystemTheme();
   return <div style={{ background: T.surface, border: `1px dashed ${T.line}`, borderRadius: 16, padding: 30, textAlign: "center" }}><ShieldAlert size={22} color={T.faint} style={{ marginBottom: 8 }} /><div style={{ fontSize: 13, color: T.muted }}>{text}</div></div>;
 }
-function afieldInput(label, value, onChange, opts) {
+function afieldInput(label, value, onChange, opts, listOpts) {
   const T = CURRENT_ADMIN_THEME;
+  const listId = listOpts ? `dl-${label}`.replace(/[^a-zA-Z0-9\u0600-\u06FF]+/g, "-") : undefined;
   return (
     <div key={label}>
       <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>{label}</label>
       {opts ? (<select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }}>{opts.map((o) => <option key={o} value={o}>{o === "" ? "— بدون —" : o}</option>)}</select>)
-        : (<input value={value || ""} onChange={(e) => onChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />)}
+        : (<>
+            <input value={value || ""} onChange={(e) => onChange(e.target.value)} list={listId} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken }} />
+            {listOpts && listOpts.length > 0 && <datalist id={listId}>{listOpts.map((o) => <option key={o} value={o} />)}</datalist>}
+          </>)}
     </div>
   );
 }
@@ -5863,6 +6050,13 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
 function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, canImport, canAdd, canEdit, canDelete, log }) {
   const T = useSystemTheme();
+  /* v2.8.5 — يقرأ قيم فئة فلترة من الجدول الحي (تديره لوحة "الفلاتر")، ويرجع
+     للقائمة المدمجة بالكود لو الفئة لسه ما وصلت أو فاضية — نفس منطق الرجوع
+     المستخدم بالموقع العام، عشان النموذج هنا يبقى متوافقًا مع أي تعديل إداري فورًا. */
+  const catVals = (key, fallback) => {
+    const c = (categories || []).find((x) => x.key === key);
+    return c && c.values && c.values.length ? c.values : fallback;
+  };
   const fileRef = useRef(null);
   const [sheets, setSheets] = useState(null);
   const [mapping, setMapping] = useState({});
@@ -6492,10 +6686,10 @@ function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, cate
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             {afieldInput(ADMIN_FIELD_LABEL.model, form.model, (v) => setForm((f) => ({ ...f, model: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.loc, form.loc, (v) => setForm((f) => ({ ...f, loc: v })))}
-            {afieldInput(ADMIN_FIELD_LABEL.pri, form.pri, (v) => setForm((f) => ({ ...f, pri: v })), ["عالية جدًا", "عالية", "متوسطة", "عادية"])}
-            {afieldInput(ADMIN_FIELD_LABEL.cat, form.cat ?? "", (v) => setForm((f) => ({ ...f, cat: v })), ["", ...CAT_ORDER])}
-            {afieldInput(ADMIN_FIELD_LABEL.status, form.status, (v) => setForm((f) => ({ ...f, status: v })), ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"])}
-            {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })))}
+            {afieldInput(ADMIN_FIELD_LABEL.pri, form.pri, (v) => setForm((f) => ({ ...f, pri: v })), catVals("pri", ["عالية جدًا", "عالية", "متوسطة", "عادية"]))}
+            {afieldInput(ADMIN_FIELD_LABEL.cat, form.cat ?? "", (v) => setForm((f) => ({ ...f, cat: v })), ["", ...catVals("cat", CAT_ORDER)])}
+            {afieldInput(ADMIN_FIELD_LABEL.status, form.status, (v) => setForm((f) => ({ ...f, status: v })), catVals("status", ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"]))}
+            {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })), null, catVals("owner", []))}
             {afieldInput(ADMIN_FIELD_LABEL.month, form.month, (v) => setForm((f) => ({ ...f, month: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.closed, form.closed, (v) => setForm((f) => ({ ...f, closed: v })), ["نعم", "لا"])}
             {afieldInput(ADMIN_FIELD_LABEL.answered, form.answered, (v) => setForm((f) => ({ ...f, answered: v })), ["نعم", "لا"])}
@@ -6661,11 +6855,25 @@ function AAnalyticsTab({ flashToast, canExport }) {
     </div>
   );
 }
+/* ── الفلاتر: تحكم إداري كامل بقيم الأولوية والفئة والحالة والجهة المجيبة
+   والاجتماع — إعادة تسمية تُحدّث كل استفسار يستخدم القيمة تلقائيًا (وتدمج
+   بذكاء لو سمّيت قيمة باسم موجود أصلاً)، وحذف محمي يرفض ويعرض عدد
+   الاستفسارات المتأثرة إلا بتأكيد صريح، وترتيب يتحكم بترتيب ظهور القيمة
+   بفلاتر الموقع العام ونموذج إضافة/تعديل استفسار.
+   النموذج والموقع مستثنيان من هذا: قيمتهما نص حر تُصنَّف بخوارزمية بالكود
+   (مو قيمة محفوظة مباشرة)، فتعديلهما يحتاج تصميم مختلف — يظهران هنا للعِلم
+   فقط بدون أزرار تحرير. ── */
+const FILTERS_TIER1 = ["pri", "cat", "status", "owner", "meeting"];
 
-/* ── الفلاتر المخصصة ── */
 function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
   const T = useSystemTheme();
   const [newCatName, setNewCatName] = useState(""); const [newVal, setNewVal] = useState(""); const [draftValues, setDraftValues] = useState([]);
+  const [editingVal, setEditingVal] = useState(null);   /* { key, old, draft } */
+  const [confirmDel, setConfirmDel] = useState(null);   /* { key, val, count } */
+  const [addingTo, setAddingTo] = useState(null);       /* key */
+  const [addDraft, setAddDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+
   const addValueToDraft = () => { if (!newVal.trim()) return; setDraftValues((v) => [...v, newVal.trim()]); setNewVal(""); };
   const createCategory = async () => {
     if (!newCatName.trim() || draftValues.length === 0) { flashToast("لازم اسم الفئة وقيمة وحدة على الأقل"); return; }
@@ -6675,8 +6883,139 @@ function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
   };
   const deleteCategory = async (c) => { await supabase.from("filter_categories").delete().eq("key", c.key); log("حذف فئة فلترة", c.label); refreshCategories(); };
   const deleteValue = async (c, val) => { await supabase.from("filter_categories").update({ values: c.values.filter((v) => v !== val) }).eq("key", c.key); log("حذف قيمة فلتر", `${val} من ${c.label}`); refreshCategories(); };
+
+  /* ═══ v2.8.5 — تحكم كامل بالفئات الأساسية الخمس ═══ */
+  const doRename = async (key, oldVal, draft) => {
+    const v = (draft || "").trim();
+    setEditingVal(null);
+    if (!v || v === oldVal) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("rename_filter_value", { p_key: key, p_old: oldVal, p_new: v });
+    setBusy(false);
+    if (error) { flashToast("تعذّر إعادة التسمية: " + error.message); return; }
+    log("إعادة تسمية قيمة فلتر", `${key}: "${oldVal}" ← "${v}"`);
+    flashToast("تم التحديث في كل الاستفسارات المرتبطة");
+    refreshCategories();
+  };
+  const doDelete = async (key, val, force = false) => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("delete_filter_value", { p_key: key, p_val: val, p_force: force });
+    setBusy(false);
+    if (error) { flashToast("تعذّر الحذف: " + error.message); return; }
+    if (data > 0 && !force) { setConfirmDel({ key, val, count: data }); return; }
+    setConfirmDel(null);
+    log("حذف قيمة فلتر", `${key}: "${val}"${force ? ` (وتفريغ الحقل بـ${data ?? ""} استفسار)` : ""}`);
+    flashToast("تم الحذف");
+    refreshCategories();
+  };
+  const doReorder = async (key, values, i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= values.length) return;
+    const next = [...values]; [next[i], next[j]] = [next[j], next[i]];
+    const { error } = await supabase.from("filter_categories").update({ values: next }).eq("key", key);
+    if (error) { flashToast("تعذّر إعادة الترتيب"); return; }
+    refreshCategories();
+  };
+  const doAdd = async (key, values) => {
+    const v = addDraft.trim();
+    if (!v) return;
+    if (values.includes(v)) { flashToast("القيمة موجودة أصلًا بنفس الفئة"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("filter_categories").update({ values: [...values, v] }).eq("key", key);
+    setBusy(false);
+    if (error) { flashToast("تعذّر الإضافة"); return; }
+    log("إضافة قيمة فلتر", `${key}: "${v}"`);
+    setAddDraft(""); setAddingTo(null);
+    refreshCategories();
+  };
+
+  const rowStyle = { display: "flex", alignItems: "center", gap: 7, background: T.sunken, borderRadius: 10, padding: "6px 8px" };
+  const iconBtn = (color) => ({ background: "none", border: "none", cursor: "pointer", color: color || T.muted, display: "flex", alignItems: "center", padding: 4, flexShrink: 0 });
+  const tier1 = FILTERS_TIER1.map((k) => categories.find((c) => c.key === k)).filter(Boolean);
+  const builtinOther = categories.filter((c) => c.locked && !FILTERS_TIER1.includes(c.key));
+  const custom = categories.filter((c) => !c.locked);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ ...aNoteStyle(T) }}>
+        إعادة التسمية تُحدّث كل استفسار يستخدم القيمة تلقائيًا. الحذف يرفض ويعرض
+        عدد الاستفسارات المتأثرة لو القيمة مستخدمة، وما ينفّذ إلا بتأكيدك الصريح.
+      </div>
+
+      {tier1.map((c) => (
+        <div key={c.key} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{c.label}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(c.values || []).map((v, i) => {
+              const isEditing = editingVal && editingVal.key === c.key && editingVal.old === v;
+              return (
+                <div key={v} style={rowStyle}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <button disabled={i === 0} onClick={() => doReorder(c.key, c.values, i, -1)} style={{ ...iconBtn(), opacity: i === 0 ? 0.25 : 1, padding: 1 }} title="أعلى"><ChevronUp size={12} /></button>
+                    <button disabled={i === c.values.length - 1} onClick={() => doReorder(c.key, c.values, i, 1)} style={{ ...iconBtn(), opacity: i === c.values.length - 1 ? 0.25 : 1, padding: 1 }} title="أسفل"><ChevronDown size={12} /></button>
+                  </div>
+                  {isEditing ? (
+                    <input
+                      autoFocus value={editingVal.draft}
+                      onChange={(e) => setEditingVal((s) => ({ ...s, draft: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") doRename(c.key, v, editingVal.draft); if (e.key === "Escape") setEditingVal(null); }}
+                      onBlur={() => doRename(c.key, v, editingVal.draft)}
+                      style={{ flex: 1, minWidth: 0, padding: "5px 8px", borderRadius: 7, border: `1px solid ${T.brass}`, fontSize: 12.5, background: T.surface, fontFamily: "inherit" }}
+                    />
+                  ) : (
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</span>
+                  )}
+                  {!isEditing && (
+                    <button onClick={() => setEditingVal({ key: c.key, old: v, draft: v })} style={iconBtn()} title="تعديل الاسم" disabled={busy}><Pencil size={12} /></button>
+                  )}
+                  <button onClick={() => doDelete(c.key, v)} style={iconBtn("#C0392B")} title="حذف" disabled={busy}><Trash2 size={12} /></button>
+                </div>
+              );
+            })}
+            {(!c.values || c.values.length === 0) && <div style={{ fontSize: 12, color: T.faint, padding: "4px 2px" }}>ما فيه قيم بعد.</div>}
+          </div>
+
+          {addingTo === c.key ? (
+            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              <input autoFocus value={addDraft} onChange={(e) => setAddDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && doAdd(c.key, c.values || [])}
+                placeholder="قيمة جديدة" style={{ flex: 1, minWidth: 0, padding: "7px 9px", borderRadius: 8, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken, fontFamily: "inherit" }} />
+              <button onClick={() => doAdd(c.key, c.values || [])} disabled={busy} style={{ background: T.brass + "16", color: T.brass, border: "none", borderRadius: 8, padding: "0 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>إضافة</button>
+              <button onClick={() => { setAddingTo(null); setAddDraft(""); }} style={iconBtn()}><X size={13} /></button>
+            </div>
+          ) : (
+            <button onClick={() => { setAddingTo(c.key); setAddDraft(""); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px dashed ${T.line}`, borderRadius: 9, padding: "7px 10px", fontSize: 12, color: T.brass, cursor: "pointer", marginTop: 10, width: "100%", justifyContent: "center", fontFamily: "inherit" }}>
+              <PlusCircle size={13} /> إضافة قيمة لـ{c.label}
+            </button>
+          )}
+        </div>
+      ))}
+
+      {builtinOther.length > 0 && (
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+            <Lock size={13} color={T.faint} />
+            <span style={{ fontSize: 13.5, fontWeight: 700 }}>فئات مُدارة من الكود (النموذج والموقع)</span>
+          </div>
+          <p style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.8, margin: "0 0 12px" }}>
+            قيمتهما نص حر يُصنَّف تلقائيًا (لا قيمة محفوظة مباشرة)، فتعديلهما من هنا معطّل حاليًا.
+            تحتاج تصميم مختلف — قولّي لو تبيها.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {builtinOther.map((c) => (
+              <div key={c.key} style={{ background: T.sunken, borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 7 }}>{c.label}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {(c.values || []).map((v) => (
+                    <span key={v} style={{ background: T.brass + "10", color: T.muted, borderRadius: 999, padding: "3px 9px", fontSize: 11 }}>{v}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Tag size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>إضافة فئة فلترة جديدة يدويًا</span></div>
         <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 }}>اسم الفئة</label>
@@ -6689,20 +7028,42 @@ function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
         {draftValues.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>{draftValues.map((v) => (<span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.sunken, borderRadius: 999, padding: "5px 10px", fontSize: 12 }}>{v} <X size={12} style={{ cursor: "pointer" }} onClick={() => setDraftValues((d) => d.filter((x) => x !== v))} /></span>))}</div>}
         <button onClick={createCategory} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><PlusCircle size={15} /> إنشاء فئة الفلترة</button>
       </div>
-      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>كل الفئات (أساسية تلقائية + مخصصة)</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {categories.map((c) => (
-            <div key={c.key} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>{c.label} {c.locked && <Lock size={11} color={T.faint} />}</span>
-                {!c.locked && <button onClick={() => deleteCategory(c)} style={{ background: "none", border: "none", color: "#C0392B", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11.5 }}><Trash2 size={13} /> حذف الفئة</button>}
+
+      {custom.length > 0 && (
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>الفئات المخصصة</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {custom.map((c) => (
+              <div key={c.key} style={{ background: T.sunken, borderRadius: 12, padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{c.label}</span>
+                  <button onClick={() => deleteCategory(c)} style={{ background: "none", border: "none", color: "#C0392B", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11.5 }}><Trash2 size={13} /> حذف الفئة</button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(c.values || []).map((v) => (<span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.brass + "14", color: T.brass, borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 600 }}>{v} <X size={11} style={{ cursor: "pointer" }} onClick={() => deleteValue(c, v)} /></span>))}</div>
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(c.values || []).map((v) => (<span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.brass + "14", color: T.brass, borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 600 }}>{v} {!c.locked && <X size={11} style={{ cursor: "pointer" }} onClick={() => deleteValue(c, v)} />}</span>))}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {confirmDel && (
+        <div className="ovl" onClick={() => setConfirmDel(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18, zIndex: 200 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, borderRadius: 16, padding: 20, maxWidth: 380, width: "100%", border: `1px solid ${T.line}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <AlertTriangle size={17} color="#C0392B" />
+              <span style={{ fontSize: 14, fontWeight: 700 }}>القيمة مستخدمة فعليًا</span>
+            </div>
+            <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.8, margin: "0 0 16px" }}>
+              "{confirmDel.val}" مستخدمة حاليًا في {confirmDel.count} {confirmDel.count === 1 ? "استفسار" : "استفسارات"}.
+              لو تابعت، الحقل بهذي الاستفسارات يصير فاضي (بدون قيمة) بدل ما يبقى يشاور على قيمة محذوفة.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => doDelete(confirmDel.key, confirmDel.val, true)} disabled={busy} style={{ flex: 1, background: "#C0392B", color: "#fff", border: "none", borderRadius: 11, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>تفريغ الحقل واحذف</button>
+              <button onClick={() => setConfirmDel(null)} style={{ flex: 1, background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 14px", fontSize: 13, cursor: "pointer" }}>تراجع</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -393,7 +393,7 @@ ${D} .lgl-body{padding:18px 20px 20px;overscroll-behavior:contain;}
 ${D} .lgl-pt{border:1px solid var(--nv-hair);border-radius:17px;padding:15px 16px;
   background:${mix(T.sunken, dark ? 48 : 66)};}
 ${D} .lgl-pt:hover{border-color:${mix(A, 38)};}
-${D} .lgl-foot{background:${mix(T.sunken, dark ? 72 : 86)}!important;
+${D} .lgl-foot,${D} .sheet-foot{background:${mix(T.sunken, dark ? 72 : 86)}!important;
   border-top:1px solid var(--nv-hair)!important;
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   box-shadow:0 -14px 26px -22px ${dark ? "rgba(0,0,0,.9)" : "rgba(16,42,58,.5)"};}
