@@ -1500,6 +1500,27 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.8.2",
+    dateAr: "10 سبتمبر 2026",
+    dateEn: "September 10, 2026",
+    ar: [
+      "تصحيح: على الجوال (خصوصًا سفاري الآيفون) كان رأس لوحة تفاصيل الاستفسار — زر الإغلاق وأزرار السابق/التالي — يختفي فوق حافة الشاشة مع الاستفسارات الطويلة، لأن ارتفاع اللوحة كان يُحسب من ارتفاع الشاشة وأشرطة المتصفح مخفية، بينما المساحة الظاهرة فعلًا أقصر",
+      "ارتفاع اللوحة صار يُحسب من المساحة الظاهرة فعلًا، فرأسها يبقى ظاهرًا وثابتًا دائمًا والمحتوى وحده يتمرّر تحته — مع خط خفيف أسفل الرأس يظهر أثناء التمرير",
+      "على الجوال صار للوحة التفاصيل ارتفاع ثابت، فأزرار التنقّل تبقى بنفس المكان تحت الإصبع عند الانتقال بين الاستفسارات بدل ما تتحرك مع اختلاف طول كل استفسار",
+      "كل استفسار تنتقل له يفتح من أعلاه، بدل ما يحتفظ بموضع التمرير من الاستفسار السابق",
+      "وسوم رأس اللوحة (الأولوية، الفئة، جديد، مهم) تنكسر لسطر ثانٍ عند ضيق الشاشة بدل ما تدفع زر الإغلاق وأزرار التنقّل خارج اللوحة — كانت تحصل بالجوالات الأضيق",
+      "نفس معالجة الارتفاع تشمل بقية النوافذ (سجل الإصدارات، الإشعارات، والإقرار القانوني)، مع منع تسرّب التمرير من اللوحة للصفحة الخلفية",
+    ],
+    en: [
+      "Fixed: on phones (especially iPhone Safari) the inquiry detail sheet's header — the close button and previous/next buttons — slid above the top edge of the screen on long inquiries, because the sheet's height was computed from the screen height with the browser bars hidden, while the actually visible area is shorter",
+      "The sheet's height now comes from the actually visible area, so its header always stays visible and fixed while only the content scrolls beneath it — with a subtle line under the header while scrolling",
+      "On phones the detail sheet now has a fixed height, so the navigation buttons stay in the same spot under your finger when moving between inquiries instead of shifting with each inquiry's length",
+      "Every inquiry you move to opens from its top instead of keeping the previous inquiry's scroll position",
+      "The header tags (priority, category, New, Important) wrap onto a second line on narrow screens instead of pushing the close and navigation buttons out of the sheet — this happened on narrower phones",
+      "The same height handling covers the other dialogs (update log, notices, and the legal notice), and scrolling inside a sheet no longer leaks to the page behind it",
+    ],
+  },
+  {
     version: "2.8.1",
     dateAr: "9 سبتمبر 2026",
     dateEn: "September 9, 2026",
@@ -2690,7 +2711,9 @@ function Sheet({ r, navList, onJump, onClose }) {
 
   /* يقفل تمرير الصفحة الخلفية أثناء فتح اللوحة — يمنع تمرير الصفحة الأصلية بالتوازي مع
      تمرير محتوى اللوحة، وهو سبب ظهور شريط الأزرار العلوي (X، التنقّل) بموضع غير متزامن
-     ويصعّب الوصول له على الجوال (خصوصًا سفاري) */
+     ويصعّب الوصول له على الجوال (خصوصًا سفاري).
+     ملاحظة v2.8.2: السبب الأساسي لاختفاء الرأس كان ارتفاع اللوحة المحسوب بـ vh — عولج بالـ CSS
+     (.sheet و .sheet-detail)؛ هذا القفل يبقى كطبقة حماية إضافية. */
   useEffect(() => {
     if (!r) return;
     const prev = document.body.style.overflow;
@@ -2724,6 +2747,15 @@ function Sheet({ r, navList, onJump, onClose }) {
     return () => window.removeEventListener("keydown", h);
   }, [r, onClose, idx, navList]);
   useEffect(() => { setShareCopied(false); setFeedback(null); }, [r]);
+
+  /* ثبات الرأس أثناء التنقّل: كل استفسار يفتح من أعلاه بدل ما يرث موضع تمرير الاستفسار السابق،
+     وخط خفيف أسفل الرأس يظهر لما يتمرّر المحتوى تحته */
+  const bodyRef = useRef(null);
+  const [scrolled, setScrolled] = useState(false);
+  useLayoutEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    setScrolled(false);
+  }, [r ? r.id : null]);
 
   /* سحب أفقي فوق اللوحة للتنقّل للاستفسار السابق/التالي بنفس ترتيب القائمة المفتوحة منها */
   const touchRef = useRef(null);
@@ -2775,16 +2807,16 @@ function Sheet({ r, navList, onJump, onClose }) {
 
   return (
     <div className="ovl" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} role="dialog" aria-modal="true">
-        <div className="sheet-top">
-          <div className="flex items-center gap-2">
+      <div className="sheet sheet-detail" onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} role="dialog" aria-modal="true">
+        <div className="sheet-top" data-scrolled={scrolled ? "1" : "0"}>
+          <div className="sheet-tags">
             <span className="mono sheet-id">{L("ملاحظة", "Note")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="sheet-acts">
             {navList && (
               <div className="sheet-nav">
                 <button onClick={goPrev} disabled={!hasPrev} className="icon-btn sheet-nav-b" aria-label={L("السابق", "Previous")}>
@@ -2798,7 +2830,7 @@ function Sheet({ r, navList, onJump, onClose }) {
             <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
           </div>
         </div>
-        <div className="sheet-body">
+        <div className="sheet-body" ref={bodyRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
           <div className="sec-lbl">{L("الملاحظة والحل المقترح", "Note & Proposed Solution")}</div>
           <p className="sheet-note">{trNote(lang, r)}</p>
 
@@ -3948,14 +3980,25 @@ function PublicSite() {
 .tip-v{color:${T.paper};}
 
 .ovl{position:fixed;inset:0;background:${resolved === "dark" ? "rgba(4,10,14,.7)" : "rgba(30,45,58,.34)"};
-  backdrop-filter:blur(6px);z-index:60;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease;}
+  backdrop-filter:blur(6px);z-index:60;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease;overscroll-behavior:contain;}
 @media(min-width:640px){.ovl{align-items:center;padding:24px;}}
-.sheet{background:${T.surface};border-radius:22px 22px 0 0;width:100%;max-width:680px;max-height:88vh;
+.sheet{background:${T.surface};border-radius:22px 22px 0 0;width:100%;max-width:680px;max-height:88vh;max-height:min(88vh,calc(100% - 24px));
   display:flex;flex-direction:column;box-shadow:${T.shadowUp};animation:up .3s cubic-bezier(.2,.7,.3,1);}
-@media(min-width:640px){.sheet{border-radius:20px;}}
-.sheet-top{display:flex;align-items:center;justify-content:space-between;padding:17px 19px 15px;}
+@media(min-width:640px){.sheet{border-radius:20px;max-height:min(88vh,100%);}}
+.sheet-top{display:flex;align-items:center;justify-content:space-between;padding:17px 19px 15px;
+  flex:none;position:relative;z-index:1;transition:box-shadow .2s ease;}
+/* ═══ v2.8.2 — رأس لوحة تفاصيل الاستفسار ثابت على الجوال ═══
+   ارتفاع اللوحة يُحسب من المساحة الظاهرة فعلًا (100% من طبقة .ovl الثابتة) بدل vh وحدها:
+   بسفاري الآيفون vh = ارتفاع الشاشة وأشرطة المتصفح مخفية، فكانت اللوحة أطول من المساحة
+   الظاهرة ويختفي رأسها (الإغلاق والتنقّل) فوق حافة الشاشة. وعلى الجوال ارتفاع لوحة
+   التفاصيل ثابت، فأزرار التنقّل تبقى بنفس المكان مهما اختلف طول الاستفسار. */
+@media(max-width:639.98px){.sheet-detail{height:88vh;height:min(88vh,calc(100% - 24px));}}
+.sheet-detail .sheet-top{align-items:flex-start;gap:10px;}
+.sheet-top[data-scrolled="1"]{box-shadow:0 1px 0 ${T.lineSoft},0 10px 16px -14px ${resolved === "dark" ? "rgba(0,0,0,.6)" : "rgba(30,45,58,.28)"};}
+.sheet-tags{display:flex;align-items:center;align-content:center;flex-wrap:wrap;gap:6px 8px;min-width:0;min-height:35px;}
+.sheet-acts{display:flex;align-items:center;gap:8px;flex:none;}
 .sheet-id{font-size:12.5px;color:${T.muted};}
-.sheet-body{padding:4px 19px 24px;overflow-y:auto;}
+.sheet-body{padding:4px 19px 24px;overflow-y:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain;}
 .sheet-body::-webkit-scrollbar{width:8px;}
 .sheet-body::-webkit-scrollbar-track{background:transparent;}
 .sheet-body::-webkit-scrollbar-thumb{background:${T.faint}66;border-radius:4px;}

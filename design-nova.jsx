@@ -384,7 +384,7 @@ ${D} .note-box,${D} .reply-box{border-radius:16px;border:1px solid var(--nv-hair
 ${D} .lgl-ovl{align-items:center;padding:14px;}
 @media(min-width:640px){${D} .lgl-ovl{padding:28px;}}
 ${D} .lgl{border-radius:26px;border:1px solid var(--nv-hair);border-bottom:1px solid var(--nv-hair);
-  max-height:min(86vh,760px);overflow:hidden;box-shadow:${liftUp};}
+  max-height:86vh;max-height:min(86vh,760px,100%);overflow:hidden;box-shadow:${liftUp};}
 ${D} .lgl-top{position:relative;padding:20px 20px 17px;border-bottom:1px solid var(--nv-hair)!important;
   background:linear-gradient(150deg,${mix(A, 16)},transparent 70%);}
 ${D} .lgl-top::after{content:"";position:absolute;bottom:-1px;inset-inline:0;height:1px;
