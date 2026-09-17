@@ -260,8 +260,8 @@ const OWN_EN = {
   /* جهات موجودة فعليًا بقاعدة البيانات وكانت تسقط بلا ترجمة */
   "م/أحمد ملحم": "Eng. Ahmed Malham", "أبو سلطان (مالك)": "Abu Sultan (Owner)", "أبو علي (مالك)": "Abu Ali (Owner)",
 };
-const MEETING_ORDER = ["الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
-const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting" };
+const MEETING_ORDER = ["الاجتماع السادس ميداني", "الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
+const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)" };
 const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /* ── بحث مُتسامح بالترجمة ──
@@ -1507,6 +1507,21 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.8.6",
+    dateAr: "17 سبتمبر 2026",
+    dateEn: "September 17, 2026",
+    ar: [
+      "فلتر جديد: \"الاجتماع السادس ميداني\" — البنود التي صدر بشأنها رد في الزيارة الميدانية بتاريخ 17 سبتمبر 2026 (٧ بنود: ٣٠، ٧٦، ٨٥، ٨٨، ٨٩، ٩٠، ٩١)",
+      "إصلاح: أي اجتماع جديد يُضاف من تبويب \"الفلاتر\" صار يظهر مباشرة بالموقع العام، حتى قبل ربط أي بند به",
+      "إصلاح: الإضافة وإعادة الترتيب بلوحة الفلاتر كانت تعرض \"تمت\" حتى لو الحساب بدون صلاحية وما انحفظ شي — صارت تعرض رسالة واضحة",
+    ],
+    en: [
+      "New filter: \"6th Meeting (Site Visit)\" — items answered during the September 17, 2026 site visit (7 items: 30, 76, 85, 88, 89, 90, 91)",
+      "Fix: a new meeting added from the Filters tab now appears on the public site immediately, even before any item is linked to it",
+      "Fix: adding or reordering filter values showed success even when the account lacked permission and nothing was saved — it now shows a clear message",
+    ],
+  },
   {
     version: "2.8.5",
     dateAr: "10 سبتمبر 2026",
@@ -3811,8 +3826,11 @@ function PublicSite() {
     models: MODEL_LIST.filter((m) => ALL.some((r) => r.models.includes(m))),
     owners: uniqSorted(ALL.map((r) => r.owner), liveCats.owner || []),
     months: [...new Set(ALL.map((r) => r.month))].filter(Boolean).sort(),
-    meetings: uniqSorted(ALL.flatMap((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting])), meetingOrder),
-  }), [ALL, priOrder, catOrder, staOrder, liveCats.owner, meetingOrder]);
+    /* v2.8.6 — قائمة الاجتماعات = كل القيم المعرّفة بلوحة الإدارة + أي اجتماع مرتبط ببند.
+       قبل كذا كانت تُبنى من البنود فقط، فأي اجتماع جديد يُضاف من "الفلاتر" ما يظهر
+       إطلاقًا لين يُربط به بند واحد على الأقل */
+    meetings: uniqSorted([...(liveCats.meeting || []), ...ALL.flatMap((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]))], meetingOrder),
+  }), [ALL, priOrder, catOrder, staOrder, liveCats.owner, liveCats.meeting, meetingOrder]);
 
   const newCount = ALL.filter((r) => r.isNew).length;
   const openCount = ALL.filter((r) => !r.closed).length;
@@ -6912,8 +6930,9 @@ function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
     const j = i + dir;
     if (j < 0 || j >= values.length) return;
     const next = [...values]; [next[i], next[j]] = [next[j], next[i]];
-    const { error } = await supabase.from("filter_categories").update({ values: next }).eq("key", key);
+    const { data: upd, error } = await supabase.from("filter_categories").update({ values: next }).eq("key", key).select("key");
     if (error) { flashToast("تعذّر إعادة الترتيب"); return; }
+    if (!upd || upd.length === 0) { flashToast("ما تم الحفظ — الحساب الحالي ما عنده صلاحية \"إدارة الفلاتر\""); return; }
     refreshCategories();
   };
   const doAdd = async (key, values) => {
@@ -6921,9 +6940,12 @@ function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
     if (!v) return;
     if (values.includes(v)) { flashToast("القيمة موجودة أصلًا بنفس الفئة"); return; }
     setBusy(true);
-    const { error } = await supabase.from("filter_categories").update({ values: [...values, v] }).eq("key", key);
+    const { data: upd, error } = await supabase.from("filter_categories").update({ values: [...values, v] }).eq("key", key).select("key");
     setBusy(false);
-    if (error) { flashToast("تعذّر الإضافة"); return; }
+    if (error) { flashToast("تعذّر الإضافة: " + error.message); return; }
+    /* v2.8.6 — RLS يرفض التحديث بصمت (صفر صفوف بدون خطأ) لو الحساب بدون صلاحية،
+       فكانت الإضافة تبان ناجحة وهي ما انحفظت */
+    if (!upd || upd.length === 0) { flashToast("ما تمت الإضافة — الحساب الحالي ما عنده صلاحية \"إدارة الفلاتر\""); return; }
     log("إضافة قيمة فلتر", `${key}: "${v}"`);
     setAddDraft(""); setAddingTo(null);
     refreshCategories();
