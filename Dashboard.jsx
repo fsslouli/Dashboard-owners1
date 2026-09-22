@@ -1522,6 +1522,21 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.9.2",
+    dateAr: "22 سبتمبر 2026",
+    dateEn: "September 22, 2026",
+    ar: [
+      "صار كل نموذج يقدر ياخذ أكثر من مقطع فيديو، لا مقطع واحد بس — تظهر كلها بعارض النموذج بالترتيب اللي تحدده الإدارة",
+      "لوحة الإدارة ← \u200f\"مقاطع النماذج\"\u200f: زر \u200f\"إضافة مقطع\"\u200f منفصل لكل نموذج، وأسهم لأعلى/أسفل لترتيب مقاطع نفس النموذج",
+      "بطاقة المخططات تعرض عدد المقاطع لما يكون أكثر من مقطع",
+    ],
+    en: [
+      "Each model can now hold more than one video, not just one — all shown in the model's viewer in the order the admin sets",
+      "Admin panel → \"Model videos\": a separate \"Add video\" button per model, with up/down arrows to reorder that model's clips",
+      "The plans card shows the video count when a model has more than one",
+    ],
+  },
+  {
     version: "2.9.1",
     dateAr: "22 سبتمبر 2026",
     dateEn: "September 22, 2026",
@@ -2832,7 +2847,7 @@ function VideoStage({ video, docId, docName, accent, lang }) {
 }
 
 /* ── عارض المخططات — ملء الشاشة، تكبير بالإصبعين/نقرتين، تنقّل بين الصفحات ── */
-function DocViewerSheet({ doc, video, onClose }) {
+function DocViewerSheet({ doc, videos, onClose }) {
   const { T, resolved } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
@@ -2855,31 +2870,38 @@ function DocViewerSheet({ doc, video, onClose }) {
   }, [doc]);
 
   const docId = doc ? doc.id : null;
-  /* v2.9.0 — لو للنموذج مقطع منشور، يصير أول «صفحة» بالعارض (قبل الواجهة والمخططات)،
-     وبقية الصفحات كما هي بالضبط. المقطع مو صورة: ما عليه تكبير ولا سحب. */
-  const hasVid = !!(doc && video && video.youtube_id);
-  const pages = !doc ? [] : hasVid
-    ? [{ f: `video:${video.youtube_id}`, ar: "جولة مرئية", en: "Video tour", video: true }, ...doc.pages]
-    : doc.pages;
+  /* v2.9.0 (وسّعناها v2.9.2 لأكثر من مقطع) — لو للنموذج مقاطع منشورة، تصير أول
+     «صفحات» بالعارض بترتيبها (قبل الواجهة والمخططات)، وبقية الصفحات كما هي بالضبط.
+     المقطع مو صورة: ما عليه تكبير ولا سحب. */
+  const vidList = doc && videos ? videos : [];
+  const vidCount = vidList.length;
+  const pages = !doc ? [] : [
+    ...vidList.map((v, i) => ({
+      f: `video:${v.id}`, video: true, v,
+      ar: vidCount > 1 ? `جولة مرئية ${i + 1}` : "جولة مرئية",
+      en: vidCount > 1 ? `Video tour ${i + 1}` : "Video tour",
+    })),
+    ...doc.pages,
+  ];
   const page = pages[idx] || null;
   const isVid = !!(page && page.video);
 
-  const hadVid = useRef(hasVid);
-  useEffect(() => { setIdx(0); hadVid.current = hasVid; }, [docId]);
+  const hadVidCount = useRef(vidCount);
+  useEffect(() => { setIdx(0); hadVidCount.current = vidCount; }, [docId]);
   /* انضاف أو انشال مقطع والعارض مفتوح (تحديث لحظي من الإدارة): نزيح المؤشر
      عشان تبقى نفس اللوحة المعروضة قدام الزائر بدل ما تقفز لغيرها */
   useEffect(() => {
-    if (hadVid.current === hasVid) return;
-    hadVid.current = hasVid;
-    setIdx((i) => Math.max(0, i + (hasVid ? 1 : -1)));
-  }, [hasVid]);
+    if (hadVidCount.current === vidCount) return;
+    setIdx((i) => Math.max(0, i + (vidCount - hadVidCount.current)));
+    hadVidCount.current = vidCount;
+  }, [vidCount]);
   useEffect(() => { setZ({ s: 1, x: 0, y: 0 }); setLoaded(false); }, [docId, idx]);
 
   useEffect(() => {
     if (!docId || !pages[idx]) return;
     /* ترقيم اللوحات في السجل يبقى كما كان قبل المقاطع (١ = الواجهة دائمًا) —
        عشان تحليلات الزيارات السابقة واللاحقة تبقى قابلة للمقارنة */
-    logEvent("nav", "doc_page", pages[idx].video ? `${docId}:video` : `${docId}:${idx + 1 - (hasVid ? 1 : 0)}`, null);
+    logEvent("nav", "doc_page", pages[idx].video ? `${docId}:video` : `${docId}:${idx + 1 - vidCount}`, null);
     [idx - 1, idx + 1].forEach((i) => {
       if (i >= 0 && i < pages.length && !pages[i].video) { const im = new window.Image(); im.src = DOC_BASE + pages[i].f; }
     });
@@ -3006,8 +3028,8 @@ function DocViewerSheet({ doc, video, onClose }) {
       {isVid ? (
         <div className="dvw-stage is-video" ref={stageRef}>
           <VideoStage
-            key={`${doc.id}:${video.youtube_id}`}
-            video={video} docId={doc.id} lang={lang}
+            key={`${doc.id}:${page.v.id}`}
+            video={page.v} docId={doc.id} lang={lang}
             docName={L(doc.nameAr, doc.nameEn)}
             accent={doc.color ? DOC_COLORS.light[doc.color] : "#0C1519"}
           />
@@ -3064,8 +3086,8 @@ function DocViewerSheet({ doc, video, onClose }) {
           <span className="dvw-links">
             {isVid && (
               <a
-                href={ytWatchUrl(video.youtube_id, video.start_s)} target="_blank" rel="noopener"
-                onClick={() => logEvent("nav", "video_external", doc.id, video.youtube_id)}
+                href={ytWatchUrl(page.v.youtube_id, page.v.start_s)} target="_blank" rel="noopener"
+                onClick={() => logEvent("nav", "video_external", doc.id, page.v.youtube_id)}
               >
                 <ExternalLink size={12} /> YouTube
               </a>
@@ -3839,22 +3861,22 @@ function PublicSite() {
       .subscribe();
     return () => { onLive.cancel(); supabase.removeChannel(channel); };
   }, []);
-  /* ═══ v2.9.0 — مقاطع النماذج (يوتيوب) من لوحة الإدارة ═══
-     الزائر يقرأ المقاطع «الظاهرة» فقط (RLS بقاعدة البيانات). والاستماع اللحظي على
-     جدول الإشارة model_videos_rev لا على جدول المقاطع نفسه: لما ينخفى مقطع يطلع
-     صفّه من صلاحية الزائر فما يوصله حدثه أصلًا — الإشارة توصل للكل دائمًا. */
-  const [videos, setVideos] = useState({});
+  /* ═══ v2.9.0 (وسّعناها v2.9.2 لأكثر من مقطع لكل نموذج) — مقاطع النماذج من لوحة الإدارة ═══
+     الزائر يقرأ المقاطع «الظاهرة» فقط (RLS بقاعدة البيانات)، بترتيبها الإداري.
+     والاستماع اللحظي على جدول الإشارة model_videos_rev لا على جدول المقاطع نفسه:
+     لما ينخفى مقطع يطلع صفّه من صلاحية الزائر فما يوصله حدثه أصلًا — الإشارة توصل للكل دائمًا. */
+  const [videos, setVideos] = useState({});   /* doc_id ← [مقاطعه الظاهرة بالترتيب] */
   useEffect(() => {
     let alive = true, seq = 0;
     const fetchVids = async () => {
       const my = ++seq;
       try {
         const { data: rows, error } = await supabase.from("model_videos")
-          .select("doc_id,youtube_id,title_ar,title_en,yt_title,duration_s,start_s,vertical,published,updated_at")
-          .eq("published", true);
+          .select("id,doc_id,sort_order,youtube_id,title_ar,title_en,yt_title,duration_s,start_s,vertical,published,updated_at")
+          .eq("published", true).order("sort_order").order("id");
         if (!alive || my !== seq || error) return;
         const m = {};
-        (rows || []).forEach((r) => { if (r && isYouTubeId(r.youtube_id)) m[r.doc_id] = r; });
+        (rows || []).forEach((r) => { if (r && isYouTubeId(r.youtube_id)) (m[r.doc_id] || (m[r.doc_id] = [])).push(r); });
         setVideos(m);
       } catch {}
     };
@@ -4625,9 +4647,10 @@ function PublicSite() {
 .dvw-chip{display:inline-flex;align-items:center;gap:5px;}
 .dvw-links{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
 .doc-thumb{position:relative;}
-.doc-vbadge{position:absolute;inset-block-end:5px;inset-inline-end:5px;width:20px;height:20px;border-radius:50%;
-  background:rgba(8,12,16,.74);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.3);}
-.doc-vbadge svg{transform:translateX(1px);}
+.doc-vbadge{position:absolute;inset-block-end:5px;inset-inline-end:5px;height:20px;min-width:20px;padding:0 5px;border-radius:10px;
+  background:rgba(8,12,16,.74);color:#fff;display:flex;align-items:center;gap:2px;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.doc-vbadge svg{transform:translateX(1px);flex-shrink:0;}
+.doc-vbadge b{font-size:10px;font-weight:700;}
 .doc-vid{display:inline-flex;align-items:center;gap:4px;}
 
 @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
@@ -5113,17 +5136,22 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                 {DOCS.map((doc) => {
                   const accent = doc.color ? DOC_COLORS[resolved][doc.color] : T.brass;
                   const Go = lang === "en" ? ChevronRight : ChevronLeft;
-                  const vid = videos[doc.id];
+                  const docVids = videos[doc.id] || [];
                   return (
                     <button
                       key={doc.id}
                       className="doc-card"
                       style={{ borderInlineStartColor: accent }}
-                      onClick={() => { logEvent("nav", "doc_open", doc.id, vid ? "video" : null); setDocView(doc); }}
+                      onClick={() => { logEvent("nav", "doc_open", doc.id, docVids.length ? "video" : null); setDocView(doc); }}
                     >
                       <span className="doc-thumb" style={{ borderColor: accent + "55" }}>
                         <img src={DOC_BASE + doc.cover} alt="" loading="lazy" />
-                        {vid && <span className="doc-vbadge" aria-hidden="true"><Play size={9} fill="currentColor" strokeWidth={0} /></span>}
+                        {docVids.length > 0 && (
+                          <span className="doc-vbadge" aria-hidden="true">
+                            <Play size={9} fill="currentColor" strokeWidth={0} />
+                            {docVids.length > 1 && <b>{docVids.length}</b>}
+                          </span>
+                        )}
                       </span>
                       <span className="doc-info">
                         <span className="doc-name">{L(doc.nameAr, doc.nameEn)}</span>
@@ -5131,12 +5159,14 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                         <span className="doc-meta" style={{ color: accent }}>
                           <FileText size={11} />
                           {doc.pages.length} {L(doc.pages.length === 1 ? "لوحة" : "لوحات", doc.pages.length === 1 ? "sheet" : "sheets")}
-                          {vid && (
+                          {docVids.length > 0 && (
                             <span className="doc-vid">
                               <span aria-hidden="true">·</span>
                               <Play size={10} fill="currentColor" strokeWidth={0} />
-                              {L("فيديو", "Video")}
-                              {vid.duration_s > 0 && <span className="mono">{fmtDuration(vid.duration_s)}</span>}
+                              {docVids.length === 1
+                                ? L("فيديو", "Video")
+                                : L(`${docVids.length} مقاطع`, `${docVids.length} videos`)}
+                              {docVids.length === 1 && docVids[0].duration_s > 0 && <span className="mono">{fmtDuration(docVids[0].duration_s)}</span>}
                             </span>
                           )}
                         </span>
@@ -5168,7 +5198,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
-        <DocViewerSheet doc={docView} video={docView ? videos[docView.id] || null : null} onClose={() => setDocView(null)} />
+        <DocViewerSheet doc={docView} videos={docView ? videos[docView.id] || [] : []} onClose={() => setDocView(null)} />
 
         {showTop && (
           <button
@@ -7734,19 +7764,19 @@ function amvToggle(T, on, onClick, children) {
 
 function AMediaTab({ flashToast, log, canManage, canStats }) {
   const T = useSystemTheme();
-  const [rows, setRows] = useState(null);           /* doc_id ← صف المقطع */
+  const [rows, setRows] = useState(null);           /* doc_id ← [صفوف مقاطعه بالترتيب] */
   const [plays, setPlays] = useState({});
-  const [edit, setEdit] = useState(null);           /* مسودة المحرّر المفتوح */
+  const [edit, setEdit] = useState(null);           /* مسودة المحرّر المفتوح: { docId, id|null, ... } */
   const [check, setCheck] = useState({ state: "idle" });
   const [busy, setBusy] = useState(false);
-  const [confirmDel, setConfirmDel] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);   /* id المقطع المطلوب حذفه */
   const [prevKey, setPrevKey] = useState({ id: null, start: 0 });
 
   const load = async () => {
-    const { data, error } = await supabase.from("model_videos").select("*");
+    const { data, error } = await supabase.from("model_videos").select("*").order("sort_order").order("id");
     if (error) { setRows({}); return; }
     const m = {};
-    (data || []).forEach((r) => { m[r.doc_id] = r; });
+    (data || []).forEach((r) => { (m[r.doc_id] || (m[r.doc_id] = [])).push(r); });
     setRows(m);
   };
   useEffect(() => {
@@ -7758,15 +7788,16 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
     return () => { supabase.removeChannel(ch); };
   }, []);
 
-  /* عدد مرات تشغيل المقطع الحالي لكل نموذج — من سجل الزيارات (يحتاج صلاحية التحليلات) */
+  /* عدد مرات تشغيل كل مقطع — من سجل الزيارات (يحتاج صلاحية التحليلات).
+     المفتاح docId:youtubeId عشان يميّز مقطعين لنفس النموذج */
   useEffect(() => {
     if (!canStats || !rows) return;
-    const list = Object.values(rows);
+    const list = Object.values(rows).flat();
     if (!list.length) { setPlays({}); return; }
     let alive = true;
     Promise.all(list.map((r) => supabase.from("logs").select("id", { count: "exact", head: true })
       .eq("category", "video_play").eq("value", r.doc_id).eq("extra", r.youtube_id)
-      .then(({ count }) => [r.doc_id, count || 0])))
+      .then(({ count }) => [`${r.doc_id}:${r.youtube_id}`, count || 0])))
       .then((pairs) => { if (alive) setPlays(Object.fromEntries(pairs)); })
       .catch(() => {});
     return () => { alive = false; };
@@ -7785,16 +7816,25 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
   if (rows === null) return <div style={{ color: T.muted, fontSize: 13, padding: 20 }}>جارٍ التحميل...</div>;
 
   const docName = (id) => { const d = DOCS.find((x) => x.id === id); return d ? d.nameAr : id; };
-  const openEditor = (doc) => {
-    const r = rows[doc.id];
+  const startAdd = (doc) => {
     setConfirmDel(null);
     setCheck({ state: "idle" });
     setEdit({
-      docId: doc.id,
-      link: r ? ytShortUrl(r.youtube_id, r.start_s) : "",
-      title_ar: (r && r.title_ar) || "", title_en: (r && r.title_en) || "",
-      start_s: r ? String(r.start_s || 0) : "0",
-      vertical: !!(r && r.vertical), published: r ? !!r.published : true,
+      docId: doc.id, id: null,
+      link: "", title_ar: "", title_en: "", start_s: "0",
+      vertical: false, published: true,
+      startTouched: false, verticalTouched: false,
+    });
+  };
+  const openEditor = (doc, r) => {
+    setConfirmDel(null);
+    setCheck({ state: "idle" });
+    setEdit({
+      docId: doc.id, id: r.id,
+      link: ytShortUrl(r.youtube_id, r.start_s),
+      title_ar: r.title_ar || "", title_en: r.title_en || "",
+      start_s: String(r.start_s || 0),
+      vertical: !!r.vertical, published: !!r.published,
       startTouched: false, verticalTouched: false,
     });
   };
@@ -7819,7 +7859,8 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
     const p = parseYouTube(edit.link);
     if (!p.ok || busy) return;
     if (blocked && !force) return;
-    const cur = rows[edit.docId];
+    const list = rows[edit.docId] || [];
+    const cur = edit.id ? list.find((x) => x.id === edit.id) : null;
     const sameVid = !!cur && cur.youtube_id === p.id;
     const meta = verdict && verdict.state === "ok" ? verdict : null;
     const row = {
@@ -7834,35 +7875,141 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
       published: !!edit.published,
     };
     setBusy(true);
-    const { error } = await supabase.from("model_videos").upsert(row, { onConflict: "doc_id" });
+    const { error } = edit.id
+      ? await supabase.from("model_videos").update(row).eq("id", edit.id)
+      : await supabase.from("model_videos").insert({ ...row, sort_order: list.length ? Math.max(...list.map((x) => x.sort_order || 0)) + 1 : 0 });
     setBusy(false);
-    if (error) { flashToast(error.code === "42501" ? "حسابك ما عنده صلاحية إدارة المقاطع" : "تعذّر الحفظ — حاول مرة ثانية"); return; }
-    log(cur ? "تعديل مقطع نموذج" : "إضافة مقطع نموذج", `${docName(edit.docId)} — youtu.be/${p.id}${row.published ? "" : " (مخفي)"}`);
+    if (error) {
+      flashToast(
+        error.code === "23505" ? "هذا المقطع مضاف مسبقًا لنفس النموذج"
+        : error.code === "42501" ? "حسابك ما عنده صلاحية إدارة المقاطع"
+        : "تعذّر الحفظ — حاول مرة ثانية"
+      );
+      return;
+    }
+    log(edit.id ? "تعديل مقطع نموذج" : "إضافة مقطع نموذج", `${docName(edit.docId)} — youtu.be/${p.id}${row.published ? "" : " (مخفي)"}`);
     flashToast(row.published ? "انحفظ — ظهر للزوّار فورًا" : "انحفظ كمخفي — ما يظهر للزوّار");
     closeEditor();
     load();
   };
   const togglePub = async (r) => {
-    const { error } = await supabase.from("model_videos").update({ published: !r.published }).eq("doc_id", r.doc_id);
+    const { error } = await supabase.from("model_videos").update({ published: !r.published }).eq("id", r.id);
     if (error) { flashToast("تعذّر التعديل — تأكد من صلاحيتك"); return; }
     log(r.published ? "إخفاء مقطع نموذج" : "إظهار مقطع نموذج", `${docName(r.doc_id)} — youtu.be/${r.youtube_id}`);
     flashToast(r.published ? "انخفى عن الزوّار" : "ظهر للزوّار");
     load();
   };
   const remove = async (r) => {
-    const { error } = await supabase.from("model_videos").delete().eq("doc_id", r.doc_id);
+    const { error } = await supabase.from("model_videos").delete().eq("id", r.id);
     setConfirmDel(null);
     if (error) { flashToast("تعذّر الحذف — تأكد من صلاحيتك"); return; }
     log("حذف مقطع نموذج", `${docName(r.doc_id)} — youtu.be/${r.youtube_id}`);
     flashToast("انحذف المقطع");
     load();
   };
+  /* ترتيب العرض: تبديل موضع مقطعين متجاورين — يعكس مباشرة ترتيبهم بالموقع العام */
+  const move = async (list, i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= list.length || busy) return;
+    const a = list[i], b = list[j];
+    setBusy(true);
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from("model_videos").update({ sort_order: b.sort_order }).eq("id", a.id),
+      supabase.from("model_videos").update({ sort_order: a.sort_order }).eq("id", b.id),
+    ]);
+    setBusy(false);
+    if (e1 || e2) { flashToast("تعذّر تغيير الترتيب — تأكد من صلاحيتك"); return; }
+    load();
+  };
 
   const inp = { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.surface, color: T.paper, fontFamily: "inherit", outline: "none" };
   const lbl = { fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 };
-  const iconBtn = (color) => ({ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: color || T.muted, flexShrink: 0 });
-  const all = Object.values(rows);
-  const shown = all.filter((r) => r.published).length;
+  const iconBtn = (color, disabled) => ({ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "default" : "pointer", color: disabled ? T.faint : (color || T.muted), flexShrink: 0, opacity: disabled ? 0.4 : 1 });
+  const allList = Object.values(rows).flat();
+  const shown = allList.filter((r) => r.published).length;
+
+  /* نموذج الإضافة/التعديل — واحد فقط، يُستدعى إما لمقطع موجود أو لمقطع جديد */
+  const renderEditor = (doc) => (
+    <div style={{ marginTop: 10, background: T.sunken, borderRadius: 14, padding: 14, border: `1px solid ${T.brass}33` }}>
+      <label style={lbl}>رابط المقطع على يوتيوب</label>
+      <div style={{ position: "relative" }}>
+        <Link2 size={14} color={T.faint} style={{ position: "absolute", top: 12, left: 12 }} />
+        <input value={edit.link} onChange={(e) => onLink(e.target.value)} dir="ltr" autoFocus
+          placeholder="https://youtu.be/…" spellCheck={false} autoComplete="off"
+          style={{ ...inp, paddingLeft: 34, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5 }} />
+      </div>
+      <div style={{ fontSize: 11.5, marginTop: 6, minHeight: 16, lineHeight: 1.7, color: linkNow && !linkNow.ok && linkNow.reason !== "empty" ? "#C0392B" : T.muted }}>
+        {!linkNow || linkNow.reason === "empty"
+          ? "يقبل أي صيغة: youtu.be · watch · shorts · live · embed — أو كود التضمين كامل."
+          : !linkNow.ok
+            ? (MEDIA_LINK_HINT[linkNow.reason] || MEDIA_LINK_HINT.invalid)
+            : <>رقم المقطع: <span className="mono" dir="ltr">{linkNow.id}</span>{linkNow.kind === "shorts" && " · مقطع عمودي (Shorts)"}</>}
+      </div>
+
+      {prevKey.id && (
+        <div style={{ marginTop: 12 }}>
+          <AYtPreview key={`${prevKey.id}:${prevKey.start}`} id={prevKey.id} start={prevKey.start} vertical={edit.vertical} onCheck={setCheck} />
+          {liveId && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, fontSize: 12, lineHeight: 1.75 }}>
+              {checking ? (
+                <><span className="amv-spin" style={{ color: T.muted, marginTop: 4 }} /><span style={{ color: T.muted }}>جارٍ التحقق إن المقطع يشتغل داخل الموقع…</span></>
+              ) : verdict.state === "ok" ? (
+                <><CheckCircle2 size={15} color="#1E8E5A" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span><b style={{ color: "#1E8E5A" }}>يشتغل داخل الموقع</b> — {verdict.title}{verdict.duration ? <> · <span dir="ltr">{fmtDuration(verdict.duration)}</span></> : null}</span></>
+              ) : verdict.state === "error" ? (
+                <><XCircle size={15} color="#C0392B" style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ color: "#C0392B" }}>{ytErrorText(verdict.code)}</span></>
+              ) : (
+                <><AlertTriangle size={15} color="#B8790F" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ color: "#B8790F" }}>ما قدرت أتحقق من المقطع الآن{verdict.reason === "api" ? " (مشغّل يوتيوب ما تحمّل — إضافة حجب أو شبكة)" : ""}. تقدر تحفظ، وتأكد من العرض بالموقع بعدها.</span></>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10, marginTop: 14 }}>
+        <div>
+          <label style={lbl}>العنوان للزوّار — عربي (اختياري)</label>
+          <input value={edit.title_ar} maxLength={140} onChange={(e) => setEdit((x) => ({ ...x, title_ar: e.target.value }))}
+            placeholder={(verdict && verdict.title) || `جولة مرئية — ${doc.nameAr}`} style={inp} />
+        </div>
+        <div>
+          <label style={lbl}>Title — English (optional)</label>
+          <input value={edit.title_en} maxLength={140} dir="ltr" onChange={(e) => setEdit((x) => ({ ...x, title_en: e.target.value }))}
+            placeholder={(verdict && verdict.title) || `Video tour — ${doc.nameEn}`} style={inp} />
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div style={{ width: 150 }}>
+          <label style={lbl}>يبدأ من (بالثواني)</label>
+          <input value={edit.start_s} inputMode="numeric" dir="ltr"
+            onChange={(e) => { const v = toWesternDigits(e.target.value).replace(/[^\d]/g, "").slice(0, 5); setEdit((x) => ({ ...x, start_s: v, startTouched: true })); }}
+            style={inp} />
+        </div>
+        <div style={{ fontSize: 11.5, color: T.faint, paddingBottom: 11 }}>{liveStart > 0 ? <span dir="ltr">= {fmtDuration(liveStart)}</span> : "من البداية"}</div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+        {amvToggle(T, edit.vertical, () => setEdit((x) => ({ ...x, vertical: !x.vertical, verticalTouched: true })), "مقطع عمودي (Shorts) — يُعرض بإطار طولي")}
+        {amvToggle(T, edit.published, () => setEdit((x) => ({ ...x, published: !x.published })), "ظاهر للزوّار — لو ألغيته ينحفظ المقطع مخفيًا")}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+        {blocked ? (
+          <button onClick={() => save(true)} disabled={busy} style={{ display: "flex", alignItems: "center", gap: 7, background: "#B8790F", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "wait" : "pointer" }}>
+            <AlertTriangle size={15} /> حفظ رغم التحذير
+          </button>
+        ) : (
+          <button onClick={() => save(false)} disabled={busy || !liveId || checking}
+            style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "wait" : "pointer", opacity: busy || !liveId || checking ? 0.55 : 1 }}>
+            <Check size={15} /> {busy ? "جارٍ الحفظ…" : edit.published ? "حفظ ونشر" : "حفظ كمخفي"}
+          </button>
+        )}
+        <button onClick={closeEditor} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -7878,10 +8025,10 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Clapperboard size={16} color={T.brass} />
           <span style={{ fontSize: 14, fontWeight: 700 }}>مقاطع النماذج</span>
-          <span style={{ marginInlineStart: "auto", fontSize: 11.5, color: T.muted }}>{shown} ظاهر · {all.length - shown} مخفي</span>
+          <span style={{ marginInlineStart: "auto", fontSize: 11.5, color: T.muted }}>{shown} ظاهر · {allList.length - shown} مخفي</span>
         </div>
         <p style={{ fontSize: 12, color: T.muted, margin: "8px 0 0", lineHeight: 1.8 }}>
-          كل نموذج له مقطع يوتيوب يظهر كأول صفحة بعارض النموذج في الموقع العام، مع مخططاته والبرشور. الحفظ هنا يوصل لكل الزوّار فورًا.
+          كل نموذج يقدر ياخذ أكثر من مقطع — تظهر بعارض النموذج في الموقع العام بنفس الترتيب اللي تحدده هنا، قبل الواجهة والمخططات والبرشور. الحفظ يوصل لكل الزوّار فورًا.
         </p>
         <div style={{ ...aNoteStyle(T), marginTop: 12 }}>
           ارفع المقطع بخصوصية <b>«غير مدرج» (Unlisted)</b> لو ما تبيه يظهر بقناتك — يشتغل بالموقع عادي.
@@ -7890,140 +8037,67 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
       </div>
 
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 8 }}>
-        {DOCS.map((doc, i) => {
-          const r = rows[doc.id];
-          const editing = !!edit && edit.docId === doc.id;
+        {DOCS.map((doc, di) => {
+          const list = rows[doc.id] || [];
+          const addingHere = !!edit && edit.docId === doc.id && edit.id === null;
           return (
-            <div key={doc.id} style={{ borderTop: i ? `1px solid ${T.line}` : "none", padding: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ position: "relative", width: 88, height: 50, borderRadius: 9, overflow: "hidden", flexShrink: 0, background: T.sunken, border: `1px solid ${T.line}` }}>
-                  <img src={r ? ytThumb(r.youtube_id, "mqdefault") : DOC_BASE + doc.cover} alt="" loading="lazy"
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: r ? (r.published ? 1 : 0.45) : 0.5 }} />
-                  {r && (
-                    <span style={{ position: "absolute", inset: 0, margin: "auto", width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,.6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Play size={10} fill="currentColor" strokeWidth={0} />
-                    </span>
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{doc.nameAr} <span style={{ fontSize: 11, color: T.faint, fontWeight: 400 }}>{doc.subAr}</span></div>
-                  {r ? (
-                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 5, display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center" }}>
-                      {r.published ? <ABadge kind="ok">ظاهر للزوّار</ABadge> : <ABadge kind="change">مخفي</ABadge>}
-                      {r.duration_s > 0 && <span className="mono" dir="ltr">{fmtDuration(r.duration_s)}</span>}
-                      {canStats && plays[doc.id] != null && <span>{plays[doc.id]} تشغيل</span>}
-                      <span style={{ color: T.faint }}>آخر تعديل: {r.updated_by || "—"} · {fmtAdminDate(r.updated_at)}</span>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 11.5, color: T.faint, marginTop: 4 }}>لا يوجد مقطع</div>
-                  )}
-                  {r && (r.title_ar || r.yt_title) && (
-                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title_ar || r.yt_title}</div>
-                  )}
-                </div>
-                {!editing && (r ? (
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                    <button onClick={() => openEditor(doc)} title="تعديل" aria-label="تعديل" style={iconBtn(T.brass)}><Pencil size={13} /></button>
-                    <button onClick={() => togglePub(r)} title={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} aria-label={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} style={iconBtn()}>
-                      {r.published ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                    {confirmDel === doc.id ? (
-                      <>
-                        <button onClick={() => remove(r)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer" }}>تأكيد</button>
-                        <button onClick={() => setConfirmDel(null)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer", color: T.muted }}>لا</button>
-                      </>
-                    ) : (
-                      <button onClick={() => setConfirmDel(doc.id)} title="حذف المقطع" aria-label="حذف المقطع" style={iconBtn("#C0392B")}><Trash2 size={13} /></button>
-                    )}
-                  </div>
-                ) : (
-                  <button onClick={() => openEditor(doc)} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-                    <PlusCircle size={13} /> إضافة مقطع
-                  </button>
-                ))}
+            <div key={doc.id} style={{ borderTop: di ? `1px solid ${T.line}` : "none", padding: "12px 10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700 }}>{doc.nameAr} <span style={{ fontSize: 11, color: T.faint, fontWeight: 400 }}>{doc.subAr}</span></div>
+                <span style={{ fontSize: 11, color: T.faint }}>{list.length ? `${list.length} مقطع` : "بلا مقاطع"}</span>
+                <button onClick={() => startAdd(doc)} style={{ marginInlineStart: "auto", display: "flex", alignItems: "center", gap: 5, background: "none", color: T.brass, border: `1px solid ${T.brass}55`, borderRadius: 9, padding: "6px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+                  <PlusCircle size={12} /> إضافة مقطع
+                </button>
               </div>
 
-              {editing && (
-                <div style={{ marginTop: 12, background: T.sunken, borderRadius: 14, padding: 14, border: `1px solid ${T.brass}33` }}>
-                  <label style={lbl}>رابط المقطع على يوتيوب</label>
-                  <div style={{ position: "relative" }}>
-                    <Link2 size={14} color={T.faint} style={{ position: "absolute", top: 12, left: 12 }} />
-                    <input value={edit.link} onChange={(e) => onLink(e.target.value)} dir="ltr" autoFocus
-                      placeholder="https://youtu.be/…" spellCheck={false} autoComplete="off"
-                      style={{ ...inp, paddingLeft: 34, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5 }} />
-                  </div>
-                  <div style={{ fontSize: 11.5, marginTop: 6, minHeight: 16, lineHeight: 1.7, color: linkNow && !linkNow.ok && linkNow.reason !== "empty" ? "#C0392B" : T.muted }}>
-                    {!linkNow || linkNow.reason === "empty"
-                      ? "يقبل أي صيغة: youtu.be · watch · shorts · live · embed — أو كود التضمين كامل."
-                      : !linkNow.ok
-                        ? (MEDIA_LINK_HINT[linkNow.reason] || MEDIA_LINK_HINT.invalid)
-                        : <>رقم المقطع: <span className="mono" dir="ltr">{linkNow.id}</span>{linkNow.kind === "shorts" && " · مقطع عمودي (Shorts)"}</>}
-                  </div>
-
-                  {prevKey.id && (
-                    <div style={{ marginTop: 12 }}>
-                      <AYtPreview key={`${prevKey.id}:${prevKey.start}`} id={prevKey.id} start={prevKey.start} vertical={edit.vertical} onCheck={setCheck} />
-                      {liveId && (
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, fontSize: 12, lineHeight: 1.75 }}>
-                          {checking ? (
-                            <><span className="amv-spin" style={{ color: T.muted, marginTop: 4 }} /><span style={{ color: T.muted }}>جارٍ التحقق إن المقطع يشتغل داخل الموقع…</span></>
-                          ) : verdict.state === "ok" ? (
-                            <><CheckCircle2 size={15} color="#1E8E5A" style={{ flexShrink: 0, marginTop: 2 }} />
-                              <span><b style={{ color: "#1E8E5A" }}>يشتغل داخل الموقع</b> — {verdict.title}{verdict.duration ? <> · <span dir="ltr">{fmtDuration(verdict.duration)}</span></> : null}</span></>
-                          ) : verdict.state === "error" ? (
-                            <><XCircle size={15} color="#C0392B" style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ color: "#C0392B" }}>{ytErrorText(verdict.code)}</span></>
+              {list.map((r, i) => {
+                const editing = !!edit && edit.id === r.id;
+                return (
+                  <div key={r.id} style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+                        <button onClick={() => move(list, i, -1)} disabled={i === 0} title="نقل للأعلى" aria-label="نقل للأعلى" style={{ ...iconBtn(null, i === 0), width: 22, height: 16, border: "none" }}><ChevronUp size={13} /></button>
+                        <button onClick={() => move(list, i, 1)} disabled={i === list.length - 1} title="نقل للأسفل" aria-label="نقل للأسفل" style={{ ...iconBtn(null, i === list.length - 1), width: 22, height: 16, border: "none" }}><ChevronDown size={13} /></button>
+                      </div>
+                      <div style={{ position: "relative", width: 88, height: 50, borderRadius: 9, overflow: "hidden", flexShrink: 0, background: T.sunken, border: `1px solid ${T.line}` }}>
+                        <img src={ytThumb(r.youtube_id, "mqdefault")} alt="" loading="lazy"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: r.published ? 1 : 0.45 }} />
+                        <span style={{ position: "absolute", inset: 0, margin: "auto", width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,.6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Play size={10} fill="currentColor" strokeWidth={0} />
+                        </span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11.5, color: T.muted, display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center" }}>
+                          {r.published ? <ABadge kind="ok">ظاهر للزوّار</ABadge> : <ABadge kind="change">مخفي</ABadge>}
+                          {r.duration_s > 0 && <span className="mono" dir="ltr">{fmtDuration(r.duration_s)}</span>}
+                          {canStats && plays[`${r.doc_id}:${r.youtube_id}`] != null && <span>{plays[`${r.doc_id}:${r.youtube_id}`]} تشغيل</span>}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title_ar || r.yt_title || "بلا عنوان"}</div>
+                        <div style={{ fontSize: 10.5, color: T.faint, marginTop: 2 }}>آخر تعديل: {r.updated_by || "—"} · {fmtAdminDate(r.updated_at)}</div>
+                      </div>
+                      {!editing && (
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => openEditor(doc, r)} title="تعديل" aria-label="تعديل" style={iconBtn(T.brass)}><Pencil size={13} /></button>
+                          <button onClick={() => togglePub(r)} title={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} aria-label={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} style={iconBtn()}>
+                            {r.published ? <EyeOff size={13} /> : <Eye size={13} />}
+                          </button>
+                          {confirmDel === r.id ? (
+                            <>
+                              <button onClick={() => remove(r)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer" }}>تأكيد</button>
+                              <button onClick={() => setConfirmDel(null)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer", color: T.muted }}>لا</button>
+                            </>
                           ) : (
-                            <><AlertTriangle size={15} color="#B8790F" style={{ flexShrink: 0, marginTop: 2 }} />
-                              <span style={{ color: "#B8790F" }}>ما قدرت أتحقق من المقطع الآن{verdict.reason === "api" ? " (مشغّل يوتيوب ما تحمّل — إضافة حجب أو شبكة)" : ""}. تقدر تحفظ، وتأكد من العرض بالموقع بعدها.</span></>
+                            <button onClick={() => setConfirmDel(r.id)} title="حذف المقطع" aria-label="حذف المقطع" style={iconBtn("#C0392B")}><Trash2 size={13} /></button>
                           )}
                         </div>
                       )}
                     </div>
-                  )}
-
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10, marginTop: 14 }}>
-                    <div>
-                      <label style={lbl}>العنوان للزوّار — عربي (اختياري)</label>
-                      <input value={edit.title_ar} maxLength={140} onChange={(e) => setEdit((x) => ({ ...x, title_ar: e.target.value }))}
-                        placeholder={(verdict && verdict.title) || `جولة مرئية — ${doc.nameAr}`} style={inp} />
-                    </div>
-                    <div>
-                      <label style={lbl}>Title — English (optional)</label>
-                      <input value={edit.title_en} maxLength={140} dir="ltr" onChange={(e) => setEdit((x) => ({ ...x, title_en: e.target.value }))}
-                        placeholder={(verdict && verdict.title) || `Video tour — ${doc.nameEn}`} style={inp} />
-                    </div>
+                    {editing && renderEditor(doc)}
                   </div>
+                );
+              })}
 
-                  <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-                    <div style={{ width: 150 }}>
-                      <label style={lbl}>يبدأ من (بالثواني)</label>
-                      <input value={edit.start_s} inputMode="numeric" dir="ltr"
-                        onChange={(e) => { const v = toWesternDigits(e.target.value).replace(/[^\d]/g, "").slice(0, 5); setEdit((x) => ({ ...x, start_s: v, startTouched: true })); }}
-                        style={inp} />
-                    </div>
-                    <div style={{ fontSize: 11.5, color: T.faint, paddingBottom: 11 }}>{liveStart > 0 ? <span dir="ltr">= {fmtDuration(liveStart)}</span> : "من البداية"}</div>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-                    {amvToggle(T, edit.vertical, () => setEdit((x) => ({ ...x, vertical: !x.vertical, verticalTouched: true })), "مقطع عمودي (Shorts) — يُعرض بإطار طولي")}
-                    {amvToggle(T, edit.published, () => setEdit((x) => ({ ...x, published: !x.published })), "ظاهر للزوّار — لو ألغيته ينحفظ المقطع مخفيًا")}
-                  </div>
-
-                  <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-                    {blocked ? (
-                      <button onClick={() => save(true)} disabled={busy} style={{ display: "flex", alignItems: "center", gap: 7, background: "#B8790F", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "wait" : "pointer" }}>
-                        <AlertTriangle size={15} /> حفظ رغم التحذير
-                      </button>
-                    ) : (
-                      <button onClick={() => save(false)} disabled={busy || !liveId || checking}
-                        style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "wait" : "pointer", opacity: busy || !liveId || checking ? 0.55 : 1 }}>
-                        <Check size={15} /> {busy ? "جارٍ الحفظ…" : edit.published ? "حفظ ونشر" : "حفظ كمخفي"}
-                      </button>
-                    )}
-                    <button onClick={closeEditor} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
-                  </div>
-                </div>
-              )}
+              {addingHere && renderEditor(doc)}
             </div>
           );
         })}
