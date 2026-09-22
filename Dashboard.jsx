@@ -5,6 +5,10 @@ import * as XLSX from "xlsx";
 import { DESIGNS, DESIGN_KEYS, DEFAULT_DESIGN_KEY, NovaLayers, useNovaRuntime, novaCss } from "./design-nova.jsx";
 import * as Brain from "./import-brain.js";
 import { buildBrief, briefToText, briefToMarkdown } from "./admin-brief.js";
+import {
+  parseYouTube, isYouTubeId, fmtDuration, ytThumb, ytWatchUrl, ytShortUrl, bestYtPoster, loadYouTubeApi,
+  createYtPlayer, ytPlainIframe, warmYouTube, ytErrorText,
+} from "./youtube-kit.js";
 
 /* ═══════════════════════════════════════════════════════════
    فهرس الملف — لتسهيل القراءة والتعديل المستقبلي.
@@ -33,6 +37,14 @@ const TELEGRAM_URL = "https://t.me/+thhB4M36VkFkYjZk";
 /* عميل Supabase الحقيقي — يُستخدم بلوحة الإدارة (تسجيل الدخول + قراءة/كتابة البيانات).
    نفس الرابط والمفتاح العام أعلاه، آمنين للنشر بالمتصفح طالما RLS مفعّلة (راجع setup-supabase.sql) */
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* v2.9.1 — دمج دفعة أحداث Realtime في قراءة واحدة: استيراد إكسل يولّد مئات
+   الأحداث خلال ثوانٍ، وبدون الدمج كان كل زائر مفتوح عنده الموقع يرسل مئات الطلبات. */
+function debounceLive(fn, ms = 400) {
+  let t = null;
+  const run = () => { clearTimeout(t); t = setTimeout(fn, ms); };
+  run.cancel = () => clearTimeout(t);
+  return run;
+}
 /* رقم جلسة عشوائي مؤقت يتولّد مرة وحدة لكل تحميل صفحة — بدون أي معنى شخصي،
    هدفه فقط تجميع أحداث نفس الزيارة ببعض لتقدير الوقت المقضي (تحليل كلي وليس فردي) */
 const SESSION_ID =
@@ -69,12 +81,14 @@ import {
   RefreshCw, Copy, Check, Sparkles, Sun, Moon, Monitor, History,
   LayoutGrid, Table, Laptop, Smartphone, Share2, ThumbsUp, ThumbsDown,
   ChevronLeft, ChevronRight, ArrowUp, SlidersHorizontal, FileText, ExternalLink, AlertTriangle,
+  Play,
 } from "lucide-react";
 /* أيقونات إضافية للوحة الإدارة فقط */
 import {
   LogIn, LogOut, Upload, Download, Star, ShieldCheck, FileSpreadsheet,
   PlusCircle, Pencil, MinusCircle, Lock, BarChart3, Eye, Filter,
   MousePointerClick, Tag, Trash2, UserPlus, ListPlus, TrendingUp,
+  EyeOff, Link2, Clapperboard,
 } from "lucide-react";
 
 /* أيقونة تليجرام الرسمية (غير متوفرة في lucide-react) */
@@ -1508,6 +1522,40 @@ function Card({ r, i, onOpen, reduced }) {
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
   {
+    version: "2.9.1",
+    dateAr: "22 سبتمبر 2026",
+    dateEn: "September 22, 2026",
+    ar: [
+      "إصلاح: فتح \u200f\"تعديل\"\u200f على استفسار موجود بلوحة الإدارة كان يوقف اللوحة بالكامل — صار يعرض \u200f\"سجل البند\"\u200f: من أضافه، ومن عدّله آخر مرة، وكل تعديل بالحقول اللي تغيّرت (من ← إلى)",
+      "إصلاح: الفلاتر المخصصة وتقدّم التنفيذ صارت تتحدّث عند الزوّار لحظيًا فعلًا بعد أي تعديل إداري أو استيراد — قبل كذا كانت تحتاج تحديث الصفحة",
+      "تحسين: الاستيراد الكبير (مئات التغييرات خلال ثوانٍ) صار يوصل لكل زائر كتحديث واحد بدل مئات الطلبات",
+      "أمان: إنشاء حساب جديد ما عاد يسمح بمنح صلاحيات أعلى من صلاحيات المنشئ نفسه (إلا لصاحب صلاحية \u200f\"تعديل الصلاحيات\"\u200f) — والتحقق بالخادم نفسه، مو بالواجهة فقط",
+    ],
+    en: [
+      "Fix: opening \"Edit\" on an existing inquiry in the admin panel crashed the whole panel — it now shows the item's history: who added it, who last edited it, and every edit with the fields that changed (from → to)",
+      "Fix: custom filters and construction progress now truly update live for visitors after any admin edit or import — previously they needed a page refresh",
+      "Improvement: a large import (hundreds of changes within seconds) now reaches each visitor as a single update instead of hundreds of requests",
+      "Security: creating a new account can no longer grant permissions beyond the creator's own (except for holders of \"Edit permissions\") — enforced on the server itself, not just the UI",
+    ],
+  },
+  {
+    version: "2.9.0",
+    dateAr: "22 سبتمبر 2026",
+    dateEn: "September 22, 2026",
+    ar: [
+      "جولة فيديو لكل نموذج: مقطع يوتيوب يُعرض داخل عارض النموذج نفسه — أول صفحة قبل الواجهة والمخططات، والبرشور (PDF) بمكانه كما كان",
+      "تحميل خفيف: قبل الضغط على \u200f\"تشغيل\"\u200f ما يُحمَّل إلا صورة المقطع — مشغّل يوتيوب يتحمّل عند التشغيل فقط، ويبدأ بضغطة وحدة حتى على الآيفون",
+      "النماذج اللي لها مقطع عليها علامة ▶ ومدة المقطع ببطاقة المخططات",
+      "لوحة الإدارة ← \u200f\"مقاطع النماذج\"\u200f: لصق أي رابط يوتيوب، تحقق تلقائي إن المقطع يشتغل خارج يوتيوب، جلب العنوان والمدة، إخفاء مؤقت، وعدد مرات التشغيل — وكل تعديل يوصل للزوّار فورًا",
+    ],
+    en: [
+      "A video tour for every model: a YouTube video that plays inside the model's own viewer — the first page, before the exterior and plans, with the brochure (PDF) right where it was",
+      "Lightweight: until you tap Play, only the video's image loads — YouTube's player loads on play only, and starts in one tap even on iPhone",
+      "Models with a video show a ▶ mark and the video's length on their plans card",
+      "Admin panel → \"Model videos\": paste any YouTube link, automatic check that it plays outside YouTube, title and length fetched, temporary hide, and play count — every change reaches visitors instantly",
+    ],
+  },
+  {
     version: "2.8.6",
     dateAr: "17 سبتمبر 2026",
     dateEn: "September 17, 2026",
@@ -2691,9 +2739,101 @@ function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, nqId, ur
   );
 }
 
+/* ── v2.9.0 — مقطع النموذج داخل عارض المستندات ──
+   قبل الضغط: صورة المقطع فقط — صفر سكربتات من يوتيوب وصفر كوكيز. عند الضغط يُحمَّل
+   مشغّل يوتيوب الرسمي ويبدأ التشغيل بضغطة وحدة (حتى على سفاري والجوال). بعد بدء
+   التشغيل ما يغطي المشغّل أي عنصر — شرط من شروط يوتيوب للتضمين. */
+function VideoStage({ video, docId, docName, accent, lang }) {
+  const L = (ar, en) => (lang === "en" ? en : ar);
+  const yid = video.youtube_id;
+  const start = Number(video.start_s) || 0;
+  const [on, setOn] = useState(false);
+  const [err, setErr] = useState(null);
+  const [poster, setPoster] = useState(null);
+  const hostRef = useRef(null);
+  const playerRef = useRef(null);
+  const loggedRef = useRef(false);
+  const title = (lang === "en" ? video.title_en : video.title_ar) || video.yt_title
+    || L(`جولة مرئية — ${docName}`, `Video tour — ${docName}`);
+
+  /* صورة hqdefault تظهر فورًا، وتُستبدل بأعلى دقة متوفرة لهذا المقطع لما توصل */
+  useEffect(() => bestYtPoster(yid, setPoster), [yid]);
+  /* فتح صفحة المقطع = غالبًا بيشغّله — نسخّن الاتصالات (DNS/TLS فقط، بدون تحميل شي) */
+  useEffect(() => { warmYouTube(); }, []);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!on || !host) return;
+    let alive = true;
+    const markPlay = () => {
+      if (loggedRef.current) return;
+      loggedRef.current = true;
+      logEvent("nav", "video_play", docId, yid);
+    };
+    const frameTitle = `${title} — YouTube`;
+    loadYouTubeApi().then((YT) => {
+      if (!alive) return;
+      const mount = document.createElement("div");
+      host.appendChild(mount);
+      playerRef.current = createYtPlayer(YT, mount, {
+        id: yid, start, autoplay: true, lang, title: frameTitle,
+        onReady: (e) => { try { e.target.playVideo(); } catch (_) {} },
+        onState: (e) => { if (e.data === 1) markPlay(); },
+        onError: (e) => { if (alive) setErr(e.data); },
+      });
+    }).catch(() => {
+      /* مشغّل يوتيوب الرسمي محجوب أو تأخّر (إضافة/شبكة): نضمّن مباشرة — يشتغل،
+         لكن على بعض الجوالات قد يحتاج ضغطة ثانية */
+      if (!alive) return;
+      host.appendChild(ytPlainIframe(yid, { start, autoplay: true, lang, title: frameTitle }));
+      markPlay();
+    });
+    return () => {
+      alive = false;
+      try { if (playerRef.current) playerRef.current.destroy(); } catch (_) {}
+      playerRef.current = null;
+      host.innerHTML = "";
+    };
+  }, [on, yid]);
+
+  return (
+    <div className={`vs ${video.vertical ? "vs-v" : "vs-h"}`}>
+      <div className="vs-frame" style={{ backgroundImage: `url("${poster || ytThumb(yid)}")` }}>
+        <div className="vs-host" ref={hostRef} />
+        {!on && (
+          <button
+            type="button" className="vs-poster"
+            onClick={() => setOn(true)}
+            onPointerEnter={warmYouTube} onFocus={warmYouTube}
+            aria-label={L(`تشغيل: ${title}`, `Play: ${title}`)}
+          >
+            <span className="vs-play" style={{ color: accent }}>
+              <Play size={30} fill="currentColor" strokeWidth={0} />
+            </span>
+            <span className="vs-cap">
+              <span className="vs-kicker">{L("جولة مرئية", "Video tour")}</span>
+              <span className="vs-title">{title}</span>
+            </span>
+            {video.duration_s > 0 && <span className="vs-dur mono">{fmtDuration(video.duration_s)}</span>}
+          </button>
+        )}
+      </div>
+      {err != null && (
+        <div className="vs-err" role="status">
+          <AlertTriangle size={14} />
+          <span>{L("تعذّر تشغيل المقطع داخل الموقع.", "This video can't play here.")}</span>
+          <a href={ytWatchUrl(yid, start)} target="_blank" rel="noopener">
+            {L("شاهده على يوتيوب", "Watch on YouTube")} <ExternalLink size={11} />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── عارض المخططات — ملء الشاشة، تكبير بالإصبعين/نقرتين، تنقّل بين الصفحات ── */
-function DocViewerSheet({ doc, onClose }) {
-  const { resolved } = useT();
+function DocViewerSheet({ doc, video, onClose }) {
+  const { T, resolved } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
   const [idx, setIdx] = useState(0);
@@ -2715,17 +2855,33 @@ function DocViewerSheet({ doc, onClose }) {
   }, [doc]);
 
   const docId = doc ? doc.id : null;
-  const pages = doc ? doc.pages : [];
+  /* v2.9.0 — لو للنموذج مقطع منشور، يصير أول «صفحة» بالعارض (قبل الواجهة والمخططات)،
+     وبقية الصفحات كما هي بالضبط. المقطع مو صورة: ما عليه تكبير ولا سحب. */
+  const hasVid = !!(doc && video && video.youtube_id);
+  const pages = !doc ? [] : hasVid
+    ? [{ f: `video:${video.youtube_id}`, ar: "جولة مرئية", en: "Video tour", video: true }, ...doc.pages]
+    : doc.pages;
   const page = pages[idx] || null;
+  const isVid = !!(page && page.video);
 
-  useEffect(() => { setIdx(0); }, [docId]);
+  const hadVid = useRef(hasVid);
+  useEffect(() => { setIdx(0); hadVid.current = hasVid; }, [docId]);
+  /* انضاف أو انشال مقطع والعارض مفتوح (تحديث لحظي من الإدارة): نزيح المؤشر
+     عشان تبقى نفس اللوحة المعروضة قدام الزائر بدل ما تقفز لغيرها */
+  useEffect(() => {
+    if (hadVid.current === hasVid) return;
+    hadVid.current = hasVid;
+    setIdx((i) => Math.max(0, i + (hasVid ? 1 : -1)));
+  }, [hasVid]);
   useEffect(() => { setZ({ s: 1, x: 0, y: 0 }); setLoaded(false); }, [docId, idx]);
 
   useEffect(() => {
     if (!docId || !pages[idx]) return;
-    logEvent("nav", "doc_page", `${docId}:${idx + 1}`, null);
+    /* ترقيم اللوحات في السجل يبقى كما كان قبل المقاطع (١ = الواجهة دائمًا) —
+       عشان تحليلات الزيارات السابقة واللاحقة تبقى قابلة للمقارنة */
+    logEvent("nav", "doc_page", pages[idx].video ? `${docId}:video` : `${docId}:${idx + 1 - (hasVid ? 1 : 0)}`, null);
     [idx - 1, idx + 1].forEach((i) => {
-      if (i >= 0 && i < pages.length) { const im = new window.Image(); im.src = DOC_BASE + pages[i].f; }
+      if (i >= 0 && i < pages.length && !pages[i].video) { const im = new window.Image(); im.src = DOC_BASE + pages[i].f; }
     });
     const el = chipsRef.current && chipsRef.current.querySelector(".dvw-chip.on");
     if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
@@ -2847,6 +3003,16 @@ function DocViewerSheet({ doc, onClose }) {
         )}
       </div>
 
+      {isVid ? (
+        <div className="dvw-stage is-video" ref={stageRef}>
+          <VideoStage
+            key={`${doc.id}:${video.youtube_id}`}
+            video={video} docId={doc.id} lang={lang}
+            docName={L(doc.nameAr, doc.nameEn)}
+            accent={doc.color ? DOC_COLORS.light[doc.color] : "#0C1519"}
+          />
+        </div>
+      ) : (
       <div
         className="dvw-stage" ref={stageRef}
         onPointerDown={onDown} onPointerMove={onMove}
@@ -2870,6 +3036,7 @@ function DocViewerSheet({ doc, onClose }) {
           }}
         />
       </div>
+      )}
 
       <div className="dvw-bot">
         {pages.length > 1 && (
@@ -2879,7 +3046,8 @@ function DocViewerSheet({ doc, onClose }) {
             </button>
             <div className="dvw-chips" ref={chipsRef}>
               {pages.map((p, i) => (
-                <button key={p.f} className={`dvw-chip${i === idx ? " on" : ""}`} onClick={() => setIdx(i)}>
+                <button key={p.f} className={`dvw-chip${i === idx ? " on" : ""}${p.video ? " is-video" : ""}`} onClick={() => setIdx(i)}>
+                  {p.video && <Play size={10} fill="currentColor" strokeWidth={0} />}
                   {L(p.ar, p.en)}
                 </button>
               ))}
@@ -2890,13 +3058,25 @@ function DocViewerSheet({ doc, onClose }) {
           </div>
         )}
         <div className="dvw-foot">
-          <span>{L("قرّب بإصبعين أو انقر مرتين للتكبير", "Pinch or double-tap to zoom")}</span>
-          <a
-            href={DOC_BASE + doc.pdf} target="_blank" rel="noopener noreferrer"
-            onClick={() => logEvent("nav", "doc_open_external", doc.id, null)}
-          >
-            <ExternalLink size={12} /> {L("الملف الأصلي PDF", "Original PDF")}
-          </a>
+          <span>{isVid
+            ? L("يُعرض عبر يوتيوب داخل الموقع", "Plays via YouTube, right here")
+            : L("قرّب بإصبعين أو انقر مرتين للتكبير", "Pinch or double-tap to zoom")}</span>
+          <span className="dvw-links">
+            {isVid && (
+              <a
+                href={ytWatchUrl(video.youtube_id, video.start_s)} target="_blank" rel="noopener"
+                onClick={() => logEvent("nav", "video_external", doc.id, video.youtube_id)}
+              >
+                <ExternalLink size={12} /> YouTube
+              </a>
+            )}
+            <a
+              href={DOC_BASE + doc.pdf} target="_blank" rel="noopener noreferrer"
+              onClick={() => logEvent("nav", "doc_open_external", doc.id, null)}
+            >
+              <ExternalLink size={12} /> {L("الملف الأصلي PDF", "Original PDF")}
+            </a>
+          </span>
         </div>
       </div>
     </div>
@@ -3625,11 +3805,12 @@ function PublicSite() {
       finally { setLoading(false); }
     };
     fetchLive();
+    const onLive = debounceLive(fetchLive);
     const channel = supabase
       .channel("public-inquiries-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "inquiries" }, fetchLive)
+      .on("postgres_changes", { event: "*", schema: "public", table: "inquiries" }, onLive)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { onLive.cancel(); supabase.removeChannel(channel); };
   }, []);
 
   /* ═══ v2.8.5 — فئات الفلترة الحية من لوحة الإدارة ═══
@@ -3651,12 +3832,40 @@ function PublicSite() {
       } catch {}
     };
     fetchCats();
+    const onLive = debounceLive(fetchCats);
     const channel = supabase
       .channel("public-filter-categories-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "filter_categories" }, fetchCats)
+      .on("postgres_changes", { event: "*", schema: "public", table: "filter_categories" }, onLive)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { onLive.cancel(); supabase.removeChannel(channel); };
   }, []);
+  /* ═══ v2.9.0 — مقاطع النماذج (يوتيوب) من لوحة الإدارة ═══
+     الزائر يقرأ المقاطع «الظاهرة» فقط (RLS بقاعدة البيانات). والاستماع اللحظي على
+     جدول الإشارة model_videos_rev لا على جدول المقاطع نفسه: لما ينخفى مقطع يطلع
+     صفّه من صلاحية الزائر فما يوصله حدثه أصلًا — الإشارة توصل للكل دائمًا. */
+  const [videos, setVideos] = useState({});
+  useEffect(() => {
+    let alive = true, seq = 0;
+    const fetchVids = async () => {
+      const my = ++seq;
+      try {
+        const { data: rows, error } = await supabase.from("model_videos")
+          .select("doc_id,youtube_id,title_ar,title_en,yt_title,duration_s,start_s,vertical,published,updated_at")
+          .eq("published", true);
+        if (!alive || my !== seq || error) return;
+        const m = {};
+        (rows || []).forEach((r) => { if (r && isYouTubeId(r.youtube_id)) m[r.doc_id] = r; });
+        setVideos(m);
+      } catch {}
+    };
+    fetchVids();
+    const channel = supabase
+      .channel("public-model-videos-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "model_videos_rev" }, fetchVids)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(channel); };
+  }, []);
+
   const priOrder = liveCats.pri && liveCats.pri.length ? liveCats.pri : PRI_ORDER;
   const staOrder = liveCats.status && liveCats.status.length ? liveCats.status : STA_ORDER;
   const catOrder = liveCats.cat && liveCats.cat.length ? liveCats.cat : CAT_ORDER;
@@ -3795,12 +4004,16 @@ function PublicSite() {
     fetchPg();
     /* الاستماع الحي على الجداول الأساسية (الـ views ما ترسل أحداث Realtime
        مباشرة) — أي تغيير بأي منهم يُعيد قراءة العرض المحسوب فورًا. */
+    /* v2.9.1 — نسب المراحل المعتمدة (progress_phase_overrides) تدخل بالعرض المحسوب
+       أيضًا، فصارت تُسمع مثل القراءات والملاحظات */
+    const onLive = debounceLive(fetchPg);
     const channel = supabase
       .channel("public-progress-readings-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "progress_readings" }, fetchPg)
-      .on("postgres_changes", { event: "*", schema: "public", table: "progress_month_notes" }, fetchPg)
+      .on("postgres_changes", { event: "*", schema: "public", table: "progress_readings" }, onLive)
+      .on("postgres_changes", { event: "*", schema: "public", table: "progress_month_notes" }, onLive)
+      .on("postgres_changes", { event: "*", schema: "public", table: "progress_phase_overrides" }, onLive)
       .subscribe();
-    return () => { alive = false; supabase.removeChannel(channel); };
+    return () => { alive = false; onLive.cancel(); supabase.removeChannel(channel); };
   }, []);
 
   const ALL = useMemo(() => {
@@ -4381,6 +4594,42 @@ function PublicSite() {
 .dvw-foot a{display:inline-flex;align-items:center;gap:5px;color:rgba(255,255,255,.72);text-decoration:none;
   border:1px solid rgba(255,255,255,.17);border-radius:999px;padding:5px 11px;flex:none;}
 
+/* ═══ v2.9.0 — مقطع النموذج داخل العارض ═══
+   الإطار يُحسب من مساحة المسرح نفسها (وحدات الحاوية cq): أكبر ١٦:٩ يدخل بالمساحة.
+   على الجوال عرض كامل بلا حواف لأن يوتيوب يشترط ألا يقل المشغّل عن 200 بكسل. */
+.dvw-stage.is-video{touch-action:auto;container-type:size;}
+.vs{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px 0;}
+.vs-frame{position:relative;flex:none;width:100%;aspect-ratio:16/9;min-height:200px;overflow:hidden;
+  background:#000 center/cover no-repeat;width:min(100cqw, (100cqh - 40px) * 16 / 9);}
+@media(min-width:640px){.vs-h .vs-frame{border-radius:18px;width:min(100cqw - 56px, (100cqh - 56px) * 16 / 9, 1280px);}}
+.vs-v .vs-frame{aspect-ratio:9/16;min-height:0;border-radius:18px;width:min(100cqw - 32px, (100cqh - 40px) * 9 / 16);}
+.vs-host{position:absolute;inset:0;}
+.vs-host iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;}
+.vs-poster{position:absolute;inset:0;display:block;width:100%;height:100%;margin:0;padding:0;border:0;cursor:pointer;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 42%,rgba(0,0,0,.76) 100%);color:#fff;font-family:inherit;text-align:start;}
+.vs-play{position:absolute;inset:0;margin:auto;width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.95);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .18s ease;}
+.vs-play svg{transform:translateX(2px);}
+.vs-poster:hover .vs-play{transform:scale(1.06);}
+.vs-poster:focus-visible{outline:none;}
+.vs-poster:focus-visible .vs-play{box-shadow:0 0 0 4px rgba(255,255,255,.55),0 10px 30px rgba(0,0,0,.35);}
+.vs-cap{position:absolute;inset-inline-start:16px;inset-inline-end:88px;bottom:14px;display:flex;flex-direction:column;gap:3px;}
+.vs-kicker{font-size:11.5px;opacity:.78;}
+.vs-title{font-size:15px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.vs-v .vs-cap{inset-inline-end:16px;bottom:44px;}
+.vs-dur{position:absolute;inset-inline-end:14px;bottom:16px;background:rgba(0,0,0,.72);color:#fff;font-size:12px;
+  padding:3px 8px;border-radius:7px;direction:ltr;}
+.vs-err{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:8px;background:rgba(0,0,0,.64);color:#fff;
+  font-size:12.5px;padding:8px 14px;border-radius:12px;max-width:calc(100% - 24px);}
+.vs-err a{color:#fff;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+.dvw-chip{display:inline-flex;align-items:center;gap:5px;}
+.dvw-links{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.doc-thumb{position:relative;}
+.doc-vbadge{position:absolute;inset-block-end:5px;inset-inline-end:5px;width:20px;height:20px;border-radius:50%;
+  background:rgba(8,12,16,.74);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.doc-vbadge svg{transform:translateX(1px);}
+.doc-vid{display:inline-flex;align-items:center;gap:4px;}
+
 @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fade{from{opacity:0;}to{opacity:1;}}
 @keyframes up{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
@@ -4843,6 +5092,10 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                     "هنا تجد المخطط الرئيسي لتوزيع البلوكات، بالإضافة إلى مخطط كل نموذج فيلا على حدة. اضغط \"فتح\" لعرض الملف أو تنزيله.",
                     "Here you'll find the master block-layout plan, along with each villa model's plan. Tap \"Open\" to view or download the file."
                   )}
+                  {Object.keys(videos).length > 0 && L(
+                    " النماذج اللي تحمل علامة «فيديو» فيها جولة مرئية تُعرض هنا داخل الموقع مباشرة.",
+                    " Models marked \"Video\" include a video tour that plays right here."
+                  )}
                 </p>
               </section>
 
@@ -4860,15 +5113,17 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                 {DOCS.map((doc) => {
                   const accent = doc.color ? DOC_COLORS[resolved][doc.color] : T.brass;
                   const Go = lang === "en" ? ChevronRight : ChevronLeft;
+                  const vid = videos[doc.id];
                   return (
                     <button
                       key={doc.id}
                       className="doc-card"
                       style={{ borderInlineStartColor: accent }}
-                      onClick={() => { logEvent("nav", "doc_open", doc.id, null); setDocView(doc); }}
+                      onClick={() => { logEvent("nav", "doc_open", doc.id, vid ? "video" : null); setDocView(doc); }}
                     >
                       <span className="doc-thumb" style={{ borderColor: accent + "55" }}>
                         <img src={DOC_BASE + doc.cover} alt="" loading="lazy" />
+                        {vid && <span className="doc-vbadge" aria-hidden="true"><Play size={9} fill="currentColor" strokeWidth={0} /></span>}
                       </span>
                       <span className="doc-info">
                         <span className="doc-name">{L(doc.nameAr, doc.nameEn)}</span>
@@ -4876,6 +5131,14 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                         <span className="doc-meta" style={{ color: accent }}>
                           <FileText size={11} />
                           {doc.pages.length} {L(doc.pages.length === 1 ? "لوحة" : "لوحات", doc.pages.length === 1 ? "sheet" : "sheets")}
+                          {vid && (
+                            <span className="doc-vid">
+                              <span aria-hidden="true">·</span>
+                              <Play size={10} fill="currentColor" strokeWidth={0} />
+                              {L("فيديو", "Video")}
+                              {vid.duration_s > 0 && <span className="mono">{fmtDuration(vid.duration_s)}</span>}
+                            </span>
+                          )}
                         </span>
                       </span>
                       <span className="doc-go"><Go size={17} /></span>
@@ -4905,7 +5168,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
-        <DocViewerSheet doc={docView} onClose={() => setDocView(null)} />
+        <DocViewerSheet doc={docView} video={docView ? videos[docView.id] || null : null} onClose={() => setDocView(null)} />
 
         {showTop && (
           <button
@@ -4955,6 +5218,7 @@ const ADMIN_PERMISSIONS = [
   { key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
   { key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
   { key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
+  { key: "manage_media", label: "إدارة مقاطع النماذج (يوتيوب)", icon: Clapperboard },
   { key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
   { key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
   { key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
@@ -6066,6 +6330,87 @@ function ProgressReadingsSync({ flashToast, canImport, log }) {
 }
 
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
+/* ── v2.9.1 — سجل البند داخل نموذج التعديل ──
+   كان مستدعى هنا من إصدار سابق بدون ما يكون معرّفًا، فكان فتح «تعديل» على أي
+   استفسار يوقف لوحة الإدارة بالكامل. يقرأ من inquiry_revisions (يعبّيها Trigger
+   بقاعدة البيانات مع كل إضافة/تعديل) — قراءة فقط، ويختفي بهدوء لو ما فيه سجل. */
+const REV_FIELD_LABEL = {
+  model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", status: "الحالة", owner: "الجهة المجيبة",
+  month: "الشهر", note: "نص الاستفسار", reply: "الرد", closed: "مغلق", answered: "تمت الإجابة",
+  urgent: "عاجل", important: "مهم", meetings: "الاجتماعات",
+};
+function revVal(v) {
+  if (v == null || v === "") return "—";
+  if (v === "true") return "نعم";
+  if (v === "false") return "لا";
+  let s = String(v);
+  if (/^\s*\[/.test(s)) { try { const a = JSON.parse(s); if (Array.isArray(a)) s = a.length ? a.join("، ") : "—"; } catch (_) {} }
+  return s.length > 90 ? s.slice(0, 90) + "…" : s;
+}
+function AInquiryTrail({ id, row }) {
+  const T = useSystemTheme();
+  const [revs, setRevs] = useState(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setRevs(null); setOpen(false);
+    supabase.from("inquiry_revisions").select("id,op,changed_by,changed_at,changes")
+      .eq("inquiry_id", id).order("changed_at", { ascending: false }).limit(30)
+      .then(({ data, error }) => { if (alive) setRevs(error ? [] : data || []); });
+    return () => { alive = false; };
+  }, [id]);
+  const last = revs && revs[0];
+  const created = revs && revs.find((r) => r.op === "insert");
+  const createdBy = (row && row.created_by) || (created && created.changed_by) || null;
+  const lastBy = (row && row.updated_by) || (last && last.changed_by) || null;
+  const lastAt = (row && row.updated_at) || (last && last.changed_at) || null;
+  if (!createdBy && !lastBy && !(revs && revs.length)) return null;
+  const Chev = open ? ChevronUp : ChevronDown;
+  return (
+    <div style={{ background: T.sunken, borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontSize: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <History size={14} color={T.brass} style={{ flexShrink: 0 }} />
+        <span style={{ fontWeight: 700 }}>سجل البند</span>
+        <span style={{ color: T.muted }}>
+          {createdBy ? `أضافه: ${createdBy}` : ""}
+          {createdBy && lastBy ? " · " : ""}
+          {lastBy ? `آخر تعديل: ${lastBy}${lastAt ? ` (${fmtAdminDate(lastAt)})` : ""}` : ""}
+        </span>
+        {revs && revs.length > 0 && (
+          <button type="button" onClick={() => setOpen((o) => !o)} style={{ marginInlineStart: "auto", display: "flex", alignItems: "center", gap: 4, background: "none", border: `1px solid ${T.line}`, borderRadius: 8, padding: "4px 9px", fontSize: 11.5, color: T.muted, cursor: "pointer", fontFamily: "inherit" }}>
+            {open ? "إخفاء" : `التعديلات (${revs.length}${revs.length === 30 ? "+" : ""})`} <Chev size={12} />
+          </button>
+        )}
+      </div>
+      {open && revs && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10, maxHeight: 280, overflowY: "auto" }}>
+          {revs.map((r) => {
+            const ch = r.changes && typeof r.changes === "object" ? r.changes : {};
+            const keys = r.op === "update" ? Object.keys(ch) : [];
+            return (
+              <div key={r.id} style={{ background: T.surface, borderRadius: 10, padding: "8px 10px", border: `1px solid ${T.line}` }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", color: T.muted, fontSize: 11.5 }}>
+                  <b style={{ color: r.op === "delete" ? "#C0392B" : r.op === "insert" ? "#1E8E5A" : T.brass }}>{r.op === "insert" ? "إضافة" : r.op === "delete" ? "حذف" : "تعديل"}</b>
+                  <span>{r.changed_by || "نظام"}</span>
+                  <span style={{ color: T.faint }}>{fmtAdminDate(r.changed_at)}</span>
+                </div>
+                {keys.map((k) => (
+                  <div key={k} style={{ fontSize: 11.5, marginTop: 5, lineHeight: 1.7 }}>
+                    <span style={{ color: T.faint }}>{REV_FIELD_LABEL[k] || k}: </span>
+                    <span style={{ color: T.muted, textDecoration: "line-through", textDecorationColor: T.faint }}>{revVal(ch[k] && ch[k].from)}</span>
+                    <span style={{ color: T.faint }}> ← </span>
+                    <span>{revVal(ch[k] && ch[k].to)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, canImport, canAdd, canEdit, canDelete, log }) {
   const T = useSystemTheme();
   /* v2.8.5 — يقرأ قيم فئة فلترة من الجدول الحي (تديره لوحة "الفلاتر")، ويرجع
@@ -7119,6 +7464,10 @@ function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms }) {
   const [members, setMembers] = useState([]); const [editingId, setEditingId] = useState(null); const [form, setForm] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState(null); // { name, email, password, perms }
+  /* v2.9.1 — ما تقدر تمنح حساب جديد صلاحية ما تملكها (إلا لو عندك «تعديل الصلاحيات»).
+     نفس القاعدة مطبّقة بالخادم (admin-invite-user) — هنا بس عشان ما تعرض خيار مرفوض. */
+  const myPerms = (profile && profile.perms) || [];
+  const grantable = canEditPerms ? ADMIN_PERMISSIONS : ADMIN_PERMISSIONS.filter((p) => myPerms.includes(p.key));
   const load = () => supabase.from("profiles").select("*").then(({ data }) => setMembers(data || []));
   useEffect(() => { load(); }, []);
   const startEdit = (m) => { setEditingId(m.id); setForm({ ...m }); };
@@ -7134,10 +7483,17 @@ function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms }) {
     if (!newUser.email.trim() || newUser.password.length < 6) { flashToast("لازم بريد صحيح وكلمة مرور ٦ أحرف فأكثر"); return; }
     setCreating(true);
     const { data, error } = await supabase.functions.invoke("admin-invite-user", {
-      body: { email: newUser.email.trim(), password: newUser.password, name: newUser.name.trim() || newUser.email.trim(), perms: newUser.perms },
+      body: { email: newUser.email.trim(), password: newUser.password, name: newUser.name.trim() || newUser.email.trim(), perms: newUser.perms.filter((k) => grantable.some((g) => g.key === k)) },
     });
     setCreating(false);
-    if (error || data?.error) { flashToast(data?.error || "تعذّر إنشاء الحساب"); return; }
+    if (error || data?.error) {
+      /* رسالة الخادم الفعلية (مثل: صلاحية ما تملكها) بدل رسالة عامة */
+      let msg = data?.error;
+      if (!msg && error && error.context && typeof error.context.json === "function") {
+        try { const b = await error.context.json(); msg = b && b.error; } catch (_) {}
+      }
+      flashToast(msg || "تعذّر إنشاء الحساب"); return;
+    }
     log("إضافة عضو جديد", `${newUser.name || newUser.email} — ${newUser.perms.length} صلاحية`);
     flashToast("تم إنشاء الحساب — يقدر يدخل فورًا بنفس البريد وكلمة المرور");
     setNewUser(null); load();
@@ -7189,7 +7545,8 @@ function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms }) {
           <input type="text" value={newUser.password} onChange={(e) => setNewUser((f) => ({ ...f, password: e.target.value }))} placeholder="٦ أحرف على الأقل" style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 10, border: `1px solid ${T.line}`, marginBottom: 14, fontSize: 13, background: T.sunken }} />
           <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 8 }}>الصلاحيات</label>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-            {ADMIN_PERMISSIONS.map((p) => { const on = newUser.perms.includes(p.key); const Icon = p.icon; return (
+            {!canEditPerms && <div style={{ fontSize: 11.5, color: T.faint, lineHeight: 1.7 }}>تقدر تمنح الحساب الجديد الصلاحيات اللي عندك فقط.</div>}
+            {grantable.map((p) => { const on = newUser.perms.includes(p.key); const Icon = p.icon; return (
               <button key={p.key} onClick={() => toggleNewPerm(p.key)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: "pointer" }}>
                 <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
                 <Icon size={14} color={on ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: on ? T.paper : T.muted }}>{p.label}</span>
@@ -7298,6 +7655,378 @@ function ANoticesTab({ flashToast, log }) {
             })}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ v2.9.0 — مقاطع النماذج ═══
+   لكل نموذج (وللمخطط الرئيسي) مقطع يوتيوب واحد، يظهر أول صفحة بعارض النموذج في
+   الموقع العام. التحقق يتم بمشغّل يوتيوب الرسمي نفسه داخل اللوحة — نفس ظروف
+   الموقع العام بالضبط: لو اشتغل هنا يشتغل هناك. */
+const MEDIA_LINK_HINT = {
+  invalid: "ما قدرت أقرأ رقم مقطع من هذا الرابط.",
+  not_youtube: "هذا مو رابط يوتيوب.",
+  playlist: "هذا رابط قائمة تشغيل — افتح المقطع نفسه وانسخ رابطه.",
+  channel: "هذا رابط قناة — افتح المقطع نفسه وانسخ رابطه.",
+};
+const toWesternDigits = (v) => String(v || "")
+  .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+  .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+
+/* معاينة حيّة + فحص: يحمّل المقطع بمشغّل يوتيوب (بدون تشغيل)، ويقرأ العنوان والمدة،
+   ويلتقط رفض يوتيوب (خاص/محذوف/التضمين ممنوع) قبل ما يوصل للزوّار */
+function AYtPreview({ id, start, vertical, onCheck }) {
+  const hostRef = useRef(null);
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!id || !host) return;
+    let alive = true, player = null, poll = null, settled = false;
+    const report = (x) => { if (alive) onCheck({ ...x, id }); };
+    report({ state: "checking" });
+    const guard = setTimeout(() => { if (!settled) { settled = true; report({ state: "warn", reason: "timeout" }); } }, 12000);
+    const mount = document.createElement("div");
+    host.appendChild(mount);
+    loadYouTubeApi().then((YT) => {
+      if (!alive) return;
+      player = createYtPlayer(YT, mount, {
+        id, start, autoplay: false, lang: "ar", title: "معاينة المقطع",
+        onReady: (e) => {
+          let tries = 0;
+          const tick = () => {
+            if (!alive || settled) return;
+            let title = "", dur = 0;
+            try {
+              const d = e.target.getVideoData ? e.target.getVideoData() : null;
+              title = (d && d.title) || "";
+              dur = Math.round(Number(e.target.getDuration ? e.target.getDuration() : 0) || 0);
+            } catch (_) {}
+            if ((title && dur > 0) || tries >= 14) {
+              settled = true; clearTimeout(guard);
+              report(title ? { state: "ok", title, duration: dur > 0 ? dur : null } : { state: "warn", reason: "no_meta" });
+              return;
+            }
+            tries += 1; poll = setTimeout(tick, 350);
+          };
+          tick();
+        },
+        /* الخطأ يغلب دائمًا — حتى لو وصل بعد قراءة العنوان */
+        onError: (e) => { settled = true; clearTimeout(guard); clearTimeout(poll); report({ state: "error", code: e.data }); },
+      });
+    }).catch(() => { if (!settled) { settled = true; clearTimeout(guard); report({ state: "warn", reason: "api" }); } });
+    return () => {
+      alive = false; clearTimeout(guard); clearTimeout(poll);
+      try { if (player) player.destroy(); } catch (_) {}
+      host.innerHTML = "";
+    };
+  }, [id, start]);
+  return <div ref={hostRef} className="amv-prev" data-v={vertical ? "1" : "0"} />;
+}
+
+function amvToggle(T, on, onClick, children) {
+  return (
+    <button type="button" onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.surface, borderRadius: 11, padding: "10px 12px", cursor: "pointer", width: "100%", color: T.paper, fontFamily: "inherit" }}>
+      <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
+      <span style={{ fontSize: 12.5 }}>{children}</span>
+    </button>
+  );
+}
+
+function AMediaTab({ flashToast, log, canManage, canStats }) {
+  const T = useSystemTheme();
+  const [rows, setRows] = useState(null);           /* doc_id ← صف المقطع */
+  const [plays, setPlays] = useState({});
+  const [edit, setEdit] = useState(null);           /* مسودة المحرّر المفتوح */
+  const [check, setCheck] = useState({ state: "idle" });
+  const [busy, setBusy] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [prevKey, setPrevKey] = useState({ id: null, start: 0 });
+
+  const load = async () => {
+    const { data, error } = await supabase.from("model_videos").select("*");
+    if (error) { setRows({}); return; }
+    const m = {};
+    (data || []).forEach((r) => { m[r.doc_id] = r; });
+    setRows(m);
+  };
+  useEffect(() => {
+    load();
+    /* لو عدّل مشرف ثاني بنفس اللحظة، تتحدّث القائمة هنا بدون تحديث الصفحة */
+    const ch = supabase.channel("admin-model-videos-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "model_videos_rev" }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  /* عدد مرات تشغيل المقطع الحالي لكل نموذج — من سجل الزيارات (يحتاج صلاحية التحليلات) */
+  useEffect(() => {
+    if (!canStats || !rows) return;
+    const list = Object.values(rows);
+    if (!list.length) { setPlays({}); return; }
+    let alive = true;
+    Promise.all(list.map((r) => supabase.from("logs").select("id", { count: "exact", head: true })
+      .eq("category", "video_play").eq("value", r.doc_id).eq("extra", r.youtube_id)
+      .then(({ count }) => [r.doc_id, count || 0])))
+      .then((pairs) => { if (alive) setPlays(Object.fromEntries(pairs)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [rows, canStats]);
+
+  const linkNow = edit ? parseYouTube(edit.link) : null;
+  const liveId = linkNow && linkNow.ok ? linkNow.id : null;
+  const liveStart = edit ? Math.min(86399, Math.max(0, Math.floor(Number(edit.start_s) || 0))) : 0;
+  /* المعاينة تُعاد بعد ما توقف الكتابة — مو مع كل حرف */
+  useEffect(() => {
+    const t = setTimeout(() => setPrevKey({ id: liveId, start: liveStart }), 450);
+    return () => clearTimeout(t);
+  }, [liveId, liveStart]);
+
+  if (!canManage) return <ALocked text="حسابك ما عنده صلاحية إدارة مقاطع النماذج." />;
+  if (rows === null) return <div style={{ color: T.muted, fontSize: 13, padding: 20 }}>جارٍ التحميل...</div>;
+
+  const docName = (id) => { const d = DOCS.find((x) => x.id === id); return d ? d.nameAr : id; };
+  const openEditor = (doc) => {
+    const r = rows[doc.id];
+    setConfirmDel(null);
+    setCheck({ state: "idle" });
+    setEdit({
+      docId: doc.id,
+      link: r ? ytShortUrl(r.youtube_id, r.start_s) : "",
+      title_ar: (r && r.title_ar) || "", title_en: (r && r.title_en) || "",
+      start_s: r ? String(r.start_s || 0) : "0",
+      vertical: !!(r && r.vertical), published: r ? !!r.published : true,
+      startTouched: false, verticalTouched: false,
+    });
+  };
+  const closeEditor = () => { setEdit(null); setCheck({ state: "idle" }); };
+  /* لصق رابط جديد يعبّي وقت البداية (t=) والإطار الطولي (shorts) تلقائيًا —
+     إلا لو المشرف عدّلهم يدويًا */
+  const onLink = (v) => setEdit((e) => {
+    const p = parseYouTube(v);
+    const next = { ...e, link: v };
+    if (p.ok) {
+      if (!e.startTouched) next.start_s = String(p.start);
+      if (!e.verticalTouched) next.vertical = p.vertical;
+    }
+    return next;
+  });
+
+  const verdict = check.id && liveId && check.id === liveId ? check : null;
+  const checking = !!liveId && (!verdict || verdict.state === "checking");
+  const blocked = !!verdict && verdict.state === "error";
+
+  const save = async (force) => {
+    const p = parseYouTube(edit.link);
+    if (!p.ok || busy) return;
+    if (blocked && !force) return;
+    const cur = rows[edit.docId];
+    const sameVid = !!cur && cur.youtube_id === p.id;
+    const meta = verdict && verdict.state === "ok" ? verdict : null;
+    const row = {
+      doc_id: edit.docId,
+      youtube_id: p.id,
+      title_ar: edit.title_ar.trim().slice(0, 140) || null,
+      title_en: edit.title_en.trim().slice(0, 140) || null,
+      yt_title: meta ? String(meta.title).slice(0, 300) : (sameVid ? cur.yt_title : null),
+      duration_s: meta && meta.duration ? meta.duration : (sameVid ? cur.duration_s : null),
+      start_s: liveStart,
+      vertical: !!edit.vertical,
+      published: !!edit.published,
+    };
+    setBusy(true);
+    const { error } = await supabase.from("model_videos").upsert(row, { onConflict: "doc_id" });
+    setBusy(false);
+    if (error) { flashToast(error.code === "42501" ? "حسابك ما عنده صلاحية إدارة المقاطع" : "تعذّر الحفظ — حاول مرة ثانية"); return; }
+    log(cur ? "تعديل مقطع نموذج" : "إضافة مقطع نموذج", `${docName(edit.docId)} — youtu.be/${p.id}${row.published ? "" : " (مخفي)"}`);
+    flashToast(row.published ? "انحفظ — ظهر للزوّار فورًا" : "انحفظ كمخفي — ما يظهر للزوّار");
+    closeEditor();
+    load();
+  };
+  const togglePub = async (r) => {
+    const { error } = await supabase.from("model_videos").update({ published: !r.published }).eq("doc_id", r.doc_id);
+    if (error) { flashToast("تعذّر التعديل — تأكد من صلاحيتك"); return; }
+    log(r.published ? "إخفاء مقطع نموذج" : "إظهار مقطع نموذج", `${docName(r.doc_id)} — youtu.be/${r.youtube_id}`);
+    flashToast(r.published ? "انخفى عن الزوّار" : "ظهر للزوّار");
+    load();
+  };
+  const remove = async (r) => {
+    const { error } = await supabase.from("model_videos").delete().eq("doc_id", r.doc_id);
+    setConfirmDel(null);
+    if (error) { flashToast("تعذّر الحذف — تأكد من صلاحيتك"); return; }
+    log("حذف مقطع نموذج", `${docName(r.doc_id)} — youtu.be/${r.youtube_id}`);
+    flashToast("انحذف المقطع");
+    load();
+  };
+
+  const inp = { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: 13, background: T.surface, color: T.paper, fontFamily: "inherit", outline: "none" };
+  const lbl = { fontSize: 11.5, color: T.muted, display: "block", marginBottom: 5 };
+  const iconBtn = (color) => ({ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: color || T.muted, flexShrink: 0 });
+  const all = Object.values(rows);
+  const shown = all.filter((r) => r.published).length;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <style>{`
+.amv-prev{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;}
+.amv-prev[data-v="1"]{aspect-ratio:9/16;max-width:240px;margin:0 auto;}
+.amv-prev iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+@keyframes amvspin{to{transform:rotate(360deg);}}
+.amv-spin{width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;display:inline-block;animation:amvspin .8s linear infinite;flex:none;}
+      `}</style>
+
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Clapperboard size={16} color={T.brass} />
+          <span style={{ fontSize: 14, fontWeight: 700 }}>مقاطع النماذج</span>
+          <span style={{ marginInlineStart: "auto", fontSize: 11.5, color: T.muted }}>{shown} ظاهر · {all.length - shown} مخفي</span>
+        </div>
+        <p style={{ fontSize: 12, color: T.muted, margin: "8px 0 0", lineHeight: 1.8 }}>
+          كل نموذج له مقطع يوتيوب يظهر كأول صفحة بعارض النموذج في الموقع العام، مع مخططاته والبرشور. الحفظ هنا يوصل لكل الزوّار فورًا.
+        </p>
+        <div style={{ ...aNoteStyle(T), marginTop: 12 }}>
+          ارفع المقطع بخصوصية <b>«غير مدرج» (Unlisted)</b> لو ما تبيه يظهر بقناتك — يشتغل بالموقع عادي.
+          أما <b>«خاص» (Private)</b> فما يشتغل خارج يوتيوب. وتأكد إن <b>«السماح بالتضمين»</b> مفعّل بإعدادات المقطع.
+        </div>
+      </div>
+
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 8 }}>
+        {DOCS.map((doc, i) => {
+          const r = rows[doc.id];
+          const editing = !!edit && edit.docId === doc.id;
+          return (
+            <div key={doc.id} style={{ borderTop: i ? `1px solid ${T.line}` : "none", padding: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ position: "relative", width: 88, height: 50, borderRadius: 9, overflow: "hidden", flexShrink: 0, background: T.sunken, border: `1px solid ${T.line}` }}>
+                  <img src={r ? ytThumb(r.youtube_id, "mqdefault") : DOC_BASE + doc.cover} alt="" loading="lazy"
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: r ? (r.published ? 1 : 0.45) : 0.5 }} />
+                  {r && (
+                    <span style={{ position: "absolute", inset: 0, margin: "auto", width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,.6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Play size={10} fill="currentColor" strokeWidth={0} />
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{doc.nameAr} <span style={{ fontSize: 11, color: T.faint, fontWeight: 400 }}>{doc.subAr}</span></div>
+                  {r ? (
+                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 5, display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center" }}>
+                      {r.published ? <ABadge kind="ok">ظاهر للزوّار</ABadge> : <ABadge kind="change">مخفي</ABadge>}
+                      {r.duration_s > 0 && <span className="mono" dir="ltr">{fmtDuration(r.duration_s)}</span>}
+                      {canStats && plays[doc.id] != null && <span>{plays[doc.id]} تشغيل</span>}
+                      <span style={{ color: T.faint }}>آخر تعديل: {r.updated_by || "—"} · {fmtAdminDate(r.updated_at)}</span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11.5, color: T.faint, marginTop: 4 }}>لا يوجد مقطع</div>
+                  )}
+                  {r && (r.title_ar || r.yt_title) && (
+                    <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title_ar || r.yt_title}</div>
+                  )}
+                </div>
+                {!editing && (r ? (
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <button onClick={() => openEditor(doc)} title="تعديل" aria-label="تعديل" style={iconBtn(T.brass)}><Pencil size={13} /></button>
+                    <button onClick={() => togglePub(r)} title={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} aria-label={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} style={iconBtn()}>
+                      {r.published ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                    {confirmDel === doc.id ? (
+                      <>
+                        <button onClick={() => remove(r)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer" }}>تأكيد</button>
+                        <button onClick={() => setConfirmDel(null)} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer", color: T.muted }}>لا</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setConfirmDel(doc.id)} title="حذف المقطع" aria-label="حذف المقطع" style={iconBtn("#C0392B")}><Trash2 size={13} /></button>
+                    )}
+                  </div>
+                ) : (
+                  <button onClick={() => openEditor(doc)} style={{ display: "flex", alignItems: "center", gap: 6, background: T.brass, color: "#fff", border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+                    <PlusCircle size={13} /> إضافة مقطع
+                  </button>
+                ))}
+              </div>
+
+              {editing && (
+                <div style={{ marginTop: 12, background: T.sunken, borderRadius: 14, padding: 14, border: `1px solid ${T.brass}33` }}>
+                  <label style={lbl}>رابط المقطع على يوتيوب</label>
+                  <div style={{ position: "relative" }}>
+                    <Link2 size={14} color={T.faint} style={{ position: "absolute", top: 12, left: 12 }} />
+                    <input value={edit.link} onChange={(e) => onLink(e.target.value)} dir="ltr" autoFocus
+                      placeholder="https://youtu.be/…" spellCheck={false} autoComplete="off"
+                      style={{ ...inp, paddingLeft: 34, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5 }} />
+                  </div>
+                  <div style={{ fontSize: 11.5, marginTop: 6, minHeight: 16, lineHeight: 1.7, color: linkNow && !linkNow.ok && linkNow.reason !== "empty" ? "#C0392B" : T.muted }}>
+                    {!linkNow || linkNow.reason === "empty"
+                      ? "يقبل أي صيغة: youtu.be · watch · shorts · live · embed — أو كود التضمين كامل."
+                      : !linkNow.ok
+                        ? (MEDIA_LINK_HINT[linkNow.reason] || MEDIA_LINK_HINT.invalid)
+                        : <>رقم المقطع: <span className="mono" dir="ltr">{linkNow.id}</span>{linkNow.kind === "shorts" && " · مقطع عمودي (Shorts)"}</>}
+                  </div>
+
+                  {prevKey.id && (
+                    <div style={{ marginTop: 12 }}>
+                      <AYtPreview key={`${prevKey.id}:${prevKey.start}`} id={prevKey.id} start={prevKey.start} vertical={edit.vertical} onCheck={setCheck} />
+                      {liveId && (
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, fontSize: 12, lineHeight: 1.75 }}>
+                          {checking ? (
+                            <><span className="amv-spin" style={{ color: T.muted, marginTop: 4 }} /><span style={{ color: T.muted }}>جارٍ التحقق إن المقطع يشتغل داخل الموقع…</span></>
+                          ) : verdict.state === "ok" ? (
+                            <><CheckCircle2 size={15} color="#1E8E5A" style={{ flexShrink: 0, marginTop: 2 }} />
+                              <span><b style={{ color: "#1E8E5A" }}>يشتغل داخل الموقع</b> — {verdict.title}{verdict.duration ? <> · <span dir="ltr">{fmtDuration(verdict.duration)}</span></> : null}</span></>
+                          ) : verdict.state === "error" ? (
+                            <><XCircle size={15} color="#C0392B" style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ color: "#C0392B" }}>{ytErrorText(verdict.code)}</span></>
+                          ) : (
+                            <><AlertTriangle size={15} color="#B8790F" style={{ flexShrink: 0, marginTop: 2 }} />
+                              <span style={{ color: "#B8790F" }}>ما قدرت أتحقق من المقطع الآن{verdict.reason === "api" ? " (مشغّل يوتيوب ما تحمّل — إضافة حجب أو شبكة)" : ""}. تقدر تحفظ، وتأكد من العرض بالموقع بعدها.</span></>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10, marginTop: 14 }}>
+                    <div>
+                      <label style={lbl}>العنوان للزوّار — عربي (اختياري)</label>
+                      <input value={edit.title_ar} maxLength={140} onChange={(e) => setEdit((x) => ({ ...x, title_ar: e.target.value }))}
+                        placeholder={(verdict && verdict.title) || `جولة مرئية — ${doc.nameAr}`} style={inp} />
+                    </div>
+                    <div>
+                      <label style={lbl}>Title — English (optional)</label>
+                      <input value={edit.title_en} maxLength={140} dir="ltr" onChange={(e) => setEdit((x) => ({ ...x, title_en: e.target.value }))}
+                        placeholder={(verdict && verdict.title) || `Video tour — ${doc.nameEn}`} style={inp} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+                    <div style={{ width: 150 }}>
+                      <label style={lbl}>يبدأ من (بالثواني)</label>
+                      <input value={edit.start_s} inputMode="numeric" dir="ltr"
+                        onChange={(e) => { const v = toWesternDigits(e.target.value).replace(/[^\d]/g, "").slice(0, 5); setEdit((x) => ({ ...x, start_s: v, startTouched: true })); }}
+                        style={inp} />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: T.faint, paddingBottom: 11 }}>{liveStart > 0 ? <span dir="ltr">= {fmtDuration(liveStart)}</span> : "من البداية"}</div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                    {amvToggle(T, edit.vertical, () => setEdit((x) => ({ ...x, vertical: !x.vertical, verticalTouched: true })), "مقطع عمودي (Shorts) — يُعرض بإطار طولي")}
+                    {amvToggle(T, edit.published, () => setEdit((x) => ({ ...x, published: !x.published })), "ظاهر للزوّار — لو ألغيته ينحفظ المقطع مخفيًا")}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+                    {blocked ? (
+                      <button onClick={() => save(true)} disabled={busy} style={{ display: "flex", alignItems: "center", gap: 7, background: "#B8790F", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "wait" : "pointer" }}>
+                        <AlertTriangle size={15} /> حفظ رغم التحذير
+                      </button>
+                    ) : (
+                      <button onClick={() => save(false)} disabled={busy || !liveId || checking}
+                        style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: busy ? "wait" : "pointer", opacity: busy || !liveId || checking ? 0.55 : 1 }}>
+                        <Check size={15} /> {busy ? "جارٍ الحفظ…" : edit.published ? "حفظ ونشر" : "حفظ كمخفي"}
+                      </button>
+                    )}
+                    <button onClick={closeEditor} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -7881,6 +8610,7 @@ const ADMIN_TABS = [
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
+  { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_notices"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
@@ -7942,6 +8672,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
+        {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
         {activeTab === "audit" && <AAuditLogTab />}

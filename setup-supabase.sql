@@ -586,3 +586,137 @@ grant select (id, model, loc, pri, cat, status, owner, month, note, note_en, rep
 
 -- ملاحظة تبقى بيدك: «حماية كلمات المرور المسرّبة» معطّلة بإعدادات المصادقة.
 -- تُفعَّل من Authentication ← Policies بلوحة Supabase (ما تنضبط بـ SQL).
+
+-- (مطبّق فعليًا على المشروع بتاريخ 22 سبتمبر 2026 — إعادة تشغيله آمنة ولا يكرر شي)
+-- ══════════════════════════════════════════════════════════
+-- v2.9.0 — مقاطع النماذج (فيديو يوتيوب لكل نموذج، يُدار من لوحة الإدارة)
+-- آمن لإعادة التشغيل بالكامل. لا يمسّ أي جدول أو بيانات موجودة.
+-- ══════════════════════════════════════════════════════════
+
+-- (١) الجدول: صف واحد لكل مستند/نموذج (doc_id = نفس id بمصفوفة DOCS بالكود)
+create table if not exists public.model_videos (
+  doc_id      text primary key check (doc_id ~ '^[a-z0-9_-]{2,32}$'),
+  youtube_id  text not null check (youtube_id ~ '^[A-Za-z0-9_-]{11}$'),
+  title_ar    text check (title_ar is null or char_length(title_ar) <= 140),
+  title_en    text check (title_en is null or char_length(title_en) <= 140),
+  yt_title    text check (yt_title is null or char_length(yt_title) <= 300),
+  duration_s  integer check (duration_s is null or (duration_s >= 0 and duration_s < 86400)),
+  start_s     integer not null default 0 check (start_s >= 0 and start_s < 86400),
+  vertical    boolean not null default false,
+  published   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  updated_by  text check (updated_by is null or char_length(updated_by) <= 120)
+);
+
+-- (٢) ختم «من عدّل ومتى» من قاعدة البيانات نفسها — ما يعتمد على ما ترسله الواجهة
+create or replace function public.stamp_model_video()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare who text;
+begin
+  select coalesce(p.name, u.email) into who
+  from auth.users u left join public.profiles p on p.id = u.id
+  where u.id = auth.uid();
+  new.updated_by := coalesce(who, 'نظام');
+  new.updated_at := now();
+  if tg_op = 'INSERT' then new.created_at := now();
+  else new.created_at := old.created_at;
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_stamp_model_video on public.model_videos;
+create trigger trg_stamp_model_video before insert or update on public.model_videos
+  for each row execute function public.stamp_model_video();
+
+-- (٣) إشارة تحديث عامة. ليش جدول منفصل؟
+--     الزائر ما يقرأ إلا المقاطع «الظاهرة» (RLS). فلو أُخفي مقطع، حدث Realtime الخاص
+--     بالصف ما يوصل للزائر أصلًا (الصف صار خارج صلاحيته) ويبقى المقطع ظاهرًا عنده.
+--     هذا الجدول صف واحد يتحدّث مع أي تغيير — كل زائر يسمعه ويعيد القراءة فورًا،
+--     بدون ما نكشف أي مقطع مخفي.
+create table if not exists public.model_videos_rev (
+  id          smallint primary key default 1 check (id = 1),
+  rev         bigint not null default 0,
+  changed_at  timestamptz not null default now()
+);
+insert into public.model_videos_rev (id) values (1) on conflict (id) do nothing;
+
+create or replace function public.bump_model_videos_rev()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  update public.model_videos_rev set rev = rev + 1, changed_at = now() where id = 1;
+  return null;
+end $$;
+drop trigger if exists trg_model_videos_rev on public.model_videos;
+create trigger trg_model_videos_rev after insert or update or delete or truncate on public.model_videos
+  for each statement execute function public.bump_model_videos_rev();
+
+-- (٤) الصلاحيات على مستوى الصف
+alter table public.model_videos enable row level security;
+alter table public.model_videos_rev enable row level security;
+
+drop policy if exists "قراءة عامة - المقاطع الظاهرة" on public.model_videos;
+create policy "قراءة عامة - المقاطع الظاهرة" on public.model_videos
+  for select to anon, authenticated using (published);
+drop policy if exists "قراءة الإدارة - كل المقاطع" on public.model_videos;
+create policy "قراءة الإدارة - كل المقاطع" on public.model_videos
+  for select to authenticated using (public.is_known_admin());
+drop policy if exists "إضافة - المقاطع" on public.model_videos;
+create policy "إضافة - المقاطع" on public.model_videos
+  for insert to authenticated with check (public.has_perm('manage_media'));
+drop policy if exists "تعديل - المقاطع" on public.model_videos;
+create policy "تعديل - المقاطع" on public.model_videos
+  for update to authenticated using (public.has_perm('manage_media')) with check (public.has_perm('manage_media'));
+drop policy if exists "حذف - المقاطع" on public.model_videos;
+create policy "حذف - المقاطع" on public.model_videos
+  for delete to authenticated using (public.has_perm('manage_media'));
+
+drop policy if exists "قراءة عامة - إشارة تحديث المقاطع" on public.model_videos_rev;
+create policy "قراءة عامة - إشارة تحديث المقاطع" on public.model_videos_rev
+  for select to anon, authenticated using (true);
+
+-- (٥) صلاحيات الأعمدة: الزائر يقرأ أعمدة العرض فقط — «من عدّل» داخلي ما ينزل له.
+revoke all on public.model_videos from anon;
+grant select (doc_id, youtube_id, title_ar, title_en, yt_title, duration_s, start_s, vertical, published, updated_at)
+  on public.model_videos to anon;
+revoke all on public.model_videos_rev from anon, authenticated;
+grant select on public.model_videos_rev to anon, authenticated;
+
+revoke execute on function public.stamp_model_video() from public, anon, authenticated;
+revoke execute on function public.bump_model_videos_rev() from public, anon, authenticated;
+
+-- (٦) البث اللحظي (Realtime) لإشارة التحديث
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'model_videos_rev') then
+    alter publication supabase_realtime add table public.model_videos_rev;
+  end if;
+end $$;
+
+-- (٧) صلاحية جديدة «manage_media» تُمنح تلقائيًا لحسابات المالك (role = owner).
+--     التحديث يمر عبر حارس الصلاحيات نفسه (بهوية المالك) — ما نعطّل أي حماية.
+do $$
+declare r record;
+begin
+  for r in select id from public.profiles
+           where role = 'owner' and not ('manage_media' = any (coalesce(perms, '{}'::text[]))) loop
+    perform set_config('request.jwt.claims', json_build_object('sub', r.id::text, 'role', 'authenticated')::text, true);
+    update public.profiles set perms = array_append(coalesce(perms, '{}'::text[]), 'manage_media') where id = r.id;
+  end loop;
+  perform set_config('request.jwt.claims', '', true);
+end $$;
+
+-- ══════════════════════════════════════════════════════════
+-- v2.9.1 — بث لحظي لجداول يستمع لها الموقع العام أصلًا من إصدارات سابقة
+-- (مطبّق فعليًا بتاريخ 22 سبتمبر 2026). كلها لها قراءة عامة بالـ RLS، فالبث ما يكشف شي جديد.
+-- ══════════════════════════════════════════════════════════
+do $$
+declare t text;
+begin
+  foreach t in array array['filter_categories', 'progress_readings', 'progress_month_notes', 'progress_phase_overrides'] loop
+    if not exists (select 1 from pg_publication_tables
+                   where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
