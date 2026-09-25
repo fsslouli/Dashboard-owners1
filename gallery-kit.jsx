@@ -96,7 +96,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
     const { data, error } = await supabase.from("media_topics")
       .insert({ title_ar: "", sort_order: topics.length ? Math.max(...topics.map((t) => t.sort_order)) + 1 : 0 })
       .select().single();
-    if (error) { flashToast("تعذّر إنشاء الموضوع"); return; }
+    if (error) { flashToast("تعذّر إنشاء الموضوع: " + (error.message || "")); return; }
     setTopics((ts) => [...ts, { ...data, items: [] }]);
     setOpen((o) => ({ ...o, [data.id]: true }));
     log("إضافة موضوع بالمعرض", "بدون عنوان");

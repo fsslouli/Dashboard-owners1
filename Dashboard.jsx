@@ -10,7 +10,7 @@ import {
   createYtPlayer, ytPlainIframe, warmYouTube, ytErrorText,
 } from "./youtube-kit.js";
 import { AGalleryTab, GallerySection } from "./gallery-kit.jsx";
-import { ALabelsTab, useNavLabels, NL, NLA } from "./nav-labels-kit.jsx";
+import { ALabelsTab, useNavLabels, NL, NLA, isHidden } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
 
 /* ═══════════════════════════════════════════════════════════
@@ -3800,6 +3800,12 @@ function PublicSite() {
   }, [cfgReady, T.bg, T.muted, resolved]);
 
   const [tab, setTab] = useState("overview");
+  useEffect(() => {
+    if (!isHidden(navLabels, tab)) return;
+    const order = ["overview", "notes", "progress", "docs", "gallery"];
+    const next = order.find((k) => !isHidden(navLabels, k));
+    if (next) setTab(next);
+  }, [navLabels, tab]);
   const [docView, setDocView] = useState(null);
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
@@ -4790,27 +4796,37 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
 
           {/* الخانات */}
           <nav className="tabs no-print" role="tablist" ref={tabsRef}>
-            <button className="tab" role="tab" aria-selected={tab === "overview"} data-on={tab === "overview" ? "1" : "0"}
-              onClick={() => setTab("overview")}>
-              {NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
-            </button>
-            <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
-              onClick={() => setTab("notes")}>
-              {NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
-              <span className="tab-n mono">{ALL.length}</span>
-            </button>
-            <button className="tab" role="tab" aria-selected={tab === "progress"} data-on={tab === "progress" ? "1" : "0"}
-              onClick={() => setTab("progress")}>
-              {NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
-            </button>
-            <button className="tab" role="tab" aria-selected={tab === "docs"} data-on={tab === "docs" ? "1" : "0"}
-              onClick={() => setTab("docs")}>
-              <FileText size={13} /> {NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
-            </button>
-            <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
-              onClick={() => setTab("gallery")}>
-              {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
-            </button>
+            {!isHidden(navLabels, "overview") && (
+              <button className="tab" role="tab" aria-selected={tab === "overview"} data-on={tab === "overview" ? "1" : "0"}
+                onClick={() => setTab("overview")}>
+                {NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
+              </button>
+            )}
+            {!isHidden(navLabels, "notes") && (
+              <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
+                onClick={() => setTab("notes")}>
+                {NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
+                <span className="tab-n mono">{ALL.length}</span>
+              </button>
+            )}
+            {!isHidden(navLabels, "progress") && (
+              <button className="tab" role="tab" aria-selected={tab === "progress"} data-on={tab === "progress" ? "1" : "0"}
+                onClick={() => setTab("progress")}>
+                {NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
+              </button>
+            )}
+            {!isHidden(navLabels, "docs") && (
+              <button className="tab" role="tab" aria-selected={tab === "docs"} data-on={tab === "docs" ? "1" : "0"}
+                onClick={() => setTab("docs")}>
+                <FileText size={13} /> {NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
+              </button>
+            )}
+            {!isHidden(navLabels, "gallery") && (
+              <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
+                onClick={() => setTab("gallery")}>
+                {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
+              </button>
+            )}
             <span className="tab-indicator" ref={indicatorRef} />
           </nav>
 
@@ -8742,7 +8758,7 @@ function AdminHome({ session, onLogout }) {
     </div>
   );
   const has = (perm) => (profile.perms || []).includes(perm);
-  const visibleTabs = ADMIN_TABS.filter((t) => t.perms.some((p) => has(p)));
+  const visibleTabs = ADMIN_TABS.filter((t) => t.perms.some((p) => has(p)) && (t.key === "labels" || !isHidden(navLabels, t.key)));
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
   const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => isFlagLive(r.urgent, r.urgent_until)).length };
 
