@@ -71,6 +71,12 @@
             l.rel = "stylesheet"; l.href = cfg.font; l.dataset.skinFont = cfg.theme;
             document.head.appendChild(l);
           }
+          /* خط التصميم المعتمد («بنّاء» مثلًا) — نفس الفكرة */
+          if (cfg && cfg.dfont) {
+            var l2 = document.createElement("link");
+            l2.rel = "stylesheet"; l2.href = cfg.dfont; l2.dataset.designFont = cfg.design;
+            document.head.appendChild(l2);
+          }
         } catch (e) { /* تصفح خاص أو تخزين ممنوع — نكمل باللون الافتراضي */ }
         /* شبكة أمان أخيرة: لو صار خطأ منع التطبيق من الإقلاع، ما نخلي الزائر أمام شاشة صامتة */
         setTimeout(function () {

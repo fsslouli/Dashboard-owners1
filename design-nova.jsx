@@ -14,7 +14,7 @@ import React, { useEffect } from "react";
    من لوحة الإدارة (عمود active_design بجدول site_settings).
    ═══════════════════════════════════════════════════════════ */
 
-export const DESIGN_KEYS = ["classic", "nova"];
+export const DESIGN_KEYS = ["classic", "nova", "bannaa"];
 export const DEFAULT_DESIGN_KEY = "classic";
 
 export const DESIGNS = {
@@ -27,6 +27,12 @@ export const DESIGNS = {
     label: "نوفا",
     labelEn: "Nova",
     note: "تصميم وترتيب جديدان — ترويسة بارزة، تخطيط بعمودين على الشاشات الكبيرة، ألواح زجاجية، خلفية شفقية متحركة، وظهور تدريجي مع التمرير.",
+  },
+  /* v2.10.0 — طبقته بملف مستقل: design-bannaa.jsx */
+  bannaa: {
+    label: "بنّاء",
+    labelEn: "Bannaa",
+    note: "كل استفسار لبنة في جدار بلون قراره والأحدث في أعلاه، تضغطها فتنفتح. أسطح مصمتة بلا زجاج ولا تدرّج، وعناوين بخط كوفي ثقيل.",
   },
 };
 

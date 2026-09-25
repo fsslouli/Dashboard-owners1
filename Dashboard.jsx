@@ -3,6 +3,7 @@ import INQUIRIES_DATA from "./inquiries.json";
 import { createClient } from "@supabase/supabase-js";
 import * as XLSX from "xlsx";
 import { DESIGNS, DESIGN_KEYS, DEFAULT_DESIGN_KEY, NovaLayers, useNovaRuntime, novaCss } from "./design-nova.jsx";
+import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
 import * as Brain from "./import-brain.js";
 import { buildBrief, briefToText, briefToMarkdown } from "./admin-brief.js";
 import {
@@ -579,9 +580,13 @@ function writeCachedCfg(theme, design) {
     const dk = set.dark || set.light || {};
     localStorage.setItem(CFGKEY, JSON.stringify({
       theme, design,
-      bg: { light: lt.bg, dark: dk.bg },
+      /* «بنّاء» أرضيته أغمق درجة من خلفية الطقم — شاشة الإقلاع تاخذ نفس اللون */
+      bg: design === "bannaa"
+        ? { light: bannaaGround(lt, "light"), dark: bannaaGround(dk, "dark") }
+        : { light: lt.bg, dark: dk.bg },
       fg: { light: lt.muted, dark: dk.muted },
       font: SKIN_FONTS[theme] || null,
+      dfont: design === "bannaa" ? BANNAA_FONT : null,
     }));
   } catch { /* تصفح خاص أو تخزين ممنوع — نتجاهل بهدوء */ }
 }
@@ -1524,6 +1529,21 @@ function Card({ r, i, onOpen, reduced }) {
    عند كل تحديث كود مستقبلي على هذا الملف — مهما كان صغيرًا — يُضاف عنصر جديد
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 const CHANGELOG = [
+  {
+    version: "2.10.0",
+    dateAr: "25 سبتمبر 2026",
+    dateEn: "September 25, 2026",
+    ar: [
+      "تصميم ثالث للموقع اسمه \u200f\"بنّاء\"\u200f: كل ملاحظة لبنة في جدار بلون قرارها، والأحدث في أعلى الجدار، واللبنة المفرّغة ما زالت مفتوحة — تضغط أي لبنة وتنفتح ملاحظتها",
+      "أسطح مصمتة بلا زجاج ولا تدرّج، وتبويبات مرصوصة كصف لبنات، وعناوين وأرقام بخط كوفي ثقيل — ويشتغل مع أطقم الألوان الخمسة بالفاتح والداكن",
+      "لوحة الإدارة ← \u200f\"مظهر الموقع\"\u200f: ثلاث تصاميم تختار منها (الكلاسيكي، نوفا، بنّاء)، والاختيار يوصل لكل الزوّار فورًا",
+    ],
+    en: [
+      "A third site design, \"Bannaa\": every note is a brick in a wall, colored by its decision, newest on top, hollow while still open — tap any brick to open its note",
+      "Solid surfaces with no glass or gradients, tabs laid like a course of bricks, and headings and figures in a heavy Kufi face — works with all five color sets, light and dark",
+      "Admin panel → \"Site appearance\": three designs to choose from (Classic, Nova, Bannaa); the choice reaches every visitor instantly",
+    ],
+  },
   {
     version: "2.9.2",
     dateAr: "22 سبتمبر 2026",
@@ -3774,6 +3794,8 @@ function PublicSite() {
   useSkinFont(themeKey);
   const nova = designKey === "nova";
   useNovaRuntime(nova, reduced);
+  const bannaa = designKey === "bannaa";
+  useDesignFont(bannaa ? BANNAA_FONT : null, "bannaa");
 
   /* رفع شاشة الإقلاع: الموقع يشتغل ويجيب بياناته من أول لحظة تحت الغطاء، والغطاء
      ما يُرفع إلا والتصميم المعتمد جاهز. النتيجة: الزائر يشوف تصميمًا واحدًا فقط.
@@ -3787,6 +3809,7 @@ function PublicSite() {
   const SET = THEME_SETS[themeKey] || THEME_SETS[DEFAULT_THEME_KEY];
   const SKIN = SET.skin;
   const T = SET[resolved] || SET.dark || SET.light;
+  const pageBg = bannaa ? bannaaGround(T, resolved) : T.bg;
 
   /* لون خلفية الصفحة نفسها (وسم html) يمشي مع الطقم الحالي — يخدم حالتين:
      منطقة السحب الزائد بالجوال ما تبين بلون غريب، وشريط المتصفح يتلوّن صح.
@@ -3794,10 +3817,10 @@ function PublicSite() {
   useLayoutEffect(() => {
     if (!cfgReady) return;   /* لسه ما نعرف الطقم المعتمد — نخلي شاشة الإقلاع بلونها */
     const d = document.documentElement;
-    d.style.setProperty("--boot-bg", T.bg);
+    d.style.setProperty("--boot-bg", pageBg);
     d.style.setProperty("--boot-fg", T.muted);
     d.style.colorScheme = resolved === "dark" ? "dark" : "light";
-  }, [cfgReady, T.bg, T.muted, resolved]);
+  }, [cfgReady, pageBg, T.muted, resolved]);
 
   const [tab, setTab] = useState("overview");
   useEffect(() => {
@@ -4722,6 +4745,7 @@ ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;o
   mask-image:radial-gradient(ellipse 78% 52% at 50% 0%,#000 8%,transparent 78%);}` : ""}
 ${(SKIN.aurora || SKIN.grid || SKIN.draft) ? `.dash > *:not(.skin-aurora):not(.skin-grid):not(.skin-paper):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}` : ""}
 ${nova ? novaCss(T, resolved, reduced) : ""}
+${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         `}</style>
         {nova && <NovaLayers />}
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
@@ -4862,6 +4886,7 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                 </div>
 
                 <StatusBar cats={cats} overview={overview} staC={staC} trSta={trSta} lang={lang} openBoard={openBoard} L={L} />
+                {bannaa && <BrickWall rows={ALL} staC={staC} trSta={trSta} trNote={trNote} lang={lang} L={L} reduced={reduced} onOpen={openRecord} />}
 
                 <div className="legend">
                   {cats.sta.map((s) => {
@@ -8351,7 +8376,12 @@ function AThemeTab({ flashToast, log, canManage }) {
       .update({ active_theme: pick.theme, active_design: pick.design, updated_at: new Date().toISOString() })
       .eq("id", 1);
     setBusy(false);
-    if (error) { flashToast("تعذّر الاعتماد — تأكد من صلاحيتك"); return; }
+    if (error) {
+      /* v2.10.0: قيد عمود التصميم بقاعدة البيانات ما انوسّع بعد لـ«بنّاء» — نقول وش الحل بدل رسالة عامة */
+      const needsDb = error.code === "23514" || /active_design_chk/.test(error.message || "");
+      flashToast(needsDb ? "قاعدة البيانات ما تعرف هذا التصميم بعد — شغّل migration-design-bannaa.sql مرة وحدة" : "تعذّر الاعتماد — تأكد من صلاحيتك");
+      return;
+    }
     const parts = [];
     if (pick.design !== active.design) parts.push(`التصميم: ${DESIGNS[pick.design].label}`);
     if (pick.theme !== active.theme) parts.push(`الطقم: ${THEME_SETS[pick.theme].label}`);
@@ -8387,6 +8417,13 @@ function AThemeTab({ flashToast, log, canManage }) {
 .dsn-prev.nv i:nth-of-type(2){bottom:-14px;inset-inline-start:-12px;background:${T.sta["معتمدة"]};animation-delay:-2.4s;}
 .dsn-prev.nv b{background:rgba(255,255,255,.22);backdrop-filter:blur(3px);border-radius:5px;}
 .dsn-prev.nv b:nth-child(3){background:${T.brass};}
+.dsn-prev.bn em{position:absolute;inset-inline:8px;height:7px;display:block;
+  background:repeating-linear-gradient(90deg,${T.sta["معتمدة"]} 0 12px,transparent 12px 14px,${T.sta["معتمدة"]} 14px 26px,transparent 26px 28px,${T.sta["تم الرفض"]} 28px 40px,transparent 40px 42px);}
+.dsn-prev.bn em:nth-child(1){bottom:12px;}
+.dsn-prev.bn em:nth-child(2){bottom:21px;background-position:7px 0;}
+.dsn-prev.bn em:nth-child(3){bottom:30px;}
+.dsn-prev.bn em:nth-child(4){bottom:39px;inset-inline-end:30px;background-position:7px 0;}
+.dsn-prev.bn i{position:absolute;inset-inline:8px;bottom:8px;height:2px;background:${T.paper};}
 @media(prefers-reduced-motion:reduce){.dsn-prev.nv i{animation:none;}}
       `}</style>
       <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, marginBottom: 9 }}>التصميم</div>
@@ -8402,9 +8439,9 @@ function AThemeTab({ flashToast, log, canManage }) {
               border: `${on ? 2 : 1}px solid ${on ? T.brass : T.line}`,
               boxShadow: on ? T.shadow : "none", display: "flex", alignItems: "center", gap: 13,
             }}>
-              <span className={`dsn-prev${k === "nova" ? " nv" : ""}`} aria-hidden="true">
+              <span className={`dsn-prev${k === "nova" ? " nv" : ""}${k === "bannaa" ? " bn" : ""}`} aria-hidden="true">
                 {k === "nova" && <><i /><i /></>}
-                <b /><b /><b /><b />
+                {k === "bannaa" ? <><em /><em /><em /><em /><i /></> : <><b /><b /><b /><b /></>}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
@@ -8425,7 +8462,7 @@ function AThemeTab({ flashToast, log, canManage }) {
 
       {/* ── ٢) طقم الألوان ── */}
       <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, marginBottom: 9 }}>
-        طقم الألوان <span style={{ fontWeight: 400, color: T.faint }}>— يشتغل مع التصميمين</span>
+        طقم الألوان <span style={{ fontWeight: 400, color: T.faint }}>— يشتغل مع كل التصميمات</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         {THEME_KEYS.map((k) => {

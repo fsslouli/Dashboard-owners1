@@ -487,7 +487,7 @@ on conflict (month) do nothing;
 --    array['sync_data','flag_urgent','manage_filters','view_analytics','export_data','view_audit_log','manage_users']);
 
 -- ══════════════════════════════════════════════════════════
--- v2.0.0 — مفتاح التصميم (الكلاسيكي / نوفا)
+-- v2.0.0 — مفتاح التصميم (الكلاسيكي / نوفا) — وv2.10.0 أضاف «بنّاء»
 -- يُقرأ من الموقع العام لحظيًا عبر Realtime، ويُكتب من لوحة الإدارة.
 -- ══════════════════════════════════════════════════════════
 alter table public.site_settings
@@ -498,7 +498,7 @@ alter table public.site_settings
 
 alter table public.site_settings
   add constraint site_settings_active_design_chk
-  check (active_design in ('classic','nova'));
+  check (active_design in ('classic','nova','bannaa'));
 
 -- ══════════════════════════════════════════════════════════
 -- v2.2.0 — تحصين أمني + تتبّع مصدر الإدخال
