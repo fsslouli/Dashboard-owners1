@@ -9,6 +9,9 @@ import {
   parseYouTube, isYouTubeId, fmtDuration, ytThumb, ytWatchUrl, ytShortUrl, bestYtPoster, loadYouTubeApi,
   createYtPlayer, ytPlainIframe, warmYouTube, ytErrorText,
 } from "./youtube-kit.js";
+import { AGalleryTab, GallerySection } from "./gallery-kit.jsx";
+import { ALabelsTab, useNavLabels, NL, NLA } from "./nav-labels-kit.jsx";
+import { autoTranslateAr } from "./translate-kit.js";
 
 /* ═══════════════════════════════════════════════════════════
    فهرس الملف — لتسهيل القراءة والتعديل المستقبلي.
@@ -3767,6 +3770,7 @@ function PublicSite() {
   const L = (ar, en) => (lang === "en" ? en : ar);
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
+  const navLabels = useNavLabels(supabase);
   useSkinFont(themeKey);
   const nova = designKey === "nova";
   useNovaRuntime(nova, reduced);
@@ -4788,20 +4792,24 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
           <nav className="tabs no-print" role="tablist" ref={tabsRef}>
             <button className="tab" role="tab" aria-selected={tab === "overview"} data-on={tab === "overview" ? "1" : "0"}
               onClick={() => setTab("overview")}>
-              {L("نظرة عامة", "Overview")}
+              {NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
             </button>
             <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
               onClick={() => setTab("notes")}>
-              {L("متابعة الملاحظات", "Notes Board")}
+              {NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
               <span className="tab-n mono">{ALL.length}</span>
             </button>
             <button className="tab" role="tab" aria-selected={tab === "progress"} data-on={tab === "progress" ? "1" : "0"}
               onClick={() => setTab("progress")}>
-              {L("تقدم التنفيذ", "Progress")}
+              {NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
             </button>
             <button className="tab" role="tab" aria-selected={tab === "docs"} data-on={tab === "docs" ? "1" : "0"}
               onClick={() => setTab("docs")}>
-              <FileText size={13} /> {L("المخططات والمستندات", "Plans & Documents")}
+              <FileText size={13} /> {NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
+            </button>
+            <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
+              onClick={() => setTab("gallery")}>
+              {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
             </button>
             <span className="tab-indicator" ref={indicatorRef} />
           </nav>
@@ -5176,6 +5184,12 @@ ${nova ? novaCss(T, resolved, reduced) : ""}
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {tab === "gallery" && (
+            <div className="tab-panel">
+              <GallerySection supabase={supabase} T={T} L={L} lang={lang} />
             </div>
           )}
 
@@ -7970,7 +7984,13 @@ function AMediaTab({ flashToast, log, canManage, canStats }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10, marginTop: 14 }}>
         <div>
           <label style={lbl}>العنوان للزوّار — عربي (اختياري)</label>
-          <input value={edit.title_ar} maxLength={140} onChange={(e) => setEdit((x) => ({ ...x, title_ar: e.target.value }))}
+          <input value={edit.title_ar} maxLength={140}
+            onChange={(e) => setEdit((x) => ({ ...x, title_ar: e.target.value }))}
+            onBlur={async (e) => {
+              if (edit.title_en.trim()) return;
+              const en = await autoTranslateAr(supabase, e.target.value);
+              if (en) setEdit((x) => ({ ...x, title_en: en }));
+            }}
             placeholder={(verdict && verdict.title) || `جولة مرئية — ${doc.nameAr}`} style={inp} />
         </div>
         <div>
@@ -8685,6 +8705,8 @@ const ADMIN_TABS = [
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
+  { key: "gallery", label: "معرض الموقع", perms: ["manage_media"] },
+  { key: "labels", label: "تسمية الأقسام", perms: ["manage_notices"] },
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_notices"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
@@ -8693,6 +8715,7 @@ const ADMIN_TABS = [
 
 function AdminHome({ session, onLogout }) {
   const T = useSystemTheme();
+  const navLabels = useNavLabels(supabase);
   const [profile, setProfile] = useState(undefined);
   const [inquiries, setInquiries] = useState([]);
   const [progress, setProgress] = useState([]);
@@ -8735,7 +8758,7 @@ function AdminHome({ session, onLogout }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 0" }}>
         <div style={{ display: "flex", gap: 6, background: T.sunken, padding: 4, borderRadius: 12, marginBottom: 18, flexWrap: "wrap" }}>
-          {visibleTabs.map((t) => (<button key={t.key} onClick={() => setTab(t.key)} style={{ flex: "1 1 auto", border: "none", borderRadius: 9, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: activeTab === t.key ? T.surface : "transparent", color: activeTab === t.key ? T.brass : T.muted, boxShadow: activeTab === t.key ? T.shadow : "none" }}>{t.label}</button>))}
+          {visibleTabs.map((t) => (<button key={t.key} onClick={() => setTab(t.key)} style={{ flex: "1 1 auto", border: "none", borderRadius: 9, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: activeTab === t.key ? T.surface : "transparent", color: activeTab === t.key ? T.brass : T.muted, boxShadow: activeTab === t.key ? T.shadow : "none" }}>{NLA(navLabels, t.key, t.label)}</button>))}
         </div>
       </div>
 
@@ -8747,6 +8770,8 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
+        {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_media")} />}
+        {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
         {activeTab === "audit" && <AAuditLogTab />}
