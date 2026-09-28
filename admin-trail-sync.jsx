@@ -3,12 +3,13 @@ import { AImportAudit } from "./admin-audit-tab.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
 import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
+import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { supabase } from "./app-bootstrap.jsx";
 import { CAT_ORDER, FLAG_META, isFlagLive } from "./site-data.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import * as Brain from "./import-brain.js";
-import { AlertTriangle, Check, ChevronDown, ChevronUp, Download, FileSpreadsheet, History, ListPlus, Pencil, PlusCircle, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Download, FileSpreadsheet, History, ListPlus, Paperclip, Pencil, PlusCircle, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from "lucide-react";
 
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
 /* ── v2.9.1 — سجل البند داخل نموذج التعديل ──
@@ -113,6 +114,19 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const [form, setForm] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [applying, setApplying] = useState(false);
+  /* ٢.١١.٠ — عدّاد مرفقات كل استفسار بالقائمة. لو migration-attachments.sql ما اشتغل بعد
+     يفشل الطلب بهدوء وتبقى القائمة كما هي بدون أي شارة. */
+  const [attCounts, setAttCounts] = useState({});
+  useEffect(() => {
+    let alive = true;
+    supabase.from("inquiry_attachments").select("inquiry_id").then(({ data, error }) => {
+      if (!alive || error) return;
+      const m = {};
+      (data || []).forEach((x) => { m[x.inquiry_id] = (m[x.inquiry_id] || 0) + 1; });
+      setAttCounts(m);
+    });
+    return () => { alive = false; };
+  }, [inquiries]);
   /* ═══ أمان الرفع: نتحقق أول شي إذا عمود "cat" (الفئة) موجود فعلًا بجدول inquiries ═══
      لو قاعدة البيانات ما انحدّثت بعد بملف setup-supabase.sql، نشيل الحقل من كل عمليات
      الكتابة والمقارنة تلقائيًا — فتبقى مزامنة الإكسل شغّالة تمامًا زي قبل بدون أي خطأ،
@@ -491,6 +505,13 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   };
   const confirmDelete = async (r) => {
     await supabase.from("inquiries").delete().eq("id", r.id);
+    /* المرفقات بدون مفتاح أجنبي (عشان مزامنة الإكسل الكاملة ما تمسحها) — فنحذفها هنا يدويًا مع ملفاتها.
+       ما نمسح الملفات إلا للصفوف اللي انحذفت فعلًا (لو الحساب بدون «تعديل استفسار» الصفوف تبقى ولا يُمسح ملفها). */
+    try {
+      const { data: gone } = await supabase.from("inquiry_attachments").delete().eq("inquiry_id", r.id).select("id,storage_path,thumb_path");
+      const paths = (gone || []).flatMap((a) => [a.storage_path, a.thumb_path]).filter(Boolean);
+      if (paths.length) supabase.storage.from(ATT_BUCKET).remove(paths);
+    } catch (_) { /* الجدول غير موجود بعد */ }
     log("حذف استفسار يدويًا", `#${r.id} — ${(r.note || "").slice(0, 40)}`);
     flashToast("تم الحذف"); setConfirmDeleteId(null); refreshInquiries();
   };
@@ -698,6 +719,11 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
                   <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", gap: 8, minWidth: 0 }}>
                     <span style={{ color: T.faint, fontWeight: 700, flexShrink: 0 }}>#{r.id}</span>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{r.note}</span>
+                    {attCounts[r.id] > 0 && (
+                      <span title={`${attCounts[r.id]} مرفق`} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: T.brass }}>
+                        <Paperclip size={11} /> {attCounts[r.id]}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{r.model} · {r.loc} · {r.status}{r.cat ? ` · ${r.cat}` : ""}{rowDateLabel(r) ? ` · ${rowDateLabel(r)}` : ""}</div>
                 </div>
@@ -743,6 +769,14 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
             {afieldInput(ADMIN_FIELD_LABEL.note_en, form.note_en, (v) => setForm((f) => ({ ...f, note_en: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.reply, form.reply, (v) => setForm((f) => ({ ...f, reply: v })))}
           </div>
+          {editing === "new" ? (
+            <div style={{ marginBottom: 14, fontSize: 12.5, color: T.muted, lineHeight: 1.9, border: `1px dashed ${T.line}`, borderRadius: 12, padding: "10px 12px" }}>
+              <Paperclip size={13} style={{ verticalAlign: "-2px" }} /> المرفقات (PDF، فيديو، صور، روابط) تنضاف بعد الحفظ: احفظ الاستفسار أولًا ثم افتح «تعديل».
+            </div>
+          ) : (
+            <AAttachmentsPanel supabase={supabase} inquiryId={editing} T={T} flashToast={flashToast} log={log} canEdit={!!canEdit}
+              onCount={(id, n) => setAttCounts((m) => (m[id] === n ? m : { ...m, [id]: n }))} />
+          )}
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={saveForm} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
             <button onClick={() => { setEditing(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>

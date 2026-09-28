@@ -3,7 +3,7 @@ import { logEvent } from "./app-bootstrap.jsx";
 import { catColor, hashPick, trCat, trLoc, trMeeting, trMonth, trNote, trPri, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock, LayoutGrid, Monitor, Moon, Sparkles, Sun, Table, Users, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, LayoutGrid, Monitor, Moon, Paperclip, Sparkles, Sun, Table, Users, XCircle } from "lucide-react";
 
 /* ── ٩. عناصر صغيرة قابلة لإعادة الاستخدام ── */
 export function CountUp({ value, dur = 850, suffix = "", onScroll = false }) {
@@ -344,11 +344,12 @@ export function Row({ r, onOpen }) {
       <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
       <td className="td-note">
         <span className="td-note-t">{trNote(lang, r)}</span>
-        {(r.isImportantActive || r.isNew || !r.closed) && (
+        {(r.isImportantActive || r.isNew || !r.closed || r.attCount > 0) && (
           <span className="td-tags">
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
             {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
+            {r.attCount > 0 && <span className="tag tag-open" style={{ display: "inline-flex", alignItems: "center", gap: 3 }} title={lang === "en" ? "Has attachments" : "فيه مرفقات"}><Paperclip size={9} /> {r.attCount}</span>}
           </span>
         )}
       </td>
@@ -418,6 +419,12 @@ export function Card({ r, i, onOpen, reduced }) {
         <span className="dot" />
         <span className="fm">{trMonth(lang, r.month)}</span>
         {r.meeting && <><span className="dot" /><span className="fm">{trMeeting(lang, r.meeting)}</span></>}
+        {r.attCount > 0 && (
+          <span className="atk-badge" style={{ color: T.brass, background: T.brass + "1A" }}
+            title={lang === "en" ? `${r.attCount} attachment${r.attCount === 1 ? "" : "s"}` : `${r.attCount} مرفق`}>
+            <Paperclip size={11} /> {r.attCount}
+          </span>
+        )}
       </div>
     </div>
   );

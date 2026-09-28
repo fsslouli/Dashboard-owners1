@@ -12,6 +12,23 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "2.11.0",
+    dateAr: "29 سبتمبر 2026",
+    dateEn: "September 29, 2026",
+    ar: [
+      "مرفقات الاستفسارات: صارت الإدارة تربط بأي ملاحظة ملف PDF أو مقطع فيديو أو صور أو مستند أو رابط — وتنفتح كلها داخل الموقع نفسه بدون ما تطلع منه: الـPDF صفحة صفحة مع تكبير بالإصبعين، والفيديو ويوتيوب يشتغلون بمكانهم، والصور تكبّر",
+      "بطاقة الاستفسار وجدول الاستفسارات يظهر عليهم رمز مشبك مع عدد المرفقات، وبلوحة الفلاتر خيار جديد \u200f\"فيها مرفقات\"\u200f",
+      "معرض الصور والمقاطع: صار يقبل ملفات PDF (بروشورات ومخططات) ومقاطع فيديو، إضافة للصور ويوتيوب — بنفس عارض المرفقات",
+      "زر الرجوع بالجوال يقفل المرفق أول، وبعده الاستفسار — بدل ما يطلعك من الصفحة",
+    ],
+    en: [
+      "Inquiry attachments: the admin can now attach a PDF, video, photos, a document or a link to any note — and everything opens inside the site itself: PDFs page by page with pinch-to-zoom, videos and YouTube play in place, photos zoom",
+      "Inquiry cards and the inquiries table show a paperclip with the attachment count, and the filters panel has a new \"With attachments\" option",
+      "Photos & videos gallery: now accepts PDF files (brochures, plans) and video clips, alongside photos and YouTube — through the same attachment viewer",
+      "On mobile, the back button closes the attachment first, then the inquiry — instead of leaving the page",
+    ],
+  },
+  {
     version: "2.10.1",
     dateAr: "25 سبتمبر 2026",
     dateEn: "September 25, 2026",

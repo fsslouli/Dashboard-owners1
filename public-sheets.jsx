@@ -1,5 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: public-sheets */
 import { logEvent } from "./app-bootstrap.jsx";
+import { AttachmentsBlock } from "./attach-kit.jsx";
 import { CHANGELOG, LEGAL_COPY } from "./changelog-legal-data.jsx";
 import { EMPTY_F, passesFilters } from "./public-site.jsx";
 import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
@@ -99,7 +100,7 @@ export function ChangelogSheet({ open, onClose }) {
    لوحة المتابعة. الاختيارات هنا مسودة محلية ولا تُطبَّق على النتائج الفعلية إلا
    بالضغط على "عرض النتائج"، فتقدر تجرّب عدة خيارات مرة وحدة بدل ما تعيد القائمة
    رسم نفسها مع كل ضغطة. نص البحث يبقى خارج اللوحة ويشتغل فورًا كالمعتاد. ── */
-export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, nqId, urgentCount, importantCount, newCount, openCount }) {
+export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, nqId, urgentCount, importantCount, newCount, openCount, attCount = 0 }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
@@ -158,6 +159,9 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
             )}
             {urgentCount > 0 && (
               <Chip on={draft.urgent} onClick={() => dtoggle("urgent", true)} color="#B8790F" count={urgentCount}>{L("يجب الاطلاع", "Needs review")}</Chip>
+            )}
+            {attCount > 0 && (
+              <Chip on={draft.att} onClick={() => dtoggle("att", true)} color={T.brass} count={attCount}>{L("فيها مرفقات", "With attachments")}</Chip>
             )}
           </div>
 
@@ -574,7 +578,7 @@ export function DocViewerSheet({ doc, videos, onClose }) {
 }
 
 /* ── ١٢. لوحة تفاصيل الاستفسار (Sheet) ── */
-export function Sheet({ r, navList, onJump, onClose }) {
+export function Sheet({ r, navList, onJump, onClose, attachments }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
@@ -713,6 +717,8 @@ export function Sheet({ r, navList, onJump, onClose }) {
           <div className="reply-box" style={{ borderRightColor: sc }}>
             <p className="sheet-reply">{trReply(lang, r) || L("لا يوجد رد مسجّل.", "No reply recorded yet.")}</p>
           </div>
+
+          <AttachmentsBlock key={r.id} rows={attachments} lang={lang} T={T} />
 
           <div className="meta-list">
             {[[Tag, L("الفئة", "Category"), r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")],

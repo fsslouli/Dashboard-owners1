@@ -5,36 +5,36 @@
    بسطرين بدون ما يلمس منطق باقي الموقع. جدولان بقاعدة البيانات:
      media_topics  — المواضيع (كل موضوع = قسم بالعرض العام)
      media_items   — العناصر داخل كل موضوع: صورة مرفوعة، صورة برابط خارجي،
-                     أو مقطع يوتيوب (نفس منطق youtube-kit للتشغيل بضغطة وحدة)
+                     مقطع يوتيوب، ومن ٢.١١.٠: PDF أو فيديو أو مستند مرفوع
+                     (بحاوية attachments)، وروابط Drive وVimeo والملفات المباشرة.
+                     العرض والتشغيل كله من attach-kit.jsx (نفس عارض المرفقات)
 
    الصلاحية المستخدمة: manage_media (نفس صلاحية "مقاطع النماذج" الموجودة).
    شغّل migration-gallery.sql مرة وحدة قبل الاستخدام.
    ═══════════════════════════════════════════════════════════ */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  ImagePlus, Link2, GripVertical, ChevronUp, ChevronDown, ChevronDown as Chevron,
-  Eye, EyeOff, Trash2, Plus, X, Play, ExternalLink, Rows, LayoutGrid,
+  ImagePlus, FilePlus, GripVertical, ChevronUp, ChevronDown, ChevronDown as Chevron,
+  Eye, EyeOff, Trash2, Plus, Rows, LayoutGrid,
 } from "lucide-react";
-import { parseYouTube, isYouTubeId, ytThumb, loadYouTubeApi, createYtPlayer, warmYouTube, ytErrorText } from "./youtube-kit.js";
 import { autoTranslateAr } from "./translate-kit.js";
+import {
+  ACCEPT_DOCS, ATT_BUCKET, AttachmentTiles, AttachmentViewer, KindIcon, LinkField, MEDIA_PUBLIC_COLS, WARN_VIDEO,
+  attMetaLine, fmtSize, linkFields, toView, uploadAttachmentFile,
+} from "./attach-kit.jsx";
 
 /* ── أدوات مشتركة ───────────────────────────────────────── */
 const BIDI_RE = /[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
 const clean = (s) => String(s || "").replace(BIDI_RE, "").trim();
 
-function cleanImageLink(raw) {
-  const s = clean(raw);
-  if (!/^https?:\/\//i.test(s)) return null;
-  let u; try { u = new URL(s); } catch (_) { return null; }
-  const h = u.hostname.replace(/^www\./, "");
-  if (h === "imgur.com") {
-    const m = u.pathname.match(/^\/([a-zA-Z0-9]{5,7})$/);
-    if (m) return { url: `https://i.imgur.com/${m[1]}.jpg`, direct: true };
-  }
-  u.search = ""; u.hash = "";
-  const direct = /\.(jpe?g|png|webp|gif|avif)$/i.test(u.pathname);
-  return { url: u.toString(), direct };
-}
+/* مسارات ملفات العنصر بالتخزين — للحذف (مصغّرة صور المعرض القديمة تُشتق من الاسم) */
+const itemPaths = (it) => {
+  const out = [it.storage_path, it.thumb_path, it._thumbPath];
+  if ((it.bucket || "gallery") === "gallery" && it.kind === "image" && it.storage_path) out.push(it.storage_path.replace(/\.webp$/, "_thumb.webp"));
+  return [...new Set(out.filter(Boolean))];
+};
+/* ألوان حقل الرابط — نفس ألوان هذا التبويب الثابتة */
+const GT = { surface: "#fff", sunken: "#F7F9FB", line: "#E1E8EC", paper: "#1F2C35", muted: "#5F7280", faint: "#7E8F9A", brass: "#1B7F8E", onAccent: "#fff" };
 
 /* ضغط الصورة بالمتصفح قبل الرفع: نسخة عرض (1600) ونسخة مصغّرة (480) */
 async function shrinkImage(file) {
@@ -67,6 +67,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   const [confirmDel, setConfirmDel] = useState(null); /* {type:'topic'|'item', id, label} */
   const [mode, setMode] = useState("sections");
   const fileRefs = useRef({});
+  const docRefs = useRef({});
 
   const load = useCallback(async () => {
     const [{ data: t }, { data: it }, { data: s }] = await Promise.all([
@@ -123,8 +124,9 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   };
   const doDeleteTopic = async (t) => {
     setConfirmDel(null);
-    (t.items || []).filter((x) => x.storage_path).forEach((x) => supabase.storage.from("gallery").remove([x.storage_path]));
-    await supabase.from("media_topics").delete().eq("id", t.id);
+    const { error } = await supabase.from("media_topics").delete().eq("id", t.id);
+    if (error) { flashToast("تعذّر حذف الموضوع"); return; }   /* الملفات ما تنمسح إلا بعد ما ينحذف السجل فعلًا */
+    (t.items || []).filter((x) => x.storage_path).forEach((x) => supabase.storage.from(x.bucket || "gallery").remove(itemPaths(x)));
     setTopics((ts) => ts.filter((x) => x.id !== t.id));
     log("حذف موضوع بالمعرض", t.title_ar || "بدون عنوان");
     flashToast("تم حذف الموضوع");
@@ -160,24 +162,47 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
     if (ok) log("رفع صور للمعرض", `${ok} صورة — موضوع "${t.title_ar || "بدون عنوان"}"`);
   };
 
-  const onAddLink = async (t, raw, errSetter) => {
-    if (!raw.trim()) { errSetter("الصق رابط أول."); return; }
-    const yid = isYouTubeId(clean(raw)) ? clean(raw) : (parseYouTube(raw)?.id || null);
-    const sort_order = (t.items.length ? Math.max(...t.items.map((r) => r.sort_order)) : -1) + 1;
-    if (yid) {
-      const { data, error } = await supabase.from("media_items")
-        .insert({ topic_id: t.id, kind: "video", source: "link", youtube_id: yid, sort_order }).select().single();
-      if (error) { errSetter("تعذّر إضافة المقطع."); return; }
-      errSetter(""); addItems(t, [data]); log("إضافة مقطع للمعرض", `youtu.be/${yid}`); return;
+  /* PDF وفيديو ومستندات: تنرفع لحاوية attachments (الحاوية gallery للصور فقط) */
+  const onPickDocs = async (t, files) => {
+    if (!files.length) return;
+    flashToast(files.length > 1 ? `جارٍ رفع ${files.length} ملفات…` : "جارٍ رفع الملف…");
+    let ok = 0;
+    for (const f of files) {
+      let paths = [];
+      try {
+        const up = await uploadAttachmentFile(supabase, f, { prefix: `gal/t${t.id}`, only: ["pdf", "video", "office"] });
+        paths = up.paths;
+        const sort_order = (t.items.length ? Math.max(...t.items.map((r) => r.sort_order)) : -1) + 1 + ok;
+        const { data, error } = await supabase.from("media_items")
+          .insert({ topic_id: t.id, bucket: ATT_BUCKET, ...up.fields, title_ar: niceTitle(f.name) || null, sort_order }).select().single();
+        if (error) throw new Error(/column|constraint/i.test(error.message || "") ? "شغّل migration-attachments.sql أولًا." : error.message);
+        addItems(t, [data]); ok++;
+        if (up.fields.kind === "video" && up.fields.size_bytes > WARN_VIDEO) flashToast(`انضاف المقطع — كل مشاهدة كاملة تسحب ${fmtSize(up.fields.size_bytes)} من حصة النقل الشهرية`);
+      } catch (e) {
+        if (paths.length) supabase.storage.from(ATT_BUCKET).remove(paths);
+        flashToast(`تعذّر رفع «${f.name}»: ${(e && e.userMsg) || (e && e.message) || ""}`);
+      }
     }
-    const im = cleanImageLink(raw);
-    if (!im) { errSetter("ما قدرت أفهم هذا الرابط. لازم يبدأ بـ https:// أو يكون رابط يوتيوب."); return; }
-    const { data, error } = await supabase.from("media_items")
-      .insert({ topic_id: t.id, kind: "image", source: "link", external_url: im.url, sort_order }).select().single();
-    if (error) { errSetter("تعذّر إضافة الرابط."); return; }
-    errSetter(""); addItems(t, [data]);
-    if (!im.direct) flashToast("انضاف الرابط — تأكد إنه يفتح صورة مباشرة عند الملاك");
-    log("إضافة رابط صورة للمعرض", im.url);
+    if (ok) { log("رفع ملفات للمعرض", `${ok} ملف — موضوع "${t.title_ar || "بدون عنوان"}"`); flashToast(`تمت إضافة ${ok} من ${files.length}`); }
+  };
+
+  /* الروابط: يوتيوب بنفس الصيغة السابقة، والباقي (صورة، PDF، فيديو، Drive، Vimeo) بالأعمدة الجديدة */
+  const onAddLink = async (t, c, kind) => {
+    const sort_order = (t.items.length ? Math.max(...t.items.map((r) => r.sort_order)) : -1) + 1;
+    let row;
+    if (c.provider === "youtube") row = { kind: "video", source: "link", youtube_id: c.ytId };
+    else {
+      row = linkFields(c, kind);
+      if (!["image", "video", "pdf", "office"].includes(row.kind)) return "المعرض يقبل الصور والمقاطع وملفات PDF والمستندات فقط.";
+    }
+    let res = await supabase.from("media_items").insert({ topic_id: t.id, ...row, ...(c.provider === "youtube" ? { provider: "youtube", vertical: !!c.vertical } : {}), sort_order }).select().single();
+    if (res.error && c.provider === "youtube" && /column/i.test(res.error.message || "")) {
+      res = await supabase.from("media_items").insert({ topic_id: t.id, ...row, sort_order }).select().single();   /* قبل تشغيل migration-attachments.sql */
+    }
+    if (res.error) return /column|constraint/i.test(res.error.message || "") ? "هذا النوع يحتاج تشغيل migration-attachments.sql أولًا." : "تعذّر إضافة الرابط.";
+    addItems(t, [res.data]);
+    log("إضافة رابط للمعرض", c.url);
+    return null;
   };
 
   const saveItemTitle = async (id, title_ar) => {
@@ -200,8 +225,9 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   };
   const doDeleteItem = async (t, it) => {
     setConfirmDel(null);
-    if (it.storage_path) supabase.storage.from("gallery").remove([it.storage_path, it._thumbPath].filter(Boolean));
-    await supabase.from("media_items").delete().eq("id", it.id);
+    const { error } = await supabase.from("media_items").delete().eq("id", it.id);
+    if (error) { flashToast("تعذّر حذف العنصر"); return; }
+    if (it.storage_path) supabase.storage.from(it.bucket || "gallery").remove(itemPaths(it));
     removeItemLocal(t, it.id);
     flashToast("تم حذف العنصر");
   };
@@ -237,7 +263,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
       </div>
       <button style={{ ...S.btn, ...S.pri }} onClick={addTopic}><Plus size={16} /> إضافة موضوع جديد</button>
       <p style={{ fontSize: 13, color: "#5F7280", marginTop: 10 }}>
-        كل موضوع يجمع أكثر من صورة وأكثر من مقطع. رتّب المواضيع والعناصر بالأسهم، وأضف بالرفع المباشر أو بلصق رابط (يوتيوب يصير مقطع، أي رابط صورة ثاني ينضاف كرابط خارجي).
+        كل موضوع يجمع صورًا ومقاطع وملفات PDF. رتّب المواضيع والعناصر بالأسهم، وأضف بالرفع المباشر (صور، PDF، فيديو حتى 50MB) أو بلصق رابط: يوتيوب وVimeo يُشغَّلان داخل الموقع، وDrive وأي رابط ملف أو صورة يُعرض كذلك.
       </p>
 
       {topics.map((t, i) => {
@@ -268,21 +294,30 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
                   <button style={S.btn} onClick={() => fileRefs.current[t.id]?.click()}><ImagePlus size={15} /> إضافة صور</button>
                   <input ref={(el) => (fileRefs.current[t.id] = el)} type="file" accept="image/*" multiple hidden
                     onChange={(e) => { onPickFiles(t, e.target.files); e.target.value = ""; }} />
-                  <LinkAdder t={t} onAdd={onAddLink} S={S} />
+                  <button style={S.btn} onClick={() => docRefs.current[t.id]?.click()}><FilePlus size={15} /> PDF أو فيديو</button>
+                  <input ref={(el) => (docRefs.current[t.id] = el)} type="file" accept={ACCEPT_DOCS} multiple hidden
+                    onChange={(e) => { const fl = [...e.target.files]; e.target.value = ""; onPickDocs(t, fl); }} />
+                  <div style={{ flexBasis: "100%", minWidth: 0 }}>
+                    <LinkField T={GT} placeholder="الصق رابط يوتيوب أو Drive أو Vimeo أو صورة أو ملف PDF" allow={["image", "video", "pdf", "office"]}
+                      onAdd={(c, kind) => onAddLink(t, c, kind)} />
+                  </div>
                 </div>
                 <ol style={{ listStyle: "none", margin: "6px 0 0", padding: 0 }}>
                   {t.items.map((it, j) => (
                     <li key={it.id} style={S.irow}>
                       <GripVertical size={14} color="#8FA0AB" style={{ opacity: 0.5 }} />
-                      <span style={S.ithumb}>
-                        {it.kind === "video" ? <Play size={16} /> : it.source === "link" ? <Link2 size={16} /> :
-                          <img src={supabase.storage.from("gallery").getPublicUrl(it._thumbPath || it.storage_path).data.publicUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                      <span style={{ ...S.ithumb, position: "relative" }}>
+                        <KindIcon kind={it.kind} size={16} />
+                        {toView(it, supabase, "gallery").thumb && (
+                          <img src={toView(it, supabase, "gallery").thumb} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        )}
                       </span>
                       <span style={{ minWidth: 0 }}>
                         <input style={S.it} defaultValue={it.title_ar || ""} placeholder="عنوان اختياري"
                           onBlur={(e) => saveItemTitle(it.id, e.target.value)} />
                         <div style={{ fontSize: 11.5, color: "#8FA0AB", direction: "ltr", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {it.kind === "video" ? `youtu.be/${it.youtube_id}` : it.source === "upload" ? "رفع" : it.external_url}
+                          {it.youtube_id ? `youtu.be/${it.youtube_id}` : attMetaLine(toView(it, supabase, "gallery"))}
                         </div>
                       </span>
                       <span style={{ display: "flex" }}>
@@ -320,121 +355,59 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   );
 }
 
-function LinkAdder({ t, onAdd, S }) {
-  const [val, setVal] = useState(""); const [err, setErr] = useState("");
-  const submit = () => onAdd(t, val, (m) => { setErr(m); if (!m) setVal(""); });
-  return (
-    <>
-      <input style={S.link} value={val} onChange={(e) => setVal(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="الصق رابط يوتيوب أو رابط صورة" />
-      <button style={{ ...S.btn, ...S.pri }} onClick={submit}>إضافة</button>
-      {err && <p style={{ ...S.err, flexBasis: "100%" }}>{err}</p>}
-    </>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════
    الموقع العام — GallerySection
    props: supabase, T (طقم الألوان الحالي), L (مترجم ar/en), lang
+   البطاقات والعارض من attach-kit.jsx: صور، يوتيوب، PDF صفحة صفحة، فيديو، Drive
    ═══════════════════════════════════════════════════════════ */
 export function GallerySection({ supabase, T, L, lang }) {
   const [topics, setTopics] = useState(null);
   const [mode, setMode] = useState("sections");
-  const [lb, setLb] = useState(null); /* {list, i} */
+  const [view, setView] = useState(null); /* {list, i} */
 
   useEffect(() => {
-    let live = true;
-    (async () => {
+    let live = true, seq = 0;
+    const items = async () => {
+      const r = await supabase.from("media_items").select(MEDIA_PUBLIC_COLS).eq("published", true).order("sort_order");
+      /* قبل تشغيل migration-attachments.sql ما فيه الأعمدة الجديدة — نقرأ القديمة */
+      return r.error ? supabase.from("media_items").select("*").eq("published", true).order("sort_order") : r;
+    };
+    const load = async () => {
+      const my = ++seq;
       const [{ data: t }, { data: it }, { data: s }] = await Promise.all([
-        supabase.from("media_topics").select("*").eq("published", true).order("sort_order"),
-        supabase.from("media_items").select("*").eq("published", true).order("sort_order"),
+        supabase.from("media_topics").select("id,title_ar,title_en,sort_order").eq("published", true).order("sort_order"),
+        items(),
         supabase.from("site_settings").select("gallery_mode").maybeSingle(),
       ]);
-      if (!live) return;
+      if (!live || my !== seq) return;
       const byTopic = {};
       (it || []).forEach((r) => (byTopic[r.topic_id] || (byTopic[r.topic_id] = [])).push(r));
       setTopics((t || []).map((tp) => ({ ...tp, items: byTopic[tp.id] || [] })).filter((tp) => tp.items.length));
       if (s?.gallery_mode) setMode(s.gallery_mode);
-    })();
-    return () => { live = false; };
+    };
+    load();
+    const ch = supabase.channel("public-gallery-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "media_rev" }, load).subscribe();
+    return () => { live = false; supabase.removeChannel(ch); };
   }, [supabase]);
 
   if (!topics) return null;
   if (!topics.length) return <p style={{ color: T.muted, textAlign: "center", padding: 40 }}>{L("ما فيه صور أو مقاطع بعد.", "No photos or videos yet.")}</p>;
 
-  const thumbUrl = (it) => it.kind === "video" ? ytThumb(it.youtube_id) : it.source === "upload"
-    ? supabase.storage.from("gallery").getPublicUrl(it.storage_path.replace(/\.webp$/, "_thumb.webp")).data.publicUrl
-    : it.external_url;
-  const fullUrl = (it) => it.source === "upload" ? supabase.storage.from("gallery").getPublicUrl(it.storage_path).data.publicUrl : it.external_url;
-
-  const openLb = (list, it) => setLb({ list, i: list.findIndex((x) => x.id === it.id) });
-
   const sections = mode === "merged" ? [{ id: 0, title_ar: null, items: topics.flatMap((t) => t.items) }] : topics;
-
-  const cardS = { display: "block", width: "100%", padding: 0, textAlign: "start", background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" };
-  const mediaS = { display: "block", position: "relative", aspectRatio: "4/3", background: T.paper };
-
   return (
     <div>
-      {sections.map((sec) => (
-        <section key={sec.id} style={{ marginBottom: 34 }}>
-          {sec.title_ar && <h2 style={{ font: "600 clamp(20px,4vw,26px)/1.3 inherit", margin: "0 0 14px", paddingBottom: 6, borderBottom: `2px solid ${T.brass}`, display: "inline-block", color: T.paper }}>{sec.title_ar}</h2>}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
-            {sec.items.map((it) => (
-              <button key={it.id} style={cardS} onClick={() => openLb(sec.items, it)}>
-                <span style={mediaS}>
-                  <img src={thumbUrl(it)} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                  {it.kind === "video" && (
-                    <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#fff" }}>
-                      <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center" }}><Play size={20} /></span>
-                    </span>
-                  )}
-                </span>
-                {it.title_ar && <span style={{ display: "block", padding: "9px 11px", fontSize: 13.5, color: T.paper }}>{it.title_ar}</span>}
-              </button>
-            ))}
-          </div>
-        </section>
-      ))}
-      {lb && <Lightbox list={lb.list} i={lb.i} setI={(i) => setLb((s) => ({ ...s, i }))} onClose={() => setLb(null)} fullUrl={fullUrl} L={L} />}
-    </div>
-  );
-}
-
-function Lightbox({ list, i, setI, onClose, fullUrl, L }) {
-  const it = list[i];
-  const hostRef = useRef(null);
-  useEffect(() => {
-    if (it.kind !== "video") return;
-    let player = null, alive = true;
-    warmYouTube();
-    loadYouTubeApi().then((YT) => {
-      if (!alive || !hostRef.current) return;
-      player = createYtPlayer(YT, hostRef.current, { id: it.youtube_id, autoplay: true, lang: "ar", title: it.title_ar });
-    });
-    return () => { alive = false; try { player?.destroy?.(); } catch (_) {} };
-  }, [it.id]);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); else if (e.key === "ArrowLeft") setI((i + 1) % list.length); else if (e.key === "ArrowRight") setI((i - 1 + list.length) % list.length); };
-    document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey);
-  }, [i, list.length]);
-
-  return (
-    <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,13,17,.95)", display: "grid", gridTemplateRows: "1fr auto", padding: "60px 12px 8px" }}>
-      <button onClick={onClose} aria-label="إغلاق" style={{ position: "absolute", top: 12, insetInlineStart: 12, width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.1)", border: 0, color: "#fff", cursor: "pointer" }}><X size={20} /></button>
-      {list.length > 1 && <>
-        <button onClick={() => setI((i + 1) % list.length)} aria-label="السابق" style={{ position: "absolute", top: "50%", insetInlineStart: 12, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.1)", border: 0, color: "#fff", cursor: "pointer" }}>‹</button>
-        <button onClick={() => setI((i - 1 + list.length) % list.length)} aria-label="التالي" style={{ position: "absolute", top: "50%", insetInlineEnd: 12, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,.1)", border: 0, color: "#fff", cursor: "pointer" }}>›</button>
-      </>}
-      <div style={{ minHeight: 0, display: "grid", placeItems: "center" }}>
-        {it.kind === "video"
-          ? <div ref={hostRef} style={{ width: "min(100%,900px)", aspectRatio: "16/9", background: "#000", borderRadius: 8 }} />
-          : <img src={fullUrl(it)} alt={it.title_ar || ""} style={{ maxWidth: "100%", maxHeight: "calc(100dvh - 180px)", objectFit: "contain", borderRadius: 6 }} />}
-      </div>
-      <p style={{ textAlign: "center", padding: "12px 56px", margin: 0, color: "#fff" }}>
-        {it.title_ar || L("بدون عنوان", "Untitled")} <span style={{ color: "#9FB0BA", fontSize: 13 }}>— {i + 1} / {list.length}</span>
-      </p>
+      {sections.map((sec) => {
+        const views = sec.items.map((it) => toView(it, supabase, "gallery"));
+        const title = lang === "en" ? sec.title_en || sec.title_ar : sec.title_ar;
+        return (
+          <section key={sec.id} style={{ marginBottom: 34 }}>
+            {title && <h2 style={{ font: "600 clamp(20px,4vw,26px)/1.3 inherit", margin: "0 0 14px", paddingBottom: 6, borderBottom: `2px solid ${T.brass}`, display: "inline-block", color: T.paper }}>{title}</h2>}
+            <AttachmentTiles items={views} big T={T} lang={lang} onOpen={(i) => setView({ list: views, i })} />
+          </section>
+        );
+      })}
+      {view && <AttachmentViewer list={view.list} index={view.i} onIndex={(i) => setView((v) => (v ? { ...v, i } : v))} onClose={() => setView(null)} lang={lang} />}
     </div>
   );
 }

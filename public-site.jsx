@@ -9,6 +9,7 @@ import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickN
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
+import { useAttachments } from "./attach-kit.jsx";
 import { GallerySection } from "./gallery-kit.jsx";
 import { isHidden, NL, useNavLabels } from "./nav-labels-kit.jsx";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
@@ -16,7 +17,7 @@ import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, 
 import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Laptop, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Smartphone, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false };
+export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
 
 /* ═══ v2.8.4 — منطق التصفية مستقل عن حالة اللوحة ═══
    استُخرج من useMemo الخاص بـ match() عشان تقدر لوحة "الفلاتر" تحسب عدد نتائج
@@ -34,6 +35,7 @@ export function passesFilters(r, f, nq, nqId) {
   if (f.fresh && !r.isNew) return false;
   if (f.important && !r.isImportantActive) return false;
   if (f.urgent && !r.isUrgentActive) return false;
+  if (f.att && !r.attCount) return false;
   if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
   return true;
 }
@@ -408,10 +410,13 @@ export function PublicSite() {
     return () => { alive = false; onLive.cancel(); supabase.removeChannel(channel); };
   }, []);
 
+  /* مرفقات الاستفسارات (٢.١١.٠) — خريطة رقم الاستفسار ← مرفقاته الظاهرة، تتحدّث لحظيًا */
+  const attMap = useAttachments();
   const ALL = useMemo(() => {
     return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.last_modified),
-      isUrgentActive: isFlagLive(r.urgent, r.urgent_until), isImportantActive: isFlagLive(r.important, r.important_until) }));
-  }, [data]);
+      isUrgentActive: isFlagLive(r.urgent, r.urgent_until), isImportantActive: isFlagLive(r.important, r.important_until),
+      attCount: (attMap[r.id] || []).length }));
+  }, [data, attMap]);
 
   /* فتح استفسار محدد تلقائيًا عند الوصول عبر رابط مشاركة (?note=ID) — مرة واحدة فقط بعد اكتمال تحميل البيانات */
   const deepLinkRef = useRef(false);
@@ -441,6 +446,7 @@ export function PublicSite() {
   const openCount = ALL.filter((r) => !r.closed).length;
   const importantCount = ALL.filter((r) => r.isImportantActive).length;
   const urgentCount = ALL.filter((r) => r.isUrgentActive).length;
+  const attNotesCount = ALL.filter((r) => r.attCount > 0).length;
   const staC = (s) => T.sta[s] || hashPick(s, T.extra);
   const monthValue = (r) => (/^\d{4}-\d{2}$/.test(r.month || "") ? r.month : "9999-99");
 
@@ -527,6 +533,7 @@ export function PublicSite() {
     if (f.fresh) out.push({ k: "fresh", l: L("الجديد فقط", "New only") });
     if (f.important) out.push({ k: "important", l: L("مهم فقط", "Important only") });
     if (f.urgent) out.push({ k: "urgent", l: L("يجب الاطلاع فقط", "Needs review only") });
+    if (f.att) out.push({ k: "att", l: L("فيها مرفقات فقط", "With attachments only") });
     return out;
   }, [f, lang]);
   /* عدد الفلاتر النشطة بدون نص البحث — يُعرض كشارة على زر "الفلاتر" نفسه،
@@ -1585,10 +1592,10 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           </div>
         </div>
 
-        <Sheet r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} />
+        <Sheet r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} attachments={sel ? attMap[sel.id] || [] : []} />
         <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
-          nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount}
+          nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
         <DocViewerSheet doc={docView} videos={docView ? videos[docView.id] || [] : []} onClose={() => setDocView(null)} />
 
