@@ -15,12 +15,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   ImagePlus, FilePlus, GripVertical, ChevronUp, ChevronDown, ChevronDown as Chevron,
-  Eye, EyeOff, Trash2, Plus, Rows, LayoutGrid,
+  Eye, EyeOff, Trash2, Plus, Rows, LayoutGrid, List, LayoutDashboard, Folder, ChevronLeft, ChevronRight, Play,
 } from "lucide-react";
 import { autoTranslateAr } from "./translate-kit.js";
 import {
-  ACCEPT_DOCS, ATT_BUCKET, AttachmentTiles, AttachmentViewer, KindIcon, LinkField, MEDIA_PUBLIC_COLS, WARN_VIDEO,
-  attMetaLine, fmtSize, linkFields, toView, uploadAttachmentFile,
+  ACCEPT_DOCS, ATT_BUCKET, AttachmentViewer, KindIcon, LinkField, MEDIA_PUBLIC_COLS, WARN_VIDEO,
+  attMetaLine, attTitle, badgeText, sourceLabel, fmtSize, linkFields, toView, uploadAttachmentFile,
 } from "./attach-kit.jsx";
 
 /* ── أدوات مشتركة ───────────────────────────────────────── */
@@ -57,6 +57,18 @@ const niceTitle = (name) => {
   return /^(img|dsc|pxl|photo|image|whatsapp|screenshot|صورة|\d)/i.test(n) ? "" : n.replace(/[_-]+/g, " ").trim();
 };
 
+/* أشكال عرض المكتبة بالموقع العام — القيمة المحفوظة بـ site_settings.gallery_layout */
+const LAYOUT_LABEL = { docs: "زي المستندات", adaptive: "حسب نوع الملف", folders: "مجلدات تنفتح" };
+const LAYOUTS = ["docs", "adaptive", "folders"];
+
+/* قراءة إعدادات المعرض. لو عمود gallery_layout ما انضاف (الهجرة ما اشتغلت) نرجع لقراءة القديم بدون ما يطيح شي */
+async function readGallerySettings(supabase) {
+  let r = await supabase.from("site_settings").select("gallery_mode,gallery_layout").maybeSingle();
+  if (!r.error) return { data: r.data, layoutOk: true };
+  r = await supabase.from("site_settings").select("gallery_mode").maybeSingle();
+  return { data: r.data, layoutOk: false };
+}
+
 /* ═══════════════════════════════════════════════════════════
    لوحة الإدارة — AGalleryTab
    ═══════════════════════════════════════════════════════════ */
@@ -66,19 +78,23 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   const [open, setOpen] = useState({});             /* topicId → موسّع؟ */
   const [confirmDel, setConfirmDel] = useState(null); /* {type:'topic'|'item', id, label} */
   const [mode, setMode] = useState("sections");
+  const [layout, setLayout] = useState("docs");
+  const [layoutOk, setLayoutOk] = useState(true);   /* false = عمود gallery_layout ما انشغّلت هجرته */
   const fileRefs = useRef({});
   const docRefs = useRef({});
 
   const load = useCallback(async () => {
-    const [{ data: t }, { data: it }, { data: s }] = await Promise.all([
+    const [{ data: t }, { data: it }, sr] = await Promise.all([
       supabase.from("media_topics").select("*").order("sort_order").order("id"),
       supabase.from("media_items").select("*").order("sort_order").order("id"),
-      supabase.from("site_settings").select("gallery_mode").maybeSingle(),
+      readGallerySettings(supabase),
     ]);
     const byTopic = {};
     (it || []).forEach((r) => (byTopic[r.topic_id] || (byTopic[r.topic_id] = [])).push(r));
     setTopics((t || []).map((tp) => ({ ...tp, items: byTopic[tp.id] || [] })));
-    if (s?.gallery_mode) setMode(s.gallery_mode);
+    if (sr.data?.gallery_mode) setMode(sr.data.gallery_mode);
+    if (sr.data?.gallery_layout) setLayout(sr.data.gallery_layout);
+    setLayoutOk(sr.layoutOk);
   }, [supabase]);
   useEffect(() => { load(); }, [load]);
 
@@ -91,6 +107,19 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
     if (error) { flashToast("تعذّر حفظ طريقة العرض"); return; }
     log("تغيير طريقة عرض المعرض", m === "sections" ? "أقسام منفصلة" : "كل المواضيع مع بعض");
     flashToast("تم حفظ طريقة العرض بالموقع العام");
+  };
+
+  const saveLayout = async (l) => {
+    const prev = layout;
+    setLayout(l);
+    const { error } = await supabase.from("site_settings").update({ gallery_layout: l }).eq("id", 1);
+    if (error) {
+      setLayout(prev);
+      flashToast(/column|constraint/i.test(error.message || "") ? "شغّل migration-gallery-layout.sql أولًا." : "تعذّر حفظ شكل العرض");
+      return;
+    }
+    log("تغيير شكل عرض المكتبة", LAYOUT_LABEL[l]);
+    flashToast("تم حفظ شكل العرض بالموقع العام");
   };
 
   const addTopic = async () => {
@@ -261,6 +290,15 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
           <button style={S.segBtn(mode === "merged")} onClick={() => saveMode("merged")}><LayoutGrid size={14} /> كل المواضيع مع بعض</button>
         </div>
       </div>
+      <div style={{ ...S.modeRow, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: "#5F7280" }}>شكل العرض:</span>
+        <div style={{ ...S.seg, flexWrap: "wrap" }} role="group" aria-label="شكل عرض المكتبة">
+          <button style={S.segBtn(layout === "docs")} onClick={() => saveLayout("docs")} aria-pressed={layout === "docs"}><List size={14} /> {LAYOUT_LABEL.docs}</button>
+          <button style={S.segBtn(layout === "adaptive")} onClick={() => saveLayout("adaptive")} aria-pressed={layout === "adaptive"}><LayoutDashboard size={14} /> {LAYOUT_LABEL.adaptive}</button>
+          <button style={S.segBtn(layout === "folders")} onClick={() => saveLayout("folders")} aria-pressed={layout === "folders"}><Folder size={14} /> {LAYOUT_LABEL.folders}</button>
+        </div>
+      </div>
+      {!layoutOk && <p style={{ ...S.err, margin: "0 0 12px" }}>شكل العرض ما يشتغل لين تشغّل <b dir="ltr">migration-gallery-layout.sql</b> مرة وحدة بـ SQL Editor. الموقع يعرض الآن الشكل الافتراضي «زي المستندات».</p>}
       <button style={{ ...S.btn, ...S.pri }} onClick={addTopic}><Plus size={16} /> إضافة موضوع جديد</button>
       <p style={{ fontSize: 13, color: "#5F7280", marginTop: 10 }}>
         كل موضوع يجمع صورًا ومقاطع وملفات PDF. رتّب المواضيع والعناصر بالأسهم، وأضف بالرفع المباشر (صور، PDF، فيديو حتى 50MB) أو بلصق رابط: يوتيوب وVimeo يُشغَّلان داخل الموقع، وDrive وأي رابط ملف أو صورة يُعرض كذلك.
@@ -358,11 +396,172 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
 /* ═══════════════════════════════════════════════════════════
    الموقع العام — GallerySection
    props: supabase, T (طقم الألوان الحالي), L (مترجم ar/en), lang
-   البطاقات والعارض من attach-kit.jsx: صور، يوتيوب، PDF صفحة صفحة، فيديو، Drive
+
+   ثلاثة أشكال عرض، الإدارة تختار منها (site_settings.gallery_layout):
+     docs      زي المستندات — صف لكل ملف بنفس بطاقة تبويب «المخططات والمستندات» (الافتراضي)
+     adaptive  حسب نوع الملف — صفوف للتقارير، شبكة للصور، بطاقات عريضة للفيديو
+     folders   مجلدات — كل موضوع ينفتح وينقفل
+   العارض واحد للثلاثة: AttachmentViewer من attach-kit.jsx (يتنقّل بين عناصر نفس الموضوع).
    ═══════════════════════════════════════════════════════════ */
+const GLX_CSS = `
+.glx-sec{margin-bottom:30px;}
+.glx-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px;margin-bottom:12px;}
+.glx-head h2{margin:0;font-size:18px;line-height:1.5;}
+.glx-count{font-size:12px;color:var(--gx-muted);white-space:nowrap;}
+.glx-stack{display:flex;flex-direction:column;gap:18px;}
+.glx-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+@media(min-width:640px){.glx-photos{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}}
+.glx-photo{position:relative;display:block;width:100%;aspect-ratio:1/1;margin:0;padding:0;overflow:hidden;cursor:pointer;
+  border:1px solid var(--gx-line);border-radius:12px;background:var(--gx-sunken);transition:border-color .18s,transform .18s;}
+.glx-photo:hover{border-color:var(--gx-accent);}
+.glx-photo:active{transform:scale(.98);}
+.glx-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gx-faint);}
+.glx-photo img,.glx-vid-m img,.glx-rt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+.glx-vids{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:640px){.glx-vids{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.glx-vid{display:flex;flex-direction:column;width:100%;margin:0;padding:0;overflow:hidden;text-align:start;cursor:pointer;font:inherit;
+  color:var(--gx-paper);background:var(--gx-surface);border:1px solid var(--gx-line);border-radius:20px;transition:border-color .18s,transform .18s;}
+.glx-vid:hover{border-color:var(--gx-accent);}
+.glx-vid:active{transform:scale(.985);}
+.glx-vid-m{position:relative;display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--gx-sunken);}
+.glx-play{position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(255,255,255,.94);color:#0E1211;box-shadow:0 6px 18px rgba(0,0,0,.3);}
+.glx-play svg{transform:translateX(1.5px);}
+.glx-tag{position:absolute;bottom:10px;inset-inline-start:10px;padding:3px 8px;border-radius:7px;background:rgba(10,13,12,.74);color:#fff;
+  font-size:10.5px;font-weight:600;line-height:1.6;direction:ltr;unicode-bidi:isolate;}
+.glx-vid-c{display:flex;flex-direction:column;gap:3px;padding:12px 14px 14px;}
+.glx-vid-t{font-size:14.5px;font-weight:600;line-height:1.45;}
+.glx-vid-s{font-size:11.5px;color:var(--gx-muted);}
+.glx-fold{margin-bottom:10px;overflow:hidden;border-radius:22px;background:var(--gx-surface);border:1px solid var(--gx-line);}
+.glx-fh{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:14px;border:0;background:transparent;text-align:start;
+  color:var(--gx-paper);cursor:pointer;font:inherit;}
+.glx-fi{width:46px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:14px;
+  background:color-mix(in srgb,var(--gx-accent) 14%,transparent);color:var(--gx-accent);}
+.glx-ft{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.glx-ft b{font-size:15px;font-weight:600;line-height:1.45;}
+.glx-ft span{font-size:12px;color:var(--gx-muted);}
+.glx-chev{flex:none;display:flex;color:var(--gx-muted);transition:transform .2s ease;}
+.glx-fold.open .glx-chev{transform:rotate(180deg);}
+.glx-fb{padding:0 10px 10px;}
+.glx-list{display:flex;flex-direction:column;gap:1px;overflow:hidden;border-radius:14px;background:var(--gx-line);}
+.glx-row{display:flex;align-items:center;gap:11px;width:100%;min-height:56px;margin:0;padding:9px 10px;border:0;text-align:start;cursor:pointer;font:inherit;
+  color:var(--gx-paper);background:color-mix(in srgb,var(--gx-paper) 4%,var(--gx-surface));}
+.glx-row:hover{background:color-mix(in srgb,var(--gx-accent) 9%,var(--gx-surface));}
+.glx-rt{position:relative;width:36px;height:36px;flex:none;box-sizing:border-box;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  border-radius:10px;background:var(--gx-sunken);border:1px solid var(--gx-line);color:var(--gx-accent);}
+.glx-rn{flex:1;min-width:0;font-size:14px;font-weight:500;line-height:1.45;}
+.glx-rb{flex:none;font-size:10.5px;font-weight:600;color:var(--gx-muted);direction:ltr;unicode-bidi:isolate;}
+.glx-rg{flex:none;display:flex;color:var(--gx-faint);}
+.glx-photo:focus-visible,.glx-vid:focus-visible,.glx-fh:focus-visible,.glx-row:focus-visible{outline:2px solid var(--gx-accent);outline-offset:2px;}
+@media(prefers-reduced-motion:reduce){.glx-chev,.glx-photo,.glx-vid{transition:none;}}
+`;
+function ensureGlxCss() {
+  if (typeof document === "undefined" || document.getElementById("glx-css")) return;
+  const el = document.createElement("style"); el.id = "glx-css"; el.textContent = GLX_CSS; document.head.appendChild(el);
+}
+ensureGlxCss();
+
+const hideBroken = (e) => { e.currentTarget.style.display = "none"; };
+const isMediaKind = (a) => a.kind === "image" || a.kind === "video";
+const chipOf = (a, lang) => (a.kind === "pdf" ? "PDF" : badgeText(a, lang));
+const countText = (n, lang) => (lang === "en"
+  ? `${n} ${n === 1 ? "item" : "items"}`
+  : n === 1 ? "عنصر واحد" : n === 2 ? "عنصران" : n <= 10 ? `${n} عناصر` : `${n} عنصرًا`);
+
+/* صف بنفس بطاقة «المخططات والمستندات» (doc-card) — فيرث شكل التصميم المعتمد (كلاسيكي/نوفا/بنّاء) تلقائيًا */
+function DocRow({ a, T, lang, onOpen }) {
+  const title = attTitle(a, lang), src = sourceLabel(a, lang);
+  const Go = lang === "en" ? ChevronRight : ChevronLeft;
+  const media = isMediaKind(a);
+  const tile = a.kind === "pdf" ? "PDF" : a.kind === "office" || a.kind === "file" ? String(a.ext || "").toUpperCase() : "";
+  const meta = media ? badgeText(a, lang) : `${badgeText(a, lang)}${title.includes(src) ? "" : ` · ${src}`}`;
+  return (
+    <button type="button" className="doc-card" onClick={onOpen}>
+      <span className="doc-thumb" style={{ borderColor: T.brass + "55", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: T.brass }}>
+        <KindIcon kind={a.kind} size={22} />
+        {tile && <span dir="ltr" style={{ fontSize: 9.5, fontWeight: 700, lineHeight: 1 }}>{tile}</span>}
+        {media && a.thumb && <img src={a.thumb} alt="" loading="lazy" decoding="async" style={{ position: "absolute", inset: 0 }} onError={hideBroken} />}
+        {a.kind === "video" && a.thumb && <span className="doc-vbadge" aria-hidden="true"><Play size={9} fill="currentColor" strokeWidth={0} /></span>}
+      </span>
+      <span className="doc-info">
+        <span className="doc-name">{title}</span>
+        <span className="doc-meta" style={{ color: T.brass }}>{meta}</span>
+      </span>
+      <span className="doc-go"><Go size={17} /></span>
+    </button>
+  );
+}
+
+/* شكل «حسب نوع الملف»: الملفات صفوف، الصور شبكة، الفيديو بطاقات عريضة */
+function AdaptiveBlock({ views, T, lang, open }) {
+  const idx = views.map((a, i) => ({ a, i }));
+  const docs = idx.filter((x) => !isMediaKind(x.a));
+  const photos = idx.filter((x) => x.a.kind === "image");
+  const vids = idx.filter((x) => x.a.kind === "video");
+  return (
+    <div className="glx-stack">
+      {docs.length > 0 && (
+        <div className="doc-list">{docs.map(({ a, i }) => <DocRow key={a.id} a={a} T={T} lang={lang} onOpen={() => open(i)} />)}</div>
+      )}
+      {photos.length > 0 && (
+        <div className="glx-photos">
+          {photos.map(({ a, i }) => (
+            <button key={a.id} type="button" className="glx-photo" onClick={() => open(i)} aria-label={attTitle(a, lang)}>
+              <span className="glx-ph"><KindIcon kind="image" size={22} /></span>
+              {a.thumb && <img src={a.thumb} alt="" loading="lazy" decoding="async" onError={hideBroken} />}
+            </button>
+          ))}
+        </div>
+      )}
+      {vids.length > 0 && (
+        <div className="glx-vids">
+          {vids.map(({ a, i }) => {
+            const title = attTitle(a, lang), src = sourceLabel(a, lang);
+            return (
+              <button key={a.id} type="button" className="glx-vid" onClick={() => open(i)}>
+                <span className="glx-vid-m">
+                  {a.thumb && <img src={a.thumb} alt="" loading="lazy" decoding="async" onError={hideBroken} />}
+                  <span className="glx-play"><Play size={20} fill="currentColor" strokeWidth={0} /></span>
+                  <span className="glx-tag">{badgeText(a, lang)}</span>
+                </span>
+                <span className="glx-vid-c">
+                  <span className="glx-vid-t">{title}</span>
+                  {!title.includes(src) && <span className="glx-vid-s">{src}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* شكل «مجلدات»: صف مضغوط داخل المجلد */
+function FolderRows({ views, lang, open }) {
+  const Go = lang === "en" ? ChevronRight : ChevronLeft;
+  return (
+    <div className="glx-list">
+      {views.map((a, i) => (
+        <button key={a.id} type="button" className="glx-row" onClick={() => open(i)}>
+          <span className="glx-rt">
+            <KindIcon kind={a.kind} size={17} />
+            {isMediaKind(a) && a.thumb && <img src={a.thumb} alt="" loading="lazy" decoding="async" onError={hideBroken} />}
+          </span>
+          <span className="glx-rn">{attTitle(a, lang)}</span>
+          <span className="glx-rb">{chipOf(a, lang)}</span>
+          <span className="glx-rg"><Go size={15} /></span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function GallerySection({ supabase, T, L, lang }) {
   const [topics, setTopics] = useState(null);
   const [mode, setMode] = useState("sections");
+  const [layout, setLayout] = useState("docs");
+  const [openFold, setOpenFold] = useState({});   /* topicId → مفتوح؟ (الأول مفتوح افتراضيًا) */
   const [view, setView] = useState(null); /* {list, i} */
 
   useEffect(() => {
@@ -374,36 +573,65 @@ export function GallerySection({ supabase, T, L, lang }) {
     };
     const load = async () => {
       const my = ++seq;
-      const [{ data: t }, { data: it }, { data: s }] = await Promise.all([
+      const [{ data: t }, { data: it }, sr] = await Promise.all([
         supabase.from("media_topics").select("id,title_ar,title_en,sort_order").eq("published", true).order("sort_order"),
         items(),
-        supabase.from("site_settings").select("gallery_mode").maybeSingle(),
+        readGallerySettings(supabase),
       ]);
       if (!live || my !== seq) return;
       const byTopic = {};
       (it || []).forEach((r) => (byTopic[r.topic_id] || (byTopic[r.topic_id] = [])).push(r));
       setTopics((t || []).map((tp) => ({ ...tp, items: byTopic[tp.id] || [] })).filter((tp) => tp.items.length));
-      if (s?.gallery_mode) setMode(s.gallery_mode);
+      if (sr.data?.gallery_mode) setMode(sr.data.gallery_mode);
+      setLayout(sr.data?.gallery_layout || "docs");
     };
     load();
+    /* media_rev = تغيّر المحتوى، site_settings = تغيّر شكل العرض أو طريقته من الإدارة (يوصل لكل الزوّار لحظيًا) */
     const ch = supabase.channel("public-gallery-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "media_rev" }, load).subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "media_rev" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, load)
+      .subscribe();
     return () => { live = false; supabase.removeChannel(ch); };
   }, [supabase]);
 
   if (!topics) return null;
   if (!topics.length) return <p style={{ color: T.muted, textAlign: "center", padding: 40 }}>{L("ما فيه صور أو مقاطع بعد.", "No photos or videos yet.")}</p>;
 
+  const lay = LAYOUTS.includes(layout) ? layout : "docs";
   const sections = mode === "merged" ? [{ id: 0, title_ar: null, items: topics.flatMap((t) => t.items) }] : topics;
+  const vars = { "--gx-surface": T.surface, "--gx-sunken": T.sunken, "--gx-line": T.line, "--gx-paper": T.paper, "--gx-muted": T.muted, "--gx-faint": T.faint, "--gx-accent": T.brass };
   return (
-    <div>
-      {sections.map((sec) => {
+    <div className="glx" style={vars}>
+      {sections.map((sec, si) => {
         const views = sec.items.map((it) => toView(it, supabase, "gallery"));
         const title = lang === "en" ? sec.title_en || sec.title_ar : sec.title_ar;
+        const open = (i) => setView({ list: views, i });
+
+        if (lay === "folders" && title) {
+          const isOpen = openFold[sec.id] ?? si === 0;
+          return (
+            <section key={sec.id} className={`glx-fold${isOpen ? " open" : ""}`}>
+              <button type="button" className="glx-fh" aria-expanded={isOpen} onClick={() => setOpenFold((o) => ({ ...o, [sec.id]: !isOpen }))}>
+                <span className="glx-fi"><Folder size={22} /></span>
+                <span className="glx-ft"><b>{title}</b><span>{countText(views.length, lang)}</span></span>
+                <span className="glx-chev"><ChevronDown size={18} /></span>
+              </button>
+              {isOpen && <div className="glx-fb"><FolderRows views={views} lang={lang} open={open} /></div>}
+            </section>
+          );
+        }
+
         return (
-          <section key={sec.id} style={{ marginBottom: 34 }}>
-            {title && <h2 style={{ font: "600 clamp(20px,4vw,26px)/1.3 inherit", margin: "0 0 14px", paddingBottom: 6, borderBottom: `2px solid ${T.brass}`, display: "inline-block", color: T.paper }}>{title}</h2>}
-            <AttachmentTiles items={views} big T={T} lang={lang} onOpen={(i) => setView({ list: views, i })} />
+          <section key={sec.id} className="glx-sec">
+            {title && (
+              <div className="glx-head">
+                <h2 className="sec-t">{title}</h2>
+                <span className="glx-count">{countText(views.length, lang)}</span>
+              </div>
+            )}
+            {lay === "folders" ? <FolderRows views={views} lang={lang} open={open} />
+              : lay === "adaptive" ? <AdaptiveBlock views={views} T={T} lang={lang} open={open} />
+              : <div className="doc-list">{views.map((a, i) => <DocRow key={a.id} a={a} T={T} lang={lang} onOpen={() => open(i)} />)}</div>}
           </section>
         );
       })}

@@ -12,6 +12,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "2.12.0",
+    dateAr: "29 سبتمبر 2026",
+    dateEn: "September 29, 2026",
+    ar: [
+      "المكتبة المرئية: شكلها الافتراضي صار «زي المستندات» — صف لكل ملف بنفس بطاقة تبويب المخططات والمستندات، يتغيّر مع التصميم المعتمد",
+      "الإدارة تختار شكل العرض من ثلاثة: «زي المستندات»، أو «حسب نوع الملف» (صفوف للتقارير وشبكة للصور وبطاقات عريضة للفيديو)، أو «مجلدات تنفتح» — من «معرض الموقع» بنفس مكان رفع المقاطع والروابط، ويوصل لكل الزوّار لحظيًا",
+    ],
+    en: [
+      "Visual Library: the default layout is now \"Like Documents\" — one row per file, using the same card as the Plans & Documents tab and following the active design",
+      "The admin can pick the layout from three: \"Like Documents\", \"By file type\" (rows for reports, a grid for photos, wide cards for videos) or \"Folders\" that open and close — from the site gallery tab, next to the video and link upload, and it reaches all visitors instantly",
+    ],
+  },
+  {
     version: "2.11.1",
     dateAr: "29 سبتمبر 2026",
     dateEn: "September 29, 2026",

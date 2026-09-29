@@ -306,8 +306,8 @@ export function attTitle(a, lang) {
   if (a.provider === "web" || a.provider === "onedrive") { try { return new URL(a.url).hostname.replace(/^www\./, ""); } catch (_) { return P.web; } }
   return K[a.kind] || (lang === "en" ? "Attachment" : "مرفق");
 }
-const sourceLabel = (a, lang) => (a.source === "upload" ? `${lang === "en" ? "Uploaded" : "مرفوع"}${a.size ? ` · ${fmtSize(a.size)}` : ""}` : (lang === "en" ? PROV_EN : PROV_AR)[a.provider] || (lang === "en" ? "Link" : "رابط"));
-function badgeText(a, lang) {
+export const sourceLabel = (a, lang) => (a.source === "upload" ? `${lang === "en" ? "Uploaded" : "مرفوع"}${a.size ? ` · ${fmtSize(a.size)}` : ""}` : (lang === "en" ? PROV_EN : PROV_AR)[a.provider] || (lang === "en" ? "Link" : "رابط"));
+export function badgeText(a, lang) {
   if (a.kind === "pdf") return a.pages ? `PDF · ${pagesLabel(a.pages, lang)}` : "PDF";
   if (a.kind === "video") return `${a.provider === "youtube" ? "YouTube" : a.provider === "vimeo" ? "Vimeo" : lang === "en" ? "Video" : "فيديو"}${a.dur ? ` ${fmtDur(a.dur)}` : ""}`;
   if (a.kind === "image") return lang === "en" ? "Photo" : "صورة";

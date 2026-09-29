@@ -922,3 +922,16 @@ returns bigint language sql stable security definer set search_path = public, st
 $$;
 revoke execute on function public.storage_usage_bytes() from public, anon;
 grant execute on function public.storage_usage_bytes() to authenticated;
+
+-- ══ شكل عرض المكتبة المرئية (٢.١٢.٠) — docs | adaptive | folders ══
+alter table public.site_settings
+  add column if not exists gallery_layout text not null default 'docs';
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'site_settings_gallery_layout_chk') then
+    alter table public.site_settings
+      add constraint site_settings_gallery_layout_chk
+      check (gallery_layout in ('docs', 'adaptive', 'folders'));
+  end if;
+end $$;
