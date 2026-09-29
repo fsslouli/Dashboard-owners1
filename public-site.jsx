@@ -410,7 +410,7 @@ export function PublicSite() {
     return () => { alive = false; onLive.cancel(); supabase.removeChannel(channel); };
   }, []);
 
-  /* مرفقات الاستفسارات (٢.١١.٠) — خريطة رقم الاستفسار ← مرفقاته الظاهرة، تتحدّث لحظيًا */
+  /* مرفقات الاستفسارات (٣.٠.٠) — خريطة رقم الاستفسار ← مرفقاته الظاهرة، تتحدّث لحظيًا */
   const attMap = useAttachments();
   const ALL = useMemo(() => {
     return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.last_modified),
@@ -1578,7 +1578,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           )}
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 28, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
-            {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٢.١١.١) — مكانه جنب دخول الإدارة */}
+            {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٣.٠.١) — مكانه جنب دخول الإدارة */}
             <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}
               aria-label={L(`سجل التحديثات — الإصدار ${CURRENT_VERSION}`, `Update log — version ${CURRENT_VERSION}`)} style={{
               background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4,

@@ -722,7 +722,7 @@ begin
 end $$;
 
 -- ══════════════════════════════════════════════════════════
--- v2.11.0 — المرفقات (مطبّق فعليًا على المشروع بتاريخ 29 سبتمبر 2026)
+-- v3.0.0 — المرفقات (مطبّق فعليًا على المشروع بتاريخ 29 سبتمبر 2026)
 -- نفس محتوى migration-attachments.sql. يفترض أن قسم المعرض أعلاه (media_topics/media_items) مطبّق قبله.
 -- ══════════════════════════════════════════════════════════
 -- (١) ختم «من عدّل ومتى» — نفس دالة المعرض (نعيد تعريفها هنا عشان الملف يكون مستقل)
@@ -923,7 +923,7 @@ $$;
 revoke execute on function public.storage_usage_bytes() from public, anon;
 grant execute on function public.storage_usage_bytes() to authenticated;
 
--- ══ شكل عرض المكتبة المرئية (٢.١٢.٠) — docs | adaptive | folders ══
+-- ══ شكل عرض المكتبة المرئية (٣.١.٠) — docs | adaptive | folders ══
 alter table public.site_settings
   add column if not exists gallery_layout text not null default 'docs';
 

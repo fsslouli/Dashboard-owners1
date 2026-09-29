@@ -114,7 +114,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const [form, setForm] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [applying, setApplying] = useState(false);
-  /* ٢.١١.٠ — عدّاد مرفقات كل استفسار بالقائمة. لو migration-attachments.sql ما اشتغل بعد
+  /* ٣.٠.٠ — عدّاد مرفقات كل استفسار بالقائمة. لو migration-attachments.sql ما اشتغل بعد
      يفشل الطلب بهدوء وتبقى القائمة كما هي بدون أي شارة. */
   const [attCounts, setAttCounts] = useState({});
   useEffect(() => {
