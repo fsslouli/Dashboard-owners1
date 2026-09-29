@@ -1118,7 +1118,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                     {deskOn ? L("عرض الجوال", "Mobile view") : L("سطح المكتب", "Desktop")}
                   </button>
                 )}
-                <button className="icon-btn" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}><History size={13} /> <span className="mono">{`v${CURRENT_VERSION}`}</span></button>
               </div>
             </div>
 
@@ -1579,10 +1578,12 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           )}
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 28, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
-            <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }} style={{
-              background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4,
+            {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٢.١١.١) — مكانه جنب دخول الإدارة */}
+            <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}
+              aria-label={L(`سجل التحديثات — الإصدار ${CURRENT_VERSION}`, `Update log — version ${CURRENT_VERSION}`)} style={{
+              background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4,
             }}>
-              v{CURRENT_VERSION}
+              <History size={12} /> v{CURRENT_VERSION}
             </button>
             <button className="mono" onClick={() => { logEvent("click", "admin_login", null, null); window.location.hash = "admin"; }} style={{
               background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4,

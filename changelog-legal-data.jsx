@@ -12,6 +12,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "2.11.1",
+    dateAr: "29 سبتمبر 2026",
+    dateEn: "September 29, 2026",
+    ar: [
+      "زر سجل التحديثات انتقل من أعلى الصفحة إلى أسفلها، جنب «دخول الإدارة» — الترويسة صارت أخف",
+    ],
+    en: [
+      "The update-log button moved from the top of the page to the bottom, next to \"Admin login\" — a lighter header",
+    ],
+  },
+  {
     version: "2.11.0",
     dateAr: "29 سبتمبر 2026",
     dateEn: "September 29, 2026",
