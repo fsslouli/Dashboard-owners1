@@ -82,6 +82,32 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   const [layoutOk, setLayoutOk] = useState(true);   /* false = عمود gallery_layout ما انشغّلت هجرته */
   const fileRefs = useRef({});
   const docRefs = useRef({});
+  const fillingRef = useRef(false);
+
+  /* يترجم تلقائيًا أي عنوان عربي ما له ترجمة إنجليزية (مواضيع وملفات) ويحفظها بالقاعدة،
+     فيطلع الإنجليزي للزوّار وحده بدون ما أحد يكتب شي. يوقف عند أول فشل (الدالة غير منشورة) */
+  const backfillEn = useCallback(async (topicRows, itemRows) => {
+    if (fillingRef.current) return;
+    const jobs = [
+      ...(topicRows || []).filter((r) => clean(r.title_ar) && !clean(r.title_en)).map((r) => ({ table: "media_topics", r })),
+      ...(itemRows || []).filter((r) => clean(r.title_ar) && !clean(r.title_en)).map((r) => ({ table: "media_items", r })),
+    ];
+    if (!jobs.length) return;
+    fillingRef.current = true;
+    try {
+      let done = 0;
+      for (const { table, r } of jobs) {
+        const en = await autoTranslateAr(supabase, clean(r.title_ar));
+        if (!en) { if (!done) flashToast("الترجمة التلقائية ما اشتغلت — تأكد من نشر دالة translate ومفتاحها"); break; }
+        const { error } = await supabase.from(table).update({ title_en: en }).eq("id", r.id);
+        if (error) break;
+        done++;
+        if (table === "media_topics") setTopics((ts) => (ts ? ts.map((x) => (x.id === r.id ? { ...x, title_en: en } : x)) : ts));
+        else setTopics((ts) => (ts ? ts.map((x) => (x.id === r.topic_id ? { ...x, items: x.items.map((i) => (i.id === r.id ? { ...i, title_en: en } : i)) } : x)) : ts));
+      }
+      if (done) flashToast(`تُرجم ${done} عنوان للإنجليزي تلقائيًا`);
+    } finally { fillingRef.current = false; }
+  }, [supabase, flashToast]);
 
   const load = useCallback(async () => {
     const [{ data: t }, { data: it }, sr] = await Promise.all([
@@ -95,7 +121,8 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
     if (sr.data?.gallery_mode) setMode(sr.data.gallery_mode);
     if (sr.data?.gallery_layout) setLayout(sr.data.gallery_layout);
     setLayoutOk(sr.layoutOk);
-  }, [supabase]);
+    if (canManage) backfillEn(t, it);
+  }, [supabase, canManage, backfillEn]);
   useEffect(() => { load(); }, [load]);
 
   if (!canManage) return <div style={{ padding: 24, color: "#8A6318" }}>ما عندك صلاحية إدارة الوسائط.</div>;
@@ -561,7 +588,7 @@ export function GallerySection({ supabase, T, L, lang }) {
   const [topics, setTopics] = useState(null);
   const [mode, setMode] = useState("sections");
   const [layout, setLayout] = useState("docs");
-  const [openFold, setOpenFold] = useState({});   /* topicId → مفتوح؟ (الأول مفتوح افتراضيًا) */
+  const [openFold, setOpenFold] = useState({});   /* topicId → مفتوح؟ (كلها مقفلة افتراضيًا والزائر يختار) */
   const [view, setView] = useState(null); /* {list, i} */
 
   useEffect(() => {
@@ -608,7 +635,7 @@ export function GallerySection({ supabase, T, L, lang }) {
         const open = (i) => setView({ list: views, i });
 
         if (lay === "folders" && title) {
-          const isOpen = openFold[sec.id] ?? si === 0;
+          const isOpen = !!openFold[sec.id];
           return (
             <section key={sec.id} className={`glx-fold${isOpen ? " open" : ""}`}>
               <button type="button" className="glx-fh" aria-expanded={isOpen} onClick={() => setOpenFold((o) => ({ ...o, [sec.id]: !isOpen }))}>
