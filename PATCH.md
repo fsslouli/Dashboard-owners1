@@ -1,4 +1,23 @@
-# هذا التحديث (٣.١.٠) — وش سوّيناه ووش باقي عليك
+# هذا التحديث (٣.١.١) — وش سوّيناه ووش باقي عليك
+
+ارفع الملفات المعدّلة لـ GitHub وVercel يبني وينشر تلقائي.
+
+## اللي تغيّر
+
+- الترجمة التلقائية صارت تستدعي دالة `translate-text` المنشورة (بدل `translate` غير المنشورة).
+- عناوين المواضيع بالمكتبة المرئية بلوحة الإدارة صارت بلون واضح.
+
+## قاعدة البيانات
+
+ما فيه شي.
+
+## الملفات اللي تغيّرت
+
+`translate-kit.js` · `gallery-kit.jsx` · `nav-labels-kit.jsx` · `changelog-legal-data.jsx` · `package.json` · `README.md` · `PATCH.md`
+
+---
+
+## التحديث السابق (٣.١.٠)
 
 الزيب فيه المشروع كامل (كل الملفات). ارفعه لـ GitHub زي ما هو فوق الملفات الحالية، وVercel يبني وينشر تلقائي.
 
@@ -22,7 +41,7 @@
 
 ## الملفات اللي تغيّرت
 
-`gallery-kit.jsx` · `attach-kit.jsx` · `changelog-legal-data.jsx` · `setup-supabase.sql` · `README.md` · `PATCH.md` · وملف جديد: `migration-gallery-layout.sql`
+`gallery-kit.jsx` · `attach-kit.jsx` · `changelog-legal-data.jsx` · `setup-supabase.sql` · `package.json` · `README.md` · `PATCH.md` · وملف جديد: `migration-gallery-layout.sql`
 
 ## تذكير من التحديثات السابقة
 

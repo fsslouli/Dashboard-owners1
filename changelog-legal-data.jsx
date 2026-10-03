@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "3.1.1",
+    dateAr: "3 أكتوبر 2026",
+    dateEn: "October 3, 2026",
+    ar: [
+      "إصلاح الترجمة التلقائية للعناوين: كانت تستدعي دالة اسمها translate وهي غير منشورة، فصارت تستدعي الدالة المنشورة translate-text وتشتغل بدون مفتاح",
+      "إصلاح عناوين المواضيع في «المكتبة المرئية» بلوحة الإدارة: كانت تظهر باهتة على البطاقة البيضاء، وصارت بلون واضح",
+    ],
+    en: [
+      "Fixed automatic title translation: it called a function named translate that was not deployed, and now calls the deployed translate-text function, which works without a key",
+      "Fixed topic titles in the admin Visual Library: they appeared faint on the white card and now use a clear color",
+    ],
+  },
+  {
     version: "3.1.0",
     dateAr: "29 سبتمبر 2026",
     dateEn: "September 29, 2026",
