@@ -105,7 +105,7 @@ export function ALabelsTab({ supabase, flashToast, log, canManage }) {
   const S = {
     wrap: { maxWidth: 700, margin: "0 auto", padding: "16px 4px" },
     group: { marginBottom: 26 },
-    h: { font: "600 15px/1.4 inherit", margin: "0 0 10px", color: "#5F7280" },
+    h: { font: "inherit", fontWeight: 600, fontSize: 15, lineHeight: 1.4, margin: "0 0 10px", color: "#5F7280" },
     row: { display: "grid", gridTemplateColumns: "1fr 1fr auto auto auto", gap: 8, alignItems: "center", padding: "8px 0", borderBottom: "1px solid #EEF2F4" },
     row1col: { display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 8, alignItems: "center", padding: "8px 0", borderBottom: "1px solid #EEF2F4" },
     inp: { width: "100%", border: "1px solid #E1E8EC", background: "#F7F9FB", borderRadius: 8, padding: "6px 10px", fontSize: 13.5 },

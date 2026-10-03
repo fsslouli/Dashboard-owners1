@@ -12,7 +12,7 @@ export async function autoTranslateAr(supabase, text, target = "en") {
   const t = String(text || "").trim();
   if (!t) return "";
   try {
-    const { data, error } = await supabase.functions.invoke("translate", { body: { text: t, target } });
+    const { data, error } = await supabase.functions.invoke("translate-text", { body: { text: t } });
     if (error || typeof data?.translated !== "string") return "";
     return data.translated;
   } catch (_) {

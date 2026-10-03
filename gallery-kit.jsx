@@ -98,7 +98,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
       let done = 0;
       for (const { table, r } of jobs) {
         const en = await autoTranslateAr(supabase, clean(r.title_ar));
-        if (!en) { if (!done) flashToast("الترجمة التلقائية ما اشتغلت — تأكد من نشر دالة translate ومفتاحها"); break; }
+        if (!en) { if (!done) flashToast("الترجمة التلقائية ما اشتغلت — الخدمة ما ردّت، جرّب بعد شوي"); break; }
         const { error } = await supabase.from(table).update({ title_en: en }).eq("id", r.id);
         if (error) break;
         done++;
@@ -297,7 +297,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
     pri: { background: "#1B7F8E", borderColor: "#1B7F8E", color: "#fff" },
     topic: { background: "#fff", border: "1px solid #E1E8EC", borderRadius: 14, padding: 10, marginBottom: 10 },
     thead: { display: "grid", gridTemplateColumns: "20px 1fr auto", gap: 10, alignItems: "center" },
-    tt: { width: "100%", border: 0, borderBottom: "1px solid transparent", background: "none", padding: "2px 0", font: "600 16px/1.5 inherit" },
+    tt: { width: "100%", border: 0, borderBottom: "1px solid transparent", background: "none", padding: "2px 0", font: "inherit", fontWeight: 600, fontSize: 16, lineHeight: 1.5, color: "#1F2C35" },
     ib: (danger) => ({ width: 32, height: 32, display: "grid", placeItems: "center", border: 0, background: "none", borderRadius: 8, color: danger ? "#A8443C" : "#5F7280", cursor: "pointer" }),
     body: { marginTop: 10, paddingTop: 10, borderTop: "1px solid #EEF2F4" },
     tools: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
