@@ -246,6 +246,7 @@ ${D} .big-btn,${D} .icon-btn[data-primary="1"],${D} .chip[data-on="1"]{
   background:var(--nv-grad);color:${T.onAccent};border:none;border-radius:15px;
   box-shadow:0 12px 28px -14px ${mix(A, 95)};}
 ${D} .big-btn{padding:15px;font-weight:600;letter-spacing:.01em;}
+${D} .join-btn{background:var(--nv-grad);border-radius:15px;box-shadow:0 12px 28px -14px ${mix(A, 95)};}
 ${D} .big-btn:hover,${D} .icon-btn[data-primary="1"]:hover{filter:brightness(1.06);
   transform:translateY(-2px);color:${T.onAccent};}
 ${D} .fchip{border-radius:999px;transition:transform .2s cubic-bezier(.22,1,.36,1),background .2s ease;}

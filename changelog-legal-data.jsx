@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "3.2.0",
+    dateAr: "3 أكتوبر 2026",
+    dateEn: "October 3, 2026",
+    ar: [
+      "زر «مجتمع الملاك» بأعلى الصفحة صار بارزًا: زر بتدرّج من لون الثيم المعتمد مع لمعة تمر عليه وأيقونة تليجرام داخل دائرة بيضاء، وصار نصه «انضم لمجتمع الملاك». يتغيّر لونه تلقائيًا مع التصميم (كلاسيكي/نوفا/بنّاء) والوضع الفاتح والداكن، وتوقف حركته لمن فعّل «تقليل الحركة» بجهازه",
+    ],
+    en: [
+      "The \"Owners Community\" button at the top is now prominent: a gradient button built from the active theme color with a passing shine and the Telegram icon in a white circle, now reading \"Join the Owners Community\". Its color follows the active design (Classic / Nova / Bannaa) and light/dark mode automatically, and its motion stops for users with reduced-motion enabled",
+    ],
+  },
+  {
     version: "3.1.1",
     dateAr: "3 أكتوبر 2026",
     dateEn: "October 3, 2026",

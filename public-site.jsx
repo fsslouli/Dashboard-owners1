@@ -750,6 +750,19 @@ export function PublicSite() {
 .icon-btn:hover{color:${T.paper};border-color:${T.faint};}
 .icon-btn[data-primary="1"]{color:${T.onAccent};background:${T.brass};border-color:${T.brass};}
 .icon-btn[data-primary="1"]:hover{color:${T.onAccent};filter:brightness(1.07);}
+
+/* زر «مجتمع الملاك» — تدرّج من لون الثيم + لمعة تمر. الألوان كلها من T فيتبع الثيم والتصميم */
+.join-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:9px;padding:9px 16px 9px 10px;border-radius:14px;
+  border:none;text-decoration:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;color:${T.onAccent};
+  background:linear-gradient(135deg,${T.brass},color-mix(in srgb,${T.brass} 70%,#000));
+  box-shadow:0 8px 22px -10px color-mix(in srgb,${T.brass} 90%,transparent);transition:transform .18s,filter .18s;}
+.join-btn:hover{transform:translateY(-1px);filter:brightness(1.07);}
+.join-btn:active{transform:translateY(0) scale(.98);}
+.join-btn .jb-ic,.join-btn .jb-tx{position:relative;z-index:1;}
+.join-btn .jb-ic{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff;flex:none;}
+.join-btn::after{content:"";position:absolute;top:0;bottom:0;width:38%;left:-60%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:skewX(-20deg);animation:joinSweep 3.4s ease-in-out infinite;}
+@keyframes joinSweep{0%{left:-60%}55%,100%{left:135%}}
 .big-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:16px;padding:14px;
   border-radius:13px;border:none;background:${T.brass};color:${T.onAccent};font-size:14px;font-family:inherit;cursor:pointer;transition:.18s;}
 .big-btn:hover{filter:brightness(1.07);}
@@ -1128,8 +1141,8 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             </div>
 
             <div className="stamp">
-              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="chip" style={{ textDecoration: "none" }} onClick={() => logEvent("click", "telegram", null, null)}>
-                <TelegramIcon size={13} /> {L("مجتمع الملاك", "Owners Community")}
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" onClick={() => logEvent("click", "telegram", null, null)}>
+                <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
               </a>
               {loading ? (
                 <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />

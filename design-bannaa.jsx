@@ -250,6 +250,7 @@ ${D} .icon-btn:hover,${D} .chip:not(.chip-urgent):not(.chip-important):hover,${D
 ${D} .icon-btn[data-primary="1"]{background:var(--bn-ink);border-color:var(--bn-ink);color:var(--bn-on-ink);}
 ${D} .icon-btn[data-primary="1"]:hover{color:var(--bn-on-ink);filter:none;}
 ${D} .chip[data-on="1"]{transform:none;}
+${D} .join-btn{border-radius:3px;background:var(--bn-acc);box-shadow:none;}
 ${D} .big-btn{border-radius:3px;background:var(--bn-acc);color:${T.onAccent};font-weight:600;font-size:14.5px;min-height:48px;}
 ${D} .wide-btn{border-radius:3px;border:1.5px solid var(--bn-ink);background:transparent;color:var(--bn-ink);
   font-weight:600;font-size:14px;min-height:48px;margin-top:16px;}
