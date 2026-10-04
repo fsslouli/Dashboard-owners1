@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "4.0.1",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "شاشة دخول لوحة الإدارة: زر «العودة للموقع» يرجعك لصفحة الموقع العامة",
+    ],
+    en: [
+      "Admin login screen: a \"Back to site\" button returns to the public site",
+    ],
+  },
+  {
     version: "4.0.0",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",

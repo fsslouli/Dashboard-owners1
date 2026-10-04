@@ -2,7 +2,7 @@
 import { supabase } from "./app-bootstrap.jsx";
 import { AR_DIGITS, THEMES, norm } from "./site-data.jsx";
 import { useEffect, useState } from "react";
-import { BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Layers, Lock, LogIn, MousePointerClick, Pencil, PlusCircle, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
+import { ArrowRight, BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Layers, Lock, LogIn, MousePointerClick, Pencil, PlusCircle, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
    ١٥. لوحة الإدارة الحقيقية — متصلة بـ Supabase فعليًا (Auth + قراءة/كتابة).
@@ -131,6 +131,7 @@ export function AdminLogin() {
         </div>
         {err && <div style={{ fontSize: 12, color: "#C0392B", marginBottom: 10 }}>{err}</div>}
         <button type="submit" disabled={busy} style={{ width: "100%", marginTop: 16, padding: "12px 0", borderRadius: 12, border: "none", background: T.brass, color: "#fff", fontSize: 14.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}><LogIn size={16} /> {busy ? "جارٍ الدخول..." : "دخول"}</button>
+        <button type="button" onClick={() => { window.location.hash = ""; }} style={{ width: "100%", marginTop: 10, padding: "11px 0", borderRadius: 12, border: `1px solid ${T.line}`, background: "transparent", color: T.muted, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit" }}><ArrowRight size={15} /> العودة للموقع</button>
       </form>
     </div>
   );
