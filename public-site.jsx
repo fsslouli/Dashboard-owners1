@@ -120,7 +120,7 @@ function NoticesModal({ enabled }) {
   );
 }
 
-export function PublicSite() {
+export function PublicSite({ share = null } = {}) {
   const reduced = usePrefersReduced();
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
@@ -130,6 +130,11 @@ export function PublicSite() {
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
   const navLabels = useNavLabels(supabase);
+  /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
+  const shareScope = share ? (share.scope || {}) : null;
+  const SHARE_ORDER = ["overview", "notes", "progress", "docs", "gallery"];
+  const tabOk = (k) => !shareScope || (Array.isArray(shareScope.tabs) && shareScope.tabs.includes(k));
+  const docsList = shareScope && Array.isArray(shareScope.docs) ? DOCS.filter((d) => shareScope.docs.includes(d.id)) : DOCS;
   useSkinFont(themeKey);
   const nova = designKey === "nova";
   useNovaRuntime(nova, reduced);
@@ -161,11 +166,15 @@ export function PublicSite() {
     d.style.colorScheme = resolved === "dark" ? "dark" : "light";
   }, [cfgReady, pageBg, T.muted, resolved]);
 
-  const [tab, setTab] = useState("overview");
+  const [tab, setTabRaw] = useState(() => (shareScope ? (SHARE_ORDER.find(tabOk) || "overview") : "overview"));
+  /* في وضع المشاركة: أي محاولة للانتقال لقسم غير مسموح (مثل القفز من الرسوم لقسم الملاحظات) تُتجاهل */
+  const setTab = (k) => setTabRaw((cur) => (tabOk(k) ? k : cur));
+  /* التتبع (٤.٠): نخبر صفحة المشاركة بالقسم الحالي ليُسجَّل مع كل ضغطة */
+  useEffect(() => { if (share && typeof share.onTab === "function") share.onTab(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!isHidden(navLabels, tab)) return;
+    if (!isHidden(navLabels, tab) && tabOk(tab)) return;
     const order = ["overview", "notes", "progress", "docs", "gallery"];
-    const next = order.find((k) => !isHidden(navLabels, k));
+    const next = order.find((k) => !isHidden(navLabels, k) && tabOk(k));
     if (next) setTab(next);
   }, [navLabels, tab]);
   const [docView, setDocView] = useState(null);
@@ -1141,9 +1150,11 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             </div>
 
             <div className="stamp">
-              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" onClick={() => logEvent("click", "telegram", null, null)}>
-                <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
-              </a>
+              {!(shareScope && shareScope.hideCommunity) && (
+                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" onClick={() => logEvent("click", "telegram", null, null)}>
+                  <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
+                </a>
+              )}
               {loading ? (
                 <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
               ) : data.updatedAt ? (
@@ -1174,34 +1185,42 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             </div>
           </header>
 
+          {shareScope && (
+            <div className="no-print" role="note" style={{ margin: "10px 0 6px", padding: "11px 14px", borderRadius: 12, background: T.sunken, border: `1px solid ${T.line}`, color: T.muted, fontSize: 12.5, lineHeight: 1.9 }}>
+              <b style={{ color: T.paper }}>{L("عرض خاص مُشارَك معك", "Private view shared with you")}</b>
+              {share.endsAt && <span>{L(" — متاح حتى ", " — available until ")}{new Date(share.endsAt).toLocaleTimeString(lang === "en" ? "en-GB" : "ar-SA-u-nu-latn", { hour: "2-digit", minute: "2-digit" })}</span>}
+              {share.note && <div style={{ marginTop: 4, color: T.paper }}>{share.note}</div>}
+            </div>
+          )}
+
           {/* الخانات */}
           <nav className="tabs no-print" role="tablist" ref={tabsRef}>
-            {!isHidden(navLabels, "overview") && (
+            {tabOk("overview") && !isHidden(navLabels, "overview") && (
               <button className="tab" role="tab" aria-selected={tab === "overview"} data-on={tab === "overview" ? "1" : "0"}
                 onClick={() => setTab("overview")}>
                 {NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
               </button>
             )}
-            {!isHidden(navLabels, "notes") && (
+            {tabOk("notes") && !isHidden(navLabels, "notes") && (
               <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
                 onClick={() => setTab("notes")}>
                 {NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
                 <span className="tab-n mono">{ALL.length}</span>
               </button>
             )}
-            {!isHidden(navLabels, "progress") && (
+            {tabOk("progress") && !isHidden(navLabels, "progress") && (
               <button className="tab" role="tab" aria-selected={tab === "progress"} data-on={tab === "progress" ? "1" : "0"}
                 onClick={() => setTab("progress")}>
                 {NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
               </button>
             )}
-            {!isHidden(navLabels, "docs") && (
+            {tabOk("docs") && !isHidden(navLabels, "docs") && (
               <button className="tab" role="tab" aria-selected={tab === "docs"} data-on={tab === "docs" ? "1" : "0"}
                 onClick={() => setTab("docs")}>
                 <FileText size={13} /> {NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
               </button>
             )}
-            {!isHidden(navLabels, "gallery") && (
+            {tabOk("gallery") && !isHidden(navLabels, "gallery") && (
               <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
                 onClick={() => setTab("gallery")}>
                 {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
@@ -1538,7 +1557,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               </div>
 
               <div className="doc-list">
-                {DOCS.map((doc) => {
+                {docsList.map((doc) => {
                   const accent = doc.color ? DOC_COLORS[resolved][doc.color] : T.brass;
                   const Go = lang === "en" ? ChevronRight : ChevronLeft;
                   const docVids = videos[doc.id] || [];
@@ -1586,11 +1605,12 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
           {tab === "gallery" && (
             <div className="tab-panel">
-              <GallerySection supabase={supabase} T={T} L={L} lang={lang} />
+              <GallerySection supabase={supabase} T={T} L={L} lang={lang} onlyTopics={shareScope && Array.isArray(shareScope.topics) ? shareScope.topics : null} />
             </div>
           )}
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 28, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
+            {!shareScope && (<>
             {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٣.٠.١) — مكانه جنب دخول الإدارة */}
             <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}
               aria-label={L(`سجل التحديثات — الإصدار ${CURRENT_VERSION}`, `Update log — version ${CURRENT_VERSION}`)} style={{
@@ -1603,11 +1623,12 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             }}>
               <ShieldCheck size={12} /> {L("دخول الإدارة", "Admin login")}
             </button>
+            </>)}
           </div>
         </div>
 
-        <Sheet r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} attachments={sel ? attMap[sel.id] || [] : []} />
-        <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+        <Sheet noShare={!!shareScope} r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} attachments={sel ? attMap[sel.id] || [] : []} />
+        {!shareScope && <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />

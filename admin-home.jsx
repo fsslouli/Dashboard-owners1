@@ -10,6 +10,7 @@ import { THEMES, isFlagLive } from "./site-data.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { briefToMarkdown, briefToText, buildBrief } from "./admin-brief.js";
 import { AGalleryTab } from "./gallery-kit.jsx";
+import { AShareTab } from "./admin-share-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
 import { Check, Copy, Download, LogOut, ShieldCheck } from "lucide-react";
 
@@ -79,6 +80,7 @@ const ADMIN_TABS = [
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
   { key: "gallery", label: "معرض الموقع", perms: ["manage_media"] },
+  { key: "share", label: "روابط المشاركة", perms: ["manage_notices"] },
   { key: "labels", label: "تسمية الأقسام", perms: ["manage_notices"] },
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_notices"] },
@@ -144,6 +146,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
         {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_media")} />}
+        {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_notices")} by={profile?.name || session.user.email} />}
         {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_notices")} />}

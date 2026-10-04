@@ -28,6 +28,8 @@
 import { AdminApp } from "./admin-home.jsx";
 import { PublicSite } from "./public-site.jsx";
 import { hideBoot } from "./site-data.jsx";
+import { SHARE_HOST, onShareHost, shareTokenFromHash } from "./share-kit.jsx";
+import { ShareApp } from "./share-viewer.jsx";
 import { useEffect, useLayoutEffect, useState } from "react";
 
 /* ═══════════════════════════════════════════════════════════
@@ -35,15 +37,27 @@ import { useEffect, useLayoutEffect, useState } from "react";
    حسب الرابط: أضف #admin بآخر رابط الموقع لفتح لوحة الإدارة، مثال:
    https://your-site.vercel.app/#admin
    ═══════════════════════════════════════════════════════════ */
+/* المسار: دومين المشاركة المنفصل يعرض صفحة المشاركة فقط (لا موقع عام ولا إدارة أبدًا).
+   رابط مشاركة وصل للدومين الرئيسي يُحوَّل لدومين المشاركة إن كان مضبوطًا. */
+function readRoute() {
+  if (onShareHost()) return "share";
+  if (shareTokenFromHash()) return SHARE_HOST ? "redirect" : "share";
+  return window.location.hash === "#admin" ? "admin" : "site";
+}
 function App() {
-  const [route, setRoute] = useState(() => (window.location.hash === "#admin" ? "admin" : "site"));
+  const [route, setRoute] = useState(readRoute);
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash === "#admin" ? "admin" : "site");
+    const onHash = () => setRoute(readRoute());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+  useEffect(() => {
+    if (route === "redirect") window.location.replace(`https://${SHARE_HOST}/${window.location.hash}`);
+  }, [route]);
   /* لوحة الإدارة طقمها ثابت وما تنتظر إعدادات الموقع — نرفع شاشة الإقلاع فورًا */
   useLayoutEffect(() => { if (route === "admin") hideBoot(true); }, [route]);
+  if (route === "redirect") return null;
+  if (route === "share") return <ShareApp />;
   return route === "admin" ? <AdminApp /> : <PublicSite />;
 }
 

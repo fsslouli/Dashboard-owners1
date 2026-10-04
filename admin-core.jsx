@@ -2,7 +2,7 @@
 import { supabase } from "./app-bootstrap.jsx";
 import { AR_DIGITS, THEMES, norm } from "./site-data.jsx";
 import { useEffect, useState } from "react";
-import { BarChart3, Clapperboard, Download, Eye, FileSpreadsheet, FileText, Filter, History, Layers, Lock, LogIn, MousePointerClick, Pencil, PlusCircle, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
+import { BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Layers, Lock, LogIn, MousePointerClick, Pencil, PlusCircle, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
    ١٥. لوحة الإدارة الحقيقية — متصلة بـ Supabase فعليًا (Auth + قراءة/كتابة).
@@ -107,7 +107,7 @@ export function useSupaAuth() {
 }
 
 export function AdminLogin() {
-  const [email, setEmail] = useState(""); const [pass, setPass] = useState("");
+  const [email, setEmail] = useState(""); const [pass, setPass] = useState(""); const [showPass, setShowPass] = useState(false);
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const T = useSystemTheme();
   const submit = async (e) => {
@@ -125,10 +125,12 @@ export function AdminLogin() {
         <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>البريد الإلكتروني</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="admin@example.com" style={{ width: "100%", boxSizing: "border-box", padding: "11px 13px", borderRadius: 11, border: `1px solid ${T.line}`, marginBottom: 14, fontSize: 14, outline: "none", background: T.sunken }} />
         <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>كلمة المرور</label>
-        <input value={pass} onChange={(e) => setPass(e.target.value)} type="password" placeholder="••••••••" style={{ width: "100%", boxSizing: "border-box", padding: "11px 13px", borderRadius: 11, border: `1px solid ${T.line}`, marginBottom: 6, fontSize: 14, outline: "none", background: T.sunken }} />
+        <div style={{ position: "relative", marginBottom: 6 }}>
+          <input value={pass} onChange={(e) => setPass(e.target.value)} type={showPass ? "text" : "password"} placeholder="••••••••" autoComplete="current-password" style={{ width: "100%", boxSizing: "border-box", padding: "11px 13px 11px 42px", borderRadius: 11, border: `1px solid ${T.line}`, fontSize: 14, outline: "none", background: T.sunken }} />
+          <button type="button" onClick={() => setShowPass((v) => !v)} aria-label={showPass ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"} aria-pressed={showPass} title={showPass ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"} style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "transparent", color: T.muted, cursor: "pointer", borderRadius: 8 }}>{showPass ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+        </div>
         {err && <div style={{ fontSize: 12, color: "#C0392B", marginBottom: 10 }}>{err}</div>}
         <button type="submit" disabled={busy} style={{ width: "100%", marginTop: 16, padding: "12px 0", borderRadius: 12, border: "none", background: T.brass, color: "#fff", fontSize: 14.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}><LogIn size={16} /> {busy ? "جارٍ الدخول..." : "دخول"}</button>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "center", marginTop: 18, fontSize: 11, color: T.faint }}><Lock size={11} /> الحسابات تُنشأ من لوحة Supabase فقط</div>
       </form>
     </div>
   );

@@ -578,7 +578,7 @@ export function DocViewerSheet({ doc, videos, onClose }) {
 }
 
 /* ── ١٢. لوحة تفاصيل الاستفسار (Sheet) ── */
-export function Sheet({ r, navList, onJump, onClose, attachments }) {
+export function Sheet({ r, navList, onJump, onClose, attachments, noShare = false }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
@@ -752,14 +752,16 @@ export function Sheet({ r, navList, onJump, onClose, attachments }) {
               <ThumbsDown size={19} strokeWidth={2.3} />
             </button>
 
-            <button className="wide-btn share-host" style={{ margin: 0, flex: 1 }} onClick={handleShare}>
-              <Share2 size={14} /> {L("مشاركة الاستفسار", "Share Inquiry")}
-              {shareCopied && (
-                <span className="copy-ok show">
-                  <Check size={13} /> {L("تم نسخ الرابط", "Link copied")}
-                </span>
-              )}
-            </button>
+            {!noShare && (
+              <button className="wide-btn share-host" style={{ margin: 0, flex: 1 }} onClick={handleShare}>
+                <Share2 size={14} /> {L("مشاركة الاستفسار", "Share Inquiry")}
+                {shareCopied && (
+                  <span className="copy-ok show">
+                    <Check size={13} /> {L("تم نسخ الرابط", "Link copied")}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

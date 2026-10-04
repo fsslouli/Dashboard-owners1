@@ -13,6 +13,55 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "4.0.0",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "تحديث كبير لروابط المشاركة: تتبّع كامل لنشاط المستلم داخل الجلسة (كل ضغطة، الأقسام التي فتحها ومدة كل قسم، الروابط والملفات) مع تقرير للإدارة متاح أثناء الجلسة وبعد انتهائها، وتصدير CSV وطباعة/PDF",
+      "الرابط أقصر: ٢٢ حرفًا فقط (رمز ١٢٨ بت) بدل ٤٣، مع حماية متعددة الطبقات: مفتاح بحث مشتق HKDF لا يُخزَّن الرمز نفسه، ورمز دخول PIN اختياري بتجزئة PBKDF2 مع قفل ١٥ دقيقة بعد ٥ أخطاء وإلغاء تلقائي بعد ١٥ خطأ، وجلسات موقّعة HMAC تُفحص كل ٤٥ ثانية",
+      "إدارة أفضل للروابط: تمديد يوم، إضافة فتحة، نسخ إعدادات رابط سابق، مسح سجل النشاط، وعرض ملخص النشاط لكل رابط",
+      "شفافية للمستلم: تظهر قبل الفتح عبارة واضحة بأن النشاط داخل الصفحة يُسجَّل ويُعرض على صاحب الموقع فقط. لا يُسجَّل أي نص يكتبه الزائر ولا عنوان IP (بصمة مقتطعة فقط)",
+      "ترويسات أمان للموقع كله (nosniff، منع التضمين الخارجي، HSTS، سياسة الأذونات)",
+    ],
+    en: [
+      "Major Share Links update: full tracking of recipient activity within the session (every click, sections opened and time per section, links and files) with an admin report available during and after the session, CSV export and print/PDF",
+      "Shorter link: 22 characters (128-bit token) instead of 43, with layered protection: an HKDF-derived lookup key (the token itself is never stored), an optional PBKDF2-hashed PIN with a 15-minute lock after 5 wrong attempts and auto-revoke after 15, and HMAC-signed sessions re-checked every 45 seconds",
+      "Better link management: extend by a day, add an open, clone a previous link's settings, wipe the activity log, and an activity summary on each link",
+      "Recipient transparency: before opening, a clear notice says in-page activity is logged and visible to the site owner only. Typed text and IP addresses are not stored (truncated hash only)",
+      "Security headers site-wide (nosniff, no external framing, HSTS, permissions policy)",
+    ],
+  },
+  {
+    version: "3.3.0",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "ميزة جديدة للإدارة: «روابط المشاركة» — تنشئ رابطًا خاصًا لشخص معيّن وتحدد له الأقسام التي يشوفها (نظرة عامة، الملاحظات، التقدّم، المخططات، المعرض) وأي مخططات أو مواضيع معرض بعينها، مع مدة الصلاحية وعدد مرات الفتح، وتلغيه متى شئت",
+      "صفحة المستلم خاصة ومعزولة: بدون زر دخول الإدارة وبدون سجل التحديثات وبدون زر مشاركة الاستفسار، ويمكن إخفاء زر مجتمع الملاك. تعمل على دومين منفصل عن الموقع الرئيسي",
+      "بعد الانتهاء أو الإلغاء تظهر للمستلم رسالة رسمية توضح أن الرابط أُنشئ من صاحب الموقع وأنه انتهى أو أُلغي",
+      "الرابط رمز عشوائي طويل بعد علامة # (لا يصل لسجلات الخادم)، وقاعدة البيانات تحفظ بصمته فقط. فتحة «المرة الواحدة» لا تُستهلك إلا بضغط الزر في صفحة المستلم، فلا تحرقها معاينات واتساب وتليجرام",
+    ],
+    en: [
+      "New admin feature: Share Links — create a private link for a specific person and choose which sections they see (Overview, Notes, Progress, Plans, Gallery), down to specific plans or gallery topics, with an expiry time and a number of opens; revoke it any time",
+      "The recipient page is private and isolated: no admin login button, no update log, no inquiry share button, and the community button can be hidden. It runs on a domain separate from the main site",
+      "After expiry or revocation the recipient sees a formal message explaining the link was created by the site owner and has expired or been revoked",
+      "The link is a long random token after the # sign (never sent to the server logs) and the database stores only its hash. The one-time open is only consumed by pressing the button on the recipient page, so WhatsApp and Telegram previews cannot burn it",
+    ],
+  },
+  {
+    version: "3.2.1",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "شاشة دخول لوحة الإدارة: أضفنا زر عين داخل خانة كلمة المرور لإظهارها قبل اعتماد الدخول وإخفائها من جديد، بدل أن تبقى مخفية دائمًا",
+      "حذف سطر «الحسابات تُنشأ من لوحة Supabase فقط» الظاهر أسفل زر الدخول",
+    ],
+    en: [
+      "Admin login screen: added an eye button inside the password field to reveal the password before submitting and hide it again, instead of it always being hidden",
+      "Removed the \"Accounts are created from the Supabase dashboard only\" line shown below the login button",
+    ],
+  },
+  {
     version: "3.2.0",
     dateAr: "3 أكتوبر 2026",
     dateEn: "October 3, 2026",

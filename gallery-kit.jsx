@@ -584,7 +584,7 @@ function FolderRows({ views, lang, open }) {
   );
 }
 
-export function GallerySection({ supabase, T, L, lang }) {
+export function GallerySection({ supabase, T, L, lang, onlyTopics = null }) {
   const [topics, setTopics] = useState(null);
   const [mode, setMode] = useState("sections");
   const [layout, setLayout] = useState("docs");
@@ -608,7 +608,7 @@ export function GallerySection({ supabase, T, L, lang }) {
       if (!live || my !== seq) return;
       const byTopic = {};
       (it || []).forEach((r) => (byTopic[r.topic_id] || (byTopic[r.topic_id] = [])).push(r));
-      setTopics((t || []).map((tp) => ({ ...tp, items: byTopic[tp.id] || [] })).filter((tp) => tp.items.length));
+      setTopics((t || []).filter((tp) => !onlyTopics || onlyTopics.includes(tp.id)).map((tp) => ({ ...tp, items: byTopic[tp.id] || [] })).filter((tp) => tp.items.length));
       if (sr.data?.gallery_mode) setMode(sr.data.gallery_mode);
       setLayout(sr.data?.gallery_layout || "docs");
     };
@@ -619,7 +619,7 @@ export function GallerySection({ supabase, T, L, lang }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, load)
       .subscribe();
     return () => { live = false; supabase.removeChannel(ch); };
-  }, [supabase]);
+  }, [supabase, onlyTopics]);
 
   if (!topics) return null;
   if (!topics.length) return <p style={{ color: T.muted, textAlign: "center", padding: 40 }}>{L("ما فيه صور أو مقاطع بعد.", "No photos or videos yet.")}</p>;
