@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.1.1",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "توحيد مسمّيات الحالة والفئة مع ملف الإكسل: «غير معتمدة» و«تصحيح تنفيذي»",
+      "قراءة ملف الإكسل تقبل المسمّيات الجديدة والقديمة وتطابقها مع البيانات الحالية",
+    ],
+    en: [
+      "Status and category names aligned with the Excel file: “Not approved” and “Execution correction”",
+      "File import accepts both new and previous names and matches them to the existing data",
+    ],
+  },
+  {
     version: "5.1.0",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
