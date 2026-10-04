@@ -13,10 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.7",
+    version: "5.0.8",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "المسار الزمني: ظهور جميع الأشهر على المحور (كان سبتمبر مخفيًا)",
+      "اختصار نصوص صفحة التقدّم (الهدف والفجوة)",
+      "تصحيح أخطاء إملائية في عناوين المكتبة المرئية",
       "إضافة سطر صغير أسفل الصفحة يوضح أنها مبادرة ودّية غير رسمية وأن البيانات استرشادية من المطوّر",
       "نقل سطر فريق تمثيل الملاك إلى أسفل الصفحة بشكل أوضح",
       "حذف قسمي «أحدث الملاحظات» و«حسب الأولوية» من النظرة العامة",
@@ -26,6 +29,9 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Timeline: every month now shows on the axis (September was hidden)",
+      "Shortened the Progress tab texts (target and gap)",
+      "Fixed spelling in the visual library titles",
       "Added a small footer line: unofficial voluntary initiative, data indicative and sourced from the developer",
       "Moved the Owners' Representatives credit to the page footer, clearer",
       "Removed the \"Latest Notes\" and \"By Priority\" sections from the Overview",

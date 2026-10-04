@@ -146,10 +146,6 @@ export function ProgressTab({ reduced, data, loading }) {
                   </span> {L("نقطة", "pts")}</>
               )}
             </div>
-            <div style={{ marginTop: 6 }}>
-              {L("الهدف خطة خطّية ثابتة ٣٫١٢٥ نقطة شهريًا (١٠٠٪ خلال ٣٢ شهرًا حتى ديسمبر ٢٠٢٧)، ويتقدّم تلقائيًا مع التقويم سواء وصلت قراءة المطور أو لا. الإنجاز الفعلي يبقى فارغًا حتى تصل القراءة.",
-                 "The target is a fixed linear plan of 3.125 points per month (100% over 32 months, through December 2027) and advances automatically with the calendar whether or not the developer's reading has arrived. Actual progress stays empty until the reading arrives.")}
-            </div>
           </div>
         )}
 
@@ -164,13 +160,8 @@ export function ProgressTab({ reduced, data, loading }) {
           const crossAt = idx.find((i) => total.v[i] - TARGET[i] < 0);
           return (
             <div className="note-box" style={{ marginTop: 16 }}>
-              {L("الفجوة عن الهدف", "The gap to target")} {g1 <= g0 ? L("تتقلّص", "is narrowing") : L("تتّسع", "is widening")} {span > 0 ? L("شهرًا بعد شهر", "month over month") : ""}{L(": من", ": from")}{" "}
-              <span className="mono" style={{ color: g0 >= 0 ? ahead : behind }}>{g0 >= 0 ? `+${g0.toFixed(2)}` : g0.toFixed(2)}</span>{" "}
-              {L("في", "in")} {mFull(i0)} {L("إلى", "to")} <span className="mono" style={{ color: g1 >= 0 ? ahead : behind }}>{g1 >= 0 ? `+${g1.toFixed(2)}` : g1.toFixed(2)}</span>{" "}
-              {L("في", "in")} {mFull(i1)}
-              {crossAt != null && crossAt > i0 ? L(` — أول شهر يقع فيه المشروع خلف الهدف هو ${mFull(crossAt)}.`, ` — the first month the project fell behind target was ${mFull(crossAt)}.`) : "."}{" "}
-              {L("الهدف يتطلّب تقدّمًا بنحو", "The target requires progress of about")} <span className="mono">{targetStep.toFixed(2)}</span> {L("نقطة شهريًا،", "points/month,")}
-              {" "}{L("والمتحقّق فعليًا نحو", "while actual progress is about")} <span className="mono">{actualStep.toFixed(2)}</span>.
+              {L("الفجوة عن الهدف", "Gap to target")}: <span className="mono" style={{ color: g0 >= 0 ? ahead : behind }}>{g0 >= 0 ? `+${g0.toFixed(2)}` : g0.toFixed(2)}</span> ({mFull(i0)}) ← <span className="mono" style={{ color: g1 >= 0 ? ahead : behind }}>{g1 >= 0 ? `+${g1.toFixed(2)}` : g1.toFixed(2)}</span> ({mFull(i1)})
+              {" · "}{L("الهدف", "Target")} <span className="mono">{targetStep.toFixed(2)}</span> {L("شهريًا", "/mo")} · {L("الفعلي", "Actual")} <span className="mono">{actualStep.toFixed(2)}</span>
             </div>
           );
         })()}
@@ -188,8 +179,8 @@ export function ProgressTab({ reduced, data, loading }) {
           <ResponsiveContainer>
             <ComposedChart data={trend} margin={{ top: 6, right: 4, left: -20, bottom: 4 }}>
               <CartesianGrid stroke={T.lineSoft} vertical={false} />
-              <XAxis dataKey="m" reversed={lang === "ar"} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false}
-                interval="preserveStartEnd" minTickGap={12} />
+              <XAxis dataKey="m" reversed={lang === "ar"} tick={{ fill: T.muted, fontSize: 10 }} axisLine={false} tickLine={false}
+                interval={0} />
               <YAxis orientation="right" domain={[20, 60]} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} width={36}
                 tickFormatter={(v) => `${v}٪`} />
               <Tooltip content={<ChartTip />} cursor={{ fill: T.brass + "12" }} />
