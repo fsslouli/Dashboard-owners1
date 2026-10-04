@@ -141,7 +141,7 @@ export function BrickWall({ rows, staC, trSta, trNote, lang, L, onOpen, reduced 
         ref={ref}
         role="group"
         aria-label={L(
-          `جدار الملاحظات: ${total} لبنة، كل لبنة ملاحظة، والأحدث في الأعلى`,
+          `جدار الاستفسارات: ${total} لبنة، كل لبنة استفسار، والأحدث في الأعلى`,
           `Notes wall: ${total} bricks, one per note, newest on top`
         )}
         onKeyDown={onKey}
@@ -164,7 +164,7 @@ export function BrickWall({ rows, staC, trSta, trNote, lang, L, onOpen, reduced 
                     data-i={idx}
                     data-open={open ? "1" : "0"}
                     tabIndex={idx === focusIdx ? 0 : -1}
-                    aria-label={`${L("ملاحظة", "Note")} ${r.id}: ${trSta(lang, r.sta)}${open ? L("، مفتوحة", ", open") : ""}`}
+                    aria-label={`${L("استفسار", "Inquiry")} ${r.id}: ${trSta(lang, r.sta)}${open ? L("، مفتوحة", ", open") : ""}`}
                     style={{ "--c": staC(r.sta), "--k": k }}
                     onClick={() => onOpen(r, list)}
                     onMouseEnter={() => setHot(r)}
@@ -180,14 +180,14 @@ export function BrickWall({ rows, staC, trSta, trNote, lang, L, onOpen, reduced 
       <p className="bn-read" aria-live="polite">
         {hot ? (
           <>
-            <b>{`${L("ملاحظة", "Note")} ${hot.id} · ${trSta(lang, hot.sta)}${hot.closed ? "" : L(" · مفتوحة", " · open")}`}</b>
+            <b>{`${L("استفسار", "Inquiry")} ${hot.id} · ${trSta(lang, hot.sta)}${hot.closed ? "" : L(" · مفتوحة", " · open")}`}</b>
             {"  "}
             {trNote(lang, hot)}
           </>
         ) : (
           L(
-            "كل لبنة ملاحظة بلون قرارها، والأحدث في أعلى الجدار. اللبنة المفرّغة ما زالت مفتوحة. اضغط أي لبنة لقراءتها.",
-            "Each brick is one note, colored by its decision; newest on top. Hollow bricks are still open. Tap a brick to read it."
+            "كل لبنة استفسار بلون قرارها، والأحدث في أعلى الجدار. اللبنة المفرّغة ما زالت مفتوحة. اضغط أي لبنة لقراءتها.",
+            "Each brick is one inquiry, colored by its decision; newest on top. Hollow bricks are still open. Tap a brick to read it."
           )
         )}
       </p>

@@ -1221,7 +1221,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             {tabOk("notes") && !isHidden(navLabels, "notes") && (
               <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
                 onClick={() => setTab("notes")}>
-                <span className="tab-ic"><ListChecks size={15} /></span>{NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
+                <span className="tab-ic"><ListChecks size={15} /></span>{NL(navLabels, "notes", "الاستفسارات", "Inquiries", lang)}
                 <span className="tab-n mono">{ALL.length}</span>
               </button>
             )}
@@ -1273,7 +1273,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   </div>
                   <div className="hero">
                     <span className="hero-n mono"><CountUp value={overview.tot} onScroll /></span>
-                    <span className="hero-k">{L("ملاحظة", "notes")}</span>
+                    <span className="hero-k">{L("استفسار", "inquiries")}</span>
                   </div>
                 </div>
 
@@ -1310,8 +1310,8 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               <section className="surf" data-sec="where" style={{ padding: "20px 18px", marginBottom: 14 }}>
                 <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 18 }}>
                   <div className="lg:col-span-2">
-                    <div className="sec-t">{L("أين ظهرت الملاحظات؟", "Where did the notes come from?")}</div>
-                    <div className="eyebrow" style={{ marginTop: 4 }}>{L("اضغط أي منطقة لعرض ملاحظاتها", "Tap any area to view its notes")}</div>
+                    <div className="sec-t">{L("أين ظهرت الاستفسارات؟", "Where did the inquiries come from?")}</div>
+                    <div className="eyebrow" style={{ marginTop: 4 }}>{L("اضغط أي منطقة لعرض استفساراتها", "Tap any area to view its inquiries")}</div>
                     <VillaPlan counts={overview.zc} active={null} onPick={(z) => z && openBoard({ zone: z })} built={built} />
                   </div>
                   <div>
@@ -1429,7 +1429,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               <section ref={filtersRef} className="surf no-print" style={{ padding: 18, marginBottom: 16 }}>
                 <div className="relative" style={{ marginBottom: 12 }}>
                   <Search size={17} style={{ position: "absolute", right: lang === "ar" ? 14 : "auto", left: lang === "ar" ? "auto" : 14, top: 14, color: T.faint }} />
-                  <input className="srch" value={f.q} placeholder={L("ابحث في نص الملاحظة أو الرد…", "Search note or reply text…")}
+                  <input className="srch" value={f.q} placeholder={L("ابحث في نص الاستفسار أو الرد…", "Search inquiry or reply text…")}
                     onChange={(e) => { setF((p) => ({ ...p, q: e.target.value })); setLimit(12); }} />
                   {f.q && (
                     <button onClick={() => setF((p) => ({ ...p, q: "" }))} aria-label={L("مسح البحث", "Clear search")}
@@ -1459,7 +1459,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
               {rows.length === 0 ? (
                 <div className="surf" style={{ padding: "48px 20px", textAlign: "center" }}>
-                  <p style={{ fontSize: 14.5, margin: "0 0 6px" }}>{L("لا توجد ملاحظات مطابقة", "No matching notes")}</p>
+                  <p style={{ fontSize: 14.5, margin: "0 0 6px" }}>{L("لا توجد استفسارات مطابقة", "No matching inquiries")}</p>
                   <p style={{ fontSize: 12.5, color: T.muted, margin: "0 0 18px" }}>{L("أزل أحد الفلاتر لتوسيع النتائج.", "Remove a filter to widen the results.")}</p>
                   <button className="icon-btn" onClick={reset}><RotateCcw size={13} /> {L("مسح كل الفلاتر", "Clear all filters")}</button>
                 </div>
@@ -1473,7 +1473,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                             <th className="td-id">#</th>
                             <th>{L("الحالة", "Status")}</th>
                             <th>{L("الأولوية", "Priority")}</th>
-                            <th>{L("الملاحظة", "Note")}</th>
+                            <th>{L("الاستفسار", "Inquiry")}</th>
                             <th>{L("الفئة", "Category")}</th>
                             <th>{L("الموقع", "Location")}</th>
                             <th>{L("النموذج", "Model")}</th>

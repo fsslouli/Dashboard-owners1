@@ -2,6 +2,13 @@
 import { logEvent } from "./app-bootstrap.jsx";
 import { AttachmentsBlock } from "./attach-kit.jsx";
 import { CHANGELOG, LEGAL_COPY } from "./changelog-legal-data.jsx";
+
+/* السجل العلني يعرض ما أُضيف وتحسّن فقط — بنود الإصلاحات والأعطال الداخلية تبقى بالمصدر ولا تظهر للزائر */
+const NEG_AR = /(إصلاح|اصلاح|تصحيح|عطل|خطأ|أخطاء|مشكل|تسرّب|تسريب|ثغر|مكشوف|يوقف|تعطّل|انهيار|تحذير|كان |كانت )/;
+const NEG_EN = /(\bfix|hotfix|crash|\bbug|broken|leak|vulnerab|escalation|locked down|\bwas\b|\bwere\b|silently|stopped|error)/i;
+const PUBLIC_LOG = CHANGELOG
+  .map((e) => ({ ...e, ar: (e.ar || []).filter((l) => !NEG_AR.test(l)), en: (e.en || []).filter((l) => !NEG_EN.test(l)) }))
+  .filter((e) => e.ar.length > 0);
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
 import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
@@ -75,8 +82,8 @@ export function ChangelogSheet({ open, onClose }) {
           <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
         </div>
         <div className="sheet-body">
-          {CHANGELOG.map((entry, i) => (
-            <div key={i} style={{ marginBottom: i < CHANGELOG.length - 1 ? 22 : 0 }}>
+          {PUBLIC_LOG.map((entry, i) => (
+            <div key={i} style={{ marginBottom: i < PUBLIC_LOG.length - 1 ? 22 : 0 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
                 <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>v{entry.version}</span>
                 <span className="mono" style={{ fontSize: 12, color: T.muted }}>
@@ -709,7 +716,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
       <div className="sheet sheet-detail" onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} role="dialog" aria-modal="true">
         <div className="sheet-top" data-scrolled={scrolled ? "1" : "0"}>
           <div className="sheet-tags">
-            <span className="mono sheet-id">{L("ملاحظة", "Note")} {String(r.id).padStart(2, "0")}</span>
+            <span className="mono sheet-id">{L("استفسار", "Inquiry")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
@@ -730,7 +737,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
           </div>
         </div>
         <div className="sheet-body" ref={bodyRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
-          <div className="sec-lbl">{L("الملاحظة والحل المقترح", "Note & Proposed Solution")}</div>
+          <div className="sec-lbl">{L("الاستفسار والحل المقترح", "Inquiry & Proposed Solution")}</div>
           <p className="sheet-note">{trNote(lang, r)}</p>
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>

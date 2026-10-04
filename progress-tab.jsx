@@ -18,7 +18,7 @@ export function ProgressTab({ reduced, data, loading }) {
   const PHASE_NAME = data.phaseName || (lang === "en" ? PG_PHASE_NAME_EN : PG_PHASE_NAME);
   const last = MONTHS.length - 1;
 
-  const ahead = T.sta["معتمدة"], behind = T.sta["تم الرفض"];
+  const ahead = T.sta["معتمدة"], behind = T.sta["قيد الدراسة"] || T.muted;
   const total = PHASES.find((p) => p.key === "total") || { v: MONTHS.map(() => null) };
 
   /* آخر شهر وصلت فيه قراءة فعلية من المطور */
@@ -57,7 +57,7 @@ export function ProgressTab({ reduced, data, loading }) {
 
   const delta = (v, i) => (i === 0 || v[i] == null || v[i - 1] == null ? null : +(v[i] - v[i - 1]).toFixed(2));
   const dColor = (d) => (d === null ? T.muted : d > 0.05 ? ahead : d < -0.05 ? behind : T.muted);
-  const dText = (d) => (d === null ? "—" : d > 0.05 ? `+${d.toFixed(2)}` : d < -0.05 ? d.toFixed(2) : L("متوقف", "Stalled"));
+  const dText = (d) => (d === null ? "—" : d > 0.05 ? `+${d.toFixed(2)}` : d < -0.05 ? d.toFixed(2) : L("ثابت", "Steady"));
 
   const blocks = useMemo(() =>
     [...BLOCKS].sort((a, b) => (b.v[mi] == null ? -1 : b.v[mi]) - (a.v[mi] == null ? -1 : a.v[mi])), [mi, BLOCKS]);
@@ -116,7 +116,7 @@ export function ProgressTab({ reduced, data, loading }) {
             <>
               <span className="dot" />
               <span className="gm" style={{ color: gapColor }}>
-                {gap >= 0 ? L("متقدّم", "Ahead") : L("متأخّر", "Behind")} <span className="mono">{Math.abs(gap).toFixed(2)}</span> {L("نقطة", "pts")}
+                {gap >= 0 ? L("فوق الهدف", "Above target") : L("دون الهدف", "Below target")} <span className="mono">{Math.abs(gap).toFixed(2)}</span> {L("نقطة", "pts")}
               </span>
               <span className="dot" />
               <span className="gm"><span className="gm-k">{L("التغيّر عن الشهر السابق", "Change vs. previous month")}</span>{" "}
@@ -160,7 +160,7 @@ export function ProgressTab({ reduced, data, loading }) {
           const crossAt = idx.find((i) => total.v[i] - TARGET[i] < 0);
           return (
             <div className="note-box" style={{ marginTop: 16 }}>
-              {L("الفجوة عن الهدف", "Gap to target")}: <span className="mono" style={{ color: g0 >= 0 ? ahead : behind }}>{g0 >= 0 ? `+${g0.toFixed(2)}` : g0.toFixed(2)}</span> ({mFull(i0)}) ← <span className="mono" style={{ color: g1 >= 0 ? ahead : behind }}>{g1 >= 0 ? `+${g1.toFixed(2)}` : g1.toFixed(2)}</span> ({mFull(i1)})
+              {L("الفرق عن الهدف", "Difference from target")}: <span className="mono" style={{ color: g0 >= 0 ? ahead : behind }}>{g0 >= 0 ? `+${g0.toFixed(2)}` : g0.toFixed(2)}</span> ({mFull(i0)}) ← <span className="mono" style={{ color: g1 >= 0 ? ahead : behind }}>{g1 >= 0 ? `+${g1.toFixed(2)}` : g1.toFixed(2)}</span> ({mFull(i1)})
               {" · "}{L("الهدف", "Target")} <span className="mono">{targetStep.toFixed(2)}</span> {L("شهريًا", "/mo")} · {L("الفعلي", "Actual")} <span className="mono">{actualStep.toFixed(2)}</span>
             </div>
           );
@@ -275,7 +275,7 @@ export function ProgressTab({ reduced, data, loading }) {
           const rowsS = [
             top && [L("الأكثر تقدمًا", "Most progress"), `${L("بلوك", "Block")} ${top.b}`, `+${top.d.toFixed(2)}`, ahead],
             low && [L("الأقل تقدمًا", "Least progress"), `${L("بلوك", "Block")} ${low.b}`, `+${low.d.toFixed(2)}`, T.muted],
-            stalled.length > 0 && [L("متوقفة", "Stalled"), stalled.map((r) => r.b).join(" · "), `${stalled.length}`, behind],
+            stalled.length > 0 && [L("ثابتة", "Steady"), stalled.map((r) => r.b).join(" · "), `${stalled.length}`, behind],
           ].filter(Boolean);
           return (
             <div className="note-box" style={{ marginTop: 14, marginBottom: 4, display: "flex", flexDirection: "column", gap: 7 }}>
@@ -323,12 +323,12 @@ export function ProgressTab({ reduced, data, loading }) {
           if (!NOTE && !drops.length) return null;
           return (
             <details className="note-box" style={{ marginTop: 16 }}>
-              <summary style={{ cursor: "pointer" }}>{L("ملاحظات على البيانات", "Data notes")} ({drops.length + (NOTE ? 1 : 0)})</summary>
+              <summary style={{ cursor: "pointer" }}>{L("توضيحات على البيانات", "Data clarifications")} ({drops.length + (NOTE ? 1 : 0)})</summary>
               {NOTE && <div style={{ marginTop: 8 }}>{lang === "en" && NOTE === PG_NOTE ? PG_NOTE_EN : NOTE}</div>}
               {drops.map((r) => (
                 <div key={r.b}>
-                  {L("بلوك", "Block")} {r.b} {L("سجّل تراجعًا من", "recorded a drop from")} <span className="mono">{r.from.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m0)}{" "}
-                  {L("إلى", "to")} <span className="mono">{r.to.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m1)} — {L("يُرجَّح أنه تصحيح لقياس سابق، وليس تراجعًا فعليًا في التنفيذ.", "likely a correction of an earlier reading, not an actual execution setback.")}
+                  {L("بلوك", "Block")} {r.b} {L("تغيّرت قراءته من", "changed from")} <span className="mono">{r.from.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m0)}{" "}
+                  {L("إلى", "to")} <span className="mono">{r.to.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m1)} — {L("يُرجَّح أنه تحديث لقياس سابق.", "likely an update to an earlier reading.")}
                 </div>
               ))}
             </details>

@@ -13,7 +13,7 @@ import { autoTranslateAr } from "./translate-kit.js";
 /* النصوص الافتراضية — لو حد يبي "يرجّع الأصلي" بعد تعديل */
 export const DEFAULT_PUBLIC_LABELS = [
   { key: "overview", ar: "نظرة عامة", en: "Overview" },
-  { key: "notes", ar: "متابعة الملاحظات", en: "Notes Board" },
+  { key: "notes", ar: "الاستفسارات", en: "Inquiries" },
   { key: "progress", ar: "تقدم التنفيذ", en: "Progress" },
   { key: "docs", ar: "المخططات والمستندات", en: "Plans & Documents" },
   { key: "gallery", ar: "الصور والمقاطع", en: "Photos & Videos" },

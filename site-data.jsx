@@ -143,7 +143,8 @@ export const FLAG_META = {
 
 /* ── ٣. ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
 const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Low" };
-const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Rejected", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
+const STA_AR = { "تم الرفض": "غير معتمدة" };
+const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Not approved", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
 const MODEL_EN = { "امانيثير": "Amanecer", "اورورا": "Aurora", "البادا": "Albada", "البا": "Alba" };
 const SCOPE_EN = {
   "جميع النماذج": "All models", "جميع النماذج عدا امانيثير": "All models except Amanecer",
@@ -169,8 +170,9 @@ const LOC_EN = {
   "الحوش الخلفي (الأرضي)": "Backyard (Ground Floor)", "الحوش الخلفي (الأرضي) والسطح": "Backyard (Ground Floor) & Roof",
   "الحوش الأمامي": "Front Yard", "الكهرباء": "Electrical",
 };
+const CAT_AR = { "تصحيح عيب تنفيذي": "تصحيح تنفيذي" };
 const CAT_EN = {
-  "تصحيح عيب تنفيذي": "Execution Defect Fix", "تصميمي/جمالي": "Design / Aesthetic",
+  "تصحيح عيب تنفيذي": "Execution Correction", "تصميمي/جمالي": "Design / Aesthetic",
   "ترقية": "Upgrade", "استفسار فني توضيحي": "Technical Clarification",
   "تجاري": "Commercial", "إداري/نظامي": "Administrative / Regulatory",
 };
@@ -219,12 +221,12 @@ export function canonNames(lang, s) {
 }
 
 export const trPri = (lang, v) => (lang === "en" ? trLookup(PRI_EN, v) : v);
-export const trSta = (lang, v) => (lang === "en" ? trLookup(STA_EN, v) : v);
+export const trSta = (lang, v) => (lang === "en" ? trLookup(STA_EN, v) : (STA_AR[v] || v));
 export const trModel = (lang, v) => canonNames(lang, lang === "en" ? trLookup(MODEL_EN, v) : v);
 export const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.find((z) => z.key === k) || {}).label || k);
 export const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
 export const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
-export const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : v);
+export const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : (CAT_AR[v] || v));
 export const trMeeting = (lang, v) => (lang === "en" ? trLookup(MEETING_EN, v) : v);
 export const trMonth = (lang, m) => {
   if (!/^\d{4}-\d{2}$/.test(m || "")) return lang === "en" ? "—" : "—";

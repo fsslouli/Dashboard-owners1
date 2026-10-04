@@ -13,10 +13,12 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.15",
+    version: "5.0.16",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "توحيد مسمّى «الاستفسارات» في كل الموقع (التبويب والعناوين والبحث)",
+      "صياغة أهدأ وأوضح في صفحة التقدّم والحالات والفئات",
       "الفلاتر: اختيار متعدد في كل المعايير (اجتماعان أو أكثر، حالتان، أكثر من نموذج...)، والنتائج تجمع القيم داخل المعيار الواحد وتتقاطع بين المعايير",
       "إعادة ترتيب نافذة تخصيص البحث حسب الأكثر استخدامًا: الاجتماع والتوقيت أولًا، ثم الحالة والأولوية، والترتيب في الآخر",
       "تبسيط الإشعار القانوني",
@@ -25,9 +27,9 @@ export const CHANGELOG = [
       "تحديث صياغة بند «طبيعة البيانات» في الإشعار القانوني",
       "تعديل صياغة السطر الأخير في أسفل الصفحة: البيانات استرشادية وقابلة للتحديث",
       "أيقونة لكل قسم في شريط التنقّل لتسهيل التمييز بينها",
-      "المسار الزمني: ظهور جميع الأشهر على المحور (كان سبتمبر مخفيًا)",
+      "المسار الزمني يعرض جميع الأشهر على المحور",
       "اختصار نصوص صفحة التقدّم (الهدف والفجوة)",
-      "تصحيح أخطاء إملائية في عناوين المكتبة المرئية",
+      "تدقيق لغوي لعناوين المكتبة المرئية",
       "إضافة سطر صغير أسفل الصفحة يوضح أنها مبادرة ودّية غير رسمية وأن البيانات استرشادية وقابلة للتحديث",
       "نقل سطر فريق تمثيل الملاك إلى أسفل الصفحة بشكل أوضح",
       "حذف قسمي «أحدث الملاحظات» و«حسب الأولوية» من النظرة العامة",
@@ -37,6 +39,8 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Unified the \"Inquiries\" name across the site (tab, headings, search)",
+      "Calmer, clearer wording across the Progress page, statuses and categories",
       "Filters: multi-select on every criterion (several meetings, statuses, models...). Values within one criterion combine; different criteria intersect",
       "Reordered the search filter sheet by usage: meeting & timing first, then status and priority, sort last",
       "Simplified the legal notice",
@@ -45,9 +49,9 @@ export const CHANGELOG = [
       "Updated the wording of the \"Nature of the Data\" clause in the legal notice",
       "Reworded the footer line: data is indicative and subject to updates",
       "Added an icon to every section in the navigation bar",
-      "Timeline: every month now shows on the axis (September was hidden)",
+      "Timeline now shows every month on the axis",
       "Shortened the Progress tab texts (target and gap)",
-      "Fixed spelling in the visual library titles",
+      "Proofread the visual library titles",
       "Added a small footer line: unofficial voluntary initiative, data indicative and subject to updates",
       "Moved the Owners' Representatives credit to the page footer, clearer",
       "Removed the \"Latest Notes\" and \"By Priority\" sections from the Overview",

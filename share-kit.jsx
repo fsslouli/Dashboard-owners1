@@ -119,7 +119,7 @@ export function createTracker(getSid) {
 /* الأقسام القابلة للتحديد — نفس مفاتيح تبويبات الموقع العام */
 export const SHARE_TABS = [
   { key: "overview", label: "نظرة عامة (المؤشرات والرسوم)" },
-  { key: "notes", label: "متابعة الملاحظات (الاستفسارات والمرفقات)" },
+  { key: "notes", label: "الاستفسارات والمرفقات" },
   { key: "progress", label: "تقدّم التنفيذ" },
   { key: "docs", label: "المخططات والمستندات" },
   { key: "gallery", label: "الصور والمقاطع" },
