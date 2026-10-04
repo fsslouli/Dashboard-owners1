@@ -594,8 +594,9 @@ export function PublicSite({ share = null } = {}) {
 .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
 .h1{font-size:clamp(23px,5.2vw,33px);line-height:1.3;margin:6px 0 0;word-spacing:.06em;}
 .meta-line{display:flex;flex-wrap:wrap;align-items:center;gap:9px;font-size:12px;color:${T.muted};margin-top:14px;}
-.credit-line{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 13px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.1px;
-  color:${T.brass};background:${T.brass}14;border:1px solid ${T.brass}30;}
+.credit-foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:34px auto 0;padding-top:18px;max-width:420px;
+  border-top:1px solid ${T.line};font-size:12.5px;line-height:1.7;color:${T.muted};text-align:center;}
+.credit-foot svg{color:${T.brass};flex:none;}
 .dot{width:3px;height:3px;border-radius:50%;background:${T.faint};display:inline-block;flex:none;}
 .acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 
@@ -1158,10 +1159,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               </div>
             </div>
 
-            <div className="credit-line">
-              <ShieldCheck size={13} />
-              <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
-            </div>
 
             <div className="stamp">
               {!(shareScope && shareScope.hideCommunity) && (
@@ -1572,7 +1569,12 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             </div>
           )}
 
-          <div className="no-print" style={{ textAlign: "center", marginTop: 28, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
+          <div className="credit-foot">
+            <ShieldCheck size={14} />
+            <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
+          </div>
+
+          <div className="no-print" style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
             {!shareScope && (<>
             {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٣.٠.١) — مكانه جنب دخول الإدارة */}
             <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}

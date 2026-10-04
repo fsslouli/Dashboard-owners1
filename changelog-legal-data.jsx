@@ -13,10 +13,11 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.5",
+    version: "5.0.6",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "نقل سطر فريق تمثيل الملاك إلى أسفل الصفحة بشكل أوضح",
       "حذف قسمي «أحدث الملاحظات» و«حسب الأولوية» من النظرة العامة",
       "حذف زر «سطح المكتب» وسطر التاريخ من الترويسة — العرض يتكيّف تلقائيًا مع المتصفح",
       "إخفاء خيار عرض الجدول/البطاقات على الجوال (بطاقات دائمًا) وإبقاؤه للشاشات الكبيرة",
@@ -24,6 +25,7 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Moved the Owners' Representatives credit to the page footer, clearer",
       "Removed the \"Latest Notes\" and \"By Priority\" sections from the Overview",
       "Removed the Desktop button and the date line from the header — the layout adapts to the browser automatically",
       "Table/Cards switch hidden on phones (cards always) and kept for large screens",
@@ -39,13 +41,13 @@ export const CHANGELOG = [
       "حذف قائمة النماذج من ترويسة الصفحة وحذف تنبيه «الملفات مرجعية» من صفحة المخططات",
       "أيقونة لتبويب المكتبة المرئية والتقارير",
       "خط العناوين الجديد Cairo بدل Reem Kufi في كل المواضع",
-      "سطر «أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك» بالترويسة",
+      "سطر «أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك» أسفل الصفحة",
     ],
     en: [
       "Removed the models list from the header and the \"reference only\" notice from the plans page",
       "Icon added to the Photos & Videos tab",
       "New heading font Cairo replaces Reem Kufi everywhere",
-      "Header credit line: prepared by the Owners' Representatives Team",
+      "Footer credit line: prepared by the Owners' Representatives Team",
     ],
   },
   {
