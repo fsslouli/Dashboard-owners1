@@ -13,10 +13,11 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.10",
+    version: "5.0.11",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "تحديث صياغة بند «طبيعة البيانات» في الإشعار القانوني",
       "تعديل صياغة السطر الأخير في أسفل الصفحة: البيانات استرشادية وقابلة للتحديث",
       "أيقونة لكل قسم في شريط التنقّل لتسهيل التمييز بينها",
       "المسار الزمني: ظهور جميع الأشهر على المحور (كان سبتمبر مخفيًا)",
@@ -31,6 +32,7 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Updated the wording of the \"Nature of the Data\" clause in the legal notice",
       "Reworded the footer line: data is indicative and subject to updates",
       "Added an icon to every section in the navigation bar",
       "Timeline: every month now shows on the axis (September was hidden)",
@@ -1212,7 +1214,7 @@ export const LEGAL_COPY = {
     title: "تنويه وإخلاء مسؤولية قانونية",
     points: [
       ["طبيعة المنصة", "هذه اللوحة هي مبادرة واجتهاد شخصي وودّي من ممثلي الملاك، ولا تُعد منصة رسمية أو متحدثًا رسميًا باسم أي جهة حكومية، خريطة طريق، أو الشركة المطوّرة."],
-      ["طبيعة البيانات", "كافة المعلومات والإحصائيات الواردة هي بيانات استرشادية منقولة كما هي من المطوّر العقاري أو من استبيانات الملاك، دون أدنى مسؤولية عن دقتها أو صحتها أو أي تغييرات قد تطرأ عليها مستقبلًا من قِبل المطوّر."],
+      ["طبيعة البيانات", "المعلومات والإحصائيات الواردة في هذه الصفحة هي بيانات استرشادية، مصدرها ما يتوفر للملاك من مراسلات ومواد منشورة واستبيانات داخلية، وهي قابلة للتحديث والتصحيح في أي وقت. لا تُعدّ هذه الصفحة مرجعًا رسميًا، ولا يتحمّل ممثلو الملاك مسؤولية عن دقتها أو اكتمالها أو أي تغيير لاحق عليها."],
       ["نفي الصفة والمسؤولية", "لا يتحمّل ممثلو الملاك أي مسؤولية قانونية أو مالية أو إدارية ناتجة عن استخدام هذه البيانات، أو بناء أي قرارات عليها، أو عن أي ردود فعل أو إجراءات قد تتخذها أي جهة أو مطوّر تجاه ما يُنقل من مطالب أو استفسارات."],
       ["التحليلات المجهولة", "لتحسين الموقع تُسجَّل بشكل مجهول طريقة استخدامه (الأقسام المفتوحة، البحث، الضغطات، مدة التصفح، نوع الجهاز). لا يُسجَّل عنوان الـIP ولا أي نص تكتبه عدا كلمة البحث، ولا تُستخدم كوكيز. يُحترم إعداد «Do Not Track»."],
     ],
@@ -1224,7 +1226,7 @@ export const LEGAL_COPY = {
     title: "Legal Notice & Disclaimer",
     points: [
       ["Nature of the Platform", "This dashboard is a personal, voluntary initiative by owner representatives. It is not an official platform or spokesperson on behalf of any government entity, project roadmap, or the developer company."],
-      ["Nature of the Data", "All information and statistics shown are indicative data, transferred as-is from the real estate developer or from owner surveys, with no responsibility for their accuracy, correctness, or any future changes made by the developer."],
+      ["Nature of the Data", "Information and statistics on this page are indicative. They are based on correspondence, published materials and internal surveys available to the owners, and may be updated or corrected at any time. This page is not an official reference, and the owners' representatives accept no responsibility for its accuracy, completeness or any later changes."],
       ["Disclaimer of Role & Liability", "Owner representatives bear no legal, financial, or administrative liability arising from use of this data, decisions made based on it, or any response or action taken by any party or developer regarding demands or inquiries conveyed."],
       ["Anonymous Analytics", "To improve the site, usage is recorded anonymously (sections opened, searches, clicks, time on site, device type). No IP address is stored, nothing you type is recorded except search terms, and no cookies are used. Do Not Track is respected."],
     ],
