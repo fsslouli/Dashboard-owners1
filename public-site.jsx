@@ -15,7 +15,7 @@ import { GallerySection } from "./gallery-kit.jsx";
 import { isHidden, NL, useNavLabels } from "./nav-labels-kit.jsx";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
@@ -618,6 +618,8 @@ export function PublicSite({ share = null } = {}) {
   flex:1 1 calc(50% - 3px);text-align:center;}
 @media(min-width:768px){.tab{flex:none;}}
 .tab:hover{color:${T.paper};}
+.tab-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:9px;background:${T.brass}24;color:${T.brass};flex:none;transition:.18s;}
+.tab[data-on="1"] .tab-ic{background:rgba(255,255,255,.35);color:${T.onAccent};}
 .tab[data-on="1"]{background:${T.brass};border-color:${T.brass};color:${T.onAccent};box-shadow:${T.shadow};}
 .tab-n{font-size:11.5px;padding:2px 8px;border-radius:999px;background:${T.sunken};color:${T.muted};}
 .tab[data-on="1"] .tab-n{background:rgba(255,255,255,.22);color:${T.onAccent};}
@@ -1210,32 +1212,32 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             {tabOk("overview") && !isHidden(navLabels, "overview") && (
               <button className="tab" role="tab" aria-selected={tab === "overview"} data-on={tab === "overview" ? "1" : "0"}
                 onClick={() => setTab("overview")}>
-                {NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
+                <span className="tab-ic"><LayoutDashboard size={15} /></span>{NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
               </button>
             )}
             {tabOk("notes") && !isHidden(navLabels, "notes") && (
               <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
                 onClick={() => setTab("notes")}>
-                {NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
+                <span className="tab-ic"><ListChecks size={15} /></span>{NL(navLabels, "notes", "متابعة الملاحظات", "Notes Board", lang)}
                 <span className="tab-n mono">{ALL.length}</span>
               </button>
             )}
             {tabOk("progress") && !isHidden(navLabels, "progress") && (
               <button className="tab" role="tab" aria-selected={tab === "progress"} data-on={tab === "progress" ? "1" : "0"}
                 onClick={() => setTab("progress")}>
-                {NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
+                <span className="tab-ic"><TrendingUp size={15} /></span>{NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
               </button>
             )}
             {tabOk("docs") && !isHidden(navLabels, "docs") && (
               <button className="tab" role="tab" aria-selected={tab === "docs"} data-on={tab === "docs" ? "1" : "0"}
                 onClick={() => setTab("docs")}>
-                <FileText size={13} /> {NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
+                <span className="tab-ic"><FileText size={15} /></span>{NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
               </button>
             )}
             {tabOk("gallery") && !isHidden(navLabels, "gallery") && (
               <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
                 onClick={() => setTab("gallery")}>
-                <Images size={13} /> {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
+                <span className="tab-ic"><Images size={15} /></span>{NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
               </button>
             )}
             <span className="tab-indicator" ref={indicatorRef} />
