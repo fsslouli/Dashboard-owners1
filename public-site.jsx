@@ -1577,7 +1577,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
           </div>
           <div className="credit-sub">
-            {L("مبادرة ودّية غير رسمية من الملاك · البيانات استرشادية ومنقولة من المطوّر", "An unofficial, voluntary initiative by the owners · Data is indicative and sourced from the developer")}
+            {L("مبادرة ودّية غير رسمية من الملاك · البيانات استرشادية وقابلة للتحديث", "An unofficial, voluntary initiative by the owners · Data is indicative and subject to updates")}
           </div>
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
