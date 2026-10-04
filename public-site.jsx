@@ -125,7 +125,7 @@ export function PublicSite({ share = null } = {}) {
   const reduced = usePrefersReduced();
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
-  const { view, setView } = useViewMode();
+  const { view, setView, canSwitch } = useViewMode();
   const L = (ar, en) => (lang === "en" ? en : ar);
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
@@ -1451,7 +1451,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                 <span className="sec-t">{L("النتائج", "Results")}</span>
                 <span style={{ color: T.brass, fontSize: 15 }}><TickNum value={rows.length} /></span>
                 {rows.length !== ALL.length && <span style={{ fontSize: 12, color: T.muted }}>{L(`من ${ALL.length}`, `of ${ALL.length}`)}</span>}
-                <ViewToggle view={view} setView={setView} />
+                {canSwitch && <ViewToggle view={view} setView={setView} />}
               </div>
 
               {rows.length === 0 ? (

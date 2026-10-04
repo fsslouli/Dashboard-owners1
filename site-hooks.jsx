@@ -132,8 +132,9 @@ export function useViewMode() {
   };
 
   /* الافتراضي يتبع حجم الشاشة، والاختيار اليدوي يتجاوزه على أي جهاز */
-  const view = pref === "auto" ? (wide ? "table" : "cards") : pref;
-  return { view, setView: pick };
+  /* على الجوال/الشاشات الصغيرة: بطاقات دائمًا وبدون خيار تبديل */
+  const view = !wide ? "cards" : (pref === "auto" ? "table" : pref);
+  return { view, setView: pick, canSwitch: wide };
 }
 
 /* ── وضع متصفح سطح المكتب ──
