@@ -597,6 +597,7 @@ export function PublicSite({ share = null } = {}) {
 .credit-foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:34px auto 0;padding-top:18px;max-width:420px;
   border-top:1px solid ${T.line};font-size:12.5px;line-height:1.7;color:${T.muted};text-align:center;}
 .credit-foot svg{color:${T.brass};flex:none;}
+.credit-sub{text-align:center;font-size:11.5px;line-height:1.7;color:${T.faint};margin:6px auto 0;max-width:420px;}
 .dot{width:3px;height:3px;border-radius:50%;background:${T.faint};display:inline-block;flex:none;}
 .acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 
@@ -1572,6 +1573,9 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           <div className="credit-foot">
             <ShieldCheck size={14} />
             <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
+          </div>
+          <div className="credit-sub">
+            {L("مبادرة ودّية غير رسمية من الملاك · البيانات استرشادية ومنقولة من المطوّر", "An unofficial, voluntary initiative by the owners · Data is indicative and sourced from the developer")}
           </div>
 
           <div className="no-print" style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
