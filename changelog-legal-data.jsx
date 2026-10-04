@@ -13,10 +13,11 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.12",
+    version: "5.0.13",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "تبسيط الإشعار القانوني",
       "توحيد أسماء النماذج في كل الموقع: آمانيثير · ألبا · أورورا · البدا",
       "ملاحظات صفحة التقدّم (بلوك ٢٣ والتراجع) صارت في قسم صغير قابل للطيّ",
       "تحديث صياغة بند «طبيعة البيانات» في الإشعار القانوني",
@@ -34,6 +35,7 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Simplified the legal notice",
       "Unified model names across the site: Amanecer, Alba, Aurora, Albada",
       "Progress page data notes (Block 23 and the drop) now sit in a small collapsible section",
       "Updated the wording of the \"Nature of the Data\" clause in the legal notice",
@@ -1220,7 +1222,6 @@ export const LEGAL_COPY = {
       ["طبيعة المنصة", "هذه اللوحة هي مبادرة واجتهاد شخصي وودّي من ممثلي الملاك، ولا تُعد منصة رسمية أو متحدثًا رسميًا باسم أي جهة حكومية، خريطة طريق، أو الشركة المطوّرة."],
       ["طبيعة البيانات", "المعلومات والإحصائيات الواردة في هذه الصفحة هي بيانات استرشادية، مصدرها ما يتوفر للملاك من مراسلات ومواد منشورة واستبيانات داخلية، وهي قابلة للتحديث والتصحيح في أي وقت. لا تُعدّ هذه الصفحة مرجعًا رسميًا، ولا يتحمّل ممثلو الملاك مسؤولية عن دقتها أو اكتمالها أو أي تغيير لاحق عليها."],
       ["نفي الصفة والمسؤولية", "لا يتحمّل ممثلو الملاك أي مسؤولية قانونية أو مالية أو إدارية ناتجة عن استخدام هذه البيانات، أو بناء أي قرارات عليها، أو عن أي ردود فعل أو إجراءات قد تتخذها أي جهة أو مطوّر تجاه ما يُنقل من مطالب أو استفسارات."],
-      ["التحليلات المجهولة", "لتحسين الموقع تُسجَّل بشكل مجهول طريقة استخدامه (الأقسام المفتوحة، البحث، الضغطات، مدة التصفح، نوع الجهاز). لا يُسجَّل عنوان الـIP ولا أي نص تكتبه عدا كلمة البحث، ولا تُستخدم كوكيز. يُحترم إعداد «Do Not Track»."],
     ],
     consent: "بالضغط على «أوافق»، فأنت تقرّ بعلمك التام بجميع ما ورد أعلاه وتوافق على إخلاء مسؤولية القائمين على اللوحة تمامًا.",
     agree: "أوافق",
@@ -1232,7 +1233,6 @@ export const LEGAL_COPY = {
       ["Nature of the Platform", "This dashboard is a personal, voluntary initiative by owner representatives. It is not an official platform or spokesperson on behalf of any government entity, project roadmap, or the developer company."],
       ["Nature of the Data", "Information and statistics on this page are indicative. They are based on correspondence, published materials and internal surveys available to the owners, and may be updated or corrected at any time. This page is not an official reference, and the owners' representatives accept no responsibility for its accuracy, completeness or any later changes."],
       ["Disclaimer of Role & Liability", "Owner representatives bear no legal, financial, or administrative liability arising from use of this data, decisions made based on it, or any response or action taken by any party or developer regarding demands or inquiries conveyed."],
-      ["Anonymous Analytics", "To improve the site, usage is recorded anonymously (sections opened, searches, clicks, time on site, device type). No IP address is stored, nothing you type is recorded except search terms, and no cookies are used. Do Not Track is respected."],
     ],
     consent: "By clicking \u201cI Agree,\u201d you acknowledge full awareness of the above and agree to fully release the dashboard administrators from liability.",
     agree: "I Agree",
