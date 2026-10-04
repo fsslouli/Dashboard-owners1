@@ -275,17 +275,32 @@ export function ProgressTab({ reduced, data, loading }) {
 
         {(ADDED > 0 || total.v.some((v) => v == null)) && (
           <div className="eyebrow" style={{ marginTop: 10 }}>
-            {L("الأشهر الباهتة لم تصل قراءتها بعد — الهدف فيها محسوب من الخطة والإنجاز بانتظار المطور. مرّر المؤشر على الشهر لمعرفة السبب إن وُجد.",
-               "Faded months have no reading yet — their target comes from the plan and actual progress awaits the developer. Hover a month for the specific reason, if noted.")}
+            {L("الأشهر الباهتة بانتظار قراءة المطور.", "Faded months await developer data.")}
           </div>
         )}
 
-        {mi > 0 && stalled.length > 0 && (
-          <div className="note-box" style={{ marginTop: 14, marginBottom: 4 }}>
-            {L("لم تتحرّك في", "No movement in")} {mFull(mi)}:{" "}
-            <span style={{ color: T.paper }}>{stalled.map((r) => `${L("بلوك", "Block")} ${r.b}`).join(" · ")}</span>
-          </div>
-        )}
+        {mi > 0 && (() => {
+          const moved = blocks.filter((r) => !stalled.includes(r)).map((r) => ({ b: r.b, d: delta(r.v, mi) })).filter((x) => x.d != null && x.d > 0);
+          if (!moved.length && !stalled.length) return null;
+          const top = moved.length ? moved.reduce((m, x) => (x.d > m.d ? x : m)) : null;
+          const low = moved.length > 1 ? moved.reduce((m, x) => (x.d < m.d ? x : m)) : null;
+          const rowsS = [
+            top && [L("الأكثر تقدمًا", "Most progress"), `${L("بلوك", "Block")} ${top.b}`, `+${top.d.toFixed(2)}`, ahead],
+            low && [L("الأقل تقدمًا", "Least progress"), `${L("بلوك", "Block")} ${low.b}`, `+${low.d.toFixed(2)}`, T.muted],
+            stalled.length > 0 && [L("متوقفة", "Stalled"), stalled.map((r) => r.b).join(" · "), `${stalled.length}`, behind],
+          ].filter(Boolean);
+          return (
+            <div className="note-box" style={{ marginTop: 14, marginBottom: 4, display: "flex", flexDirection: "column", gap: 7 }}>
+              {rowsS.map(([lbl, who, val, col]) => (
+                <div key={lbl} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+                  <span>{lbl}</span>
+                  <span style={{ color: T.paper }}>{who}</span>
+                  <span className="mono" style={{ color: col, minWidth: 44, textAlign: "end" }}>{val}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {grouped.map(({ k, rows }) => rows.length > 0 && (
           <div key={k} className="gb-group">
