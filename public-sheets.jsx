@@ -142,27 +142,25 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
         </div>
 
         <div className="sheet-body" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
-          <div className="sec-lbl">{L("الحالة", "Status")}</div>
+          <div className="sec-lbl">{L("الاجتماع والتوقيت", "Meeting & Timing")}</div>
+          {cats.meetings.length > 0 && (
+            <div className="flex flex-wrap items-center" style={{ gap: 8, marginBottom: 10 }}>
+              {cats.meetings.map((m) => (
+                <Chip key={m} on={draft.meeting === m} onClick={() => dtoggle("meeting", m)} color={T.zone}>
+                  {`${trMeeting(lang, m)} (${ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length})`}
+                </Chip>
+              ))}
+            </div>
+          )}
+          <Select block value={draft.mon} onChange={(v) => dval("mon", v)} placeholder={L("كل الأشهر", "All months")} icon={Calendar}
+            options={cats.months.map((m) => ({ v: m, l: trMonth(lang, m) }))} />
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الحالة", "Status")}</div>
           <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
             {cats.sta.map((s) => (
               <Chip key={s} on={draft.sta === s} onClick={() => dtoggle("sta", s)} color={staC(s)}
                 count={ALL.filter((r) => r.sta === s).length}>{trSta(lang, s)}</Chip>
             ))}
-          </div>
-
-          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("تمييز", "Flags")}</div>
-          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
-            <Chip on={draft.open} onClick={() => dtoggle("open", true)} color={T.brass} count={openCount}>{L("مفتوحة", "Open")}</Chip>
-            <Chip on={draft.fresh} onClick={() => dtoggle("fresh", true)} color={T.sta["معتمدة"]} count={newCount}>{L("الجديد", "New")}</Chip>
-            {importantCount > 0 && (
-              <Chip on={draft.important} onClick={() => dtoggle("important", true)} color="#C0392B" count={importantCount}>{L("مهم", "Important")}</Chip>
-            )}
-            {urgentCount > 0 && (
-              <Chip on={draft.urgent} onClick={() => dtoggle("urgent", true)} color="#B8790F" count={urgentCount}>{L("يجب الاطلاع", "Needs review")}</Chip>
-            )}
-            {attCount > 0 && (
-              <Chip on={draft.att} onClick={() => dtoggle("att", true)} color={T.brass} count={attCount}>{L("فيها مرفقات", "With attachments")}</Chip>
-            )}
           </div>
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الأولوية", "Priority")}</div>
@@ -172,16 +170,6 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
                 count={ALL.filter((r) => r.pri === p).length}>{trPri(lang, p)}</Chip>
             ))}
           </div>
-
-          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الترتيب", "Sort")}</div>
-          <Select block value={draftSort} onChange={(v) => setDraftSort(v || "id")} placeholder={L("ترتيب", "Sort")} icon={Hash}
-            options={[
-              { v: "id", l: L("الأرقام: الأحدث أولاً", "Number: newest first") },
-              { v: "date", l: L("الأحدث أولاً (بالتاريخ)", "Newest first (by date)") },
-              { v: "new", l: L("الجديد أولاً", "New first") },
-              { v: "pri", l: L("الأولوية أولاً", "Priority first") },
-              { v: "open", l: L("المفتوحة أولاً", "Open first") },
-            ]} />
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("التصنيف والنموذج", "Category & Model")}</div>
           <div className="filt-grid">
@@ -199,18 +187,30 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
               options={cats.owners.map((m) => ({ v: m, l: trOwn(lang, m) }))} />
           </div>
 
-          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("التوقيت", "Timing")}</div>
-          <Select block value={draft.mon} onChange={(v) => dval("mon", v)} placeholder={L("كل الأشهر", "All months")} icon={Calendar}
-            options={cats.months.map((m) => ({ v: m, l: trMonth(lang, m) }))} />
-          {cats.meetings.length > 0 && (
-            <div className="flex flex-wrap items-center" style={{ gap: 8, marginTop: 10 }}>
-              {cats.meetings.map((m) => (
-                <Chip key={m} on={draft.meeting === m} onClick={() => dtoggle("meeting", m)} color={T.zone}>
-                  {`${trMeeting(lang, m)} (${ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length})`}
-                </Chip>
-              ))}
-            </div>
-          )}
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("تمييز", "Flags")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            <Chip on={draft.open} onClick={() => dtoggle("open", true)} color={T.brass} count={openCount}>{L("مفتوحة", "Open")}</Chip>
+            <Chip on={draft.fresh} onClick={() => dtoggle("fresh", true)} color={T.sta["معتمدة"]} count={newCount}>{L("الجديد", "New")}</Chip>
+            {importantCount > 0 && (
+              <Chip on={draft.important} onClick={() => dtoggle("important", true)} color="#C0392B" count={importantCount}>{L("مهم", "Important")}</Chip>
+            )}
+            {urgentCount > 0 && (
+              <Chip on={draft.urgent} onClick={() => dtoggle("urgent", true)} color="#B8790F" count={urgentCount}>{L("يجب الاطلاع", "Needs review")}</Chip>
+            )}
+            {attCount > 0 && (
+              <Chip on={draft.att} onClick={() => dtoggle("att", true)} color={T.brass} count={attCount}>{L("فيها مرفقات", "With attachments")}</Chip>
+            )}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الترتيب", "Sort")}</div>
+          <Select block value={draftSort} onChange={(v) => setDraftSort(v || "id")} placeholder={L("ترتيب", "Sort")} icon={Hash}
+            options={[
+              { v: "id", l: L("الأرقام: الأحدث أولاً", "Number: newest first") },
+              { v: "date", l: L("الأحدث أولاً (بالتاريخ)", "Newest first (by date)") },
+              { v: "new", l: L("الجديد أولاً", "New first") },
+              { v: "pri", l: L("الأولوية أولاً", "Priority first") },
+              { v: "open", l: L("المفتوحة أولاً", "Open first") },
+            ]} />
         </div>
 
         <div className="sheet-foot">
