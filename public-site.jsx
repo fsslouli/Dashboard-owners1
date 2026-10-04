@@ -15,7 +15,7 @@ import { GallerySection } from "./gallery-kit.jsx";
 import { isHidden, NL, useNavLabels } from "./nav-labels-kit.jsx";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, Laptop, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Smartphone, Sparkles, ThumbsUp, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
@@ -126,7 +126,6 @@ export function PublicSite({ share = null } = {}) {
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
   const { view, setView } = useViewMode();
-  const { deskOn, toggleDesk, smallDevice } = useDesktopView();
   const L = (ar, en) => (lang === "en" ? en : ar);
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
@@ -1156,14 +1155,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               <div className="acts no-print">
                 <LangToggle />
                 <ThemeToggle />
-                {smallDevice && (
-                  <button className="icon-btn desk-btn" onClick={toggleDesk}
-                    data-primary={deskOn ? "1" : undefined}
-                    aria-pressed={deskOn ? "true" : "false"}>
-                    {deskOn ? <Smartphone size={13} /> : <Laptop size={13} />}
-                    {deskOn ? L("عرض الجوال", "Mobile view") : L("سطح المكتب", "Desktop")}
-                  </button>
-                )}
               </div>
             </div>
 
