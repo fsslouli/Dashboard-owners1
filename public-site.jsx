@@ -1167,9 +1167,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               </div>
             </div>
 
-            <div className="meta-line">
-              <span>{cats.months.length ? `${trMonth(lang, cats.months[0])} — ${trMonth(lang, cats.months[cats.months.length - 1])}` : "—"}</span>
-            </div>
             <div className="credit-line">
               <ShieldCheck size={13} />
               <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
@@ -1315,29 +1312,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                 </div>
               </section>
 
-              {/* أحدث الملاحظات */}
-              <section className="surf" data-sec="latest" style={{ padding: "20px 18px", marginBottom: 14 }}>
-                <div className="sec-t">{L("أحدث الملاحظات", "Latest Notes")}</div>
-                <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>{L("آخر ما أُضيف أو جرى عليه رد", "Most recently added or replied to")}</div>
-                <div className="latest">
-                  {latest.map((r) => (
-                    <button key={r.id} className="lrow" onClick={() => openRecord(r, latest)}>
-                      <span className="lrow-d" style={{ background: staC(r.sta) }} />
-                      <span className="lrow-t">
-                        <span className="lrow-n">{trNote(lang, r)}</span>
-                        <span className="lrow-m">
-                          {trSta(lang, r.sta)} · {trLoc(lang, r.loc)} · {trMonth(lang, r.month)}
-                          {r.isNew ? ` · ${L("جديد", "New")}` : ""}{!r.closed ? ` · ${L("مفتوح", "Open")}` : ""}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <button className="wide-btn" onClick={() => openBoard()}>
-                  {L("فتح لوحة المتابعة — كل الملاحظات", "Open Notes Board — All Notes")} <ArrowLeft size={14} />
-                </button>
-              </section>
-
               {/* المخطط + المواقع */}
               <section className="surf" data-sec="where" style={{ padding: "20px 18px", marginBottom: 14 }}>
                 <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 18 }}>
@@ -1410,8 +1384,8 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               )}
 
               {/* الزمن + الأولوية */}
-              <section className="grid grid-cols-1 lg:grid-cols-5" data-sec="charts" style={{ gap: 14 }}>
-                <div className="surf lg:col-span-3" style={{ padding: "20px 16px 12px" }}>
+              <section className="grid grid-cols-1" data-sec="charts" style={{ gap: 14 }}>
+                <div className="surf" style={{ padding: "20px 16px 12px" }}>
                   <div style={{ paddingRight: 4 }}>
                     <div className="sec-t">{L("مسار الردود والتراكم", "Reply Trend & Cumulative")}</div>
                     <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>{L("حسب شهر الرد", "By reply month")}</div>
@@ -1451,24 +1425,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   </div>
                 </div>
 
-                <div className="surf lg:col-span-2" style={{ padding: 20 }}>
-                  <div className="sec-t">{L("حسب الأولوية", "By Priority")}</div>
-                  <div className="eyebrow" style={{ marginTop: 4, marginBottom: 18 }}>{L("اضغط أي أولوية لعرض ملاحظاتها", "Tap any priority to view its notes")}</div>
-                  {cats.pri.map((p) => {
-                    const n = overview.byP[p] || 0;
-                    const pct = Math.round((n / Math.max(1, overview.tot)) * 100);
-                    const col = T.pri[p] || T.muted;
-                    return (
-                      <button key={p} className="prow" onClick={() => openBoard({ pri: p })}>
-                        <div className="prow-top">
-                          <span className="prow-l">{trPri(lang, p)}</span>
-                          <span className="prow-n mono" style={{ color: T.muted }}>{n}</span>
-                        </div>
-                        <div className="pbar"><div style={{ width: `${pct}%`, background: col, opacity: .7 }} /></div>
-                      </button>
-                    );
-                  })}
-                </div>
               </section>
             </div>
           )}

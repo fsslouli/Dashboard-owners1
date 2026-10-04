@@ -18,12 +18,14 @@ export const CHANGELOG = [
     dateEn: "October 4, 2026",
     ar: [
       "حذف قائمة النماذج من ترويسة الصفحة وحذف تنبيه «الملفات مرجعية» من صفحة المخططات",
+      "حذف قسمي «أحدث الملاحظات» و«حسب الأولوية» من النظرة العامة",
       "أيقونة لتبويب المكتبة المرئية والتقارير",
       "خط العناوين الجديد Cairo بدل Reem Kufi في كل المواضع",
       "سطر «أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك» بالترويسة",
     ],
     en: [
       "Removed the models list from the header and the \"reference only\" notice from the plans page",
+      "Removed the \"Latest Notes\" and \"By Priority\" sections from the Overview",
       "Icon added to the Photos & Videos tab",
       "New heading font Cairo replaces Reem Kufi everywhere",
       "Header credit line: prepared by the Owners' Representatives Team",
