@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.2.0",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "تفصيل صلاحيات لوحة الإدارة وتجميعها في أقسام واضحة، وكل صلاحية تتحكم بشيء واحد فقط",
+      "التحقق من الصلاحيات صار على مستوى قاعدة البيانات نفسها، فلا يستفيد منها إلا من يملكها",
+      "حماية آخر مسؤول يملك صلاحية تعديل الصلاحيات من الإزالة بالخطأ",
+    ],
+    en: [
+      "Admin permissions refined and grouped into clear sections, each controlling a single capability",
+      "Permission checks are now enforced at the database level, so only holders can use them",
+      "The last administrator who can edit permissions is protected from accidental removal",
+    ],
+  },
+  {
     version: "5.1.1",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",

@@ -1,5 +1,5 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-tabs-1 */
-import { ADMIN_EVENT_TYPES, ADMIN_PERMISSIONS, fmtAdminDate, isoAdminDate, useSystemTheme } from "./admin-core.jsx";
+import { ADMIN_EVENT_TYPES, ADMIN_PERMISSIONS, ADMIN_PERM_GROUPS, fmtAdminDate, isoAdminDate, useSystemTheme } from "./admin-core.jsx";
 import { ABadge, ASegmented, aNoteStyle } from "./admin-excel-utils.jsx";
 import { supabase } from "./app-bootstrap.jsx";
 import { useEffect, useState } from "react";
@@ -392,6 +392,32 @@ export function AAuditLogTab() {
   );
 }
 
+/* منتقي الصلاحيات مجمّعًا — يُستعمل في نموذج التعديل ونموذج الحساب الجديد */
+function PermPicker({ T, list, selected, onToggle }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 16 }}>
+      {ADMIN_PERM_GROUPS.map((g) => {
+        const items = list.filter((p) => p.group === g);
+        if (!items.length) return null;
+        const onCount = items.filter((p) => selected.includes(p.key)).length;
+        return (
+          <div key={g}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700, color: T.muted, margin: "0 2px 7px" }}><span>{g}</span><span style={{ fontWeight: 500, color: T.faint }}>{onCount}/{items.length}</span></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {items.map((p) => { const on = selected.includes(p.key); const Icon = p.icon; return (
+                <button key={p.key} onClick={() => onToggle(p.key)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "9px 12px", cursor: "pointer" }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
+                  <Icon size={14} color={on ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: on ? T.paper : T.muted }}>{p.label}</span>
+                </button>
+              );})}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── تعديل صلاحيات أعضاء موجودين (إنشاء الحساب نفسه يتم من لوحة Supabase) ── */
 export function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms }) {
   const T = useSystemTheme();
@@ -454,14 +480,7 @@ export function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms })
       {form && (
         <div style={{ background: T.surface, border: `1px solid ${T.brass}44`, borderRadius: 16, padding: 18 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>تعديل صلاحيات: {form.name}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-            {ADMIN_PERMISSIONS.map((p) => { const on = form.perms.includes(p.key); const Icon = p.icon; return (
-              <button key={p.key} onClick={() => togglePerm(p.key)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: "pointer" }}>
-                <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
-                <Icon size={14} color={on ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: on ? T.paper : T.muted }}>{p.label}</span>
-              </button>
-            );})}
-          </div>
+          <PermPicker T={T} list={ADMIN_PERMISSIONS} selected={form.perms} onToggle={togglePerm} />
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={save} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
             <button onClick={() => { setEditingId(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
@@ -478,15 +497,8 @@ export function AUsersTab({ profile, flashToast, log, canCreate, canEditPerms })
           <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>كلمة مرور مبدئية (يقدر يغيّرها بعدين)</label>
           <input type="text" value={newUser.password} onChange={(e) => setNewUser((f) => ({ ...f, password: e.target.value }))} placeholder="٦ أحرف على الأقل" style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 10, border: `1px solid ${T.line}`, marginBottom: 14, fontSize: 13, background: T.sunken }} />
           <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 8 }}>الصلاحيات</label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-            {!canEditPerms && <div style={{ fontSize: 11.5, color: T.faint, lineHeight: 1.7 }}>تقدر تمنح الحساب الجديد الصلاحيات اللي عندك فقط.</div>}
-            {grantable.map((p) => { const on = newUser.perms.includes(p.key); const Icon = p.icon; return (
-              <button key={p.key} onClick={() => toggleNewPerm(p.key)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "start", border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "0D" : T.sunken, borderRadius: 11, padding: "10px 12px", cursor: "pointer" }}>
-                <span style={{ width: 20, height: 20, borderRadius: 6, border: `1px solid ${on ? T.brass : T.faint}`, background: on ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <Check size={13} color="#fff" />}</span>
-                <Icon size={14} color={on ? T.brass : T.faint} /><span style={{ fontSize: 12.5, color: on ? T.paper : T.muted }}>{p.label}</span>
-              </button>
-            );})}
-          </div>
+          {!canEditPerms && <div style={{ fontSize: 11.5, color: T.faint, lineHeight: 1.7, marginBottom: 10 }}>تقدر تمنح الحساب الجديد الصلاحيات اللي عندك فقط.</div>}
+          <PermPicker T={T} list={grantable} selected={newUser.perms} onToggle={toggleNewPerm} />
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={createUser} disabled={creating} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: creating ? "wait" : "pointer", opacity: creating ? .7 : 1 }}><UserPlus size={15} /> {creating ? "جارٍ الإنشاء..." : "إنشاء الحساب"}</button>
             <button onClick={() => setNewUser(null)} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>

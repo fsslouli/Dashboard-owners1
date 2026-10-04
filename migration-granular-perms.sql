@@ -1,0 +1,12 @@
+-- v5.2.0 — صلاحيات مفصّلة (طُبّقت على المشروع عبر Supabase؛ محفوظة هنا للتوثيق)
+-- صلاحيات جديدة: view_insights, purge_analytics, manage_share, manage_theme, manage_gallery, restore_backup
+-- (تم التعبئة الأولية من الصلاحيات القديمة المقابلة لها فلا يفقد أحد وصولًا)
+-- سياسات الإدارة صارت للدور authenticated فقط (كان الزائر يستدعي has_perm فيرجع 401 على الإشعارات).
+-- check_inquiry_update: يحرس كل عمود (غير updated_at/updated_by) — الوسوم flag_urgent وغيرها edit_inquiry/import_excel
+-- check_site_settings_update: المظهر والتسمية manage_theme، وإعدادات المعرض manage_gallery
+-- protect_last_perm_admin: يمنع إزالة edit_permissions من آخر مسؤول
+-- restore_inquiries_backup: يتطلب restore_backup
+-- site_insights: يتطلب view_insights
+-- storage_usage_bytes: للمسؤولين فقط
+-- سياسات القراءة المشدّدة: data_backups / progress_readings_backups / inquiry_revisions / notice_votes / profiles / model_videos / inquiry_attachments
+-- تعديل الاستفسارات: edit_inquiry أو flag_urgent أو import_excel

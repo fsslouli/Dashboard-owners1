@@ -9,7 +9,7 @@
                      (بحاوية attachments)، وروابط Drive وVimeo والملفات المباشرة.
                      العرض والتشغيل كله من attach-kit.jsx (نفس عارض المرفقات)
 
-   الصلاحية المستخدمة: manage_media (نفس صلاحية "مقاطع النماذج" الموجودة).
+   الصلاحية المستخدمة: manage_gallery.
    شغّل migration-gallery.sql مرة وحدة قبل الاستخدام.
    ═══════════════════════════════════════════════════════════ */
 import React, { useState, useEffect, useRef, useCallback } from "react";

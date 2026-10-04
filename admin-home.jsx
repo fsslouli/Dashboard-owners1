@@ -77,15 +77,15 @@ const ADMIN_TABS = [
   { key: "dashboard", label: "لوحة القرار", perms: ["view_dashboard"] },
   { key: "sync", label: "المزامنة والبيانات", perms: ["import_excel", "add_inquiry", "edit_inquiry", "delete_inquiry", "flag_urgent"] },
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
-  { key: "insights", label: "التحليلات الشاملة", perms: ["view_analytics"] },
+  { key: "insights", label: "التحليلات الشاملة", perms: ["view_insights"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
-  { key: "gallery", label: "معرض الموقع", perms: ["manage_media"] },
-  { key: "share", label: "روابط المشاركة", perms: ["manage_notices"] },
-  { key: "labels", label: "تسمية الأقسام", perms: ["manage_notices"] },
+  { key: "gallery", label: "معرض الموقع", perms: ["manage_gallery"] },
+  { key: "share", label: "روابط المشاركة", perms: ["manage_share"] },
+  { key: "labels", label: "تسمية الأقسام", perms: ["manage_theme"] },
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
-  { key: "theme", label: "مظهر الموقع", perms: ["manage_notices"] },
+  { key: "theme", label: "مظهر الموقع", perms: ["manage_theme"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
 ];
@@ -142,17 +142,17 @@ function AdminHome({ session, onLogout }) {
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 16px 60px" }}>
         {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
         {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
-        {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
+        {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canRestore={has("restore_backup")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
-        {activeTab === "insights" && <AInsightsTab flashToast={flashToast} canExport={has("export_data")} canPurge={has("edit_permissions")} log={log} />}
+        {activeTab === "insights" && <AInsightsTab flashToast={flashToast} canExport={has("export_data")} canPurge={has("purge_analytics")} log={log} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
-        {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_media")} />}
-        {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_notices")} by={profile?.name || session.user.email} />}
-        {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
+        {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_gallery")} />}
+        {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_share")} by={profile?.name || session.user.email} />}
+        {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
-        {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_notices")} />}
+        {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
       </div>

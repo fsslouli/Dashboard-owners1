@@ -93,7 +93,7 @@ function AInquiryTrail({ id, row }) {
   );
 }
 
-export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, canImport, canAdd, canEdit, canDelete, log }) {
+export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgress, categories, refreshCategories, flashToast, canFlag, canImport, canRestore, canAdd, canEdit, canDelete, log }) {
   const T = useSystemTheme();
   /* v2.8.5 — يقرأ قيم فئة فلترة من الجدول الحي (تديره لوحة "الفلاتر")، ويرجع
      للقائمة المدمجة بالكود لو الفئة لسه ما وصلت أو فاضية — نفس منطق الرجوع
@@ -182,7 +182,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const loadBackups = () => supabase.from("data_backups").select("*").order("created_at", { ascending: false }).then(({ data }) => setBackups(data || []));
   useEffect(() => { loadBackups(); }, []);
   const restoreBackup = async (b) => {
-    if (!canImport) { flashToast("ما عندك صلاحية \"رفع ومزامنة بيانات من إكسل\" اللازمة للاسترجاع"); return; }
+    if (!canRestore) { flashToast("ما عندك صلاحية استرجاع النسخ الاحتياطية"); return; }
     setRestoring(b.id);
     const { error } = await supabase.rpc("restore_inquiries_backup", { p_backup_id: b.id });
     if (error) {
@@ -532,7 +532,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
 
       {canImport && <ProgressReadingsSync flashToast={flashToast} canImport={canImport} log={log} />}
 
-      {canImport && backups.length > 0 && (
+      {(canImport || canRestore) && backups.length > 0 && (
         <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><History size={16} color={T.brass} /><span style={{ fontSize: 14, fontWeight: 700 }}>نسخ احتياطية</span></div>
           <p style={{ fontSize: 12, color: T.muted, margin: "4px 0 12px", lineHeight: 1.7 }}>تُؤخذ تلقائيًا قبل كل مزامنة إكسل — يُحتفظ بآخر نسختين فقط. لو صار خطأ بمزامنة، ترجع بضغطة وحدة.</p>
@@ -543,9 +543,9 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
                   <div style={{ fontSize: 12.5, fontWeight: 600 }}>{b.label}</div>
                   <div style={{ fontSize: 11, color: T.muted }}>{(b.inquiries || []).length} استفسار · {(b.progress || []).length} صف تقدّم</div>
                 </div>
-                <button onClick={() => restoreBackup(b)} disabled={restoring === b.id} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.brass}55`, color: T.brass, borderRadius: 9, padding: "7px 12px", fontSize: 11.5, fontWeight: 600, cursor: restoring === b.id ? "wait" : "pointer" }}>
+                {canRestore && <button onClick={() => restoreBackup(b)} disabled={restoring === b.id} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.brass}55`, color: T.brass, borderRadius: 9, padding: "7px 12px", fontSize: 11.5, fontWeight: 600, cursor: restoring === b.id ? "wait" : "pointer" }}>
                   <RefreshCw size={12} /> {restoring === b.id ? "جارٍ الاسترجاع..." : "استرجاع هذي النسخة"}
-                </button>
+                </button>}
               </div>
             ))}
           </div>

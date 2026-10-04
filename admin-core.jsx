@@ -2,7 +2,7 @@
 import { supabase } from "./app-bootstrap.jsx";
 import { AR_DIGITS, THEMES, norm } from "./site-data.jsx";
 import { useEffect, useState } from "react";
-import { ArrowRight, BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Layers, Lock, LogIn, MousePointerClick, Pencil, PlusCircle, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Images, Layers, Link2, Lock, LogIn, MousePointerClick, Palette, Pencil, PlusCircle, RotateCcw, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
    ١٥. لوحة الإدارة الحقيقية — متصلة بـ Supabase فعليًا (Auth + قراءة/كتابة).
@@ -26,21 +26,29 @@ export function useSystemTheme() {
   return T;
 }
 
+/* ── الصلاحيات مقسّمة لمجموعات؛ كل صلاحية تحكم شيئًا واحدًا فقط، والخادم (قاعدة البيانات) هو من يفرضها ── */
+export const ADMIN_PERM_GROUPS = ["البيانات", "التقارير والتحليلات", "المحتوى والمظهر", "الإدارة"];
 export const ADMIN_PERMISSIONS = [
-  { key: "view_dashboard", label: "عرض لوحة القرار (التحليلات الداخلية الشاملة)", icon: BarChart3 },
-  { key: "view_analytics", label: "عرض تبويب الزيارات والتحليلات", icon: Eye },
-  { key: "export_data", label: "تصدير التقارير كإكسل", icon: Download },
-  { key: "import_excel", label: "رفع ومزامنة بيانات من إكسل", icon: FileSpreadsheet },
-  { key: "add_inquiry", label: "إضافة استفسار جديد يدويًا", icon: PlusCircle },
-  { key: "edit_inquiry", label: "تعديل استفسار موجود", icon: Pencil },
-  { key: "delete_inquiry", label: "حذف استفسار", icon: Trash2 },
-  { key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
-  { key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
-  { key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
-  { key: "manage_media", label: "إدارة مقاطع النماذج (يوتيوب)", icon: Clapperboard },
-  { key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
-  { key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
-  { key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
+  { group: "البيانات", key: "import_excel", label: "رفع ومزامنة بيانات من إكسل", icon: FileSpreadsheet },
+  { group: "البيانات", key: "restore_backup", label: "استرجاع نسخة احتياطية من البيانات", icon: RotateCcw },
+  { group: "البيانات", key: "add_inquiry", label: "إضافة استفسار جديد يدويًا", icon: PlusCircle },
+  { group: "البيانات", key: "edit_inquiry", label: "تعديل استفسار موجود", icon: Pencil },
+  { group: "البيانات", key: "delete_inquiry", label: "حذف استفسار", icon: Trash2 },
+  { group: "البيانات", key: "flag_urgent", label: "تعديل وسم \"عاجل\"", icon: Star },
+  { group: "البيانات", key: "manage_filters", label: "إدارة الفلاتر المخصصة بالموقع العام", icon: Filter },
+  { group: "التقارير والتحليلات", key: "view_dashboard", label: "عرض لوحة القرار والملخص التنفيذي", icon: BarChart3 },
+  { group: "التقارير والتحليلات", key: "view_analytics", label: "عرض تبويب الزيارات", icon: Eye },
+  { group: "التقارير والتحليلات", key: "view_insights", label: "عرض التحليلات الشاملة", icon: Activity },
+  { group: "التقارير والتحليلات", key: "purge_analytics", label: "تفريغ بيانات الزيارات والتحليلات", icon: Trash2 },
+  { group: "التقارير والتحليلات", key: "export_data", label: "تصدير التقارير كإكسل", icon: Download },
+  { group: "المحتوى والمظهر", key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
+  { group: "المحتوى والمظهر", key: "manage_media", label: "إدارة مقاطع النماذج (يوتيوب)", icon: Clapperboard },
+  { group: "المحتوى والمظهر", key: "manage_gallery", label: "إدارة معرض الموقع (المواضيع والصور)", icon: Images },
+  { group: "المحتوى والمظهر", key: "manage_share", label: "إنشاء وإدارة روابط المشاركة", icon: Link2 },
+  { group: "المحتوى والمظهر", key: "manage_theme", label: "تغيير مظهر الموقع وتسمية الأقسام", icon: Palette },
+  { group: "الإدارة", key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
+  { group: "الإدارة", key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
+  { group: "الإدارة", key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
 ];
 export const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "cat", "status", "owner", "month", "note", "note_en", "reply", "closed", "answered"];
 export const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة (تصنيف نوع البند)", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
