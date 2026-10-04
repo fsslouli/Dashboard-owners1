@@ -1,5 +1,4 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: progress-tab */
-import { PhaseRings } from "./public-sheets.jsx";
 import { PG_NOTE, PG_NOTE_EN, PG_PHASE_NAME, PG_PHASE_NAME_EN, extendPlan, fmtDate, trPGLabel, trPGMonth, trPGPNote, trYear, useLang, useT } from "./site-data.jsx";
 import { useInView } from "./site-hooks.jsx";
 import { ChartTip } from "./ui-atoms.jsx";
@@ -214,11 +213,9 @@ export function ProgressTab({ reduced, data, loading }) {
       {/* المراحل */}
       <section className="surf" style={{ padding: "20px 18px", marginBottom: 14 }}>
         <div className="sec-t">{L("المراحل", "Phases")}</div>
-        <div className="eyebrow" style={{ marginTop: 4, marginBottom: 16 }}>
+        <div className="eyebrow" style={{ marginTop: 4, marginBottom: 6 }}>
           {L("مقابل هدف", "Against")} {mFull(mi)} {L("", "target")} <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span> — {L("الخط الرأسي يمثّل الهدف", "the vertical line marks the target")}
         </div>
-        <PhaseRings phases={PHASES.filter((p) => p.key !== "total")} mi={mi} tgt={tgt}
-          ahead={ahead} behind={behind} muted={T.muted} sunken={T.sunken} lang={lang} />
         {PHASES.filter((p) => p.key !== "total").map((p) => {
           const v = p.v[mi];
           const g = v == null || tgt == null ? null : +(v - tgt).toFixed(2);
