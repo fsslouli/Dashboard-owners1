@@ -2,7 +2,7 @@
 import { logEvent } from "./app-bootstrap.jsx";
 import { AttachmentsBlock } from "./attach-kit.jsx";
 import { CHANGELOG, LEGAL_COPY } from "./changelog-legal-data.jsx";
-import { EMPTY_F, passesFilters } from "./public-site.jsx";
+import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
 import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, Select } from "./ui-atoms.jsx";
@@ -127,7 +127,10 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
 
   const dtoggle = (k, v) => setDraft((p) => ({ ...p, [k]: p[k] === v ? (typeof v === "boolean" ? !v : null) : v }));
   const dval = (k, v) => setDraft((p) => ({ ...p, [k]: v }));
-  const draftCount = Object.entries(draft).filter(([k, v]) => k !== "q" && (typeof v === "boolean" ? v : v != null)).length;
+  /* اختيار متعدد: الضغطة تضيف القيمة أو تشيلها، وأي عدد من القيم بنفس النوع (أو من أنواع مختلفة) */
+  const dmulti = (k, v) => setDraft((p) => { const cur = arr(p[k]); const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]; return { ...p, [k]: next.length ? next : null }; });
+  const isOn = (k, v) => arr(draft[k]).includes(v);
+  const draftCount = Object.entries(draft).reduce((n, [k, v]) => (k === "q" ? n : typeof v === "boolean" ? n + (v ? 1 : 0) : n + arr(v).length), 0);
   const previewCount = ALL.filter((r) => passesFilters(r, draft, nq, nqId)).length;
 
   return (
@@ -142,23 +145,26 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
         </div>
 
         <div className="sheet-body" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
-          <div className="sec-lbl">{L("الاجتماع والتوقيت", "Meeting & Timing")}</div>
-          {cats.meetings.length > 0 && (
-            <div className="flex flex-wrap items-center" style={{ gap: 8, marginBottom: 10 }}>
-              {cats.meetings.map((m) => (
-                <Chip key={m} on={draft.meeting === m} onClick={() => dtoggle("meeting", m)} color={T.zone}>
-                  {`${trMeeting(lang, m)} (${ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length})`}
-                </Chip>
-              ))}
-            </div>
-          )}
-          <Select block value={draft.mon} onChange={(v) => dval("mon", v)} placeholder={L("كل الأشهر", "All months")} icon={Calendar}
-            options={cats.months.map((m) => ({ v: m, l: trMonth(lang, m) }))} />
+          <div className="sec-lbl">{L("الاجتماع", "Meeting")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.meetings.map((m) => (
+              <Chip key={m} on={isOn("meeting", m)} onClick={() => dmulti("meeting", m)} color={T.zone}
+                count={ALL.filter((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(m)).length}>{trMeeting(lang, m)}</Chip>
+            ))}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الشهر", "Month")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.months.map((m) => (
+              <Chip key={m} on={isOn("mon", m)} onClick={() => dmulti("mon", m)}
+                count={ALL.filter((r) => r.month === m).length}>{trMonth(lang, m)}</Chip>
+            ))}
+          </div>
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الحالة", "Status")}</div>
           <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
             {cats.sta.map((s) => (
-              <Chip key={s} on={draft.sta === s} onClick={() => dtoggle("sta", s)} color={staC(s)}
+              <Chip key={s} on={isOn("sta", s)} onClick={() => dmulti("sta", s)} color={staC(s)}
                 count={ALL.filter((r) => r.sta === s).length}>{trSta(lang, s)}</Chip>
             ))}
           </div>
@@ -166,25 +172,41 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الأولوية", "Priority")}</div>
           <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
             {cats.pri.map((p) => (
-              <Chip key={p} on={draft.pri === p} onClick={() => dtoggle("pri", p)}
+              <Chip key={p} on={isOn("pri", p)} onClick={() => dmulti("pri", p)}
                 count={ALL.filter((r) => r.pri === p).length}>{trPri(lang, p)}</Chip>
             ))}
           </div>
 
-          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("التصنيف والنموذج", "Category & Model")}</div>
-          <div className="filt-grid">
-            <Select block value={draft.cat} onChange={(v) => dval("cat", v)} placeholder={L("كل الفئات", "All categories")} icon={Tag}
-              options={cats.cat.map((c) => ({ v: c, l: `${trCat(lang, c)} (${ALL.filter((r) => r.cat === c).length})` }))} />
-            <Select block value={draft.model} onChange={(v) => dval("model", v)} placeholder={L("كل النماذج", "All models")} icon={Home}
-              options={cats.models.map((m) => ({ v: m, l: `${trModel(lang, m)} (${ALL.filter((r) => r.models.includes(m)).length})` }))} />
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("النموذج", "Model")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.models.map((m) => (
+              <Chip key={m} on={isOn("model", m)} onClick={() => dmulti("model", m)}
+                count={ALL.filter((r) => r.models.includes(m)).length}>{trModel(lang, m)}</Chip>
+            ))}
           </div>
 
-          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الموقع والمجيب", "Location & Engineer")}</div>
-          <div className="filt-grid">
-            <Select block value={draft.zone} onChange={(v) => dval("zone", v)} placeholder={L("كل المواقع", "All locations")} icon={Layers}
-              options={ZONES.filter((z) => ALL.some((r) => r.zone === z.key)).map((z) => ({ v: z.key, l: trZone(lang, z.key) }))} />
-            <Select block value={draft.own} onChange={(v) => dval("own", v)} placeholder={L("كل المجيبين", "All engineers")} icon={User}
-              options={cats.owners.map((m) => ({ v: m, l: trOwn(lang, m) }))} />
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("التصنيف", "Category")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.cat.map((c) => (
+              <Chip key={c} on={isOn("cat", c)} onClick={() => dmulti("cat", c)}
+                count={ALL.filter((r) => r.cat === c).length}>{trCat(lang, c)}</Chip>
+            ))}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("الموقع", "Location")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {ZONES.filter((z) => ALL.some((r) => r.zone === z.key)).map((z) => (
+              <Chip key={z.key} on={isOn("zone", z.key)} onClick={() => dmulti("zone", z.key)}
+                count={ALL.filter((r) => r.zone === z.key).length}>{trZone(lang, z.key)}</Chip>
+            ))}
+          </div>
+
+          <div className="sec-lbl" style={{ marginTop: 24 }}>{L("المجيب", "Engineer")}</div>
+          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+            {cats.owners.map((m) => (
+              <Chip key={m} on={isOn("own", m)} onClick={() => dmulti("own", m)}
+                count={ALL.filter((r) => r.owner === m).length}>{trOwn(lang, m)}</Chip>
+            ))}
           </div>
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("تمييز", "Flags")}</div>

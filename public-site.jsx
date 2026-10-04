@@ -23,15 +23,18 @@ export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, mod
 /* ═══ v2.8.4 — منطق التصفية مستقل عن حالة اللوحة ═══
    استُخرج من useMemo الخاص بـ match() عشان تقدر لوحة "الفلاتر" تحسب عدد نتائج
    المسودة (قبل تطبيقها فعليًا) بنفس المنطق تمامًا، بدون أي احتمال تكرار أو تعارض. */
+/* قيم الفلتر: مصفوفة (اختيار متعدد) أو قيمة مفردة قديمة من روابط النظرة العامة */
+export const arr = (x) => (x == null || x === "" ? [] : Array.isArray(x) ? x : [x]);
 export function passesFilters(r, f, nq, nqId) {
-  if (f.zone && r.zone !== f.zone) return false;
-  if (f.pri && r.pri !== f.pri) return false;
-  if (f.cat && r.cat !== f.cat) return false;
-  if (f.sta && r.sta !== f.sta) return false;
-  if (f.model && !r.models.includes(f.model)) return false;
-  if (f.own && r.owner !== f.own) return false;
-  if (f.mon && r.month !== f.mon) return false;
-  if (f.meeting && !((r.meetings && r.meetings.length ? r.meetings : [r.meeting]).includes(f.meeting))) return false;
+  const pick = (v, ok) => { const a = arr(v); return a.length === 0 || ok(a); };
+  if (!pick(f.zone, (a) => a.includes(r.zone))) return false;
+  if (!pick(f.pri, (a) => a.includes(r.pri))) return false;
+  if (!pick(f.cat, (a) => a.includes(r.cat))) return false;
+  if (!pick(f.sta, (a) => a.includes(r.sta))) return false;
+  if (!pick(f.model, (a) => a.some((m) => r.models.includes(m)))) return false;
+  if (!pick(f.own, (a) => a.includes(r.owner))) return false;
+  if (!pick(f.mon, (a) => a.includes(r.month))) return false;
+  if (!pick(f.meeting, (a) => { const rm = r.meetings && r.meetings.length ? r.meetings : [r.meeting]; return a.some((m) => rm.includes(m)); })) return false;
   if (f.open && r.closed) return false;
   if (f.fresh && !r.isNew) return false;
   if (f.important && !r.isImportantActive) return false;
@@ -368,9 +371,9 @@ export function PublicSite({ share = null } = {}) {
     Object.keys(f).forEach((k) => {
       if (k === "q" || k === "fresh") return;
       const v = f[k];
-      if (v !== prevFRef.current[k] && v !== null && v !== false && v !== "") {
-        logEvent("filter", k, v, null);
-      }
+      if (typeof v === "boolean") { if (v && v !== prevFRef.current[k]) logEvent("filter", k, v, null); return; }
+      const pa = arr(prevFRef.current[k]);
+      arr(v).forEach((x) => { if (!pa.includes(x)) logEvent("filter", k, x, null); });
     });
     prevFRef.current = f;
   }, [f]);
@@ -551,14 +554,14 @@ export function PublicSite({ share = null } = {}) {
   const activeChips = useMemo(() => {
     const out = [];
     if (f.q) out.push({ k: "q", l: `${L("بحث:", "Search:")} ${f.q}` });
-    if (f.zone) out.push({ k: "zone", l: trZone(lang, f.zone) });
-    if (f.sta) out.push({ k: "sta", l: trSta(lang, f.sta) });
-    if (f.pri) out.push({ k: "pri", l: trPri(lang, f.pri) });
-    if (f.cat) out.push({ k: "cat", l: trCat(lang, f.cat) });
-    if (f.model) out.push({ k: "model", l: trModel(lang, f.model) });
-    if (f.own) out.push({ k: "own", l: trOwn(lang, f.own) });
-    if (f.mon) out.push({ k: "mon", l: trMonth(lang, f.mon) });
-    if (f.meeting) out.push({ k: "meeting", l: trMeeting(lang, f.meeting) });
+    arr(f.zone).forEach((x) => out.push({ k: "zone", l: trZone(lang, x) }));
+    arr(f.sta).forEach((x) => out.push({ k: "sta", l: trSta(lang, x) }));
+    arr(f.pri).forEach((x) => out.push({ k: "pri", l: trPri(lang, x) }));
+    arr(f.cat).forEach((x) => out.push({ k: "cat", l: trCat(lang, x) }));
+    arr(f.model).forEach((x) => out.push({ k: "model", l: trModel(lang, x) }));
+    arr(f.own).forEach((x) => out.push({ k: "own", l: trOwn(lang, x) }));
+    arr(f.mon).forEach((x) => out.push({ k: "mon", l: trMonth(lang, x) }));
+    arr(f.meeting).forEach((x) => out.push({ k: "meeting", l: trMeeting(lang, x) }));
     if (f.open) out.push({ k: "open", l: L("مفتوحة فقط", "Open only") });
     if (f.fresh) out.push({ k: "fresh", l: L("الجديد فقط", "New only") });
     if (f.important) out.push({ k: "important", l: L("مهم فقط", "Important only") });

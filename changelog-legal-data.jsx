@@ -13,10 +13,11 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.14",
+    version: "5.0.15",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "الفلاتر: اختيار متعدد في كل المعايير (اجتماعان أو أكثر، حالتان، أكثر من نموذج...)، والنتائج تجمع القيم داخل المعيار الواحد وتتقاطع بين المعايير",
       "إعادة ترتيب نافذة تخصيص البحث حسب الأكثر استخدامًا: الاجتماع والتوقيت أولًا، ثم الحالة والأولوية، والترتيب في الآخر",
       "تبسيط الإشعار القانوني",
       "توحيد أسماء النماذج في كل الموقع: آمانيثير · ألبا · أورورا · البدا",
@@ -36,6 +37,7 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Filters: multi-select on every criterion (several meetings, statuses, models...). Values within one criterion combine; different criteria intersect",
       "Reordered the search filter sheet by usage: meeting & timing first, then status and priority, sort last",
       "Simplified the legal notice",
       "Unified model names across the site: Amanecer, Alba, Aurora, Albada",
