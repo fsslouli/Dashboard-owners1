@@ -21,7 +21,10 @@ const SESSION_ID =
   (typeof crypto !== "undefined" && crypto.randomUUID)
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+/* خطّاف يضبطه site-analytics.js عند تفعيل التتبع الشامل: كل logEvent يصل أيضًا لجلسة التحليلات */
+export const siteHook = { fn: null };
 export function logEvent(event_type, category, value, extra) {
+  try { if (siteHook.fn) siteHook.fn(event_type, category, value, extra); } catch (e) {}
   try {
     fetch(`${SUPABASE_URL}/rest/v1/logs`, {
       method: "POST",

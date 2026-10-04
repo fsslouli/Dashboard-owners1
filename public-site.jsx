@@ -1,5 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: public-site */
 import { TELEGRAM_URL, TelegramIcon, debounceLive, logEvent, supabase } from "./app-bootstrap.jsx";
+import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-analytics.js";
 import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
 import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
@@ -14,7 +15,7 @@ import { GallerySection } from "./gallery-kit.jsx";
 import { isHidden, NL, useNavLabels } from "./nav-labels-kit.jsx";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Laptop, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Smartphone, Sparkles, ThumbsUp, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, Laptop, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Smartphone, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
@@ -346,6 +347,8 @@ export function PublicSite({ share = null } = {}) {
 
   /* تتبع صامت: زيارة عند التحميل */
   useEffect(() => { logEvent("visit", null, null, null); }, []);
+  /* التتبع الشامل (٥.٠): جلسة كاملة + ضغطات + تمرير + بحث + لغة/مظهر — يتجاوز وضع المشاركة (له تتبعه الخاص) */
+  useEffect(() => { if (!share) startSiteAnalytics(resolved); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* عنوان تبويب المتصفح — يتبع اللغة المختارة بدل الاسم الافتراضي للمشروع */
   useEffect(() => {
@@ -355,6 +358,7 @@ export function PublicSite({ share = null } = {}) {
   /* تتبع صامت: تبديل التبويب (يتجاهل التبويب الأول عند التحميل) */
   const firstTabRef = useRef(true);
   useEffect(() => {
+    siteSetTab(tab);
     if (firstTabRef.current) { firstTabRef.current = false; return; }
     logEvent("tab", tab, null, null);
   }, [tab]);
@@ -371,6 +375,24 @@ export function PublicSite({ share = null } = {}) {
     });
     prevFRef.current = f;
   }, [f]);
+
+  /* تتبع شامل (٥.٠): عبارة البحث (بعد توقف الكتابة)، تغيّر اللغة، تغيّر المظهر */
+  useEffect(() => {
+    if (share) return undefined;
+    const q = f.q.trim();
+    if (q.length < 2) return undefined;
+    const t = setTimeout(() => siteTrack("search", { value: q }), 1500);
+    return () => clearTimeout(t);
+  }, [f.q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const prefRef = useRef({ lang, mode, first: true });
+  useEffect(() => {
+    siteSetTheme(resolved);
+    if (prefRef.current.first) { prefRef.current.first = false; return; }
+    if (share) return;
+    if (prefRef.current.lang !== lang) siteTrack("lang", { value: lang });
+    if (prefRef.current.mode !== mode) siteTrack("theme", { value: `${mode}/${resolved}` });
+    prefRef.current.lang = lang; prefRef.current.mode = mode;
+  }, [lang, mode, resolved]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* تتبع صامت: فتح تفاصيل استفسار */
   useEffect(() => {
@@ -554,25 +576,27 @@ export function PublicSite({ share = null } = {}) {
       <LangCtx.Provider value={{ lang, setLang }}>
       <div dir={lang === "ar" ? "rtl" : "ltr"} className="dash" data-design={designKey} style={{ minHeight: "100%" }}>
         <style>{`
-@import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400..600&display=block');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 .dash{font-family:'IBM Plex Sans Arabic',system-ui,'Segoe UI',Tahoma,sans-serif;-webkit-font-smoothing:antialiased;
   background:${T.bg};color:${T.paper};transition:background .3s ease,color .3s ease;}
 .dash ::selection{background:${T.brass}33;}
 .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;display:inline-block;}
-.disp{font-family:'Reem Kufi','IBM Plex Sans Arabic',sans-serif;}
+.disp{font-family:'Cairo','IBM Plex Sans Arabic',sans-serif;font-weight:700;}
 .wrap{max-width:1120px;margin:0 auto;padding:18px 16px 40px;}
 @media(min-width:768px){.wrap{padding:30px 28px 56px;}}
 
 .surf{background:${T.surface};border-radius:18px;box-shadow:${T.shadow};}
 .eyebrow{font-size:11.5px;color:${T.muted};}
-.sec-t{font-family:'Reem Kufi',sans-serif;font-size:16.5px;color:${T.paper};}
+.sec-t{font-family:'Cairo',sans-serif;font-weight:700;font-size:16.5px;color:${T.paper};}
 .sec-lbl{font-size:11.5px;color:${T.muted};margin-bottom:9px;}
 
 .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-.h1{font-size:clamp(23px,5.2vw,33px);line-height:1.3;margin:6px 0 0;word-spacing:.22em;}
+.h1{font-size:clamp(23px,5.2vw,33px);line-height:1.3;margin:6px 0 0;word-spacing:.06em;}
 .meta-line{display:flex;flex-wrap:wrap;align-items:center;gap:9px;font-size:12px;color:${T.muted};margin-top:14px;}
+.credit-line{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 13px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.1px;
+  color:${T.brass};background:${T.brass}14;border:1px solid ${T.brass}30;}
 .dot{width:3px;height:3px;border-radius:50%;background:${T.faint};display:inline-block;flex:none;}
 .acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 
@@ -1145,8 +1169,10 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
             <div className="meta-line">
               <span>{cats.months.length ? `${trMonth(lang, cats.months[0])} — ${trMonth(lang, cats.months[cats.months.length - 1])}` : "—"}</span>
-              <span className="dot" />
-              <span>{cats.models.map((m) => trModel(lang, m)).join(L("، ", ", "))}</span>
+            </div>
+            <div className="credit-line">
+              <ShieldCheck size={13} />
+              <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
             </div>
 
             <div className="stamp">
@@ -1223,7 +1249,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             {tabOk("gallery") && !isHidden(navLabels, "gallery") && (
               <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
                 onClick={() => setTab("gallery")}>
-                {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
+                <Images size={13} /> {NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
               </button>
             )}
             <span className="tab-indicator" ref={indicatorRef} />
@@ -1545,16 +1571,6 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   )}
                 </p>
               </section>
-
-              <div className="doc-disclaimer">
-                <ShieldAlert size={15} />
-                <span>
-                  {L(
-                    "الملفات مرجعية للاطّلاع فقط وقد تخضع لتعديلات من المطوّر. للتأكد من أي تفصيل نهائي يخص وحدتك تواصل عبر قناة الاستفسارات.",
-                    "Files are for reference only and may be revised by the developer. For any unit-specific final detail, please reach out via the inquiries channel."
-                  )}
-                </span>
-              </div>
 
               <div className="doc-list">
                 {docsList.map((doc) => {

@@ -80,7 +80,7 @@ export function VillaPlan({ counts, active, onPick, built }) {
 
   const Tag = ({ x, y, name, k, delay, big }) => (
     <div style={{ ...pos(x, y), ...lbl(k, delay) }}>
-      <div style={{ fontSize: big ? 12.5 : 11, color: on(k) ? T.zoneOn : T.paper, fontFamily: big ? "'Reem Kufi',sans-serif" : "inherit" }}>{name}</div>
+      <div style={{ fontSize: big ? 12.5 : 11, color: on(k) ? T.zoneOn : T.paper, fontFamily: big ? "'Cairo',sans-serif" : "inherit" }}>{name}</div>
       <div className="mono" style={{ fontSize: big ? 19 : 14, fontWeight: 600, color: on(k) ? T.zoneOn : T.brass, marginTop: 2 }}>{counts[k] || 0}</div>
     </div>
   );

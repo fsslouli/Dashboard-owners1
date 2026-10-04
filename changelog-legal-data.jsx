@@ -13,6 +13,23 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.0.0",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "حذف قائمة النماذج من ترويسة الصفحة وحذف تنبيه «الملفات مرجعية» من صفحة المخططات",
+      "أيقونة لتبويب المكتبة المرئية والتقارير",
+      "خط العناوين الجديد Cairo بدل Reem Kufi في كل المواضع",
+      "سطر «أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك» بالترويسة",
+    ],
+    en: [
+      "Removed the models list from the header and the \"reference only\" notice from the plans page",
+      "Icon added to the Photos & Videos tab",
+      "New heading font Cairo replaces Reem Kufi everywhere",
+      "Header credit line: prepared by the Owners' Representatives Team",
+    ],
+  },
+  {
     version: "4.0.1",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
@@ -28,17 +45,15 @@ export const CHANGELOG = [
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
-      "تحديث كبير لروابط المشاركة: تتبّع كامل لنشاط المستلم داخل الجلسة (كل ضغطة، الأقسام التي فتحها ومدة كل قسم، الروابط والملفات) مع تقرير للإدارة متاح أثناء الجلسة وبعد انتهائها، وتصدير CSV وطباعة/PDF",
+      "تحديث كبير لروابط المشاركة: رمز دخول (PIN) اختياري للرابط، وتقرير للإدارة عن الروابط مع تصدير CSV وطباعة/PDF",
       "الرابط أقصر: ٢٢ حرفًا فقط (رمز ١٢٨ بت) بدل ٤٣، مع حماية متعددة الطبقات: مفتاح بحث مشتق HKDF لا يُخزَّن الرمز نفسه، ورمز دخول PIN اختياري بتجزئة PBKDF2 مع قفل ١٥ دقيقة بعد ٥ أخطاء وإلغاء تلقائي بعد ١٥ خطأ، وجلسات موقّعة HMAC تُفحص كل ٤٥ ثانية",
-      "إدارة أفضل للروابط: تمديد يوم، إضافة فتحة، نسخ إعدادات رابط سابق، مسح سجل النشاط، وعرض ملخص النشاط لكل رابط",
-      "شفافية للمستلم: تظهر قبل الفتح عبارة واضحة بأن النشاط داخل الصفحة يُسجَّل ويُعرض على صاحب الموقع فقط. لا يُسجَّل أي نص يكتبه الزائر ولا عنوان IP (بصمة مقتطعة فقط)",
+      "إدارة أفضل للروابط: تمديد يوم، إضافة فتحة، ونسخ إعدادات رابط سابق",
       "ترويسات أمان للموقع كله (nosniff، منع التضمين الخارجي، HSTS، سياسة الأذونات)",
     ],
     en: [
-      "Major Share Links update: full tracking of recipient activity within the session (every click, sections opened and time per section, links and files) with an admin report available during and after the session, CSV export and print/PDF",
+      "Major Share Links update: optional PIN for each link, and an admin report with CSV export and print/PDF",
       "Shorter link: 22 characters (128-bit token) instead of 43, with layered protection: an HKDF-derived lookup key (the token itself is never stored), an optional PBKDF2-hashed PIN with a 15-minute lock after 5 wrong attempts and auto-revoke after 15, and HMAC-signed sessions re-checked every 45 seconds",
-      "Better link management: extend by a day, add an open, clone a previous link's settings, wipe the activity log, and an activity summary on each link",
-      "Recipient transparency: before opening, a clear notice says in-page activity is logged and visible to the site owner only. Typed text and IP addresses are not stored (truncated hash only)",
+      "Better link management: extend by a day, add an open, and clone a previous link's settings",
       "Security headers site-wide (nosniff, no external framing, HSTS, permissions policy)",
     ],
   },
@@ -1166,6 +1181,7 @@ export const LEGAL_COPY = {
       ["طبيعة المنصة", "هذه اللوحة هي مبادرة واجتهاد شخصي وودّي من ممثلي الملاك، ولا تُعد منصة رسمية أو متحدثًا رسميًا باسم أي جهة حكومية، خريطة طريق، أو الشركة المطوّرة."],
       ["طبيعة البيانات", "كافة المعلومات والإحصائيات الواردة هي بيانات استرشادية منقولة كما هي من المطوّر العقاري أو من استبيانات الملاك، دون أدنى مسؤولية عن دقتها أو صحتها أو أي تغييرات قد تطرأ عليها مستقبلًا من قِبل المطوّر."],
       ["نفي الصفة والمسؤولية", "لا يتحمّل ممثلو الملاك أي مسؤولية قانونية أو مالية أو إدارية ناتجة عن استخدام هذه البيانات، أو بناء أي قرارات عليها، أو عن أي ردود فعل أو إجراءات قد تتخذها أي جهة أو مطوّر تجاه ما يُنقل من مطالب أو استفسارات."],
+      ["التحليلات المجهولة", "لتحسين الموقع تُسجَّل بشكل مجهول طريقة استخدامه (الأقسام المفتوحة، البحث، الضغطات، مدة التصفح، نوع الجهاز). لا يُسجَّل عنوان الـIP ولا أي نص تكتبه عدا كلمة البحث، ولا تُستخدم كوكيز. يُحترم إعداد «Do Not Track»."],
     ],
     consent: "بالضغط على «أوافق»، فأنت تقرّ بعلمك التام بجميع ما ورد أعلاه وتوافق على إخلاء مسؤولية القائمين على اللوحة تمامًا.",
     agree: "أوافق",
@@ -1177,6 +1193,7 @@ export const LEGAL_COPY = {
       ["Nature of the Platform", "This dashboard is a personal, voluntary initiative by owner representatives. It is not an official platform or spokesperson on behalf of any government entity, project roadmap, or the developer company."],
       ["Nature of the Data", "All information and statistics shown are indicative data, transferred as-is from the real estate developer or from owner surveys, with no responsibility for their accuracy, correctness, or any future changes made by the developer."],
       ["Disclaimer of Role & Liability", "Owner representatives bear no legal, financial, or administrative liability arising from use of this data, decisions made based on it, or any response or action taken by any party or developer regarding demands or inquiries conveyed."],
+      ["Anonymous Analytics", "To improve the site, usage is recorded anonymously (sections opened, searches, clicks, time on site, device type). No IP address is stored, nothing you type is recorded except search terms, and no cookies are used. Do Not Track is respected."],
     ],
     consent: "By clicking \u201cI Agree,\u201d you acknowledge full awareness of the above and agree to fully release the dashboard administrators from liability.",
     agree: "I Agree",

@@ -2,6 +2,7 @@
 import { AdminLogin, isoAdminDate, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { ALocked, aNoteStyle } from "./admin-excel-utils.jsx";
 import { AMediaTab } from "./admin-media-tab.jsx";
+import { AInsightsTab } from "./admin-insights-tab.jsx";
 import { AAnalyticsTab, AAuditLogTab, AFiltersTab, ANoticesTab, AUsersTab } from "./admin-tabs-1.jsx";
 import { ADashboardTab, AThemeTab } from "./admin-tabs-2.jsx";
 import { ASyncTab } from "./admin-trail-sync.jsx";
@@ -76,6 +77,7 @@ const ADMIN_TABS = [
   { key: "dashboard", label: "لوحة القرار", perms: ["view_dashboard"] },
   { key: "sync", label: "المزامنة والبيانات", perms: ["import_excel", "add_inquiry", "edit_inquiry", "delete_inquiry", "flag_urgent"] },
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
+  { key: "insights", label: "التحليلات الشاملة", perms: ["view_analytics"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
@@ -142,6 +144,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
         {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
+        {activeTab === "insights" && <AInsightsTab flashToast={flashToast} canExport={has("export_data")} canPurge={has("edit_permissions")} log={log} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
         {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
