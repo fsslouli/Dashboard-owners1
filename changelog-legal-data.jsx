@@ -13,27 +13,36 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.0",
+    version: "5.0.5",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
-      "حذف قائمة النماذج من ترويسة الصفحة وحذف تنبيه «الملفات مرجعية» من صفحة المخططات",
       "حذف قسمي «أحدث الملاحظات» و«حسب الأولوية» من النظرة العامة",
       "حذف زر «سطح المكتب» وسطر التاريخ من الترويسة — العرض يتكيّف تلقائيًا مع المتصفح",
       "إخفاء خيار عرض الجدول/البطاقات على الجوال (بطاقات دائمًا) وإبقاؤه للشاشات الكبيرة",
       "تقدّم البلوكات: ملخص مختصر للشهر (الأكثر تقدمًا، الأقل تقدمًا، المتوقفة) بدل الجملة الطويلة",
       "حذف دوائر المراحل من تبويب التقدّم",
+    ],
+    en: [
+      "Removed the \"Latest Notes\" and \"By Priority\" sections from the Overview",
+      "Removed the Desktop button and the date line from the header — the layout adapts to the browser automatically",
+      "Table/Cards switch hidden on phones (cards always) and kept for large screens",
+      "Blocks progress: short monthly summary (most, least, stalled) instead of the long sentence",
+      "Removed the phase rings from the Progress tab",
+    ],
+  },
+  {
+    version: "5.0.0",
+    dateAr: "4 أكتوبر 2026",
+    dateEn: "October 4, 2026",
+    ar: [
+      "حذف قائمة النماذج من ترويسة الصفحة وحذف تنبيه «الملفات مرجعية» من صفحة المخططات",
       "أيقونة لتبويب المكتبة المرئية والتقارير",
       "خط العناوين الجديد Cairo بدل Reem Kufi في كل المواضع",
       "سطر «أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك» بالترويسة",
     ],
     en: [
       "Removed the models list from the header and the \"reference only\" notice from the plans page",
-      "Removed the \"Latest Notes\" and \"By Priority\" sections from the Overview",
-      "Removed the Desktop button and the date line from the header — the layout adapts to the browser automatically",
-      "Table/Cards switch hidden on phones (cards always) and kept for large screens",
-      "Blocks progress: short monthly summary (most, least, stalled) instead of the long sentence",
-      "Removed the phase rings from the Progress tab",
       "Icon added to the Photos & Videos tab",
       "New heading font Cairo replaces Reem Kufi everywhere",
       "Header credit line: prepared by the Owners' Representatives Team",
