@@ -13,10 +13,12 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
-    version: "5.0.11",
+    version: "5.0.12",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
     ar: [
+      "توحيد أسماء النماذج في كل الموقع: آمانيثير · ألبا · أورورا · البدا",
+      "ملاحظات صفحة التقدّم (بلوك ٢٣ والتراجع) صارت في قسم صغير قابل للطيّ",
       "تحديث صياغة بند «طبيعة البيانات» في الإشعار القانوني",
       "تعديل صياغة السطر الأخير في أسفل الصفحة: البيانات استرشادية وقابلة للتحديث",
       "أيقونة لكل قسم في شريط التنقّل لتسهيل التمييز بينها",
@@ -32,6 +34,8 @@ export const CHANGELOG = [
       "حذف دوائر المراحل من تبويب التقدّم",
     ],
     en: [
+      "Unified model names across the site: Amanecer, Alba, Aurora, Albada",
+      "Progress page data notes (Block 23 and the drop) now sit in a small collapsible section",
       "Updated the wording of the \"Nature of the Data\" clause in the legal notice",
       "Reworded the footer line: data is indicative and subject to updates",
       "Added an icon to every section in the navigation bar",

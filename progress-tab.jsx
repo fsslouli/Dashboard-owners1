@@ -310,7 +310,6 @@ export function ProgressTab({ reduced, data, loading }) {
           </div>
         ))}
 
-        {NOTE && <div className="note-box" style={{ marginTop: 16 }}>{lang === "en" && NOTE === PG_NOTE ? PG_NOTE_EN : NOTE}</div>}
         {(() => {
           const drops = BLOCKS.map((r) => {
             let worst = null;
@@ -321,16 +320,18 @@ export function ProgressTab({ reduced, data, loading }) {
             }
             return worst ? { b: r.b, from: r.v[worst.i - 1], to: r.v[worst.i], m0: worst.i - 1, m1: worst.i, d: worst.d } : null;
           }).filter(Boolean);
-          if (!drops.length) return null;
+          if (!NOTE && !drops.length) return null;
           return (
-            <div className="note-box" style={{ marginTop: 8 }}>
+            <details className="note-box" style={{ marginTop: 16 }}>
+              <summary style={{ cursor: "pointer" }}>{L("ملاحظات على البيانات", "Data notes")} ({drops.length + (NOTE ? 1 : 0)})</summary>
+              {NOTE && <div style={{ marginTop: 8 }}>{lang === "en" && NOTE === PG_NOTE ? PG_NOTE_EN : NOTE}</div>}
               {drops.map((r) => (
                 <div key={r.b}>
                   {L("بلوك", "Block")} {r.b} {L("سجّل تراجعًا من", "recorded a drop from")} <span className="mono">{r.from.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m0)}{" "}
                   {L("إلى", "to")} <span className="mono">{r.to.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m1)} — {L("يُرجَّح أنه تصحيح لقياس سابق، وليس تراجعًا فعليًا في التنفيذ.", "likely a correction of an earlier reading, not an actual execution setback.")}
                 </div>
               ))}
-            </div>
+            </details>
           );
         })()}
       </section>

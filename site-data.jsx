@@ -144,14 +144,14 @@ export const FLAG_META = {
 /* ── ٣. ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
 const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Low" };
 const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Rejected", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
-const MODEL_EN = { "امانيثير": "Amanither", "اورورا": "Aurora", "البادا": "Bada", "البا": "Alba" };
+const MODEL_EN = { "امانيثير": "Amanecer", "اورورا": "Aurora", "البادا": "Albada", "البا": "Alba" };
 const SCOPE_EN = {
-  "جميع النماذج": "All models", "جميع النماذج عدا امانيثير": "All models except Amanither",
-  "أورورا": "Aurora", "امانيثير و آلبا": "Amanither & Alba", "البا و امانيثير": "Alba & Amanither",
+  "جميع النماذج": "All models", "جميع النماذج عدا امانيثير": "All models except Amanecer",
+  "أورورا": "Aurora", "امانيثير و آلبا": "Amanecer & Alba", "البا و امانيثير": "Alba & Amanecer",
   /* نطاق نموذج واحد — يرد بقاعدة البيانات بصيغ إملائية متفاوتة، والبحث المُوحَّد أدناه يلتقطها كلها */
-  "امانيثير": "Amanither", "البا": "Alba", "البادا": "Bada",
+  "امانيثير": "Amanecer", "البا": "Alba", "البادا": "Albada",
 };
-export const trScope = (lang, v) => (lang === "en" ? trLookup(SCOPE_EN, v) : v);
+export const trScope = (lang, v) => canonNames(lang, lang === "en" ? trLookup(SCOPE_EN, v) : v);
 const ZONE_EN = {
   roof: "Roof", first: "First Floor", slab: "Ground + First", ground: "Ground Floor",
   wet: "Kitchen & Bathrooms", stairs: "Staircase", whole: "Whole Villa",
@@ -202,9 +202,25 @@ function trLookup(map, v) {
   return nm[norm(v)] ?? v;
 }
 
+
+/* ── توحيد أسماء النماذج عند العرض (الاسم الرسمي: آمانيثير · ألبا · أورورا · البدا) ──
+   بيانات الإكسل والردود تجي بإملاء متفاوت؛ نوحّدها على العرض فقط دون لمس المصدر. */
+const AB = "(^|[^\\u0621-\\u064A])", AE = "(?=[^\\u0621-\\u064A]|$)";
+const CANON_AR = [
+  [new RegExp(AB + "(و?)(?:البادا|البدا|بادا)" + AE, "g"), "$1$2البدا"],
+  [new RegExp(AB + "(و?)[اأآ]مانيثير" + AE, "g"), "$1$2آمانيثير"],
+  [new RegExp(AB + "(و?)[اأآ]ورورا" + AE, "g"), "$1$2أورورا"],
+  [new RegExp(AB + "(و?)[اأآ]لبا" + AE, "g"), "$1$2ألبا"],
+];
+export function canonNames(lang, s) {
+  if (typeof s !== "string" || !s) return s;
+  if (lang === "en") return s.replace(/\bAmanither\b/g, "Amanecer").replace(/\bBada\b/g, "Albada");
+  return CANON_AR.reduce((t, [re, to]) => t.replace(re, to), s);
+}
+
 export const trPri = (lang, v) => (lang === "en" ? trLookup(PRI_EN, v) : v);
 export const trSta = (lang, v) => (lang === "en" ? trLookup(STA_EN, v) : v);
-export const trModel = (lang, v) => (lang === "en" ? trLookup(MODEL_EN, v) : v);
+export const trModel = (lang, v) => canonNames(lang, lang === "en" ? trLookup(MODEL_EN, v) : v);
 export const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.find((z) => z.key === k) || {}).label || k);
 export const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
 export const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
@@ -223,8 +239,8 @@ export const trMonth = (lang, m) => {
    بالضبط نفس تصرفها المعتاد مع أي ملاحظة ما وصلتها ترجمة بعد. */
 const TR_FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE|IS AN INVALID (SOURCE|TARGET) LANGUAGE|PLEASE SELECT TWO DISTINCT LANGUAGES|INVALID EMAIL PROVIDED|NO TRANSLATIONS? (FOUND|AVAILABLE)/i;
 const isTrFail = (t) => typeof t === "string" && TR_FAIL_RX.test(t);
-export const trNote = (lang, r) => (lang === "en" ? (r.note_en && !isTrFail(r.note_en) ? r.note_en : r.note) : r.note);
-export const trReply = (lang, r) => (lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) ? r.reply_en : r.reply) : r.reply);
+export const trNote = (lang, r) => canonNames(lang, lang === "en" ? (r.note_en && !isTrFail(r.note_en) ? r.note_en : r.note) : r.note);
+export const trReply = (lang, r) => canonNames(lang, lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) ? r.reply_en : r.reply) : r.reply);
 
 /* ═══════════════════════════════════════════════════════════
    ٤. نظام الألوان (Theme) — فاتح للنهار وداكن لليل.
@@ -567,7 +583,7 @@ export const norm = (s = "") =>
 export const MODEL_LIST = ["امانيثير", "اورورا", "البادا", "البا"];
 const MODEL_ALIAS = {
   "امانيثير": "امانيثير", "اورورا": "اورورا",
-  "البادا": "البادا", "بادا": "البادا", "البا": "البا",
+  "البادا": "البادا", "البدا": "البادا", "بادا": "البادا", "البا": "البا",
 };
 
 function modelTokens(scope) {
