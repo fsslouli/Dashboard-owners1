@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.2.1",
+    dateAr: "5 أكتوبر 2026",
+    dateEn: "October 5, 2026",
+    ar: ["صفحة المشاركة الخاصة على دومينها المنفصل ما تحمل أي إشارة لعنوان الموقع الرئيسي"],
+    en: ["The private share page on its separate domain no longer carries any reference to the main site address"],
+  },
+  {
     version: "5.2.0",
     dateAr: "4 أكتوبر 2026",
     dateEn: "October 4, 2026",
