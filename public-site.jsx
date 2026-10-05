@@ -1386,7 +1386,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   </div>
                   <div style={{ height: 250, width: "100%" }}>
                     <ResponsiveContainer>
-                      <ComposedChart data={overview.tl} margin={{ top: 6, right: 4, left: -20, bottom: 4 }}>
+                      <ComposedChart data={overview.tl} margin={{ top: 6, right: 4, left: 8, bottom: 4 }}>
                         <defs>
                           {cats.sta.map((s, i) => (
                             <linearGradient key={s} id={`bg${i}`} x1="0" y1="0" x2="0" y2="1">

@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.2.2",
+    dateAr: "5 أكتوبر 2026",
+    dateEn: "October 5, 2026",
+    ar: ["عرض الأعمدة والنقاط كاملة على طرفي الرسوم البيانية (مسار الردود وتقدّم التنفيذ)"],
+    en: ["Bars and points now display fully at both ends of the charts (reply trend and progress)"],
+  },
+  {
     version: "5.2.1",
     dateAr: "5 أكتوبر 2026",
     dateEn: "October 5, 2026",

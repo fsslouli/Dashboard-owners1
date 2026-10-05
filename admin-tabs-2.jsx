@@ -86,7 +86,7 @@ export function ADashboardTab({ inquiries }) {
       {data.length === 0 ? <div style={{ fontSize: 12, color: T.muted, padding: 10 }}>لا بيانات كافية.</div> : (
         <div style={{ width: "100%", height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+            <ComposedChart data={data} margin={{ top: 4, right: 8, left: 6, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={T.line} />
               <XAxis dataKey={xKey} tick={{ fontSize: 10.5, fill: T.muted }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 10.5, fill: T.muted }} />

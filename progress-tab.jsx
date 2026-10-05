@@ -177,7 +177,7 @@ export function ProgressTab({ reduced, data, loading }) {
         </div>
         <div style={{ height: 230, width: "100%" }}>
           <ResponsiveContainer>
-            <ComposedChart data={trend} margin={{ top: 6, right: 4, left: -20, bottom: 4 }}>
+            <ComposedChart data={trend} margin={{ top: 6, right: 4, left: 8, bottom: 4 }}>
               <CartesianGrid stroke={T.lineSoft} vertical={false} />
               <XAxis dataKey="m" reversed={lang === "ar"} tick={{ fill: T.muted, fontSize: 10 }} axisLine={false} tickLine={false}
                 interval={0} />
