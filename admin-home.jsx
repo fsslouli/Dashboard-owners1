@@ -7,13 +7,47 @@ import { AAnalyticsTab, AAuditLogTab, AFiltersTab, ANoticesTab, AUsersTab } from
 import { ADashboardTab, AThemeTab } from "./admin-tabs-2.jsx";
 import { ASyncTab } from "./admin-trail-sync.jsx";
 import { supabase } from "./app-bootstrap.jsx";
-import { THEMES, isFlagLive } from "./site-data.jsx";
+import { THEMES, isFlagLive, trSta } from "./site-data.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { briefToMarkdown, briefToText, buildBrief } from "./admin-brief.js";
+import { downloadMeetingSheet, nextMeetingName, openInquiries } from "./admin-meeting-sheet.js";
+import { ATelegramCard } from "./admin-telegram.jsx";
 import { AGalleryTab } from "./gallery-kit.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
-import { Check, Copy, Download, LogOut, ShieldCheck } from "lucide-react";
+import { Check, Copy, Download, FileSpreadsheet, LogOut, ShieldCheck } from "lucide-react";
+
+/* ═══ ورقة الاجتماع القادم (٥.٣.٠) — ملف إكسل بنفس شكل أوراق الاجتماعات بملف الاستفسارات ═══ */
+function AMeetingSheet({ inquiries, flashToast, T, btn }) {
+  const suggested = useMemo(() => nextMeetingName(inquiries || []), [inquiries]);
+  const openCount = useMemo(() => openInquiries(inquiries || []).length, [inquiries]);
+  const [name, setName] = useState("");
+  const download = () => {
+    try {
+      const res = downloadMeetingSheet(inquiries || [], { sheetName: name.trim() || suggested, statusLabel: (v) => trSta("ar", v) });
+      flashToast(`تم تنزيل «${res.sheetName}» — ${res.count} استفسار مفتوح`);
+    } catch (e) { flashToast("تعذّر إنشاء ملف الإكسل"); }
+  };
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 15px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: T.paper, marginBottom: 6 }}>
+        <FileSpreadsheet size={15} color={T.brass} /> ورقة الاجتماع القادم
+      </div>
+      <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.8, marginBottom: 10 }}>
+        ملف إكسل بنفس أعمدة وتنسيق أوراق الاجتماعات بملف الاستفسارات، فيه الاستفسارات المفتوحة حاليًا ({openCount}) مرتبة برقمها،
+        و«م» هو رقم الاستفسار بالسجل. تضيف عليه بنود الاجتماع الجديدة ثم تنقل الورقة لملفك.
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={suggested} aria-label="اسم الورقة"
+          style={{ flex: "1 1 180px", minWidth: 0, background: T.bg, color: T.paper, border: `1px solid ${T.line}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, fontFamily: "inherit" }} />
+        <button onClick={download} disabled={!openCount}
+          style={{ ...btn(true), opacity: openCount ? 1 : 0.5, cursor: openCount ? "pointer" : "default" }}>
+          <Download size={14} /> تنزيل الورقة
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /* ═══ ١٥ج. الملخّص التنفيذي — لوحة الإدارة فقط ═══ */
 function ABriefTab({ inquiries, flashToast }) {
@@ -46,6 +80,8 @@ function ABriefTab({ inquiries, flashToast }) {
         تقرير داخلي يُبنى لحظيًا من السجل الحالي. كان زر «ملخص» بترويسة الموقع العام —
         نُقل هنا لأن الزائر ما يحتاجه، وتوسّع ليشمل حركة السجل والأقدم فتحًا ومصدر الإدخال.
       </div>
+
+      <AMeetingSheet inquiries={inquiries} flashToast={flashToast} T={T} btn={btn} />
 
       <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginBottom: 16 }}>
         <button onClick={() => copy("txt")} style={btn(copied === "txt")}>
@@ -146,7 +182,12 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "insights" && <AInsightsTab flashToast={flashToast} canExport={has("export_data")} canPurge={has("purge_analytics")} log={log} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
-        {activeTab === "notices" && <ANoticesTab flashToast={flashToast} log={log} />}
+        {activeTab === "notices" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <ANoticesTab flashToast={flashToast} log={log} />
+            <ATelegramCard inquiries={inquiries} flashToast={flashToast} log={log} />
+          </div>
+        )}
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
         {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_gallery")} />}
         {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_share")} by={profile?.name || session.user.email} />}

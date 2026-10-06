@@ -13,6 +13,23 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.3.0",
+    dateAr: "6 أكتوبر 2026",
+    dateEn: "October 6, 2026",
+    ar: [
+      "تحميل أسرع للموقع: لوحة الإدارة صارت تُحمَّل فقط عند فتحها، فما ينزّلها زائر الموقع",
+      "تقدّم التنفيذ يقرأ توزيع البلوكات على المراحل من قاعدة البيانات مباشرة، ووصف كل مرحلة («بلوكات …») يتحدّث معه تلقائيًا",
+      "لوحة الإدارة: ورقة إكسل جاهزة للاجتماع القادم بنفس شكل أوراق الاجتماعات، فيها الاستفسارات المفتوحة",
+      "لوحة الإدارة: حساب أدق لعمر الاستفسارات المفتوحة في الملخّص التنفيذي",
+    ],
+    en: [
+      "Faster site loading: the admin panel now loads only when opened, so site visitors no longer download it",
+      "Execution progress reads the block-to-phase grouping straight from the database, and each phase description (\"Blocks …\") follows it automatically",
+      "Admin panel: a ready Excel sheet for the next meeting, in the same layout as the meeting sheets, listing the open inquiries",
+      "Admin panel: more accurate age of open inquiries in the executive summary",
+    ],
+  },
+  {
     version: "5.2.3",
     dateAr: "5 أكتوبر 2026",
     dateEn: "October 5, 2026",

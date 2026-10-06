@@ -34,11 +34,40 @@ const fmtDate = (v) => {
   return isNaN(d) ? "—" : d.toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
 };
 
-const ageDays = (v) => {
-  if (!v) return null;
-  const d = new Date(v);
-  return isNaN(d) ? null : Math.floor((Date.now() - d.getTime()) / DAY);
+/* ── عمر الاستفسار (٥.٣.٠) ──
+   السجل ما فيه عمود «تاريخ الرفع». created_at = وقت دخول السطر لقاعدة البيانات،
+   وأغلب السجل دخلها دفعة وحدة يوم الاستيراد الأول — فكان العمر يطلع أيامًا وهو
+   فعليًا أشهر. وعمود «الشهر» هو «شهر الرد» مو شهر الرفع، فما يصلح بديلًا.
+   الحساب الصادق: حدّ أدنى معروف لكل استفسار = الأبعد من:
+     ١) دخوله للنظام (أكيد انرفع قبلها أو يومها)
+     ٢) نهاية شهر الرد (أكيد انرفع قبل الرد عليه)
+   ما دخل النظام بعد الاستيراد الأول يُعتبر تاريخ دخوله تقريبًا تاريخ رفعه. */
+const replyMonthEnd = (mk) => {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(String(mk || "").trim());
+  return m ? Date.UTC(+m[1], +m[2], 1) : null; /* أول لحظة بالشهر التالي = نهاية شهر الرد */
 };
+const enteredAt = (r) => { const t = r && r.created_at ? new Date(r.created_at).getTime() : NaN; return Number.isFinite(t) ? t : null; };
+/* الاستيراد الأول = أول دفعة دخلت السجل (خلال يوم من أقدم إدخال) */
+const firstImportCutoff = (rows) => {
+  const ts = rows.map(enteredAt).filter((t) => t != null);
+  return ts.length ? Math.min(...ts) + DAY : null;
+};
+const ageInfo = (r, now, cutoff) => {
+  const ent = enteredAt(r);
+  const entryDays = ent != null ? Math.max(0, Math.floor((now - ent) / DAY)) : null;
+  const re = replyMonthEnd(r.month);
+  const replyDays = re != null && now > re ? Math.floor((now - re) / DAY) : null;
+  if (entryDays == null && replyDays == null) return null;
+  const days = Math.max(entryDays ?? 0, replyDays ?? 0);
+  const fromFirstImport = ent != null && cutoff != null && ent <= cutoff;
+  const exact = !fromFirstImport && entryDays != null && (replyDays == null || replyDays <= entryDays);
+  return { days, exact, fromFirstImport };
+};
+const arCount = (n, one, two, few, many) => (n === 1 ? one : n === 2 ? two : n >= 3 && n <= 10 ? `${n} ${few}` : `${n} ${many}`);
+const fmtAge = (d) => (d < 1 ? "أقل من يوم"
+  : d < 60 ? arCount(d, "يوم واحد", "يومين", "أيام", "يومًا")
+  : arCount(Math.floor(d / 30.44), "شهر واحد", "شهرين", "أشهر", "شهرًا"));
+const ageText = (a) => `${fmtAge(a.days)}${a.exact ? "" : " على الأقل"}`;
 
 /* ── البناء ── */
 export function buildBrief(inquiries = [], { now = Date.now(), topN = 5, listCap = 15 } = {}) {
@@ -54,15 +83,18 @@ export function buildBrief(inquiries = [], { now = Date.now(), topN = 5, listCap
   const highOpen = open.filter((r) => HIGH_PRI.includes(String(r.pri || "").trim()));
 
   const since = (days) => all.filter((r) => { const t = new Date(r.updated_at || 0).getTime(); return t && now - t <= days * DAY; });
-  const created = (days) => all.filter((r) => { const t = new Date(r.created_at || 0).getTime(); return t && now - t <= days * DAY; });
+  const cutoff = firstImportCutoff(all);
+  /* «أُضيفت» = استفسارات جديدة فعلًا؛ دفعة الاستيراد الأول ما تُحسب جديدة */
+  const created = (days) => all.filter((r) => { const t = enteredAt(r); return t != null && !(cutoff != null && t <= cutoff) && now - t <= days * DAY; });
 
-  const oldestOpen = [...open]
-    .filter((r) => r.created_at)
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  const openAged = open.map((r) => ({ r, a: ageInfo(r, now, cutoff) })).filter((x) => x.a);
+  const oldestOpen = [...openAged]
+    .sort((x, y) => y.a.days - x.a.days || (+x.r.id || 0) - (+y.r.id || 0))
     .slice(0, 3);
-
-  const openAges = open.map((r) => ageDays(r.created_at)).filter((n) => n != null);
-  const avgOpenAge = openAges.length ? Math.round(openAges.reduce((a, b) => a + b, 0) / openAges.length) : null;
+  const avgOpenAge = openAged.length
+    ? { days: Math.round(openAged.reduce((s, x) => s + x.a.days, 0) / openAged.length), exact: openAged.every((x) => x.a.exact) }
+    : null;
+  const openFromFirstImport = openAged.filter((x) => x.a.fromFirstImport).length;
 
   const sections = [];
   const S = (title, lines) => { if (lines.filter(Boolean).length) sections.push({ title, lines: lines.filter(Boolean) }); };
@@ -79,13 +111,14 @@ export function buildBrief(inquiries = [], { now = Date.now(), topN = 5, listCap
   S("الحركة الأخيرة", [
     `تعديلات خلال ٧ أيام: ${since(7).length} · خلال ٣٠ يومًا: ${since(30).length}`,
     `بنود أُضيفت خلال ٣٠ يومًا: ${created(30).length}`,
-    avgOpenAge != null ? `متوسط عمر البند المفتوح: ${avgOpenAge} يومًا` : null,
+    avgOpenAge ? `متوسط عمر البند المفتوح: ${ageText(avgOpenAge)}` : null,
+    openFromFirstImport
+      ? `${openFromFirstImport} من البنود المفتوحة دخلت النظام بالاستيراد الأول (${fmtDate(cutoff - DAY)}) وتاريخ رفعها غير مسجّل، فعمرها محسوب كحدّ أدنى`
+      : null,
   ]);
 
-  S("الأقدم فتحًا", oldestOpen.map((r) => {
-    const a = ageDays(r.created_at);
-    return `#${r.id} — ${String(r.note || "").slice(0, 70)}${a != null ? ` (مفتوح منذ ${a} يومًا)` : ""}`;
-  }));
+  S("الأقدم فتحًا", oldestOpen.map(({ r, a }) =>
+    `#${r.id} — ${String(r.note || "").slice(0, 70)} (مفتوح منذ ${ageText(a)})`));
 
   S("ضغط الأولوية", [
     `بنود مفتوحة بأولوية عالية أو أعلى: ${highOpen.length}`,

@@ -716,8 +716,12 @@ const planTarget = (y, m) =>
    (target) ما يُخزَّن إطلاقًا — يُحسب دائمًا آليًا بصيغة planTarget()
    لأي شهر موجود، تمامًا متل فلسفة الخطة الخطية أعلاه.
    ═══════════════════════════════════════════════════════════ */
-/* البلوكات الأصلية بترتيب عرضها الحالي + تصنيف كل بلوك لمرحلته — يبقى ثابتًا
-   بالكود لأن ملف الإكسل نفسه ما يذكر أي بلوك تابع لأي مرحلة، فقط رقمه. */
+/* مرحلة كل بلوك وترتيب عرضه — المصدر الوحيد (٥.٣.٠) جدول progress_blocks بقاعدة البيانات،
+   وهو نفس الجدول اللي تحسب منه القاعدة نسب المراحل (progress_phase_values)، فيستحيل يختلف
+   تصنيف البلوك بالعرض عن حساب نسبة مرحلته. إعادة توزيع البلوكات = تعديل عمود phase بالجدول،
+   بدون إصدار جديد للموقع (ملاحظة كل مرحلة «بلوكات …» تتحدّث معه تلقائيًا).
+   الخريطة والترتيب تحت احتياط فقط لو تعذّرت قراءة الجدول — يُفضَّل مطابقتهما للجدول عند أي تحديث للكود. */
+const PG_PHASE_KEYS = ["p1", "p2", "p3", "p4"];
 const PG_BLOCK_PHASE = {
   1: "p1", 2: "p1", 3: "p1", 5: "p1",
   4: "p2", 6: "p2", 7: "p2", 8: "p2",
@@ -737,6 +741,12 @@ function guessBlockPhase(b) {
   if (b >= 22 && b <= 23) return "p4";
   return "p_unassigned";
 }
+/* «بلوكات ١ و٢ و٣ و٥» — ملاحظة المرحلة تُبنى من توزيعها الفعلي (والإنجليزية من trPGPNote) */
+function phaseBlocksNote(nums) {
+  const s = [...nums].sort((a, b) => a - b).map(arNum);
+  if (!s.length) return "";
+  return s.length === 1 ? `بلوك ${s[0]}` : `بلوكات ${s[0]}${s.slice(1).map((x) => ` و${x}`).join("")}`;
+}
 export const monthKeyOf = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
 export const monthKeyParts = (key) => { const [y, m] = String(key).split("-").map(Number); return { y, m }; };
 export function nextMonthKey(key) {
@@ -747,8 +757,9 @@ export function nextMonthKey(key) {
 /* يبني نفس شكل بيانات PG_BASE (months/target/phases/blocks/start) من صفوف جدول
    progress_matrix — يملأ أي شهر مفقود بين أقدم وأحدث شهر موجود بقيمة فارغة (null)
    عشان يبقى تسلسل الأشهر متصلًا (مطلوب لحساب الهدف تلقائيًا ولتمديد الخطة مستقبلًا)
-   حتى لو رفع الأدمن ملفًا فيه فجوة (مثلاً شهر سحبه المطوّر بالكامل ولا صار له صف أصلاً). */
-export function buildPgFromRows(rows) {
+   حتى لو رفع الأدمن ملفًا فيه فجوة (مثلاً شهر سحبه المطوّر بالكامل ولا صار له صف أصلاً).
+   blockRows = صفوف progress_blocks (رقم البلوك + مرحلته + ترتيبه)؛ لو ما وصلت يُستخدم الاحتياط بالكود. */
+export function buildPgFromRows(rows, blockRows) {
   if (!rows || !rows.length) return null;
   const byMonth = new Map(rows.map((r) => [r.month, r]));
   const sortedKeys = [...byMonth.keys()].sort();
@@ -763,18 +774,25 @@ export function buildPgFromRows(rows) {
   const { y: startY, m: startM } = monthKeyParts(first);
   const target = monthKeys.map((k) => { const { y, m } = monthKeyParts(k); return planTarget(y, m); });
 
-  const phases = PG_PHASES_META.map((meta) => ({
-    ...meta,
-    v: monthKeys.map((k) => { const val = byMonth.get(k)?.phases?.[meta.key]; return val == null ? null : +val; }),
+  const blockMeta = (Array.isArray(blockRows) ? blockRows : [])
+    .filter((r) => r && Number.isFinite(+r.block_number) && PG_PHASE_KEYS.includes(r.phase))
+    .sort((a, b) => (+a.sort_order || 0) - (+b.sort_order || 0) || +a.block_number - +b.block_number);
+  const phaseOf = new Map(blockMeta.map((r) => [+r.block_number, r.phase]));
+  const baseOrder = blockMeta.length ? blockMeta.map((r) => +r.block_number) : PG_BLOCK_DISPLAY_ORDER;
+
+  const blockNums = new Set(baseOrder);
+  rows.forEach((r) => Object.keys(r.blocks || {}).forEach((b) => blockNums.add(+b)));
+  const extra = [...blockNums].filter((b) => !baseOrder.includes(b)).sort((a, b) => a - b);
+  const blockOrder = [...baseOrder, ...extra];
+  const blocks = blockOrder.map((b) => ({
+    b, ph: phaseOf.get(b) || guessBlockPhase(b),
+    v: monthKeys.map((k) => { const val = byMonth.get(k)?.blocks?.[String(b)]; return val == null ? null : +val; }),
   }));
 
-  const blockNums = new Set(PG_BLOCK_DISPLAY_ORDER);
-  rows.forEach((r) => Object.keys(r.blocks || {}).forEach((b) => blockNums.add(+b)));
-  const extra = [...blockNums].filter((b) => !PG_BLOCK_DISPLAY_ORDER.includes(b)).sort((a, b) => a - b);
-  const blockOrder = [...PG_BLOCK_DISPLAY_ORDER, ...extra];
-  const blocks = blockOrder.map((b) => ({
-    b, ph: guessBlockPhase(b),
-    v: monthKeys.map((k) => { const val = byMonth.get(k)?.blocks?.[String(b)]; return val == null ? null : +val; }),
+  const phases = PG_PHASES_META.map((pm) => ({
+    ...pm,
+    note: pm.key === "total" ? pm.note : (phaseBlocksNote(blocks.filter((x) => x.ph === pm.key).map((x) => x.b)) || pm.note),
+    v: monthKeys.map((k) => { const val = byMonth.get(k)?.phases?.[pm.key]; return val == null ? null : +val; }),
   }));
 
   const updatedAt = rows.reduce((a, r) => (r.updated_at && r.updated_at > (a || "") ? r.updated_at : a), null);
@@ -830,7 +848,16 @@ const PG_PNOTE_EN = { "كل البلوكات": "All Blocks", "بلوكات ١ و
 export const PG_NOTE_EN = "Block 23: no new data for May or June, so the last recorded reading (19.50% in April) was carried forward for the average rather than ignored.";
 export const trPGMonth = (lang, m) => { const i = MONTH_AR.indexOf(m); return lang === "en" && i >= 0 ? MONTH_EN_LABEL[i] : m; };
 export const trPGLabel = (lang, v) => (lang === "en" ? PG_LABEL_EN[v] || v : v);
-export const trPGPNote = (lang, v) => (lang === "en" ? PG_PNOTE_EN[v] || v : v);
+const toLatinNum = (s) => String(s).replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)));
+export const trPGPNote = (lang, v) => {
+  if (lang !== "en") return v;
+  if (PG_PNOTE_EN[v]) return PG_PNOTE_EN[v];
+  /* ملاحظة مبنية آليًا من توزيع البلوكات: «بلوكات ١ و٢ و٣ و٥» ← "Blocks 1, 2, 3 & 5" */
+  const nums = /^بلوك/.test(String(v || "")) ? (String(v).match(/[0-9٠-٩]+/g) || []).map(toLatinNum) : [];
+  if (nums.length === 1) return `Block ${nums[0]}`;
+  if (nums.length > 1) return `Blocks ${nums.slice(0, -1).join(", ")} & ${nums[nums.length - 1]}`;
+  return v;
+};
 
 /* ── الترتيب المنطقي ── */
 /* ── ٧. الترتيب المنطقي وتفضيلات الزائر ── */

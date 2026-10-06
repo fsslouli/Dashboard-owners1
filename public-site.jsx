@@ -412,14 +412,16 @@ export function PublicSite({ share = null } = {}) {
     const fetchPg = async () => {
       try {
         /* progress_matrix_v = عرض (view) محسوب آليًا من progress_readings —
-           نفس شكل progress_matrix القديم حرفيًا، فـ buildPgFromRows ما تغيّرت. */
-        const [{ data: rows, error }, { data: noteRows }] = await Promise.all([
+           نفس شكل progress_matrix القديم حرفيًا، فـ buildPgFromRows ما تغيّرت.
+           ٥.٣.٠ — progress_blocks: مرحلة كل بلوك وترتيبه من القاعدة مباشرة (نفس مصدر حساب نسب المراحل). */
+        const [{ data: rows, error }, { data: noteRows }, { data: blockRows }] = await Promise.all([
           supabase.from("progress_matrix_v").select("*").order("month"),
           supabase.from("progress_month_notes").select("*"),
+          supabase.from("progress_blocks").select("block_number,phase,sort_order").order("sort_order"),
         ]);
         if (!alive) return;
         if (!error && rows && rows.length) {
-          const built = buildPgFromRows(rows);
+          const built = buildPgFromRows(rows, blockRows);
           if (built) {
             built.monthNotes = Object.fromEntries((noteRows || []).map((n) => [n.month, n.note]));
             setPg(built);
