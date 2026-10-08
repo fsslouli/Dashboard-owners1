@@ -12,6 +12,7 @@ import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
 import { useAttachments } from "./attach-kit.jsx";
 import { GallerySection } from "./gallery-kit.jsx";
+import { LinkLeaveSheet, LinksFolders, LinksHeaderChips, LinksInNotices, LinksOverviewCards, linksAt, useExternalLinks } from "./links-kit.jsx";
 import { isHidden, NL, useNavLabels } from "./nav-labels-kit.jsx";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -56,7 +57,7 @@ function getDeviceId() {
 /* ── نافذة الإشعارات المنبثقة — تظهر مرة عند دخول الموقع (بعد الإقرار القانوني)
    بدل الشريط الثابت أعلى الصفحة، بنفس أسلوب نافذة "الإقرار القانوني". يبقى فيها
    خروج عادي وواضح: زر X بالأعلى، زر "إغلاق" بالأسفل، أو النقر خارج النافذة ── */
-function NoticesModal({ enabled }) {
+function NoticesModal({ enabled, links = [], onLeave = () => {} }) {
   const { T } = useT();
   const { lang } = useLang();
   const [notices, setNotices] = useState([]);
@@ -83,9 +84,11 @@ function NoticesModal({ enabled }) {
   };
 
   const onClose = () => setClosed(true);
-  useBackClose(enabled && !closed && notices.length > 0, onClose);
+  const noticeLinks = linksAt(links, "notices");
+  const hasContent = notices.length > 0 || noticeLinks.length > 0;
+  useBackClose(enabled && !closed && hasContent, onClose);
 
-  if (!enabled || closed || !notices.length) return null;
+  if (!enabled || closed || !hasContent) return null;
   return (
     <div className="ovl no-print" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }} role="dialog" aria-modal="true">
@@ -115,6 +118,11 @@ function NoticesModal({ enabled }) {
               </div>
             </div>
           ))}
+          {noticeLinks.length > 0 && (
+            <div style={{ marginTop: notices.length ? 18 : 0, paddingTop: notices.length ? 18 : 0, borderTop: notices.length ? `1px solid ${T.lineSoft}` : "none" }}>
+              <LinksInNotices links={links} T={T} lang={lang} onLeave={onLeave} />
+            </div>
+          )}
         </div>
         <div style={{ padding: "14px 19px 20px", borderTop: `1px solid ${T.line}`, background: T.sunken }}>
           <button onClick={onClose} className="big-btn" style={{ marginTop: 0 }}>{lang === "en" ? "Close" : "إغلاق"}</button>
@@ -286,6 +294,8 @@ export function PublicSite({ share = null } = {}) {
   const [navList, setNavList] = useState(null);
   const openRecord = (r, list) => { setSel(r); setNavList(list || null); };
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [leaving, setLeaving] = useState(null);   /* رابط خارجي ينتظر تأكيد المغادرة */
+  const extLinks = useExternalLinks(supabase, !shareScope);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [legalAgreed, setLegalAgreed] = useState(false);
   const [limit, setLimit] = useState(12);
@@ -1153,7 +1163,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
 
         <LegalDisclaimer onAgree={() => setLegalAgreed(true)} />
-        <NoticesModal enabled={legalAgreed} />
+        <NoticesModal enabled={legalAgreed} links={shareScope ? [] : extLinks} onLeave={setLeaving} />
 
         <div className="wrap">
           <header>
@@ -1174,6 +1184,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
                 </a>
               )}
+              {!shareScope && <LinksHeaderChips links={extLinks} T={T} lang={lang} onLeave={setLeaving} />}
               {loading ? (
                 <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
               ) : data.updatedAt ? (
@@ -1422,6 +1433,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                 </div>
 
               </section>
+              {!shareScope && <LinksOverviewCards links={extLinks} T={T} lang={lang} onLeave={setLeaving} />}
             </div>
           )}
 
@@ -1573,7 +1585,8 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
           {tab === "gallery" && (
             <div className="tab-panel">
-              <GallerySection supabase={supabase} T={T} L={L} lang={lang} onlyTopics={shareScope && Array.isArray(shareScope.topics) ? shareScope.topics : null} />
+              <GallerySection supabase={supabase} T={T} L={L} lang={lang} onlyTopics={shareScope && Array.isArray(shareScope.topics) ? shareScope.topics : null}
+                extra={!shareScope && linksAt(extLinks, "gallery").length ? <LinksFolders links={extLinks} lang={lang} onLeave={setLeaving} /> : null} />
             </div>
           )}
 
@@ -1604,6 +1617,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         </div>
 
         <Sheet noShare={!!shareScope} r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} attachments={sel ? attMap[sel.id] || [] : []} />
+        {!shareScope && <LinkLeaveSheet link={leaving} T={T} lang={lang} onClose={() => setLeaving(null)} />}
         {!shareScope && <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}

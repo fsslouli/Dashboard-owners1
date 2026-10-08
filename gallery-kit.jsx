@@ -584,7 +584,7 @@ function FolderRows({ views, lang, open }) {
   );
 }
 
-export function GallerySection({ supabase, T, L, lang, onlyTopics = null }) {
+export function GallerySection({ supabase, T, L, lang, onlyTopics = null, extra = null }) {
   const [topics, setTopics] = useState(null);
   const [mode, setMode] = useState("sections");
   const [layout, setLayout] = useState("docs");
@@ -622,7 +622,7 @@ export function GallerySection({ supabase, T, L, lang, onlyTopics = null }) {
   }, [supabase, onlyTopics]);
 
   if (!topics) return null;
-  if (!topics.length) return <p style={{ color: T.muted, textAlign: "center", padding: 40 }}>{L("ما فيه صور أو مقاطع بعد.", "No photos or videos yet.")}</p>;
+  if (!topics.length && !extra) return <p style={{ color: T.muted, textAlign: "center", padding: 40 }}>{L("ما فيه صور أو مقاطع بعد.", "No photos or videos yet.")}</p>;
 
   const lay = LAYOUTS.includes(layout) ? layout : "docs";
   const sections = mode === "merged" ? [{ id: 0, title_ar: null, items: topics.flatMap((t) => t.items) }] : topics;
@@ -662,6 +662,7 @@ export function GallerySection({ supabase, T, L, lang, onlyTopics = null }) {
           </section>
         );
       })}
+      {extra}
       {view && <AttachmentViewer list={view.list} index={view.i} onIndex={(i) => setView((v) => (v ? { ...v, i } : v))} onClose={() => setView(null)} lang={lang} />}
     </div>
   );

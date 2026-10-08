@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "5.4.0",
+    dateAr: "8 أكتوبر 2026",
+    dateEn: "October 8, 2026",
+    ar: [
+      "مساهمات الملاك: مكان مخصّص لروابط مواقع أعدّها ملاك المشروع، يظهر كمجلد داخل «المكتبة المرئية والتقارير»، وتقدر الإدارة تعرضه أيضًا كبطاقة في «نظرة عامة» أو داخل نافذة الإشعارات أو كزر أعلى الصفحة",
+      "عند فتح أي رابط خارجي تظهر شاشة توضيح قبل الانتقال تبيّن أن الموقع من إعداد صاحبه",
+      "لوحة الإدارة: تبويب «الروابط الخارجية» لإضافة الروابط وتعديلها وترتيبها ونشرها أو إخفائها، مع صلاحية مستقلة لها",
+    ],
+    en: [
+      "Owner contributions: a dedicated place for links to websites prepared by project owners, shown as a folder in the media library, and optionally as a card on the overview, inside the notices popup, or as a button at the top",
+      "Opening any external link first shows a short notice screen explaining the site is prepared by its author",
+      "Admin panel: an \"External links\" tab to add, edit, reorder, publish or hide links, with its own permission",
+    ],
+  },
+  {
     version: "5.3.0",
     dateAr: "6 أكتوبر 2026",
     dateEn: "October 6, 2026",

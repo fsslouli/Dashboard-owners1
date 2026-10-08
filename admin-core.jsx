@@ -2,7 +2,7 @@
 import { supabase } from "./app-bootstrap.jsx";
 import { AR_DIGITS, THEMES, norm } from "./site-data.jsx";
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Images, Layers, Link2, Lock, LogIn, MousePointerClick, Palette, Pencil, PlusCircle, RotateCcw, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
+import { Activity, ArrowRight, ExternalLink, BarChart3, Clapperboard, Download, Eye, EyeOff, FileSpreadsheet, FileText, Filter, History, Images, Layers, Link2, Lock, LogIn, MousePointerClick, Palette, Pencil, PlusCircle, RotateCcw, Share2, ShieldCheck, Sparkles, Star, ThumbsUp, Trash2, UserPlus } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════
    ١٥. لوحة الإدارة الحقيقية — متصلة بـ Supabase فعليًا (Auth + قراءة/كتابة).
@@ -44,6 +44,7 @@ export const ADMIN_PERMISSIONS = [
   { group: "المحتوى والمظهر", key: "manage_notices", label: "نشر إشعارات وتنبيهات على الموقع العام", icon: Sparkles },
   { group: "المحتوى والمظهر", key: "manage_media", label: "إدارة مقاطع النماذج (يوتيوب)", icon: Clapperboard },
   { group: "المحتوى والمظهر", key: "manage_gallery", label: "إدارة معرض الموقع (المواضيع والصور)", icon: Images },
+  { group: "المحتوى والمظهر", key: "manage_links", label: "إدارة الروابط الخارجية (مساهمات الملاك)", icon: ExternalLink },
   { group: "المحتوى والمظهر", key: "manage_share", label: "إنشاء وإدارة روابط المشاركة", icon: Link2 },
   { group: "المحتوى والمظهر", key: "manage_theme", label: "تغيير مظهر الموقع وتسمية الأقسام", icon: Palette },
   { group: "الإدارة", key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },

@@ -14,6 +14,7 @@ import { downloadMeetingSheet, nextMeetingName, openInquiries } from "./admin-me
 import { ATelegramCard } from "./admin-telegram.jsx";
 import { AGalleryTab } from "./gallery-kit.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
+import { ALinksTab } from "./admin-links-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
 import { Check, Copy, Download, FileSpreadsheet, LogOut, ShieldCheck } from "lucide-react";
 
@@ -118,6 +119,7 @@ const ADMIN_TABS = [
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
   { key: "gallery", label: "معرض الموقع", perms: ["manage_gallery"] },
+  { key: "links", label: "الروابط الخارجية", perms: ["manage_links"] },
   { key: "share", label: "روابط المشاركة", perms: ["manage_share"] },
   { key: "labels", label: "تسمية الأقسام", perms: ["manage_theme"] },
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
@@ -190,6 +192,7 @@ function AdminHome({ session, onLogout }) {
         )}
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
         {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_gallery")} />}
+        {activeTab === "links" && <ALinksTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_links")} />}
         {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_share")} by={profile?.name || session.user.email} />}
         {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
