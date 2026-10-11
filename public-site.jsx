@@ -14,6 +14,7 @@ import { useAttachments } from "./attach-kit.jsx";
 import { GallerySection } from "./gallery-kit.jsx";
 import { LinkLeaveSheet, LinksFolders, LinksHeaderChips, LinksInNotices, LinksOverviewCards, linksAt, useExternalLinks } from "./links-kit.jsx";
 import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
+import { BlocksView, blocksOf } from "./blocks-kit.jsx";
 import { useEdit } from "./edit-ctx.js";
 import { startTextOverrides } from "./text-overrides.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
@@ -1590,6 +1591,12 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               <GallerySection supabase={supabase} T={T} L={L} lang={lang} onlyTopics={shareScope && Array.isArray(shareScope.topics) ? shareScope.topics : null}
                 extra={!shareScope && linksAt(extLinks, "gallery").length ? <LinksFolders links={extLinks} lang={lang} onLeave={setLeaving} /> : null} />
             </div>
+          )}
+
+          <BlocksView blocks={blocksOf(navLabels, tab)} lang={lang} T={T} />
+          {ed && !shareScope && ed.has("manage_theme") && (
+            <ed.BlocksEditor tab={tab} tabLabel={NL(navLabels, tab, PUBLIC_TAB_META[tab]?.ar, PUBLIC_TAB_META[tab]?.en, lang)} navLabels={navLabels}
+              supabase={supabase} log={ed.log} toast={ed.toast} lang={lang} T={T} />
           )}
 
           <div className="credit-foot">

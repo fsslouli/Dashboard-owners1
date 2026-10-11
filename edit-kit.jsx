@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
 import { EditCtx, useEdit } from "./edit-ctx.js";
+import { BlocksEditor } from "./blocks-kit.jsx";
 import { useIdleSignOut, MfaGate } from "./security-kit.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, INQ_FIELDS_ADMIN, toDbBool, toYesNo, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
@@ -104,7 +105,7 @@ function EditProviderInner({ children }) {
     openEditor: (target) => setSheet(target),
     renaming, toggleRename: () => setRenaming((v) => !v),
     removeInquiry, duplicateInquiry,
-    CardActions, TabsEditor,
+    CardActions, TabsEditor, BlocksEditor,
   }), [T, profile, has, log, toast, categories, hasCatCol, removeInquiry, duplicateInquiry, renaming]);
 
   if (session === undefined || (session && profile === undefined)) return <Center T={T}>جارٍ التحقق من صلاحياتك…</Center>;
