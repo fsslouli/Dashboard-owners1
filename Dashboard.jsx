@@ -61,6 +61,23 @@ const AdminApp = lazy(() =>
   )
 );
 
+/* وضع «تحرير الموقع مباشرة» (٦.٠.٠) — حزمة منفصلة تُحمَّل عند فتح #edit فقط */
+const EditProvider = lazy(() =>
+  import("./edit-kit.jsx").then(
+    (m) => ({ default: m.EditProvider }),
+    (err) => {
+      try {
+        if (!sessionStorage.getItem(ADMIN_RETRY_KEY + "-edit")) {
+          sessionStorage.setItem(ADMIN_RETRY_KEY + "-edit", "1");
+          window.location.reload();
+          return new Promise(() => {});
+        }
+      } catch (e) { /* تخزين ممنوع */ }
+      throw err;
+    }
+  )
+);
+
 const adminScreen = {
   minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12,
   background: "var(--boot-bg, #141C22)", color: "var(--boot-fg, #8FA0AB)", fontFamily: "system-ui, sans-serif", fontSize: 13, padding: 20,
@@ -100,7 +117,10 @@ class AdminBoundary extends Component {
 function readRoute() {
   if (onShareHost()) return "share";
   if (shareTokenFromHash()) return SHARE_HOST ? "redirect" : "share";
-  return window.location.hash === "#admin" ? "admin" : "site";
+  const h = window.location.hash;
+  if (h === "#admin" || h.startsWith("#admin/")) return "admin";   /* #admin/<تبويب> يفتح التبويب مباشرة */
+  if (h === "#edit") return "edit";
+  return "site";
 }
 function App() {
   const [route, setRoute] = useState(readRoute);
@@ -120,6 +140,15 @@ function App() {
       <AdminBoundary>
         <Suspense fallback={<AdminLoading />}>
           <AdminReady><AdminApp /></AdminReady>
+        </Suspense>
+      </AdminBoundary>
+    );
+  }
+  if (route === "edit") {
+    return (
+      <AdminBoundary>
+        <Suspense fallback={<AdminLoading />}>
+          <EditProvider><PublicSite /></EditProvider>
         </Suspense>
       </AdminBoundary>
     );

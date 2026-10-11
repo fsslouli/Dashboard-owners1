@@ -29,7 +29,7 @@ function revVal(v) {
   if (/^\s*\[/.test(s)) { try { const a = JSON.parse(s); if (Array.isArray(a)) s = a.length ? a.join("، ") : "—"; } catch (_) {} }
   return s.length > 90 ? s.slice(0, 90) + "…" : s;
 }
-function AInquiryTrail({ id, row }) {
+export function AInquiryTrail({ id, row }) {
   const T = useSystemTheme();
   const [revs, setRevs] = useState(null);
   const [open, setOpen] = useState(false);

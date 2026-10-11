@@ -16,7 +16,8 @@ import { AGalleryTab } from "./gallery-kit.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
 import { ALinksTab } from "./admin-links-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
-import { Check, Copy, Download, FileSpreadsheet, LogOut, ShieldCheck } from "lucide-react";
+import { AdminShell } from "./admin-shell.jsx";
+import { Check, Copy, Download, FileSpreadsheet } from "lucide-react";
 
 /* ═══ ورقة الاجتماع القادم (٥.٣.٠) — ملف إكسل بنفس شكل أوراق الاجتماعات بملف الاستفسارات ═══ */
 function AMeetingSheet({ inquiries, flashToast, T, btn }) {
@@ -136,7 +137,9 @@ function AdminHome({ session, onLogout }) {
   const [progress, setProgress] = useState([]);
   const [categories, setCategories] = useState([]);
   const [toast, setToast] = useState("");
-  const [tab, setTab] = useState("dashboard");
+  /* ‎#admin/<مفتاح>‎ يفتح التبويب مباشرة (يستخدمه وضع التحرير للاختصارات) */
+  const [tab, setTabState] = useState(() => { const m = window.location.hash.match(/^#admin\/([a-z]+)/); return m ? m[1] : "dashboard"; });
+  const setTab = (k) => { setTabState(k); try { window.history.replaceState(null, "", `#admin/${k}`); } catch (e) { /* ممنوع */ } };
 
   const refreshProfile = () => supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data }) => setProfile(data || null));
   const refreshInquiries = () => supabase.from("inquiries").select("*").order("id").then(({ data }) => setInquiries(data || []));
@@ -161,23 +164,17 @@ function AdminHome({ session, onLogout }) {
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
   const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => isFlagLive(r.urgent, r.urgent_until)).length };
 
+  /* وضع التحرير المباشر يحتاج صلاحية محتوى واحدة على الأقل */
+  const EDIT_PERMS = ["edit_inquiry", "add_inquiry", "delete_inquiry", "manage_gallery", "manage_media", "manage_links", "manage_notices", "manage_theme", "manage_filters", "import_excel"];
+  const canEditSite = EDIT_PERMS.some((p) => has(p));
+  const shellTabs = visibleTabs.map((t) => ({ key: t.key, label: NLA(navLabels, t.key, t.label) }));
+
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "system-ui, sans-serif", color: T.paper }} dir="rtl">
-      <div style={{ background: T.surface, borderBottom: `1px solid ${T.line}`, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: T.brass + "16", display: "flex", alignItems: "center", justifyContent: "center" }}><ShieldCheck size={17} color={T.brass} /></div>
-          <div><div style={{ fontSize: 14, fontWeight: 700 }}>لوحة إدارة ألبورادا</div><div style={{ fontSize: 11, color: T.muted }}>{liveStats.total} استفسار · {liveStats.open} مفتوح · {liveStats.urgent} عاجل</div></div>
-        </div>
-        <button onClick={async () => { await supabase.auth.signOut(); window.location.hash = ""; window.location.reload(); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${T.line}`, borderRadius: 10, padding: "7px 12px", fontSize: 12.5, color: T.muted, cursor: "pointer" }}><LogOut size={13} /> خروج</button>
-      </div>
-
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 0" }}>
-        <div style={{ display: "flex", gap: 6, background: T.sunken, padding: 4, borderRadius: 12, marginBottom: 18, flexWrap: "wrap" }}>
-          {visibleTabs.map((t) => (<button key={t.key} onClick={() => setTab(t.key)} style={{ flex: "1 1 auto", border: "none", borderRadius: 9, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: activeTab === t.key ? T.surface : "transparent", color: activeTab === t.key ? T.brass : T.muted, boxShadow: activeTab === t.key ? T.shadow : "none" }}>{NLA(navLabels, t.key, t.label)}</button>))}
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 16px 60px" }}>
+    <>
+      <AdminShell T={T} tabs={shellTabs} activeKey={activeTab} onSelect={setTab} stats={liveStats}
+        userLabel={profile?.name || session.user.email}
+        onLogout={async () => { await supabase.auth.signOut(); window.location.hash = ""; window.location.reload(); }}
+        onEditSite={canEditSite ? () => { window.location.hash = "#edit"; } : null}>
         {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
         {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
         {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canRestore={has("restore_backup")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
@@ -199,10 +196,10 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
-      </div>
+      </AdminShell>
 
-      {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: T.paper, color: T.bg, padding: "11px 20px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}><Check size={15} /> {toast}</div>}
-    </div>
+      {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: T.paper, color: T.bg, padding: "11px 20px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp, zIndex: 70 }}><Check size={15} /> {toast}</div>}
+    </>
   );
 }
 

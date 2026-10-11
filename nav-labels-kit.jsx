@@ -64,6 +64,16 @@ export const NLA = (labels, key, ar) => labels?.[key]?.ar || ar;
 /* هل القسم مخفي؟ isHidden(labels, "progress") */
 export const isHidden = (labels, key) => !!labels?.[key]?.hidden;
 
+/* ترتيب التبويبات (٦.٠.٠): يُحفظ بنفس العمود nav_labels تحت المفتاح "_order" كمصفوفة مفاتيح —
+   بدون أي هجرة. مفتاح ما له مكان بالمصفوفة (تبويب جديد مستقبلًا) ينزل بآخرها بترتيبه الافتراضي،
+   ومفتاح قديم ما عاد موجود يُتجاهل. فما يضيع تبويب بأي حال. */
+export const NAV_ORDER_KEY = "_order";
+export function orderedKeys(labels, defaults) {
+  const saved = Array.isArray(labels?.[NAV_ORDER_KEY]) ? labels[NAV_ORDER_KEY] : [];
+  const known = saved.filter((k, i) => defaults.includes(k) && saved.indexOf(k) === i);
+  return [...known, ...defaults.filter((k) => !known.includes(k))];
+}
+
 /* ═══════════════════════════════════════════════════════════
    تبويب الإدارة — ALabelsTab
    ═══════════════════════════════════════════════════════════ */

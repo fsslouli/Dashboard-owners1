@@ -13,10 +13,21 @@ import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
 import { useAttachments } from "./attach-kit.jsx";
 import { GallerySection } from "./gallery-kit.jsx";
 import { LinkLeaveSheet, LinksFolders, LinksHeaderChips, LinksInNotices, LinksOverviewCards, linksAt, useExternalLinks } from "./links-kit.jsx";
-import { isHidden, NL, useNavLabels } from "./nav-labels-kit.jsx";
+import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
+import { useEdit } from "./edit-ctx.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
+
+/* تبويبات الموقع العام — بيانات ثابتة؛ ترتيبها يتبع nav_labels._order (وضع التحرير) وإلا الترتيب الأصلي */
+const PUBLIC_TAB_KEYS = ["overview", "notes", "progress", "docs", "gallery"];
+const PUBLIC_TAB_META = {
+  overview: { Icon: LayoutDashboard, ar: "نظرة عامة", en: "Overview" },
+  notes: { Icon: ListChecks, ar: "الاستفسارات", en: "Inquiries" },
+  progress: { Icon: TrendingUp, ar: "تقدم التنفيذ", en: "Progress" },
+  docs: { Icon: FileText, ar: "المخططات والمستندات", en: "Plans & Documents" },
+  gallery: { Icon: Images, ar: "الصور والمقاطع", en: "Photos & Videos" },
+};
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
 export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
@@ -141,6 +152,7 @@ export function PublicSite({ share = null } = {}) {
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
   const navLabels = useNavLabels(supabase);
+  const ed = useEdit();   /* null خارج وضع التحرير — ما يتغيّر شي بالموقع العام */
   /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
   const shareScope = share ? (share.scope || {}) : null;
   const SHARE_ORDER = ["overview", "notes", "progress", "docs", "gallery"];
@@ -184,7 +196,7 @@ export function PublicSite({ share = null } = {}) {
   useEffect(() => { if (share && typeof share.onTab === "function") share.onTab(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isHidden(navLabels, tab) && tabOk(tab)) return;
-    const order = ["overview", "notes", "progress", "docs", "gallery"];
+    const order = orderedKeys(navLabels, PUBLIC_TAB_KEYS);
     const next = order.find((k) => !isHidden(navLabels, k) && tabOk(k));
     if (next) setTab(next);
   }, [navLabels, tab]);
@@ -1225,39 +1237,22 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
           {/* الخانات */}
           <nav className="tabs no-print" role="tablist" ref={tabsRef}>
-            {tabOk("overview") && !isHidden(navLabels, "overview") && (
-              <button className="tab" role="tab" aria-selected={tab === "overview"} data-on={tab === "overview" ? "1" : "0"}
-                onClick={() => setTab("overview")}>
-                <span className="tab-ic"><LayoutDashboard size={15} /></span>{NL(navLabels, "overview", "نظرة عامة", "Overview", lang)}
-              </button>
-            )}
-            {tabOk("notes") && !isHidden(navLabels, "notes") && (
-              <button className="tab" role="tab" aria-selected={tab === "notes"} data-on={tab === "notes" ? "1" : "0"}
-                onClick={() => setTab("notes")}>
-                <span className="tab-ic"><ListChecks size={15} /></span>{NL(navLabels, "notes", "الاستفسارات", "Inquiries", lang)}
-                <span className="tab-n mono">{ALL.length}</span>
-              </button>
-            )}
-            {tabOk("progress") && !isHidden(navLabels, "progress") && (
-              <button className="tab" role="tab" aria-selected={tab === "progress"} data-on={tab === "progress" ? "1" : "0"}
-                onClick={() => setTab("progress")}>
-                <span className="tab-ic"><TrendingUp size={15} /></span>{NL(navLabels, "progress", "تقدم التنفيذ", "Progress", lang)}
-              </button>
-            )}
-            {tabOk("docs") && !isHidden(navLabels, "docs") && (
-              <button className="tab" role="tab" aria-selected={tab === "docs"} data-on={tab === "docs" ? "1" : "0"}
-                onClick={() => setTab("docs")}>
-                <span className="tab-ic"><FileText size={15} /></span>{NL(navLabels, "docs", "المخططات والمستندات", "Plans & Documents", lang)}
-              </button>
-            )}
-            {tabOk("gallery") && !isHidden(navLabels, "gallery") && (
-              <button className="tab" role="tab" aria-selected={tab === "gallery"} data-on={tab === "gallery" ? "1" : "0"}
-                onClick={() => setTab("gallery")}>
-                <span className="tab-ic"><Images size={15} /></span>{NL(navLabels, "gallery", "الصور والمقاطع", "Photos & Videos", lang)}
-              </button>
-            )}
+            {orderedKeys(navLabels, PUBLIC_TAB_KEYS).map((k) => {
+              if (!tabOk(k) || isHidden(navLabels, k)) return null;
+              const { Icon, ar, en } = PUBLIC_TAB_META[k];
+              return (
+                <button key={k} className="tab" role="tab" aria-selected={tab === k} data-on={tab === k ? "1" : "0"}
+                  onClick={() => setTab(k)}>
+                  <span className="tab-ic"><Icon size={15} /></span>{NL(navLabels, k, ar, en, lang)}
+                  {k === "notes" && <span className="tab-n mono">{ALL.length}</span>}
+                </button>
+              );
+            })}
             <span className="tab-indicator" ref={indicatorRef} />
           </nav>
+          {ed && !shareScope && (
+            <ed.TabsEditor navLabels={navLabels} defs={PUBLIC_TAB_KEYS.map((key) => ({ key, ...PUBLIC_TAB_META[key] }))} />
+          )}
 
           {tab === "notes" && stickyBar && (
             <div className="mini-bar no-print" style={{ top: tabsH }}>

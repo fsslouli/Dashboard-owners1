@@ -1,5 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: ui-atoms */
 import { logEvent } from "./app-bootstrap.jsx";
+import { useEdit } from "./edit-ctx.js";
 import { catColor, hashPick, trCat, trLoc, trMeeting, trMonth, trNote, trPri, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -331,13 +332,14 @@ export function CatPill({ cat }) {
 export function Row({ r, onOpen }) {
   const { T } = useT();
   const { lang } = useLang();
+  const ed = useEdit();
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
   const pc = T.pri[r.pri] || T.muted;
   const open = () => onOpen(r);
   return (
     <tr className="trow" tabIndex={0} onClick={open}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}>
-      <td className="mono td-id">{String(r.id).padStart(2, "0")}</td>
+      <td className="mono td-id">{String(r.id).padStart(2, "0")}{ed && <ed.CardActions r={r} inline />}</td>
       <td className="td-nw">
         <span className="td-sta" style={{ color: sc }}><StaIcon s={r.sta} />{trSta(lang, r.sta)}</span>
       </td>
@@ -381,6 +383,7 @@ export function StatusBar({ cats, overview, staC, trSta, lang, openBoard, L }) {
 export function Card({ r, i, onOpen, reduced }) {
   const { T } = useT();
   const { lang } = useLang();
+  const ed = useEdit();
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
   const pc = T.pri[r.pri] || T.muted;
   const [pulsed, setPulsed] = useState(false);
@@ -397,6 +400,7 @@ export function Card({ r, i, onOpen, reduced }) {
         borderRightColor: pc,
       }}>
       <span className="card-wm mono" aria-hidden="true">{r.id}</span>
+      {ed && <ed.CardActions r={r} />}
       {r.isUrgentActive && (
         <span className="card-wm-urgent" aria-hidden="true">{lang === "en" ? "Needs review" : "يلزم الاطلاع"}</span>
       )}
