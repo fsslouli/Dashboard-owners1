@@ -5,7 +5,7 @@
    أمان: لا HTML خام أبدًا — نص عادي فقط، وروابط/صور https (أو mailto/tel/#/مسار نسبي) فقط.
    ═══════════════════════════════════════════════════════════ */
 import React, { useState } from "react";
-import { Plus, Trash2, ArrowUp, ArrowDown, Copy, Pencil, Check, X, Type, Heading, Image as Img, MousePointerClick, Youtube, Minus, MessageSquare, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Copy, Pencil, Check, X, Type, Heading, Image as Img, MousePointerClick, Youtube, Minus, MessageSquare, Eye, EyeOff, List, ChevronDown } from "lucide-react";
 import { parseYouTube, ytEmbedUrl } from "./youtube-kit.js";
 
 export const BLOCKS_KEY = "_blocks";
@@ -17,6 +17,8 @@ export const BLOCK_TYPES = [
   { type: "image", label: "صورة", icon: Img },
   { type: "button", label: "زر/رابط", icon: MousePointerClick },
   { type: "video", label: "فيديو يوتيوب", icon: Youtube },
+  { type: "list", label: "قائمة نقاط", icon: List },
+  { type: "accordion", label: "سؤال وجواب (قابل للطي)", icon: ChevronDown },
   { type: "divider", label: "فاصل", icon: Minus },
 ];
 
@@ -32,12 +34,31 @@ export const blocksOf = (navLabels, tab) => {
   return Array.isArray(a) ? a : [];
 };
 
-function Block({ b, lang, T }) {
+const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const SIZES = { sm: 0.88, md: 1, lg: 1.2, xl: 1.5 };
+function Block(props) {
+  const { b } = props;
+  const st = {};
+  if (COLOR_RE.test(b.color || "")) st.color = b.color;
+  if (COLOR_RE.test(b.bg || "")) { st.background = b.bg; st.padding = "10px 14px"; st.borderRadius = 12; }
+  if (b.bold) st.fontWeight = 700;
+  if (SIZES[b.size] && b.size !== "md") st.fontSize = `${SIZES[b.size]}em`;
+  return Object.keys(st).length ? <div style={st}><BlockInner {...props} /></div> : <BlockInner {...props} />;
+}
+function BlockInner({ b, lang, T }) {
   const t = pick(b, "text", lang);
   const align = b.align === "center" ? "center" : "start";
   if (b.type === "heading") return <h3 style={{ fontSize: 19, fontWeight: 700, margin: "6px 0", textAlign: align }}>{t}</h3>;
   if (b.type === "text") return <p style={{ fontSize: 14.5, lineHeight: 1.9, margin: "4px 0", whiteSpace: "pre-wrap", textAlign: align }}>{t}</p>;
   if (b.type === "callout") return <div style={{ padding: "12px 16px", borderRadius: 12, background: (T?.brass || "#B8924A") + "18", border: `1px solid ${(T?.brass || "#B8924A")}44`, fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{t}</div>;
+  if (b.type === "list") {
+    const items = String(t).split("\n").map((x) => x.trim()).filter(Boolean);
+    return <ul style={{ margin: "4px 0", paddingInlineStart: 22, fontSize: 14.5, lineHeight: 1.9 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>;
+  }
+  if (b.type === "accordion") {
+    const q = pick(b, "title", lang);
+    return <details style={{ border: `1px solid ${T?.line || "#E1E8EC"}`, borderRadius: 12, padding: "10px 14px" }}><summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 14.5 }}>{q}</summary><p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{t}</p></details>;
+  }
   if (b.type === "divider") return <hr style={{ border: 0, borderTop: `1px solid ${T?.line || "#E1E8EC"}`, margin: "10px 0" }} />;
   if (b.type === "image") {
     const src = safeUrl(b.url); if (!src || /^mailto:|^tel:/i.test(src)) return null;
@@ -56,8 +77,8 @@ function Block({ b, lang, T }) {
 }
 
 /* عرض الزوّار (وأيضًا وضع التحرير) */
-export function BlocksView({ blocks, lang, T }) {
-  const vis = blocks.filter((b) => !b.hidden);
+export function BlocksView({ blocks, lang, T, pos = "bottom" }) {
+  const vis = blocks.filter((b) => !b.hidden && (b.pos === "top" ? "top" : "bottom") === pos);
   if (!vis.length) return null;
   return <section dir={lang === "en" ? "ltr" : "rtl"} style={{ margin: "18px 0", display: "flex", flexDirection: "column", gap: 8 }}>{vis.map((b) => <Block key={b.id} b={b} lang={lang} T={T} />)}</section>;
 }
@@ -95,7 +116,7 @@ export function BlocksEditor({ tab, tabLabel, navLabels, supabase, log, toast, l
   const hide = (b) => persist((a) => a.map((x) => (x.id === b.id ? { ...x, hidden: !x.hidden } : x)), "إظهار/إخفاء كتلة");
   const save = async () => {
     const d = { ...editing };
-    for (const k of ["text", "text_en"]) if (typeof d[k] === "string") d[k] = d[k].slice(0, 4000);
+    for (const k of ["text", "text_en", "title", "title_en"]) if (typeof d[k] === "string") d[k] = d[k].slice(0, 4000);
     if (d.url && !safeUrl(d.url) && d.type !== "video") { toast("الرابط لازم يبدأ بـ https://"); return; }
     if (d.type === "video" && !parseYouTube(d.url).ok) { toast("رابط يوتيوب غير صالح"); return; }
     const ok = await persist((a) => { const i = a.findIndex((x) => x.id === d.id); if (i >= 0) a[i] = d; else a.push(d); return a; }, "حفظ كتلة");
@@ -122,7 +143,7 @@ export function BlocksEditor({ tab, tabLabel, navLabels, supabase, log, toast, l
       {blocks.map((b, i) => (
         <div key={b.id} style={{ background: "#fff", border: "1px solid #E1E8EC", borderRadius: 10, padding: 8, marginBottom: 8, opacity: b.hidden ? 0.5 : 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 2, marginBottom: 4 }}>
-            <span style={{ fontSize: 11.5, color: "#5F7280", flex: 1 }}>{BLOCK_TYPES.find((x) => x.type === b.type)?.label}{b.hidden ? " (مخفية)" : ""}</span>
+            <span style={{ fontSize: 11.5, color: "#5F7280", flex: 1 }}>{BLOCK_TYPES.find((x) => x.type === b.type)?.label}{b.pos === "top" ? " · أعلى" : ""}{b.hidden ? " (مخفية)" : ""}</span>
             <button style={ibS} title="أعلى" disabled={busy || i === 0} onClick={() => move(b.id, -1)}><ArrowUp size={14} /></button>
             <button style={ibS} title="أسفل" disabled={busy || i === blocks.length - 1} onClick={() => move(b.id, 1)}><ArrowDown size={14} /></button>
             <button style={ibS} title="تعديل" onClick={() => setEditing({ ...b })}><Pencil size={14} /></button>
@@ -140,10 +161,22 @@ export function BlocksEditor({ tab, tabLabel, navLabels, supabase, log, toast, l
             <textarea style={{ ...inpS, minHeight: editing.type === "heading" || editing.type === "button" ? 40 : 90, marginTop: 8 }} placeholder={editing.type === "button" ? "نص الزر (عربي)" : editing.type === "image" ? "وصف الصورة (اختياري)" : "النص بالعربي"} value={editing.text} onChange={(e) => setEditing({ ...editing, text: e.target.value })} />
             <textarea style={{ ...inpS, direction: "ltr", minHeight: 40 }} placeholder="English (optional)" value={editing.text_en} onChange={(e) => setEditing({ ...editing, text_en: e.target.value })} />
           </>)}
+          {editing.type === "accordion" && <input style={inpS} placeholder="السؤال / العنوان (عربي)" value={editing.title || ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />}
+          {editing.type === "accordion" && <input style={{ ...inpS, direction: "ltr" }} placeholder="Question (optional)" value={editing.title_en || ""} onChange={(e) => setEditing({ ...editing, title_en: e.target.value })} />}
           {needsUrl(editing.type) && <input style={{ ...inpS, direction: "ltr" }} placeholder={editing.type === "video" ? "https://youtu.be/…" : "https://…"} value={editing.url} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />}
           {["heading", "text", "button"].includes(editing.type) && (
             <select style={inpS} value={editing.align} onChange={(e) => setEditing({ ...editing, align: e.target.value })}><option value="start">محاذاة: البداية</option><option value="center">محاذاة: وسط</option></select>
           )}
+          {editing.type !== "divider" && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: 12.5, margin: "4px 0 10px" }}>
+              <label>لون النص <input type="color" value={editing.color || "#1f2933"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} /></label>
+              <label>خلفية <input type="color" value={editing.bg || "#ffffff"} onChange={(e) => setEditing({ ...editing, bg: e.target.value })} /></label>
+              <button type="button" onClick={() => setEditing({ ...editing, color: "", bg: "" })} style={{ border: 0, background: "none", color: "#5F7280", cursor: "pointer", fontSize: 12 }}>مسح الألوان</button>
+              <select value={editing.size || "md"} onChange={(e) => setEditing({ ...editing, size: e.target.value })}><option value="sm">صغير</option><option value="md">عادي</option><option value="lg">كبير</option><option value="xl">كبير جدًا</option></select>
+              <label><input type="checkbox" checked={!!editing.bold} onChange={(e) => setEditing({ ...editing, bold: e.target.checked })} /> عريض</label>
+            </div>
+          )}
+          <select style={inpS} value={editing.pos === "top" ? "top" : "bottom"} onChange={(e) => setEditing({ ...editing, pos: e.target.value })}><option value="bottom">المكان: أسفل التبويب</option><option value="top">المكان: أعلى التبويب</option></select>
           <div style={{ display: "flex", gap: 8 }}>
             <button disabled={busy} onClick={save} style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 9, border: 0, background: "#1B7F8E", color: "#fff", fontSize: 13, cursor: "pointer" }}><Check size={14} /> حفظ</button>
             <button onClick={() => setEditing(null)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 9, border: "1px solid #E1E8EC", background: "#fff", fontSize: 13, cursor: "pointer" }}><X size={14} /> إلغاء</button>

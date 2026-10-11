@@ -1262,6 +1262,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             <ed.TabsEditor navLabels={navLabels} defs={PUBLIC_TAB_KEYS.map((key) => ({ key, ...PUBLIC_TAB_META[key] }))} />
           )}
 
+          <BlocksView blocks={blocksOf(navLabels, tab)} lang={lang} T={T} pos="top" />
           {tab === "notes" && stickyBar && (
             <div className="mini-bar no-print" style={{ top: tabsH }}>
               <button className="mini-bar-jump" onClick={() => setFiltersOpen(true)}>
