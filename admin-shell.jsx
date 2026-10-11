@@ -17,12 +17,12 @@ export const ADMIN_NAV_GROUPS = [
   { title: "محتوى الموقع", keys: ["notices", "media", "gallery", "links", "labels", "theme"] },
   { title: "التحليلات", keys: ["analytics", "insights"] },
   { title: "المشاركة", keys: ["share"] },
-  { title: "النظام", keys: ["audit", "users"] },
+  { title: "النظام", keys: ["audit", "users", "security"] },
 ];
 const ICONS = {
   dashboard: LayoutDashboard, brief: FileText, sync: FileSpreadsheet, filters: Filter, notices: Bell,
   media: Clapperboard, gallery: Images, links: ExternalLink, labels: Type, theme: Palette,
-  analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users,
+  analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users, security: ShieldCheck,
 };
 const iconOf = (k) => ICONS[k] || Layers;
 

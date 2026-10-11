@@ -1,4 +1,5 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-home */
+import { MfaGate, ASecurityTab, useIdleSignOut } from "./security-kit.jsx";
 import { AdminLogin, isoAdminDate, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { ALocked, aNoteStyle } from "./admin-excel-utils.jsx";
 import { AMediaTab } from "./admin-media-tab.jsx";
@@ -127,6 +128,7 @@ const ADMIN_TABS = [
   { key: "theme", label: "مظهر الموقع", perms: ["manage_theme"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
+  { key: "security", label: "الأمان", perms: null },
 ];
 
 function AdminHome({ session, onLogout }) {
@@ -146,6 +148,7 @@ function AdminHome({ session, onLogout }) {
   const refreshProgress = () => supabase.from("progress").select("*").order("month").then(({ data }) => setProgress(data || []));
   const refreshCategories = () => supabase.from("filter_categories").select("*").then(({ data }) => setCategories(data || []));
 
+  useIdleSignOut();
   useEffect(() => { refreshProfile(); refreshInquiries(); refreshProgress(); refreshCategories(); }, [session.user.id]);
 
   const flashToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2800); };
@@ -160,7 +163,7 @@ function AdminHome({ session, onLogout }) {
     </div>
   );
   const has = (perm) => (profile.perms || []).includes(perm);
-  const visibleTabs = ADMIN_TABS.filter((t) => t.perms.some((p) => has(p)) && (t.key === "labels" || !isHidden(navLabels, t.key)));
+  const visibleTabs = ADMIN_TABS.filter((t) => (t.perms === null || t.perms.some((p) => has(p))) && (t.key === "labels" || !isHidden(navLabels, t.key)));
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
   const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => isFlagLive(r.urgent, r.urgent_until)).length };
 
@@ -195,6 +198,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "audit" && <AAuditLogTab />}
+        {activeTab === "security" && <ASecurityTab flashToast={flashToast} log={log} email={session.user.email} />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
       </AdminShell>
 
@@ -207,5 +211,5 @@ export function AdminApp() {
   const session = useSupaAuth();
   if (session === undefined) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui", color: THEMES.light.muted }}>جارٍ التحقق من الدخول...</div>;
   if (!session) return <AdminLogin />;
-  return <AdminHome session={session} />;
+  return <MfaGate><AdminHome session={session} /></MfaGate>;
 }

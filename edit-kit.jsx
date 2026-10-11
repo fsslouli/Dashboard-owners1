@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
 import { EditCtx, useEdit } from "./edit-ctx.js";
+import { useIdleSignOut, MfaGate } from "./security-kit.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, INQ_FIELDS_ADMIN, toDbBool, toYesNo, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
@@ -36,9 +37,13 @@ function Center({ T, children }) {
 }
 
 /* ═══ مزوّد وضع التحرير ═══ */
-export function EditProvider({ children }) {
+export function EditProvider(props) {
+  return <MfaGate><EditProviderInner {...props} /></MfaGate>;
+}
+function EditProviderInner({ children }) {
   const T = useSystemTheme();
   const session = useSupaAuth();
+  useIdleSignOut(undefined, !!session);
   const [profile, setProfile] = useState(undefined);
   const [categories, setCategories] = useState([]);
   const [hasCatCol, setHasCatCol] = useState(true);
