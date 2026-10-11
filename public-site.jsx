@@ -15,6 +15,7 @@ import { GallerySection } from "./gallery-kit.jsx";
 import { LinkLeaveSheet, LinksFolders, LinksHeaderChips, LinksInNotices, LinksOverviewCards, linksAt, useExternalLinks } from "./links-kit.jsx";
 import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
 import { useEdit } from "./edit-ctx.js";
+import { startTextOverrides } from "./text-overrides.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
@@ -153,6 +154,12 @@ export function PublicSite({ share = null } = {}) {
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
   const navLabels = useNavLabels(supabase);
   const ed = useEdit();   /* null خارج وضع التحرير — ما يتغيّر شي بالموقع العام */
+  /* تسمية النصوص (٦.٠.٠): خريطة {أصل: جديد} من لوحة/وضع التحرير تُطبَّق على كل الزوّار لحظيًا */
+  const textMap = navLabels && navLabels._texts;
+  useEffect(() => {
+    if (!textMap || !Object.keys(textMap).length) return undefined;
+    return startTextOverrides(textMap);
+  }, [textMap]);
   /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
   const shareScope = share ? (share.scope || {}) : null;
   const SHARE_ORDER = ["overview", "notes", "progress", "docs", "gallery"];

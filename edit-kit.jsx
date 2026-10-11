@@ -11,7 +11,7 @@
    ═══════════════════════════════════════════════════════════ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowDown, ArrowUp, Check, Copy, Eye, EyeOff, GripVertical, LayoutDashboard, LogOut, Pencil, PlusCircle, RotateCcw, ShieldCheck, Trash2, X,
+  ArrowDown, ArrowUp, Check, Copy, Eye, EyeOff, GripVertical, LayoutDashboard, LogOut, Pencil, PlusCircle, RotateCcw, ShieldCheck, Trash2, Type, X, EyeOff as HideIcon,
 } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
 import { EditCtx, useEdit } from "./edit-ctx.js";
@@ -22,6 +22,7 @@ import { AInquiryTrail } from "./admin-trail-sync.jsx";
 import { CAT_ORDER } from "./site-data.jsx";
 import { NAV_ORDER_KEY, orderedKeys } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
+import { isNumericText, normText, originalTextOf } from "./text-overrides.js";
 
 const go = (hash) => { window.location.hash = hash; };
 
@@ -42,6 +43,7 @@ export function EditProvider({ children }) {
   const [categories, setCategories] = useState([]);
   const [hasCatCol, setHasCatCol] = useState(true);
   const [sheet, setSheet] = useState(null);
+  const [renaming, setRenaming] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef(null);
 
@@ -95,9 +97,10 @@ export function EditProvider({ children }) {
   const value = useMemo(() => ({
     on: true, T, supabase, profile, has, log, toast, categories, hasCatCol,
     openEditor: (target) => setSheet(target),
+    renaming, toggleRename: () => setRenaming((v) => !v),
     removeInquiry, duplicateInquiry,
     CardActions, TabsEditor,
-  }), [T, profile, has, log, toast, categories, hasCatCol, removeInquiry, duplicateInquiry]);
+  }), [T, profile, has, log, toast, categories, hasCatCol, removeInquiry, duplicateInquiry, renaming]);
 
   if (session === undefined || (session && profile === undefined)) return <Center T={T}>جارٍ التحقق من صلاحياتك…</Center>;
   if (!session) {
@@ -124,8 +127,9 @@ export function EditProvider({ children }) {
       {children}
       <EditBar />
       {sheet && <InquirySheet target={sheet} onClose={() => setSheet(null)} />}
+      {renaming && has("manage_theme") && <RenameLayer />}
       {toastMsg && (
-        <div role="status" style={{ position: "fixed", bottom: 78, left: "50%", transform: "translateX(-50%)", zIndex: 120, background: T.paper, color: T.bg, padding: "10px 18px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}>
+        <div role="status" data-edit-ui style={{ position: "fixed", bottom: 78, left: "50%", transform: "translateX(-50%)", zIndex: 120, background: T.paper, color: T.bg, padding: "10px 18px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}>
           <Check size={15} /> {toastMsg}
         </div>
       )}
@@ -142,11 +146,14 @@ function EditBar() {
     background: primary ? T.brass : "transparent", color: primary ? T.onAccent : T.paper, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
   });
   return (
-    <div dir="rtl" role="toolbar" aria-label="أدوات وضع التحرير" className="no-print"
+    <div dir="rtl" data-edit-ui role="toolbar" aria-label="أدوات وضع التحرير" className="no-print"
       style={{ position: "fixed", bottom: 14, left: "50%", transform: "translateX(-50%)", zIndex: 110, maxWidth: "calc(100vw - 20px)", overflowX: "auto",
         display: "flex", alignItems: "center", gap: 6, padding: 6, borderRadius: 999, background: T.surface, border: `1px solid ${T.brass}66`, boxShadow: T.shadowUp, fontFamily: "system-ui, sans-serif" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 10px", fontSize: 12, fontWeight: 800, color: T.brass, whiteSpace: "nowrap" }}><Pencil size={13} /> وضع التحرير</span>
       {ed.has("add_inquiry") && <button style={btn(true)} onClick={() => ed.openEditor({ mode: "new" })}><PlusCircle size={14} /> استفسار</button>}
+      {ed.has("manage_theme") && (
+        <button style={{ ...btn(ed.renaming), ...(ed.renaming ? { background: T.brass + "22", borderColor: T.brass } : {}) }} onClick={ed.toggleRename} aria-pressed={ed.renaming}><Type size={14} /> تسمية النصوص</button>
+      )}
       <button style={btn(false)} onClick={() => go("#admin")}><LayoutDashboard size={14} /> اللوحة</button>
       <button style={btn(false)} onClick={() => go("")}><LogOut size={14} /> خروج</button>
     </div>
@@ -167,7 +174,7 @@ function CardActions({ r, inline = false }) {
   const doDelete = async () => { setBusy(true); await ed.removeInquiry(r); setBusy(false); setAsk(false); };
   const wrap = inline ? { display: "flex", gap: 4, marginTop: 6 } : { position: "absolute", top: 8, insetInlineStart: 8, zIndex: 4, display: "flex", gap: 4 };
   return (
-    <div dir="rtl" style={wrap} onClick={stop} onKeyDown={stop}>
+    <div dir="rtl" data-edit-ui style={wrap} onClick={stop} onKeyDown={stop}>
       {ask ? (
         <>
           <button style={{ ...b, width: "auto", padding: "0 10px", background: "#C0392B", borderColor: "#C0392B", color: "#fff", fontSize: 11.5, fontFamily: "inherit" }} disabled={busy} onClick={doDelete}>{busy ? "…" : "تأكيد الحذف"}</button>
@@ -247,7 +254,7 @@ function InquirySheet({ target, onClose }) {
   };
 
   return (
-    <div dir="rtl" style={{ position: "fixed", inset: 0, zIndex: 130, display: "flex", justifyContent: "flex-start" }}>
+    <div dir="rtl" data-edit-ui style={{ position: "fixed", inset: 0, zIndex: 130, display: "flex", justifyContent: "flex-start" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.5)" }} />
       <aside role="dialog" aria-modal="true" aria-label={isNew ? "إضافة استفسار" : `تعديل الاستفسار ${target.id}`}
         style={{ position: "relative", width: "min(560px,100vw)", height: "100%", overflowY: "auto", background: T.surface, color: T.paper, borderInlineEnd: `1px solid ${T.line}`, boxShadow: T.shadowUp, padding: 18, fontFamily: "system-ui, sans-serif" }}>
@@ -377,7 +384,7 @@ function TabsEditor({ navLabels, defs }) {
   const shortcuts = SHORTCUTS.filter((s) => s.perms.some((p) => ed.has(p)));
 
   return (
-    <section dir="rtl" className="no-print" aria-label="تحرير أقسام الموقع"
+    <section dir="rtl" data-edit-ui className="no-print" aria-label="تحرير أقسام الموقع"
       style={{ margin: "10px 0 14px", border: `1px dashed ${T.brass}88`, borderRadius: 14, background: T.brass + "0d", fontFamily: "system-ui, sans-serif", color: T.paper }}>
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
         style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", border: 0, background: "none", padding: "11px 14px", cursor: "pointer", color: T.brass, fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
@@ -408,5 +415,88 @@ function TabsEditor({ navLabels, defs }) {
         </div>
       )}
     </section>
+  );
+}
+
+
+/* ═══ وضع «تسمية النصوص»: اضغط أي نص بالموقع لتغيير اسمه أو إخفائه ═══ */
+function textNodeAt(x, y, target) {
+  let node = null;
+  if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); node = p && p.offsetNode; }
+  else if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); node = r && r.startContainer; }
+  if (node && node.nodeType === 3 && normText(node.nodeValue) && node.parentElement && (target.contains(node) || node.parentElement.contains(target))) return node;
+  for (const c of target.childNodes) if (c.nodeType === 3 && normText(c.nodeValue)) return c;
+  return null;
+}
+
+function RenameLayer() {
+  const ed = useEdit();
+  const { T } = ed;
+  const [pop, setPop] = useState(null);
+
+  useEffect(() => {
+    document.body.classList.add("ed-rename");
+    const st = document.createElement("style");
+    st.setAttribute("data-edit-ui", "");
+    st.textContent = `body.ed-rename *:hover{outline:1.5px dashed ${T.brass};outline-offset:1px;cursor:text !important}body.ed-rename [data-edit-ui] *:hover{outline:none;cursor:auto !important}`;
+    document.head.appendChild(st);
+    const onClick = (e) => {
+      if (e.target.closest && e.target.closest("[data-edit-ui]")) return;
+      e.preventDefault(); e.stopPropagation();
+      const node = textNodeAt(e.clientX, e.clientY, e.target);
+      if (!node) { ed.toast("ما لقيت نص هنا — اضغط مباشرة على الكلمة"); return; }
+      const original = normText(originalTextOf(node));
+      if (isNumericText(original)) { ed.toast("هذا رقم يُحسب تلقائيًا من البيانات — يتغيّر بتعديل البيانات نفسها"); return; }
+      setPop({ x: e.clientX, y: e.clientY, original, current: normText(node.nodeValue) });
+    };
+    document.addEventListener("click", onClick, true);
+    return () => { document.removeEventListener("click", onClick, true); document.body.classList.remove("ed-rename"); st.remove(); };
+  }, [T.brass]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return pop ? <RenamePopover pop={pop} onClose={() => setPop(null)} /> : null;
+}
+
+function RenamePopover({ pop, onClose }) {
+  const ed = useEdit();
+  const { T } = ed;
+  const [val, setVal] = useState(pop.current);
+  const [busy, setBusy] = useState(false);
+  const w = Math.min(340, window.innerWidth - 20);
+  const left = Math.max(10, Math.min(pop.x - w / 2, window.innerWidth - w - 10));
+  const top = Math.min(pop.y + 14, window.innerHeight - 230);
+
+  const persist = async (value) => {
+    setBusy(true);
+    const { data, error: e0 } = await supabase.from("site_settings").select("nav_labels").eq("id", 1).single();
+    if (e0) { setBusy(false); ed.toast("تعذّرت القراءة: " + (e0.message || "")); return; }
+    const nl = { ...(data?.nav_labels || {}) };
+    const texts = { ...(nl._texts || {}) };
+    if (value == null) delete texts[pop.original]; else texts[pop.original] = value;
+    if (Object.keys(texts).length > 400) { setBusy(false); ed.toast("وصلت الحد الأقصى (400 نص معدّل)"); return; }
+    if (Object.keys(texts).length) nl._texts = texts; else delete nl._texts;
+    const { error } = await supabase.from("site_settings").update({ nav_labels: nl }).eq("id", 1);
+    setBusy(false);
+    if (error) { ed.toast("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return; }
+    ed.log(value == null ? "إرجاع نص للأصل (وضع التحرير)" : value === "" ? "إخفاء نص (وضع التحرير)" : "تسمية نص (وضع التحرير)", `${pop.original.slice(0, 60)}${value ? " ← " + value.slice(0, 60) : ""}`);
+    ed.toast(value == null ? "رجع النص الأصلي" : "تم الحفظ");
+    onClose();
+  };
+  const save = () => { const v = val.trim().slice(0, 400); if (!v || v === pop.original) { persist(v ? null : ""); return; } persist(v); };
+  const btn = (kind) => ({ border: kind === "primary" ? 0 : `1px solid ${T.line}`, borderRadius: 9, padding: "7px 12px", background: kind === "primary" ? T.brass : "transparent", color: kind === "primary" ? T.onAccent : T.muted, fontFamily: "inherit", fontSize: 12.5, fontWeight: kind === "primary" ? 700 : 500, cursor: busy ? "wait" : "pointer" });
+
+  return (
+    <div dir="rtl" data-edit-ui role="dialog" aria-label="تسمية نص" style={{ position: "fixed", left, top, width: w, zIndex: 140, background: T.surface, color: T.paper, border: `1px solid ${T.brass}88`, borderRadius: 14, boxShadow: T.shadowUp, padding: 12, fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 6 }}>الأصلي: <b style={{ color: T.paper }}>{pop.original.length > 70 ? pop.original.slice(0, 70) + "…" : pop.original}</b></div>
+      <textarea autoFocus value={val} onChange={(e) => setVal(e.target.value)} rows={pop.original.length > 40 ? 3 : 2}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); } if (e.key === "Escape") onClose(); }}
+        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, borderRadius: 9, padding: "8px 10px", fontSize: 13.5, fontFamily: "inherit" }} />
+      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+        <button style={btn("primary")} disabled={busy} onClick={save}>حفظ</button>
+        <button style={btn()} disabled={busy} onClick={() => persist(null)} title="يرجّع النص الأصلي"><RotateCcw size={12} style={{ verticalAlign: -2 }} /> الأصل</button>
+        <button style={btn()} disabled={busy} onClick={() => persist("")} title="يخفي هذا النص من الموقع"><HideIcon size={12} style={{ verticalAlign: -2 }} /> إخفاء</button>
+        <button style={{ ...btn(), marginInlineStart: "auto" }} onClick={onClose}>إلغاء</button>
+      </div>
+      <div style={{ fontSize: 11, color: T.faint, marginTop: 8, lineHeight: 1.7 }}>يسري على كل النصوص المطابقة تمامًا بنفس اللغة. للإنجليزي بدّل لغة الموقع ثم سمِّه.</div>
+    </div>
   );
 }
