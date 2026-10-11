@@ -12,9 +12,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowUp, Check, Copy, Eye, EyeOff, GripVertical, LayoutDashboard, LogOut, Pencil, PlusCircle, RotateCcw, ShieldCheck, Trash2, Type, X, EyeOff as HideIcon,
+  Settings2,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { supabase } from "./app-bootstrap.jsx";
 import { EditCtx, useEdit } from "./edit-ctx.js";
+import { AMediaTab } from "./admin-media-tab.jsx";
+import { AFiltersTab, ANoticesTab } from "./admin-tabs-1.jsx";
+import { AThemeTab } from "./admin-tabs-2.jsx";
+import { AGalleryTab } from "./gallery-kit.jsx";
+import { ALinksTab } from "./admin-links-tab.jsx";
+import { AShareTab } from "./admin-share-tab.jsx";
+import { ALabelsTab } from "./nav-labels-kit.jsx";
 import { BlocksEditor } from "./blocks-kit.jsx";
 import { useIdleSignOut, MfaGate } from "./security-kit.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, INQ_FIELDS_ADMIN, toDbBool, toYesNo, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
@@ -144,9 +153,56 @@ function EditProviderInner({ children }) {
 }
 
 /* ═══ الشريط العائم ═══ */
+/* ═══ درج إدارة المحتوى — نفس أدوات اللوحة، لكن فوق الموقع مباشرة ═══ */
+const MANAGE_SECTIONS = [
+  { key: "gallery", label: "المعرض", perm: "manage_gallery" },
+  { key: "links", label: "الروابط", perm: "manage_links" },
+  { key: "media", label: "مقاطع النماذج", perm: "manage_media" },
+  { key: "notices", label: "الإشعارات", perm: "manage_notices" },
+  { key: "filters", label: "الفلاتر", perm: "manage_filters" },
+  { key: "theme", label: "المظهر", perm: "manage_theme" },
+  { key: "labels", label: "أسماء الأقسام", perm: "manage_theme" },
+  { key: "share", label: "روابط المشاركة", perm: "manage_share" },
+];
+function ManageDrawer({ onClose }) {
+  const ed = useEdit();
+  const { T, supabase, has, log, toast } = ed;
+  const secs = MANAGE_SECTIONS.filter((x) => has(x.perm));
+  const [k, setK] = useState(secs[0]?.key);
+  const [cats, setCats] = useState(ed.categories);
+  const refreshCats = () => supabase.from("filter_categories").select("*").then(({ data }) => setCats(data || []));
+  const by = ed.profile?.name || "";
+  return (
+    <div data-edit-ui dir="rtl" style={{ position: "fixed", top: 0, bottom: 0, insetInlineEnd: 0, width: "min(620px, 100vw)", zIndex: 130, background: T.bg, borderInlineStart: `1px solid ${T.line}`, boxShadow: T.shadowUp, display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", color: T.paper }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: `1px solid ${T.line}` }}>
+        <b style={{ fontSize: 14, flex: 1 }}>إدارة المحتوى</b>
+        <button onClick={onClose} aria-label="إغلاق" style={{ border: 0, background: "none", cursor: "pointer", color: T.muted }}><X size={18} /></button>
+      </div>
+      <div style={{ display: "flex", gap: 6, padding: "8px 12px", overflowX: "auto", borderBottom: `1px solid ${T.line}` }}>
+        {secs.map((x) => (
+          <button key={x.key} onClick={() => setK(x.key)} style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${k === x.key ? T.brass : T.line}`, background: k === x.key ? T.brass + "22" : "transparent", color: T.paper, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer" }}>{x.label}</button>
+        ))}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+        {k === "gallery" && <AGalleryTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_gallery")} />}
+        {k === "links" && <ALinksTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_links")} />}
+        {k === "media" && <AMediaTab flashToast={toast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
+        {k === "notices" && <ANoticesTab flashToast={toast} log={log} />}
+        {k === "filters" && <AFiltersTab categories={cats} refreshCategories={refreshCats} flashToast={toast} log={log} />}
+        {k === "theme" && <AThemeTab flashToast={toast} log={log} canManage={has("manage_theme")} />}
+        {k === "labels" && <ALabelsTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_theme")} />}
+        {k === "share" && <AShareTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_share")} by={by} />}
+        {!k && <p style={{ color: T.muted }}>ما عندك صلاحية على أي قسم هنا.</p>}
+      </div>
+    </div>
+  );
+}
+
 function EditBar() {
   const ed = useEdit();
   const { T } = ed;
+  const [manage, setManage] = useState(false);
+  const canManage = MANAGE_SECTIONS.some((x) => ed.has(x.perm));
   const btn = (primary) => ({
     display: "flex", alignItems: "center", gap: 6, border: primary ? 0 : `1px solid ${T.line}`, borderRadius: 999, padding: "9px 14px",
     background: primary ? T.brass : "transparent", color: primary ? T.onAccent : T.paper, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
@@ -160,8 +216,10 @@ function EditBar() {
       {ed.has("manage_theme") && (
         <button style={{ ...btn(ed.renaming), ...(ed.renaming ? { background: T.brass + "22", borderColor: T.brass } : {}) }} onClick={ed.toggleRename} aria-pressed={ed.renaming}><Type size={14} /> تسمية النصوص</button>
       )}
+      {canManage && <button style={btn(false)} onClick={() => setManage(true)}><Settings2 size={14} /> إدارة المحتوى</button>}
       <button style={btn(false)} onClick={() => go("#admin")}><LayoutDashboard size={14} /> اللوحة</button>
       <button style={btn(false)} onClick={() => go("")}><LogOut size={14} /> خروج</button>
+      {manage && createPortal(<ManageDrawer onClose={() => setManage(false)} />, document.body)}
     </div>
   );
 }
