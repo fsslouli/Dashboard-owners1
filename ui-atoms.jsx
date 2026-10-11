@@ -4,7 +4,7 @@ import { useEdit } from "./edit-ctx.js";
 import { catColor, hashPick, trCat, trLoc, trMeeting, trMonth, trNote, trPri, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock, LayoutGrid, Monitor, Moon, Paperclip, Sparkles, Sun, Table, Users, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, LayoutGrid, Monitor, Moon, Paperclip, Sparkles, Sun, Table, Users, XCircle, Pin } from "lucide-react";
 
 /* ── ٩. عناصر صغيرة قابلة لإعادة الاستخدام ── */
 export function CountUp({ value, dur = 850, suffix = "", onScroll = false }) {
@@ -346,8 +346,9 @@ export function Row({ r, onOpen }) {
       <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
       <td className="td-note">
         <span className="td-note-t">{trNote(lang, r)}</span>
-        {(r.isImportantActive || r.isNew || !r.closed || r.attCount > 0) && (
+        {(r.isPinned || r.isImportantActive || r.isNew || !r.closed || r.attCount > 0) && (
           <span className="td-tags">
+            {r.isPinned && <span className="tag" style={{ color: T.brass, display: "inline-flex", alignItems: "center", gap: 3 }}><Pin size={9} /> {lang === "en" ? "Pinned" : "مثبّت"}</span>}
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
             {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}
@@ -406,6 +407,7 @@ export function Card({ r, i, onOpen, reduced }) {
       )}
       <div className="card-top">
         <span className="mono card-id">{String(r.id).padStart(2, "0")}</span>
+        {r.isPinned && <span className="tag" style={{ color: T.brass, display: "inline-flex", alignItems: "center", gap: 3 }}><Pin size={9} /> {lang === "en" ? "Pinned" : "مثبّت"}</span>}
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
         <CatPill cat={r.cat} />
         {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}

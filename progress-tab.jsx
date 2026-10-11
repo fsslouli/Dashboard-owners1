@@ -97,7 +97,7 @@ export function ProgressTab({ reduced, data, loading }) {
       ) : null}
 
       {/* الحالة العامة مقابل الهدف */}
-      <section className="surf" style={{ padding: "22px 20px", marginBottom: 14 }}>
+      <section className="surf" data-ek="pg-target" style={{ padding: "22px 20px", marginBottom: 14 }}>
         <div className="stats-top">
           <div>
             <div className="sec-t">{L("تقدم المشروع مقابل الهدف", "Project Progress vs. Target")}</div>
@@ -168,7 +168,7 @@ export function ProgressTab({ reduced, data, loading }) {
       </section>
 
       {/* المسار الزمني */}
-      <section className="surf" style={{ padding: "20px 16px 14px", marginBottom: 14 }}>
+      <section className="surf" data-ek="pg-timeline" style={{ padding: "20px 16px 14px", marginBottom: 14 }}>
         <div style={{ paddingRight: 4 }}>
           <div className="sec-t">{L("المسار الزمني", "Timeline")}</div>
           <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>
@@ -202,7 +202,7 @@ export function ProgressTab({ reduced, data, loading }) {
       </section>
 
       {/* المراحل */}
-      <section className="surf" style={{ padding: "20px 18px", marginBottom: 14 }}>
+      <section className="surf" data-ek="pg-phases" style={{ padding: "20px 18px", marginBottom: 14 }}>
         <div className="sec-t">{L("المراحل", "Phases")}</div>
         <div className="eyebrow" style={{ marginTop: 4, marginBottom: 6 }}>
           {L("مقابل هدف", "Against")} {mFull(mi)} {L("", "target")} <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span> — {L("الخط الرأسي يمثّل الهدف", "the vertical line marks the target")}
@@ -229,7 +229,7 @@ export function ProgressTab({ reduced, data, loading }) {
       </section>
 
       {/* البلوكات */}
-      <section className="surf" style={{ padding: "20px 18px" }}>
+      <section className="surf" data-ek="pg-blocks" style={{ padding: "20px 18px" }}>
         <div className="gb-head">
           <div>
             <div className="sec-t">{L("البلوكات", "Blocks")}</div>

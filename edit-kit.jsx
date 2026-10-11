@@ -6,13 +6,15 @@
    • الاستفسارات: تعديل / تكرار / حذف من كل بطاقة وصف، + إضافة جديد.
    • التبويبات: إعادة تسمية (عربي/English)، إخفاء/إظهار، وترتيب بالسحب.
    • اختصارات: قفز مباشر لأي تبويب إدارة (المعرض، الروابط، المقاطع…).
+   • (٦.٠.٠) تبويبات جديدة، كتل محتوى، تسمية أي نص، إخفاء أي قسم بالنقر، تثبيت استفسارات،
+     ودرج «إدارة المحتوى» فيه كل أدوات اللوحة + مركز «تخصيص الموقع والنسخ».
 
    يُحمَّل بحزمة منفصلة؛ الزائر العادي ما ينزّل منه شي.
    ═══════════════════════════════════════════════════════════ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowUp, Check, Copy, Eye, EyeOff, GripVertical, LayoutDashboard, LogOut, Pencil, PlusCircle, RotateCcw, ShieldCheck, Trash2, Type, X, EyeOff as HideIcon,
-  Settings2,
+  Settings2, Pin, PinOff, SquareDashedMousePointer, Plus, Undo2,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { supabase } from "./app-bootstrap.jsx";
@@ -24,14 +26,16 @@ import { AGalleryTab } from "./gallery-kit.jsx";
 import { ALinksTab } from "./admin-links-tab.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
 import { ALabelsTab } from "./nav-labels-kit.jsx";
-import { BlocksEditor } from "./blocks-kit.jsx";
+import { BlocksEditor } from "./blocks-editor.jsx";
+import { SiteCustomPanel, addCustomTab, deleteCustomTab, docName, toggleHiddenSec, togglePin } from "./site-admin.jsx";
+import { CUSTOM_TAB_ICONS, MAX_CUSTOM_TABS, hiddenSecsOf } from "./site-custom.js";
 import { useIdleSignOut, MfaGate } from "./security-kit.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, INQ_FIELDS_ADMIN, toDbBool, toYesNo, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { AInquiryTrail } from "./admin-trail-sync.jsx";
 import { CAT_ORDER } from "./site-data.jsx";
-import { NAV_ORDER_KEY, orderedKeys } from "./nav-labels-kit.jsx";
+import { NAV_ORDER_KEY, dropLocalHistory, orderedKeys, patchNavLabels, readLocalHistory, useNavLabels } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
 import { isNumericText, normText, originalTextOf } from "./text-overrides.js";
 
@@ -58,7 +62,10 @@ function EditProviderInner({ children }) {
   const [categories, setCategories] = useState([]);
   const [hasCatCol, setHasCatCol] = useState(true);
   const [sheet, setSheet] = useState(null);
-  const [renaming, setRenaming] = useState(false);
+  /* وضع نقر واحد فقط بنفس الوقت: تسمية النصوص أو إخفاء الأقسام */
+  const [clickMode, setClickMode] = useState(null);
+  const renaming = clickMode === "rename";
+  const sectioning = clickMode === "sections";
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef(null);
 
@@ -112,10 +119,11 @@ function EditProviderInner({ children }) {
   const value = useMemo(() => ({
     on: true, T, supabase, profile, has, log, toast, categories, hasCatCol,
     openEditor: (target) => setSheet(target),
-    renaming, toggleRename: () => setRenaming((v) => !v),
+    renaming, toggleRename: () => setClickMode((m) => (m === "rename" ? null : "rename")),
+    sectioning, toggleSections: () => setClickMode((m) => (m === "sections" ? null : "sections")),
     removeInquiry, duplicateInquiry,
     CardActions, TabsEditor, BlocksEditor,
-  }), [T, profile, has, log, toast, categories, hasCatCol, removeInquiry, duplicateInquiry, renaming]);
+  }), [T, profile, has, log, toast, categories, hasCatCol, removeInquiry, duplicateInquiry, renaming, sectioning]);
 
   if (session === undefined || (session && profile === undefined)) return <Center T={T}>جارٍ التحقق من صلاحياتك…</Center>;
   if (!session) {
@@ -143,6 +151,7 @@ function EditProviderInner({ children }) {
       <EditBar />
       {sheet && <InquirySheet target={sheet} onClose={() => setSheet(null)} />}
       {renaming && has("manage_theme") && <RenameLayer />}
+      {sectioning && has("manage_theme") && <SectionsLayer />}
       {toastMsg && (
         <div role="status" data-edit-ui style={{ position: "fixed", bottom: 78, left: "50%", transform: "translateX(-50%)", zIndex: 120, background: T.paper, color: T.bg, padding: "10px 18px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp }}>
           <Check size={15} /> {toastMsg}
@@ -155,6 +164,7 @@ function EditProviderInner({ children }) {
 /* ═══ الشريط العائم ═══ */
 /* ═══ درج إدارة المحتوى — نفس أدوات اللوحة، لكن فوق الموقع مباشرة ═══ */
 const MANAGE_SECTIONS = [
+  { key: "site", label: "تخصيص الموقع والنسخ", perm: "manage_theme" },
   { key: "gallery", label: "المعرض", perm: "manage_gallery" },
   { key: "links", label: "الروابط", perm: "manage_links" },
   { key: "media", label: "مقاطع النماذج", perm: "manage_media" },
@@ -184,6 +194,7 @@ function ManageDrawer({ onClose }) {
         ))}
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+        {k === "site" && <SiteCustomPanel supabase={supabase} T={T} log={log} toast={toast} canManage={has("manage_theme")} />}
         {k === "gallery" && <AGalleryTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_gallery")} />}
         {k === "links" && <ALinksTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_links")} />}
         {k === "media" && <AMediaTab flashToast={toast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
@@ -203,6 +214,25 @@ function EditBar() {
   const { T } = ed;
   const [manage, setManage] = useState(false);
   const canManage = MANAGE_SECTIONS.some((x) => ed.has(x.perm));
+  /* زر «تراجع»: يرجّع تخصيصات الموقع لآخر نسخة قبل آخر تعديل سوّيته من هذا المتصفح */
+  const [histN, setHistN] = useState(() => readLocalHistory().length);
+  const [undoing, setUndoing] = useState(false);
+  useEffect(() => {
+    const on = () => setHistN(readLocalHistory().length);
+    window.addEventListener("site-custom-history", on); window.addEventListener("storage", on);
+    return () => { window.removeEventListener("site-custom-history", on); window.removeEventListener("storage", on); };
+  }, []);
+  const undo = async () => {
+    const [last] = readLocalHistory();
+    if (!last || undoing) return;
+    setUndoing(true);
+    const { error } = await supabase.from("site_settings").update({ nav_labels: last.nav_labels || {} }).eq("id", 1);
+    setUndoing(false);
+    if (error) { ed.toast("تعذّر التراجع: " + (error.message || "")); return; }
+    dropLocalHistory(last.id);
+    ed.log("تراجع عن آخر تعديل بالموقع", last.actor || "");
+    ed.toast(`تم التراجع عن: ${last.actor || "آخر تعديل"}`);
+  };
   const btn = (primary) => ({
     display: "flex", alignItems: "center", gap: 6, border: primary ? 0 : `1px solid ${T.line}`, borderRadius: 999, padding: "9px 14px",
     background: primary ? T.brass : "transparent", color: primary ? T.onAccent : T.paper, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
@@ -216,6 +246,10 @@ function EditBar() {
       {ed.has("manage_theme") && (
         <button style={{ ...btn(ed.renaming), ...(ed.renaming ? { background: T.brass + "22", borderColor: T.brass } : {}) }} onClick={ed.toggleRename} aria-pressed={ed.renaming}><Type size={14} /> تسمية النصوص</button>
       )}
+      {ed.has("manage_theme") && (
+        <button style={{ ...btn(ed.sectioning), ...(ed.sectioning ? { background: T.brass + "22", borderColor: T.brass } : {}) }} onClick={ed.toggleSections} aria-pressed={ed.sectioning}><SquareDashedMousePointer size={14} /> إخفاء أقسام</button>
+      )}
+      {ed.has("manage_theme") && histN > 0 && <button style={btn(false)} disabled={undoing} onClick={undo} title="يرجّع تخصيصات الموقع (تبويبات، كتل، نصوص، أقسام، تثبيت) لما قبل آخر تعديل سوّيته من هذا المتصفح"><Undo2 size={14} /> تراجع</button>}
       {canManage && <button style={btn(false)} onClick={() => setManage(true)}><Settings2 size={14} /> إدارة المحتوى</button>}
       <button style={btn(false)} onClick={() => go("#admin")}><LayoutDashboard size={14} /> اللوحة</button>
       <button style={btn(false)} onClick={() => go("")}><LogOut size={14} /> خروج</button>
@@ -233,8 +267,16 @@ function CardActions({ r, inline = false }) {
   const { T } = ed;
   const stop = (e) => e.stopPropagation();
   const b = { display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 8, border: `1px solid ${T.line}`, background: T.surface, color: T.muted, cursor: "pointer", padding: 0 };
-  const canEdit = ed.has("edit_inquiry"), canAdd = ed.has("add_inquiry"), canDel = ed.has("delete_inquiry");
-  if (!canEdit && !canAdd && !canDel) return null;
+  const canEdit = ed.has("edit_inquiry"), canAdd = ed.has("add_inquiry"), canDel = ed.has("delete_inquiry"), canPin = ed.has("manage_theme");
+  if (!canEdit && !canAdd && !canDel && !canPin) return null;
+  const doPin = async () => {
+    setBusy(true);
+    const { error } = await togglePin(supabase, r.id);
+    setBusy(false);
+    if (error) { ed.toast("تعذّر التثبيت: " + (error.message || "")); return; }
+    ed.log(r.isPinned ? "إلغاء تثبيت استفسار" : "تثبيت استفسار بالأعلى", `#${r.id}`);
+    ed.toast(r.isPinned ? `انلغى تثبيت #${r.id}` : `تثبّت #${r.id} بأعلى القائمة`);
+  };
   const doDelete = async () => { setBusy(true); await ed.removeInquiry(r); setBusy(false); setAsk(false); };
   const wrap = inline ? { display: "flex", gap: 4, marginTop: 6 } : { position: "absolute", top: 8, insetInlineStart: 8, zIndex: 4, display: "flex", gap: 4 };
   return (
@@ -246,6 +288,7 @@ function CardActions({ r, inline = false }) {
         </>
       ) : (
         <>
+          {canPin && <button style={{ ...b, ...(r.isPinned ? { color: T.brass, borderColor: T.brass } : {}) }} disabled={busy} title={r.isPinned ? "إلغاء التثبيت" : "تثبيت بأعلى القائمة"} aria-label={r.isPinned ? `إلغاء تثبيت ${r.id}` : `تثبيت ${r.id}`} onClick={doPin}>{r.isPinned ? <PinOff size={13} /> : <Pin size={13} />}</button>}
           {canEdit && <button style={b} title="تعديل" aria-label={`تعديل الاستفسار ${r.id}`} onClick={() => ed.openEditor({ mode: "edit", id: r.id })}><Pencil size={13} /></button>}
           {canAdd && <button style={b} title="تكرار" aria-label={`تكرار الاستفسار ${r.id}`} onClick={() => ed.duplicateInquiry(r)}><Copy size={13} /></button>}
           {canDel && <button style={{ ...b, color: "#C0392B" }} title="حذف" aria-label={`حذف الاستفسار ${r.id}`} onClick={() => setAsk(true)}><Trash2 size={13} /></button>}
@@ -378,19 +421,29 @@ const SHORTCUTS = [
   { tab: "share", label: "روابط المشاركة", perms: ["manage_share"] },
 ];
 
-function TabRow({ d, saved, hidden, canEdit, idx, last, T, onCommit, onToggle, onReset, onMove, drag }) {
-  const [ar, setAr] = useState(saved.ar ?? "");
-  const [en, setEn] = useState(saved.en ?? "");
-  useEffect(() => { setAr(saved.ar ?? ""); setEn(saved.en ?? ""); }, [saved.ar, saved.en]);
-  const dirty = ar !== (saved.ar ?? "") || en !== (saved.en ?? "");
+function TabRow({ d, saved, hidden, canEdit, idx, last, T, onCommit, onToggle, onReset, onMove, onIcon, onDelete, drag }) {
+  const baseAr = d.custom ? d.ar : (saved.ar ?? "");
+  const baseEn = d.custom ? d.en : (saved.en ?? "");
+  const [ar, setAr] = useState(baseAr);
+  const [en, setEn] = useState(baseEn);
+  useEffect(() => { setAr(baseAr); setEn(baseEn); }, [baseAr, baseEn]);
+  const dirty = ar !== baseAr || en !== baseEn;
   const inp = { width: "100%", minWidth: 0, boxSizing: "border-box", border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, borderRadius: 8, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" };
   const ib = { width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: 8, background: "transparent", color: T.muted, cursor: "pointer", padding: 0, flexShrink: 0 };
-  const commit = () => onCommit(d.key, { ar: ar.trim(), en: en.trim() });
+  const commit = () => onCommit(d, { ar: ar.trim(), en: en.trim() });
   const onKey = (e) => { if (e.key === "Enter") commit(); };
   return (
     <div draggable={canEdit} onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; drag.start(d.key); }} onDragOver={(e) => { e.preventDefault(); }} onDrop={(e) => { e.preventDefault(); drag.drop(d.key); }} onDragEnd={drag.end}
-      style={{ display: "grid", gridTemplateColumns: "auto minmax(0,1fr) minmax(0,1fr) auto", gap: 6, alignItems: "center", padding: "6px 8px", border: `1px solid ${T.line}`, borderRadius: 11, background: T.surface, opacity: hidden ? 0.55 : 1 }}>
-      <span style={{ display: "flex", alignItems: "center", gap: 2, color: T.faint, cursor: canEdit ? "grab" : "default" }}><GripVertical size={15} aria-hidden="true" /></span>
+      style={{ display: "grid", gridTemplateColumns: "auto minmax(0,1fr) minmax(0,1fr) auto", gap: 6, alignItems: "center", padding: "6px 8px", border: `1px solid ${d.custom ? T.brass + "66" : T.line}`, borderRadius: 11, background: T.surface, opacity: hidden ? 0.55 : 1 }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 4, color: T.faint, cursor: canEdit ? "grab" : "default" }}>
+        <GripVertical size={15} aria-hidden="true" />
+        {d.custom && canEdit ? (
+          <select value={d.icon} onChange={(e) => onIcon(d.key, e.target.value)} title="الأيقونة" aria-label="أيقونة التبويب"
+            style={{ border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, borderRadius: 7, fontSize: 11.5, padding: "2px 2px", maxWidth: 82 }}>
+            {Object.keys(CUSTOM_TAB_ICONS).map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        ) : d.Icon ? <d.Icon size={14} color={T.brass} /> : null}
+      </span>
       <input style={inp} value={ar} placeholder={d.ar} onChange={(e) => setAr(e.target.value)} onKeyDown={onKey} disabled={!canEdit} aria-label={`اسم ${d.ar} بالعربي`} />
       <input style={{ ...inp, direction: "ltr" }} value={en} placeholder={d.en} onChange={(e) => setEn(e.target.value)} onKeyDown={onKey} disabled={!canEdit} aria-label={`اسم ${d.ar} بالإنجليزي`} />
       <span style={{ display: "flex", alignItems: "center" }}>
@@ -398,7 +451,8 @@ function TabRow({ d, saved, hidden, canEdit, idx, last, T, onCommit, onToggle, o
         {canEdit && <button style={ib} onClick={() => onMove(d.key, -1)} disabled={idx === 0} title="أعلى/قبل" aria-label="تقديم"><ArrowUp size={14} style={{ opacity: idx === 0 ? 0.3 : 1 }} /></button>}
         {canEdit && <button style={ib} onClick={() => onMove(d.key, 1)} disabled={last} title="أسفل/بعد" aria-label="تأخير"><ArrowDown size={14} style={{ opacity: last ? 0.3 : 1 }} /></button>}
         {canEdit && <button style={ib} onClick={() => onToggle(d.key, hidden)} title={hidden ? "إظهار بالموقع" : "إخفاء بالموقع"} aria-label={hidden ? "إظهار" : "إخفاء"}>{hidden ? <EyeOff size={14} /> : <Eye size={14} />}</button>}
-        {canEdit && (saved.ar || saved.en) && <button style={ib} onClick={() => onReset(d.key)} title="الاسم الافتراضي" aria-label="الاسم الافتراضي"><RotateCcw size={13} /></button>}
+        {canEdit && !d.custom && (saved.ar || saved.en) && <button style={ib} onClick={() => onReset(d.key)} title="الاسم الافتراضي" aria-label="الاسم الافتراضي"><RotateCcw size={13} /></button>}
+        {canEdit && d.custom && <button style={{ ...ib, color: "#C0392B" }} onClick={() => onDelete(d)} title="حذف التبويب ومحتواه" aria-label="حذف التبويب"><Trash2 size={13} /></button>}
       </span>
     </div>
   );
@@ -407,6 +461,7 @@ function TabRow({ d, saved, hidden, canEdit, idx, last, T, onCommit, onToggle, o
 function TabsEditor({ navLabels, defs }) {
   const ed = useEdit();
   const [open, setOpen] = useState(false);
+  const [nt, setNt] = useState({ ar: "", en: "", icon: "star" });
   const dragKey = useRef(null);
   if (!ed) return null;
   const { T } = ed;
@@ -414,60 +469,98 @@ function TabsEditor({ navLabels, defs }) {
   const keys = defs.map((d) => d.key);
   const order = orderedKeys(navLabels, keys);
   const byKey = Object.fromEntries(defs.map((d) => [d.key, d]));
+  const customCount = defs.filter((d) => d.custom).length;
 
-  const persist = async (next, what) => {
-    const { error } = await supabase.from("site_settings").update({ nav_labels: next }).eq("id", 1);
+  /* كل حفظ يقرأ آخر نسخة من القاعدة أولًا (ما يمسح كتل/نصوص انحفظت من مكان ثاني) */
+  const persist = async (mutate, what) => {
+    const { error } = await patchNavLabels(supabase, mutate, what);
     if (error) { ed.toast("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return false; }
     ed.log(what, "تبويبات الموقع");
     ed.toast("تم الحفظ");
     return true;
   };
-  const commit = async (key, patch) => {
+  const commit = async (d, patch) => {
     let { ar, en } = patch;
     if (ar && !en) { const t = await autoTranslateAr(supabase, ar); if (t) en = t; }
-    const cur = { ...(navLabels[key] || {}) };
-    if (ar) cur.ar = ar; else delete cur.ar;
-    if (en) cur.en = en; else delete cur.en;
-    await persist({ ...navLabels, [key]: cur }, "تعديل اسم قسم (وضع التحرير)");
+    if (d.custom) {
+      if (!ar) { ed.toast("اسم التبويب المخصّص ما يكون فاضي"); return; }
+      await persist((nl) => ({ ...nl, _tabs: (nl._tabs || []).map((t) => (t && t.key === d.key ? { ...t, ar: ar.slice(0, 60), en: (en || ar).slice(0, 60) } : t)) }), "تعديل اسم تبويب مخصّص");
+      return;
+    }
+    await persist((nl) => {
+      const cur = { ...(nl[d.key] || {}) };
+      if (ar) cur.ar = ar; else delete cur.ar;
+      if (en) cur.en = en; else delete cur.en;
+      return { ...nl, [d.key]: cur };
+    }, "تعديل اسم قسم (وضع التحرير)");
   };
-  const toggle = (key, hidden) => persist({ ...navLabels, [key]: { ...(navLabels[key] || {}), hidden: !hidden } }, hidden ? "إظهار قسم بالموقع" : "إخفاء قسم بالموقع");
-  const reset = (key) => { const next = { ...navLabels }; const cur = { ...(next[key] || {}) }; delete cur.ar; delete cur.en; next[key] = cur; return persist(next, "إرجاع اسم قسم للافتراضي"); };
+  const toggle = (key, hidden) => persist((nl) => ({ ...nl, [key]: { ...(nl[key] || {}), hidden: !hidden } }), hidden ? "إظهار قسم بالموقع" : "إخفاء قسم بالموقع");
+  const reset = (key) => persist((nl) => { const cur = { ...(nl[key] || {}) }; delete cur.ar; delete cur.en; return { ...nl, [key]: cur }; }, "إرجاع اسم قسم للافتراضي");
+  const setOrder = (arr, what) => persist((nl) => ({ ...nl, [NAV_ORDER_KEY]: arr }), what);
   const reorder = (from, to) => {
     if (from === to) return;
     const arr = order.filter((k) => k !== from);
     arr.splice(Math.max(0, arr.indexOf(to)) + (order.indexOf(from) < order.indexOf(to) ? 1 : 0), 0, from);
-    return persist({ ...navLabels, [NAV_ORDER_KEY]: arr }, "ترتيب أقسام الموقع");
+    return setOrder(arr, "ترتيب أقسام الموقع");
   };
   const move = (key, dir) => {
     const i = order.indexOf(key), j = i + dir;
     if (j < 0 || j >= order.length) return;
     const arr = order.slice(); [arr[i], arr[j]] = [arr[j], arr[i]];
-    return persist({ ...navLabels, [NAV_ORDER_KEY]: arr }, "ترتيب أقسام الموقع");
+    return setOrder(arr, "ترتيب أقسام الموقع");
+  };
+  const setIcon = (key, icon) => persist((nl) => ({ ...nl, _tabs: (nl._tabs || []).map((t) => (t && t.key === key ? { ...t, icon } : t)) }), "تغيير أيقونة تبويب مخصّص");
+  const remove = async (d) => {
+    if (!window.confirm(`حذف تبويب «${d.ar}» وكل الكتل اللي فيه؟ (تقدر ترجعه من «سجل النسخ»)`)) return;
+    const { error } = await deleteCustomTab(supabase, d.key);
+    if (error) { ed.toast("تعذّر الحذف: " + (error.message || "")); return; }
+    ed.log("حذف تبويب مخصّص", d.ar); ed.toast("انحذف التبويب");
+  };
+  const add = async () => {
+    const ar = nt.ar.trim(); if (!ar) return;
+    let en = nt.en.trim();
+    if (!en) { const t = await autoTranslateAr(supabase, ar); if (t) en = t; }
+    const { error } = await addCustomTab(supabase, { ar, en: en || ar, icon: nt.icon });
+    if (error) { ed.toast("تعذّر الإضافة: " + (error.message || "")); return; }
+    ed.log("إضافة تبويب مخصّص", ar); ed.toast("انضاف التبويب — افتحه وأضف له كتل"); setNt({ ar: "", en: "", icon: "star" });
   };
   const drag = { start: (k) => { dragKey.current = k; }, drop: (k) => { const f = dragKey.current; dragKey.current = null; if (f) reorder(f, k); }, end: () => { dragKey.current = null; } };
   const shortcuts = SHORTCUTS.filter((s) => s.perms.some((p) => ed.has(p)));
+  const inp = { minWidth: 0, boxSizing: "border-box", border: `1px solid ${T.line}`, background: T.sunken, color: T.paper, borderRadius: 8, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" };
 
   return (
     <section dir="rtl" data-edit-ui className="no-print" aria-label="تحرير أقسام الموقع"
       style={{ margin: "10px 0 14px", border: `1px dashed ${T.brass}88`, borderRadius: 14, background: T.brass + "0d", fontFamily: "system-ui, sans-serif", color: T.paper }}>
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
         style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", border: 0, background: "none", padding: "11px 14px", cursor: "pointer", color: T.brass, fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
-        <Pencil size={14} /> تحرير الأقسام والاختصارات
+        <Pencil size={14} /> تحرير التبويبات (تسمية، ترتيب، إخفاء، إضافة تبويب جديد)
         <span style={{ marginInlineStart: "auto", fontSize: 11.5, fontWeight: 500, color: T.muted }}>{open ? "إخفاء" : "عرض"}</span>
       </button>
       {open && (
         <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
-            {canEdit ? "اسحب الصف (أو استخدم الأسهم) لتغيير ترتيب التبويبات، وعدّل الاسم ثم اضغط ✓ أو Enter. العين تخفي القسم عن الزوّار." : "ما عندك صلاحية «تغيير مظهر الموقع وتسمية الأقسام»."}
+            {canEdit ? "اسحب الصف (أو استخدم الأسهم) لتغيير ترتيب التبويبات، وعدّل الاسم ثم اضغط ✓ أو Enter. العين تخفي القسم عن الزوّار. التبويبات المخصّصة (بإطار ملوّن) تقدر تغيّر أيقونتها وتحذفها." : "ما عندك صلاحية «تغيير مظهر الموقع وتسمية الأقسام»."}
           </div>
           {order.map((k, i) => {
             const d = byKey[k];
+            if (!d) return null;
             return <TabRow key={k} d={d} saved={navLabels[k] || {}} hidden={!!navLabels[k]?.hidden} canEdit={canEdit} idx={i} last={i === order.length - 1} T={T}
-              onCommit={commit} onToggle={toggle} onReset={reset} onMove={move} drag={drag} />;
+              onCommit={commit} onToggle={toggle} onReset={reset} onMove={move} onIcon={setIcon} onDelete={remove} drag={drag} />;
           })}
+          {canEdit && (
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) auto auto", gap: 6, alignItems: "center", marginTop: 4, padding: "8px", border: `1px dashed ${T.line}`, borderRadius: 11 }}>
+              <input style={inp} placeholder="اسم تبويب جديد" value={nt.ar} onChange={(e) => setNt({ ...nt, ar: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") add(); }} aria-label="اسم التبويب الجديد" />
+              <input style={{ ...inp, direction: "ltr" }} placeholder="English (optional)" value={nt.en} onChange={(e) => setNt({ ...nt, en: e.target.value })} aria-label="الاسم الإنجليزي" />
+              <select style={inp} value={nt.icon} onChange={(e) => setNt({ ...nt, icon: e.target.value })} aria-label="الأيقونة">
+                {Object.keys(CUSTOM_TAB_ICONS).map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <button onClick={add} disabled={!nt.ar.trim() || customCount >= MAX_CUSTOM_TABS}
+                style={{ display: "flex", alignItems: "center", gap: 4, border: 0, borderRadius: 8, padding: "7px 12px", background: T.brass, color: T.onAccent, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", opacity: !nt.ar.trim() || customCount >= MAX_CUSTOM_TABS ? 0.5 : 1 }}><Plus size={13} /> تبويب</button>
+            </div>
+          )}
           {shortcuts.length > 0 && (
             <>
-              <div style={{ fontSize: 12, color: T.muted, marginTop: 6 }}>تحكم كامل بمحتوى أي قسم (إضافة، حذف، ترتيب، نشر):</div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 6 }}>تحكم كامل بمحتوى أي قسم (أو من زر «إدارة المحتوى» بالشريط تحت بدون ما تطلع من الصفحة):</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {shortcuts.map((s) => (
                   <button key={s.tab} onClick={() => go(`#admin/${s.tab}`)}
@@ -479,6 +572,56 @@ function TabsEditor({ navLabels, defs }) {
         </div>
       )}
     </section>
+  );
+}
+
+/* ═══ وضع «إخفاء أقسام»: اضغط أي قسم بالموقع لإخفائه عن الزوّار (أو إرجاعه) ═══ */
+function SectionsLayer() {
+  const ed = useEdit();
+  const { T } = ed;
+  const [pop, setPop] = useState(null);
+  const nl = useNavLabels(supabase);
+  const hiddenRef = useRef(new Set());
+  hiddenRef.current = new Set(hiddenSecsOf(nl));
+  useEffect(() => {
+    document.body.classList.add("ed-secs");
+    const st = document.createElement("style");
+    st.setAttribute("data-edit-ui", "");
+    st.textContent = `body.ed-secs [data-ek]{cursor:pointer !important}body.ed-secs [data-ek]:hover{outline:2.5px solid ${T.brass} !important;outline-offset:3px}body.ed-secs [data-edit-ui] *{cursor:auto}`;
+    document.head.appendChild(st);
+    const onClick = (e) => {
+      if (e.target.closest && e.target.closest("[data-edit-ui]")) return;
+      const el = e.target.closest && e.target.closest("[data-ek]");
+      e.preventDefault(); e.stopPropagation();
+      if (!el) { ed.toast("هذا الجزء ما ينخفى — اضغط على قسم يتلوّن إطاره"); return; }
+      const key = el.getAttribute("data-ek");
+      const hidden = hiddenRef.current.has(key);
+      setPop({ x: e.clientX, y: e.clientY, key, hidden });
+    };
+    document.addEventListener("click", onClick, true);
+    return () => { document.removeEventListener("click", onClick, true); document.body.classList.remove("ed-secs"); st.remove(); };
+  }, [T.brass]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!pop) return null;
+  const w = Math.min(300, window.innerWidth - 20);
+  const left = Math.max(10, Math.min(pop.x - w / 2, window.innerWidth - w - 10));
+  const top = Math.min(pop.y + 12, window.innerHeight - 150);
+  const act = async () => {
+    const { error } = await toggleHiddenSec(supabase, pop.key);
+    if (error) { ed.toast("تعذّر الحفظ: " + (error.message || "")); return; }
+    ed.log(pop.hidden ? "إظهار قسم للزوّار" : "إخفاء قسم عن الزوّار", docName(pop.key));
+    ed.toast(pop.hidden ? "رجع القسم للزوّار" : "انخفى القسم عن الزوّار (يظهر لك باهت)");
+    setPop(null);
+  };
+  const b = (primary) => ({ border: primary ? 0 : `1px solid ${T.line}`, borderRadius: 9, padding: "7px 12px", background: primary ? (pop.hidden ? T.brass : "#C0392B") : "transparent", color: primary ? "#fff" : T.muted, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" });
+  return (
+    <div dir="rtl" data-edit-ui role="dialog" aria-label="إخفاء قسم" style={{ position: "fixed", left, top, width: w, zIndex: 140, background: T.surface, color: T.paper, border: `1px solid ${T.brass}88`, borderRadius: 14, boxShadow: T.shadowUp, padding: 12, fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>{docName(pop.key)}</div>
+      <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>{pop.hidden ? "هذا القسم مخفي عن الزوّار حاليًا." : "يختفي عن كل الزوّار فورًا، ويبقى ظاهر لك باهت عشان تقدر ترجعه."}</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button style={b(true)} onClick={act}>{pop.hidden ? <><Eye size={12} style={{ verticalAlign: -2 }} /> إظهاره للزوّار</> : <><EyeOff size={12} style={{ verticalAlign: -2 }} /> إخفاؤه عن الزوّار</>}</button>
+        <button style={{ ...b(false), marginInlineStart: "auto" }} onClick={() => setPop(null)}>إلغاء</button>
+      </div>
+    </div>
   );
 }
 
@@ -531,15 +674,17 @@ function RenamePopover({ pop, onClose }) {
 
   const persist = async (value) => {
     setBusy(true);
-    const { data, error: e0 } = await supabase.from("site_settings").select("nav_labels").eq("id", 1).single();
-    if (e0) { setBusy(false); ed.toast("تعذّرت القراءة: " + (e0.message || "")); return; }
-    const nl = { ...(data?.nav_labels || {}) };
-    const texts = { ...(nl._texts || {}) };
-    if (value == null) delete texts[pop.original]; else texts[pop.original] = value;
-    if (Object.keys(texts).length > 400) { setBusy(false); ed.toast("وصلت الحد الأقصى (400 نص معدّل)"); return; }
-    if (Object.keys(texts).length) nl._texts = texts; else delete nl._texts;
-    const { error } = await supabase.from("site_settings").update({ nav_labels: nl }).eq("id", 1);
+    let full = false;
+    const { error } = await patchNavLabels(supabase, (nl) => {
+      const texts = { ...(nl._texts || {}) };
+      if (value == null) delete texts[pop.original]; else texts[pop.original] = value;
+      if (Object.keys(texts).length > 400) { full = true; return nl; }
+      const next = { ...nl };
+      if (Object.keys(texts).length) next._texts = texts; else delete next._texts;
+      return next;
+    }, `تسمية نص: ${pop.original.slice(0, 40)}`);
     setBusy(false);
+    if (full) { ed.toast("وصلت الحد الأقصى (400 نص معدّل)"); return; }
     if (error) { ed.toast("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return; }
     ed.log(value == null ? "إرجاع نص للأصل (وضع التحرير)" : value === "" ? "إخفاء نص (وضع التحرير)" : "تسمية نص (وضع التحرير)", `${pop.original.slice(0, 60)}${value ? " ← " + value.slice(0, 60) : ""}`);
     ed.toast(value == null ? "رجع النص الأصلي" : "تم الحفظ");

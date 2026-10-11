@@ -33,25 +33,82 @@ export const DEFAULT_ADMIN_LABELS = [
   { key: "audit", ar: "سجل النشاط" },
   { key: "users", ar: "المستخدمون" },
   { key: "labels", ar: "تسمية الأقسام" },
+  { key: "site", ar: "تخصيص الموقع والنسخ" },
+  { key: "links", ar: "الروابط الخارجية" },
+  { key: "share", ar: "روابط المشاركة" },
+  { key: "insights", ar: "التحليلات الشاملة" },
+  { key: "security", ar: "الأمان" },
 ];
 const PROTECTED_KEYS = ["labels"]; /* ما تقدر تخفيها من نفس التبويب */
 
-/* يقرأ التسميات من site_settings، ويتحدّث لحظيًا لو عدّل مشرف ثاني */
+/* يقرأ التسميات من site_settings، ويتحدّث لحظيًا لو عدّل مشرف ثاني.
+   (٦.٠.٠) اسم قناة فريد لكل استخدام — supabase-js يرجّع نفس القناة لو تكرر الاسم فيتعطل الثاني —
+   ومع أي حدث نعيد القراءة من القاعدة بدل الاعتماد على حمولة الحدث (ممكن تنقص لو كبر الصف). */
+let navWatchSeq = 0;
 export function useNavLabels(supabase) {
   const [labels, setLabels] = useState({});
   const load = useCallback(async () => {
     const { data } = await supabase.from("site_settings").select("nav_labels").eq("id", 1).single();
-    setLabels(data?.nav_labels || {});
+    setLabels(data?.nav_labels && typeof data.nav_labels === "object" ? data.nav_labels : {});
   }, [supabase]);
   useEffect(() => {
     load();
-    const ch = supabase.channel("nav_labels_watch")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "site_settings", filter: "id=eq.1" },
-        (p) => setLabels(p.new?.nav_labels || {}))
+    const ch = supabase.channel(`nav_labels_watch_${++navWatchSeq}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "site_settings", filter: "id=eq.1" }, () => load())
       .subscribe();
     return () => supabase.removeChannel(ch);
   }, [supabase, load]);
   return labels;
+}
+
+/* سجل نسخ محلي (٦.٠.٠): قبل كل تعديل تنحفظ النسخة السابقة بمتصفح المشرف (آخر 30) —
+   يغذّي زر «تراجع» و«سجل النسخ». بدون أي تعديل على قاعدة البيانات. لو انضاف لاحقًا جدول
+   site_settings_history بالقاعدة، لوحة التخصيص تقرأ منه أولًا تلقائيًا. */
+const LOCAL_HIST_KEY = "alborada_site_custom_history_v1";
+const LOCAL_HIST_MAX = 30, LOCAL_HIST_MAX_BYTES = 2000000;
+export function readLocalHistory() {
+  try { const a = JSON.parse(localStorage.getItem(LOCAL_HIST_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch { return []; }
+}
+function writeLocalHistory(a) {
+  try {
+    let list = a.slice(0, LOCAL_HIST_MAX);
+    while (list.length > 1 && JSON.stringify(list).length > LOCAL_HIST_MAX_BYTES) list = list.slice(0, -1);
+    localStorage.setItem(LOCAL_HIST_KEY, JSON.stringify(list));
+  } catch { /* تخزين المتصفح ممتلئ أو ممنوع — نكمل بدون سجل */ }
+  try { window.dispatchEvent(new Event("site-custom-history")); } catch { /* بيئة بلا window */ }
+}
+export function pushLocalHistory(prev, what = "") {
+  if (!prev || typeof prev !== "object") return;
+  const list = readLocalHistory();
+  if (list[0] && JSON.stringify(list[0].nav_labels) === JSON.stringify(prev)) return;
+  writeLocalHistory([{ id: Date.now(), changed_at: new Date().toISOString(), actor: what || "تعديل", nav_labels: prev }, ...list]);
+}
+export function dropLocalHistory(id) { writeLocalHistory(readLocalHistory().filter((x) => x.id !== id)); }
+
+/* تعديل آمن للتخصيصات (٦.٠.٠): يقرأ آخر نسخة من القاعدة ثم يطبّق التعديل عليها —
+   فما يمسح تعديل سوّاه مشرف ثاني (أو تبويب ثاني) بنفس اللحظة. mutate تستلم نسخة قابلة للتعديل. */
+export const NAV_LABELS_MAX_BYTES = 900000;
+export async function patchNavLabels(supabase, mutate, what = "") {
+  const { data, error: e0 } = await supabase.from("site_settings").select("nav_labels").eq("id", 1).single();
+  if (e0) return { error: e0 };
+  const cur = data?.nav_labels && typeof data.nav_labels === "object" ? data.nav_labels : {};
+  const next = mutate(JSON.parse(JSON.stringify(cur)));
+  if (!next || typeof next !== "object" || Array.isArray(next)) return { error: { message: "صيغة غير صالحة" } };
+  if (JSON.stringify(next) === JSON.stringify(cur)) return { data: cur };
+  if (JSON.stringify(next).length > NAV_LABELS_MAX_BYTES) return { error: { message: "حجم التخصيصات تجاوز الحد المسموح" } };
+  const { error } = await supabase.from("site_settings").update({ nav_labels: next }).eq("id", 1);
+  if (error) return { error };
+  pushLocalHistory(cur, what);
+  return { data: next };
+}
+/* استبدال كامل (استرجاع/استيراد) مع حفظ الحالية بالسجل قبلها */
+export async function replaceNavLabels(supabase, next, what = "") {
+  const { data } = await supabase.from("site_settings").select("nav_labels").eq("id", 1).single();
+  const cur = data?.nav_labels && typeof data.nav_labels === "object" ? data.nav_labels : {};
+  const { error } = await supabase.from("site_settings").update({ nav_labels: next }).eq("id", 1);
+  if (error) return { error };
+  pushLocalHistory(cur, what);
+  return { data: next };
 }
 
 /* استخدام بتبويبات الموقع العام: NL(labels, "overview", "نظرة عامة", "Overview", lang) */
@@ -91,18 +148,17 @@ export function ALabelsTab({ supabase, flashToast, log, canManage }) {
   if (labels === null) return <div style={{ padding: 24, opacity: 0.6 }}>يحمّل…</div>;
 
   const save = async (key, patch) => {
-    const next = { ...labels, [key]: { ...(labels[key] || {}), ...patch } };
-    setLabels(next); setBusy(true);
-    const { error } = await supabase.from("site_settings").update({ nav_labels: next }).eq("id", 1);
+    setBusy(true);
+    const { error, data } = await patchNavLabels(supabase, (nl) => ({ ...nl, [key]: { ...(nl[key] || {}), ...patch } }));
     setBusy(false);
     if (error) { flashToast("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return false; }
+    setLabels(data);
     flashToast("تم الحفظ"); return true;
   };
   const reset = async (key) => {
-    const next = { ...labels }; delete next[key];
-    setLabels(next);
-    const { error } = await supabase.from("site_settings").update({ nav_labels: next }).eq("id", 1);
+    const { error, data } = await patchNavLabels(supabase, (nl) => { const cur = { ...(nl[key] || {}) }; delete cur.ar; delete cur.en; return { ...nl, [key]: cur }; });
     if (error) { flashToast("تعذّر الحفظ: " + (error.message || "")); return; }
+    setLabels(data);
     log("إرجاع اسم قسم للافتراضي", key);
     flashToast("رجع للاسم الافتراضي");
   };

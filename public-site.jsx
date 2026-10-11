@@ -17,9 +17,10 @@ import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
 import { BlocksView, blocksOf } from "./blocks-kit.jsx";
 import { useEdit } from "./edit-ctx.js";
 import { startTextOverrides } from "./text-overrides.js";
+import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf } from "./site-custom.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowLeft, ArrowUp, ChevronLeft, ChevronRight, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* تبويبات الموقع العام — بيانات ثابتة؛ ترتيبها يتبع nav_labels._order (وضع التحرير) وإلا الترتيب الأصلي */
 const PUBLIC_TAB_KEYS = ["overview", "notes", "progress", "docs", "gallery"];
@@ -161,6 +162,19 @@ export function PublicSite({ share = null } = {}) {
     if (!textMap || !Object.keys(textMap).length) return undefined;
     return startTextOverrides(textMap);
   }, [textMap]);
+  /* تخصيصات ٦.٠.٠ (كلها من نفس العمود، وتُنظَّف وقت العرض): تبويبات جديدة، أقسام مخفية، تثبيت، لون، عنوان */
+  const customTabs = useMemo(() => customTabsOf(navLabels), [navLabels]);
+  const allTabKeys = useMemo(() => [...PUBLIC_TAB_KEYS, ...customTabs.map((t) => t.key)], [customTabs]);
+  const tabMeta = (k) => {
+    if (PUBLIC_TAB_META[k]) return PUBLIC_TAB_META[k];
+    const c = customTabs.find((t) => t.key === k);
+    return c ? { Icon: CUSTOM_TAB_ICONS[c.icon], ar: c.ar, en: c.en, icon: c.icon, custom: true } : null;
+  };
+  const hiddenSecs = useMemo(() => hiddenSecsOf(navLabels), [navLabels]);
+  const pins = useMemo(() => pinsOf(navLabels), [navLabels]);
+  const siteStyle = useMemo(() => styleOf(navLabels), [navLabels]);
+  const siteText = useMemo(() => siteOf(navLabels), [navLabels]);
+  const siteTitle = (lg) => (lg === "en" ? siteText.title_en || "Owner Inquiries" : siteText.title_ar || "استفسارات الملاك");
   /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
   const shareScope = share ? (share.scope || {}) : null;
   const SHARE_ORDER = ["overview", "notes", "progress", "docs", "gallery"];
@@ -183,7 +197,9 @@ export function PublicSite({ share = null } = {}) {
   useEffect(() => { firstPaintRef.current = false; }, []);
   const SET = THEME_SETS[themeKey] || THEME_SETS[DEFAULT_THEME_KEY];
   const SKIN = SET.skin;
-  const T = SET[resolved] || SET.dark || SET.light;
+  const baseT = SET[resolved] || SET.dark || SET.light;
+  /* لون مميز مخصّص (٦.٠.٠) يغطي لون الطقم في كل الموقع، مع لون نص مقروء فوقه */
+  const T = useMemo(() => (siteStyle.accent ? { ...baseT, brass: siteStyle.accent, onAccent: onColor(siteStyle.accent) } : baseT), [baseT, siteStyle.accent]);
   const pageBg = bannaa ? bannaaGround(T, resolved) : T.bg;
 
   /* لون خلفية الصفحة نفسها (وسم html) يمشي مع الطقم الحالي — يخدم حالتين:
@@ -203,11 +219,11 @@ export function PublicSite({ share = null } = {}) {
   /* التتبع (٤.٠): نخبر صفحة المشاركة بالقسم الحالي ليُسجَّل مع كل ضغطة */
   useEffect(() => { if (share && typeof share.onTab === "function") share.onTab(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!isHidden(navLabels, tab) && tabOk(tab)) return;
-    const order = orderedKeys(navLabels, PUBLIC_TAB_KEYS);
+    if (!isHidden(navLabels, tab) && tabOk(tab) && allTabKeys.includes(tab)) return;
+    const order = orderedKeys(navLabels, allTabKeys);
     const next = order.find((k) => !isHidden(navLabels, k) && tabOk(k));
     if (next) setTab(next);
-  }, [navLabels, tab]);
+  }, [navLabels, tab, allTabKeys]);
   const [docView, setDocView] = useState(null);
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
@@ -384,8 +400,8 @@ export function PublicSite({ share = null } = {}) {
 
   /* عنوان تبويب المتصفح — يتبع اللغة المختارة بدل الاسم الافتراضي للمشروع */
   useEffect(() => {
-    if (typeof document !== "undefined") document.title = L("استفسارات الملاك", "Owner Inquiries");
-  }, [lang]);
+    if (typeof document !== "undefined") document.title = siteTitle(lang);
+  }, [lang, siteText.title_ar, siteText.title_en]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* تتبع صامت: تبديل التبويب (يتجاهل التبويب الأول عند التحميل) */
   const firstTabRef = useRef(true);
@@ -477,11 +493,12 @@ export function PublicSite({ share = null } = {}) {
 
   /* مرفقات الاستفسارات (٣.٠.٠) — خريطة رقم الاستفسار ← مرفقاته الظاهرة، تتحدّث لحظيًا */
   const attMap = useAttachments();
+  const pinIdx = useMemo(() => new Map(pins.map((id, i) => [id, i])), [pins]);
   const ALL = useMemo(() => {
     return data.records.map((r) => ({ ...r, zone: zoneOf(r.loc), models: modelsOf(r.model), isNew: isRecentlyChanged(r.last_modified),
       isUrgentActive: isFlagLive(r.urgent, r.urgent_until), isImportantActive: isFlagLive(r.important, r.important_until),
-      attCount: (attMap[r.id] || []).length }));
-  }, [data, attMap]);
+      attCount: (attMap[r.id] || []).length, isPinned: pinIdx.has(r.id) }));
+  }, [data, attMap, pinIdx]);
 
   /* فتح استفسار محدد تلقائيًا عند الوصول عبر رابط مشاركة (?note=ID) — مرة واحدة فقط بعد اكتمال تحميل البيانات */
   const deepLinkRef = useRef(false);
@@ -545,8 +562,10 @@ export function PublicSite({ share = null } = {}) {
     else if (sort === "open") a.sort((x, y) => x.closed - y.closed || rank(priOrder)(x.pri) - rank(priOrder)(y.pri));
     else if (sort === "new") a.sort((x, y) => (y.isNew ? 1 : 0) - (x.isNew ? 1 : 0) || x.id - y.id);
     else a.sort((x, y) => y.id - x.id);
+    /* المثبّت (٦.٠.٠) يطلع أول بالترتيب الافتراضي، بترتيب تثبيته — والفرز ثابت فالباقي ما يتغيّر */
+    if (sort === "id" && pinIdx.size) a.sort((x, y) => (pinIdx.has(x.id) ? pinIdx.get(x.id) : 1e9) - (pinIdx.has(y.id) ? pinIdx.get(y.id) : 1e9));
     return a;
-  }, [rows, sort, priOrder]);
+  }, [rows, sort, priOrder, pinIdx]);
 
   /* تحميل تلقائي: يزيد الحد المعروض عند اقتراب نهاية القائمة من الشاشة أثناء التمرير */
   useEffect(() => {
@@ -1175,6 +1194,9 @@ ${(SKIN.aurora || SKIN.grid || SKIN.draft) ? `.dash > *:not(.skin-aurora):not(.s
 ${nova ? novaCss(T, resolved, reduced) : ""}
 ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         `}</style>
+        {(hiddenSecs.length > 0 || siteStyle.width !== "normal") && (
+          <style>{hiddenSecsCss(hiddenSecs, !!ed) + (siteStyle.width !== "normal" ? `.dash .wrap{max-width:${siteStyle.width === "full" ? "none" : PAGE_WIDTHS[siteStyle.width] + "px"} !important;}` : "")}</style>
+        )}
         {nova && <NovaLayers />}
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
         {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
@@ -1189,9 +1211,9 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           <header>
             <div className="head">
               <div className="min-w-0">
-                <h1 className="disp h1">{L("استفسارات الملاك", "Owner Inquiries")}</h1>
+                <h1 className="disp h1" data-ek="title">{siteTitle(lang)}</h1>
               </div>
-              <div className="acts no-print">
+              <div className="acts no-print" data-ek="toggles">
                 <LangToggle />
                 <ThemeToggle />
               </div>
@@ -1200,21 +1222,21 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
             <div className="stamp">
               {!(shareScope && shareScope.hideCommunity) && (
-                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" onClick={() => logEvent("click", "telegram", null, null)}>
+                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" data-ek="telegram" onClick={() => logEvent("click", "telegram", null, null)}>
                   <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
                 </a>
               )}
               {!shareScope && <LinksHeaderChips links={extLinks} T={T} lang={lang} onLeave={setLeaving} />}
               {loading ? (
-                <span className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
+                <span data-ek="updated" className="skel skel-line" style={{ width: 190, height: 13, margin: 0, display: "inline-block" }} />
               ) : data.updatedAt ? (
-                <>
+                <span data-ek="updated" style={{ display: "inline-flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                   <RefreshCw size={13} />
                   {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
-                </>
+                </span>
               ) : null}
               {(urgentCount > 0 || importantCount > 0 || newCount > 0) && (
-                <div style={{ display: "flex", gap: 9, marginRight: "auto" }}>
+                <div data-ek="header-chips" style={{ display: "flex", gap: 9, marginRight: "auto" }}>
                   {urgentCount > 0 && (
                     <button className="chip chip-glow chip-urgent" onClick={() => openBoard({ urgent: true })}>
                       <ShieldAlert size={11} /> {L("يجب الاطلاع", "Needs review")} <span className="mono chip-n">{urgentCount}</span>
@@ -1245,9 +1267,11 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
           {/* الخانات */}
           <nav className="tabs no-print" role="tablist" ref={tabsRef}>
-            {orderedKeys(navLabels, PUBLIC_TAB_KEYS).map((k) => {
+            {orderedKeys(navLabels, allTabKeys).map((k) => {
               if (!tabOk(k) || isHidden(navLabels, k)) return null;
-              const { Icon, ar, en } = PUBLIC_TAB_META[k];
+              const meta = tabMeta(k);
+              if (!meta) return null;
+              const { Icon, ar, en } = meta;
               return (
                 <button key={k} className="tab" role="tab" aria-selected={tab === k} data-on={tab === k ? "1" : "0"}
                   onClick={() => setTab(k)}>
@@ -1259,7 +1283,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             <span className="tab-indicator" ref={indicatorRef} />
           </nav>
           {ed && !shareScope && (
-            <ed.TabsEditor navLabels={navLabels} defs={PUBLIC_TAB_KEYS.map((key) => ({ key, ...PUBLIC_TAB_META[key] }))} />
+            <ed.TabsEditor navLabels={navLabels} defs={allTabKeys.map((key) => ({ key, ...tabMeta(key) }))} />
           )}
 
           <BlocksView blocks={blocksOf(navLabels, tab)} lang={lang} T={T} pos="top" />
@@ -1282,7 +1306,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           {tab === "overview" && (
             <div className="tab-panel" data-tab="overview">
               {/* حالة السجل */}
-              <section className="surf stats" data-sec="status">
+              <section className="surf stats" data-sec="status" data-ek="status">
                 <div className="stats-top">
                   <div>
                     <div className="sec-t">{L("حالة السجل", "Record Status")}</div>
@@ -1324,7 +1348,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               </section>
 
               {/* المخطط + المواقع */}
-              <section className="surf" data-sec="where" style={{ padding: "20px 18px", marginBottom: 14 }}>
+              <section className="surf" data-sec="where" data-ek="where" style={{ padding: "20px 18px", marginBottom: 14 }}>
                 <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 18 }}>
                   <div className="lg:col-span-2">
                     <div className="sec-t">{L("أين ظهرت الاستفسارات؟", "Where did the inquiries come from?")}</div>
@@ -1357,7 +1381,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
               {/* فئات البنود — طبيعة كل استفسار: عيب تنفيذي، تحسين تصميمي، ترقية، استفسار… */}
               {cats.cat.length > 0 && (
-                <section className="surf" data-sec="cats" style={{ padding: "20px 18px", marginBottom: 14 }}>
+                <section className="surf" data-sec="cats" data-ek="cats" style={{ padding: "20px 18px", marginBottom: 14 }}>
                   <div className="sec-t">{L("طبيعة البنود", "Item Categories")}</div>
                   <div className="eyebrow" style={{ marginTop: 4, marginBottom: 14 }}>
                     {L("اضغط أي فئة لعرض بنودها", "Tap any category to view its items")}
@@ -1395,7 +1419,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               )}
 
               {/* الزمن + الأولوية */}
-              <section className="grid grid-cols-1" data-sec="charts" style={{ gap: 14 }}>
+              <section className="grid grid-cols-1" data-sec="charts" data-ek="charts" style={{ gap: 14 }}>
                 <div className="surf" style={{ padding: "20px 16px 12px" }}>
                   <div style={{ paddingRight: 4 }}>
                     <div className="sec-t">{L("مسار الردود والتراكم", "Reply Trend & Cumulative")}</div>
@@ -1444,7 +1468,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           {tab === "notes" && (
             <div className="tab-panel">
               {/* أدوات لوحة المتابعة */}
-              <section ref={filtersRef} className="surf no-print" style={{ padding: 18, marginBottom: 16 }}>
+              <section ref={filtersRef} className="surf no-print" data-ek="notes-tools" style={{ padding: 18, marginBottom: 16 }}>
                 <div className="relative" style={{ marginBottom: 12 }}>
                   <Search size={17} style={{ position: "absolute", right: lang === "ar" ? 14 : "auto", left: lang === "ar" ? "auto" : 14, top: 14, color: T.faint }} />
                   <input className="srch" value={f.q} placeholder={L("ابحث في نص الاستفسار أو الرد…", "Search inquiry or reply text…")}
@@ -1468,7 +1492,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                 </div>
               </section>
 
-              <div className="flex items-baseline res-row" style={{ gap: 8, marginBottom: 14 }}>
+              <div className="flex items-baseline res-row" data-ek="notes-count" style={{ gap: 8, marginBottom: 14 }}>
                 <span className="sec-t">{L("النتائج", "Results")}</span>
                 <span style={{ color: T.brass, fontSize: 15 }}><TickNum value={rows.length} /></span>
                 {rows.length !== ALL.length && <span style={{ fontSize: 12, color: T.muted }}>{L(`من ${ALL.length}`, `of ${ALL.length}`)}</span>}
@@ -1526,7 +1550,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
           {tab === "docs" && (
             <div className="tab-panel">
-              <section className="surf doc-intro">
+              <section className="surf doc-intro" data-ek="docs-intro">
                 <div className="sec-t">{L("المخططات والمستندات", "Plans & Documents")}</div>
                 <p className="eyebrow" style={{ marginTop: 8, lineHeight: 1.8 }}>
                   {L(
@@ -1549,6 +1573,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                     <button
                       key={doc.id}
                       className="doc-card"
+                      data-ek={`doc-${String(doc.id).toLowerCase().replace(/[^a-z0-9_-]/g, "")}`}
                       style={{ borderInlineStartColor: accent }}
                       onClick={() => { logEvent("nav", "doc_open", doc.id, docVids.length ? "video" : null); setDocView(doc); }}
                     >
@@ -1594,21 +1619,25 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
             </div>
           )}
 
+          {tabMeta(tab)?.custom && !ed && !blocksOf(navLabels, tab).some((b) => !b.hidden) && (
+            <div className="tab-panel surf" style={{ padding: "44px 20px", textAlign: "center", color: T.muted, fontSize: 13.5 }}>{L("لا يوجد محتوى بهذا القسم بعد", "No content in this section yet")}</div>
+          )}
           <BlocksView blocks={blocksOf(navLabels, tab)} lang={lang} T={T} />
           {ed && !shareScope && ed.has("manage_theme") && (
-            <ed.BlocksEditor tab={tab} tabLabel={NL(navLabels, tab, PUBLIC_TAB_META[tab]?.ar, PUBLIC_TAB_META[tab]?.en, lang)} navLabels={navLabels}
-              supabase={supabase} log={ed.log} toast={ed.toast} lang={lang} T={T} />
+            <ed.BlocksEditor tab={tab} tabLabel={NL(navLabels, tab, tabMeta(tab)?.ar, tabMeta(tab)?.en, lang)} navLabels={navLabels}
+              tabs={allTabKeys.map((k) => ({ key: k, label: NL(navLabels, k, tabMeta(k)?.ar, tabMeta(k)?.en, "ar") }))}
+              supabase={supabase} log={ed.log} toast={ed.toast} lang={lang} T={T} canUpload={ed.has("manage_gallery")} />
           )}
 
-          <div className="credit-foot">
+          <div className="credit-foot" data-ek="credit">
             <ShieldCheck size={14} />
             <span>{L("أُعدّت هذه الصفحة بجهد وإشراف فريق تمثيل الملاك", "Prepared with care by the Owners' Representatives Team")}</span>
           </div>
-          <div className="credit-sub">
+          <div className="credit-sub" data-ek="credit-sub">
             {L("مبادرة ودّية غير رسمية من الملاك · البيانات استرشادية وقابلة للتحديث", "An unofficial, voluntary initiative by the owners · Data is indicative and subject to updates")}
           </div>
 
-          <div className="no-print" style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
+          <div className="no-print" data-ek="footer-links" style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
             {!shareScope && (<>
             {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٣.٠.١) — مكانه جنب دخول الإدارة */}
             <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}

@@ -13,6 +13,25 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.0.0",
+    dateAr: "11 أكتوبر 2026",
+    dateEn: "October 11, 2026",
+    ar: [
+      "الإدارة صارت تقدر تضيف أقسام (تبويبات) جديدة للموقع بمحتوى خاص: عناوين، نصوص، جداول، بطاقات، صور، مقاطع، أسئلة وأجوبة",
+      "تثبيت الاستفسارات المهمة بأعلى القائمة مع شارة «مثبّت»",
+      "تنظيم أوضح للأقسام: تقدر الإدارة تخفي أي قسم غير مستخدم أو تعيد تسمية أي نص",
+      "إصلاح رفع الصور في المكتبة المرئية",
+      "تقوية حماية حسابات الإدارة: تحقق بخطوتين وخروج تلقائي عند عدم النشاط",
+    ],
+    en: [
+      "Admins can now add new sections (tabs) to the site with custom content: headings, text, tables, cards, images, videos, Q&A",
+      "Important inquiries can be pinned to the top of the list with a \"Pinned\" badge",
+      "Cleaner layout: admins can hide unused sections or rename any text",
+      "Fixed image uploads in the media library",
+      "Stronger protection for admin accounts: two-step verification and automatic sign-out after inactivity",
+    ],
+  },
+  {
     version: "5.4.0",
     dateAr: "8 أكتوبر 2026",
     dateEn: "October 8, 2026",

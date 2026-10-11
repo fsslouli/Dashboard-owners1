@@ -44,7 +44,8 @@ async function shrinkImage(file) {
     const c = document.createElement("canvas");
     c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
     c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-    c.toBlob((b) => resolve(b), "image/webp", q) || resolve(null);
+    /* (٦.٠.٠) كان «|| resolve(null)» ينفّذ فورًا لأن toBlob ترجع undefined دائمًا — فيفشل كل رفع صورة بصمت */
+    try { c.toBlob((b) => resolve(b), "image/webp", q); } catch (_) { resolve(null); }
   });
   const [full, thumb] = await Promise.all([draw(1600, 0.8), draw(480, 0.7)]);
   bmp.close && bmp.close();

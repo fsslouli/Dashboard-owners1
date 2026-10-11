@@ -1,5 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-home */
 import { MfaGate, ASecurityTab, useIdleSignOut } from "./security-kit.jsx";
+import { SiteCustomPanel } from "./site-admin.jsx";
 import { AdminLogin, isoAdminDate, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { ALocked, aNoteStyle } from "./admin-excel-utils.jsx";
 import { AMediaTab } from "./admin-media-tab.jsx";
@@ -123,6 +124,7 @@ const ADMIN_TABS = [
   { key: "gallery", label: "معرض الموقع", perms: ["manage_gallery"] },
   { key: "links", label: "الروابط الخارجية", perms: ["manage_links"] },
   { key: "share", label: "روابط المشاركة", perms: ["manage_share"] },
+  { key: "site", label: "تخصيص الموقع والنسخ", perms: ["manage_theme"] },
   { key: "labels", label: "تسمية الأقسام", perms: ["manage_theme"] },
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_theme"] },
@@ -163,7 +165,7 @@ function AdminHome({ session, onLogout }) {
     </div>
   );
   const has = (perm) => (profile.perms || []).includes(perm);
-  const visibleTabs = ADMIN_TABS.filter((t) => (t.perms === null || t.perms.some((p) => has(p))) && (t.key === "labels" || !isHidden(navLabels, t.key)));
+  const visibleTabs = ADMIN_TABS.filter((t) => (t.perms === null || t.perms.some((p) => has(p))) && (t.key === "labels" || t.key === "gallery" || !isHidden(navLabels, t.key)));
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : (visibleTabs[0]?.key || null);
   const liveStats = { total: inquiries.length, open: inquiries.filter((r) => r.closed !== "نعم").length, urgent: inquiries.filter((r) => isFlagLive(r.urgent, r.urgent_until)).length };
 
@@ -194,6 +196,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_gallery")} />}
         {activeTab === "links" && <ALinksTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_links")} />}
         {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_share")} by={profile?.name || session.user.email} />}
+        {activeTab === "site" && <SiteCustomPanel supabase={supabase} T={T} log={log} toast={flashToast} canManage={has("manage_theme")} />}
         {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
