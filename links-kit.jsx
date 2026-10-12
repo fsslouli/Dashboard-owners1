@@ -113,7 +113,7 @@ export function LinksFolders({ links, lang, onLeave }) {
     const isOpen = !!open[g.k];
     return (
       <section key={g.k} className={`glx-fold${isOpen ? " open" : ""}`}>
-        <button type="button" className="glx-fh" aria-expanded={isOpen} onClick={() => setOpen((o) => ({ ...o, [g.k]: !isOpen }))}>
+        <button type="button" className="glx-fh" aria-expanded={isOpen} onClick={() => { if (!isOpen) logEvent("folder_open", "gallery", g.k || g.title, null); setOpen((o) => ({ ...o, [g.k]: !isOpen })); }}>
           <span className="glx-fi"><Folder size={22} /></span>
           <span className="glx-ft">
             <b>{g.title}</b>

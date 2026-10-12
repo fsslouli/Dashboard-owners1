@@ -46,6 +46,46 @@ function Panel({ T, title, children, note }) {
   );
 }
 
+/* متابعة أقسام محددة: المكتبة المرئية + مساهمات الملاك + الزوّار (تقرأ site_events/site_sessions مباشرة) */
+function SectionVisits({ T, from, to }) {
+  const [st, setSt] = useState(null);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const q = (b) => b.gte("at", from.toISOString()).lt("at", to.toISOString()).limit(10000);
+      const [g, f, l, s] = await Promise.all([
+        q(supabase.from("site_events").select("session_id").eq("type", "tab").eq("category", "gallery")),
+        q(supabase.from("site_events").select("session_id,value").eq("type", "folder_open").eq("category", "gallery")),
+        q(supabase.from("site_events").select("session_id,value").eq("type", "click").eq("category", "external_link")),
+        supabase.from("site_sessions").select("visitor_id").gte("started_at", from.toISOString()).lt("started_at", to.toISOString()).limit(10000),
+      ]);
+      if (!live) return;
+      const uniq = (a) => new Set((a || []).map((x) => x.session_id)).size;
+      const byFolder = {};
+      (f.data || []).forEach((x) => { const k = x.value || "—"; (byFolder[k] ||= []).push(x); });
+      setSt({
+        gal: (g.data || []).length, galU: uniq(g.data),
+        folders: Object.entries(byFolder).map(([k, a]) => ({ k, n: a.length, u: uniq(a) })).sort((a, b) => b.n - a.n),
+        links: (l.data || []).length, linksU: uniq(l.data),
+        sess: (s.data || []).length, vis: new Set((s.data || []).map((x) => x.visitor_id).filter(Boolean)).size,
+      });
+    })();
+    return () => { live = false; };
+  }, [from, to]);
+  if (!st) return null;
+  return (
+    <Panel T={T} title="متابعة الأقسام" note="عدد المرات · عدد الزوّار المختلفين، حسب المدة المختارة بالأعلى. (زيارات المتصفح اللي عليه جلسة إدارة لا تُحسب)">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8 }}>
+        <Kpi T={T} label="فتح المكتبة المرئية والتقارير" value={num(st.gal)} sub={`زوّار مختلفون: ${num(st.galU)}`} />
+        <Kpi T={T} label="ضغط روابط مساهمات الملاك" value={num(st.links)} sub={`زوّار مختلفون: ${num(st.linksU)}`} />
+        <Kpi T={T} label="مرات الدخول للموقع" value={num(st.sess)} sub={`زوّار مختلفون: ${num(st.vis)}`} />
+      </div>
+      <div style={{ marginTop: 12, fontSize: 12, color: T.muted, marginBottom: 6 }}>فتح مجلدات المكتبة (مثل «مساهمات الملاك»)</div>
+      <Ranked T={T} rows={st.folders} valueKey="n" sub="u" empty="ما انفتح أي مجلد بعد — العدّاد يبدأ من هذا التحديث" />
+    </Panel>
+  );
+}
+
 function Ranked({ T, rows, empty = "لا بيانات بعد", valueKey = "n", sub }) {
   const list = (rows || []).filter((r) => r && r.k != null);
   if (!list.length) return <div style={{ fontSize: 12.5, color: T.muted }}>{empty}</div>;
@@ -76,6 +116,7 @@ export function AInsightsTab({ flashToast, canExport, canPurge, log }) {
   const [open, setOpen] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [purgeDays, setPurgeDays] = useState("90");
+  const bounds = useMemo(() => rangeBounds(range), [range, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     setLoading(true); setErr("");
@@ -148,6 +189,7 @@ export function AInsightsTab({ flashToast, canExport, canPurge, log }) {
 
       {data && (
         <>
+          <SectionVisits T={T} from={bounds[0]} to={bounds[1]} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8 }}>
             <Kpi T={T} label="الجلسات (الزيارات)" value={num(t.sessions)} />
             <Kpi T={T} label="زوّار مختلفون" value={num(t.visitors)} sub={`عائدون: ${num(t.returning)}`} />
