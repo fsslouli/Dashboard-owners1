@@ -19,7 +19,7 @@
    ═══════════════════════════════════════════════════════════ */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
+import { RotateCw,
   AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Eye, EyeOff,
   File as FileIcon, FileText, Image as ImageIcon, Link2, Paperclip, Play, RotateCcw, Trash2, Upload, Video, X,
 } from "lucide-react";
@@ -368,6 +368,14 @@ const ATK_CSS = `
 .atkv-ico:disabled{opacity:.28;cursor:default;}
 .atkv-stage{flex:1;min-height:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;container-type:size;}
 .atkv-zoom{position:absolute;inset:0;touch-action:none;-webkit-user-select:none;user-select:none;}
+.atkv[data-rot="90"] .atkv-zoom,.atkv[data-rot="270"] .atkv-zoom{inset:auto;left:50%;top:50%;width:100cqh;height:100cqw;}
+.atkv[data-rot="90"] .atkv-zoom{transform:translate(-50%,-50%) rotate(90deg);}
+.atkv[data-rot="270"] .atkv-zoom{transform:translate(-50%,-50%) rotate(270deg);}
+.atkv[data-rot="180"] .atkv-zoom{transform:rotate(180deg);}
+.atkv[data-rot="90"] .atkv-doc,.atkv[data-rot="270"] .atkv-doc{inset:auto;left:50%;top:50%;width:calc(100cqh - 24px);height:calc(100cqw - 24px);}
+.atkv[data-rot="90"] .atkv-doc{transform:translate(-50%,-50%) rotate(90deg);}
+.atkv[data-rot="270"] .atkv-doc{transform:translate(-50%,-50%) rotate(270deg);}
+.atkv[data-rot="180"] .atkv-doc{transform:rotate(180deg);}
 .atkv-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform-origin:center center;-webkit-user-drag:none;}
 .atkv-canvas{position:absolute;left:50%;top:50%;transform-origin:center center;background:#fff;box-shadow:0 12px 40px rgba(0,0,0,.5);}
 .atkv-spin{position:absolute;inset:0;margin:auto;width:28px;height:28px;border-radius:50%;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;
@@ -450,7 +458,11 @@ class Zoomer {
   }
   destroy() { for (const [k, f] of Object.entries(this.on)) this.stage.removeEventListener(k, f); clearTimeout(this.t); }
   clamp(st) { const b = this.o.dims(); const mx = Math.max(0, (b.w * st.s - b.cw) / 2), my = Math.max(0, (b.h * st.s - b.ch) / 2); return { s: st.s, x: Math.min(mx, Math.max(-mx, st.x)), y: Math.min(my, Math.max(-my, st.y)) }; }
-  rel(e) { const r = this.stage.getBoundingClientRect(); return { x: e.clientX - r.left - r.width / 2, y: e.clientY - r.top - r.height / 2 }; }
+  rel(e) {
+    const r = this.stage.getBoundingClientRect(), vx = e.clientX - r.left - r.width / 2, vy = e.clientY - r.top - r.height / 2;
+    const t = ((Zoomer.rot || 0) * Math.PI) / 180, c = Math.round(Math.cos(t)), sn = Math.round(Math.sin(t));
+    return { x: vx * c + vy * sn, y: -vx * sn + vy * c };   /* نرجّع الإحداثيات لاتجاه الصورة الأصلي لما تكون مدوّرة */
+  }
   paint(anim) { const { s, x, y } = this.z; this.el.style.transition = anim ? "transform .2s ease-out" : "none"; this.el.style.transform = `translate(${x}px,${y}px) scale(${s})`; }
   set(z, anim = true) { this.z = z; this.paint(anim); }
   ended() { clearTimeout(this.t); this.t = setTimeout(() => this.o.onZoomEnd && this.o.onZoomEnd(this.z.s), 160); }
@@ -492,6 +504,8 @@ class Zoomer {
   }
   wheel(e) { if (!e.ctrlKey && Math.abs(e.deltaY) < 4) return; e.preventDefault(); this.zoomAt(this.rel(e), Math.min(6, Math.max(1, this.z.s * (e.deltaY < 0 ? 1.15 : 0.87)))); }
 }
+
+Zoomer.rot = 0;
 
 /* ── عارض PDF: صفحة صفحة، الصفحة ترسم بدقة أعلى لما تكبّر ── */
 function pdfController(host, url, cb) {
@@ -774,6 +788,7 @@ export function AttachmentViewer({ list, index, onIndex, onClose, lang = "ar" })
   const a = list[i];
   const [sub, setSub] = useState("");
   const [zoomed, setZoomed] = useState(false);
+  const [rot, setRot] = useState(0);
   const ctrl = useRef(null);
   const closeRef = useRef(onClose); closeRef.current = onClose;
   const step = (d) => { const j = i + d; if (j >= 0 && j < n) onIndex(j); };
@@ -801,20 +816,29 @@ export function AttachmentViewer({ list, index, onIndex, onClose, lang = "ar" })
   }, []);
   useEffect(() => {
     if (!a) return;
-    setZoomed(false); setSub(baseSub(a, lang));
+    setZoomed(false); setRot(0); setSub(baseSub(a, lang));
     logEvent("nav", "att_open", `${a.kind}:${a.id}`, null);
   }, [a && a.id]);
+  useEffect(() => {
+    Zoomer.rot = rot;
+    if (ctrl.current && ctrl.current.reset) ctrl.current.reset();
+    const t = setTimeout(() => { try { window.dispatchEvent(new Event("resize")); } catch (_) {} }, 30);
+    return () => { clearTimeout(t); };
+  }, [rot]);
+  useEffect(() => () => { Zoomer.rot = 0; }, []);
   if (!a || typeof document === "undefined") return null;
   const title = attTitle(a, lang);
+  const canRotate = (a.kind === "image" || a.kind === "pdf" || a.kind === "office") && !(a.provider === "youtube");
   const Prev = lang === "en" ? ChevronLeft : ChevronRight, Next = lang === "en" ? ChevronRight : ChevronLeft;
   const stop = (e) => e.stopPropagation();
   const subLine = [sub, n > 1 ? L(`مرفق ${i + 1} من ${n}`, `${i + 1} of ${n}`) : ""].filter(Boolean).join(" · ");
   return createPortal(
-    <div className="atkv" role="dialog" aria-modal="true" aria-label={title} dir={lang === "en" ? "ltr" : "rtl"}
+    <div className="atkv" data-rot={rot} role="dialog" aria-modal="true" aria-label={title} dir={lang === "en" ? "ltr" : "rtl"}
       onClick={stop} onTouchStart={stop} onTouchEnd={stop} onPointerDown={stop} onKeyDown={stop}>
       <div className="atkv-top">
         <button type="button" className="atkv-ico" onClick={() => closeRef.current()} aria-label={L("إغلاق", "Close")} autoFocus><X size={17} /></button>
         <div className="atkv-title"><div className="atkv-name">{title}</div><div className="atkv-sub">{subLine}</div></div>
+        {canRotate && <button type="button" className="atkv-ico" onClick={() => setRot((r) => (r + 90) % 360)} aria-label={L("تدوير 90 درجة", "Rotate 90°")} title={L("تدوير", "Rotate")}><RotateCw size={16} /></button>}
         {zoomed && <button type="button" className="atkv-ico" onClick={() => ctrl.current && ctrl.current.reset()} aria-label={L("إلغاء التكبير", "Reset zoom")}><RotateCcw size={15} /></button>}
         {n > 1 && (
           <>
