@@ -10,7 +10,7 @@ import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickN
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
-import { useAttachments } from "./attach-kit.jsx";
+import { AttachmentViewer, toView, useAttachments } from "./attach-kit.jsx";
 import { GallerySection } from "./gallery-kit.jsx";
 import { LinkLeaveSheet, LinksFolders, LinksHeaderChips, LinksInNotices, LinksOverviewCards, linksAt, useExternalLinks } from "./links-kit.jsx";
 import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
@@ -225,6 +225,8 @@ export function PublicSite({ share = null } = {}) {
     if (next) setTab(next);
   }, [navLabels, tab, allTabKeys]);
   const [docView, setDocView] = useState(null);
+  const [docLink, setDocLink] = useState(null);
+  const [docLinkIdx, setDocLinkIdx] = useState(0);
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
 
@@ -1575,10 +1577,10 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                       className="doc-card"
                       data-ek={`doc-${String(doc.id).toLowerCase().replace(/[^a-z0-9_-]/g, "")}`}
                       style={{ borderInlineStartColor: accent }}
-                      onClick={() => { logEvent("nav", "doc_open", doc.id, docVids.length ? "video" : null); setDocView(doc); }}
+                      onClick={() => { logEvent("nav", "doc_open", doc.id, docVids.length ? "video" : null); if (doc.link) { setDocLinkIdx(0); setDocLink([toView({ id: `doc-${doc.id}`, kind: "pdf", source: "link", provider: "drive", external_url: `https://drive.google.com/file/d/${doc.link.id}/view?usp=sharing`, embed_url: `https://drive.google.com/file/d/${doc.link.id}/preview`, title_ar: doc.nameAr, title_en: doc.nameEn, pages: doc.link.pages }), ...docVids.map((v) => toView({ id: `vid-${v.id}`, kind: "video", source: "link", provider: "youtube", youtube_id: v.youtube_id, title_ar: v.title_ar || v.yt_title || "جولة مرئية", title_en: v.title_en || v.yt_title || "Video tour", duration_s: v.duration_s, vertical: v.vertical }))]); } else setDocView(doc); }}
                     >
                       <span className="doc-thumb" style={{ borderColor: accent + "55" }}>
-                        <img src={DOC_BASE + doc.cover} alt="" loading="lazy" />
+                        <img src={doc.coverUrl || DOC_BASE + doc.cover} alt="" loading="lazy" />
                         {docVids.length > 0 && (
                           <span className="doc-vbadge" aria-hidden="true">
                             <Play size={9} fill="currentColor" strokeWidth={0} />
@@ -1591,7 +1593,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                         <span className="doc-sub">{L(doc.subAr, doc.subEn)}</span>
                         <span className="doc-meta" style={{ color: accent }}>
                           <FileText size={11} />
-                          {doc.pages.length} {L(doc.pages.length === 1 ? "لوحة" : "لوحات", doc.pages.length === 1 ? "sheet" : "sheets")}
+                          {doc.link ? L("ملف PDF", "PDF file") : <>{doc.pages.length} {L(doc.pages.length === 1 ? "لوحة" : "لوحات", doc.pages.length === 1 ? "sheet" : "sheets")}</>}
                           {docVids.length > 0 && (
                             <span className="doc-vid">
                               <span aria-hidden="true">·</span>
@@ -1661,6 +1663,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
+        {docLink && <AttachmentViewer list={docLink} index={docLinkIdx} onIndex={setDocLinkIdx} onClose={() => setDocLink(null)} lang={lang} />}
         <DocViewerSheet doc={docView} videos={docView ? videos[docView.id] || [] : []} onClose={() => setDocView(null)} />
 
         {showTop && (

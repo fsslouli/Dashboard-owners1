@@ -29,9 +29,11 @@ export const DOCS = [
     nameAr: "المخطط الرئيسي", nameEn: "Master Plan",
     subAr: "توزيع البلوكات وأرقام القطع", subEn: "Block layout and plot numbers",
     color: null,
-    cover: "cover-master.webp",
-    pdf: "Abd.pdf",
-    pages: [P("master-01-siteplan.webp", "المخطط الرئيسي", "Site Plan")],
+    /* ملف PDF على Google Drive (توزيع البلوكات بالحدود والأرقام) يُفتح بعارض المرفقات بدل الصورة القديمة */
+    cover: null,
+    coverUrl: "https://drive.google.com/thumbnail?id=1ME4d_WPTBqcYnCHXSIvyIvZURGfy7FqG&sz=w640",
+    link: { id: "1ME4d_WPTBqcYnCHXSIvyIvZURGfy7FqG", pages: 2 },
+    pages: [],
   },
   {
     id: "amanecer",
