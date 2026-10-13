@@ -63,7 +63,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .viewer { position: relative; height: clamp(380px, 70vh, 760px); border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #DCE6EE; touch-action: none; user-select: none; -webkit-user-select: none; }
 .viewer canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
 .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.lbl { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: auto; border: 0; padding: 4px 10px 5px; border-radius: 10px; background: var(--glass); color: var(--glass-ink); box-shadow: 0 2px 10px rgba(0,0,0,.18); text-align: center; line-height: 1.25; white-space: nowrap; direction: rtl; }
+.lbl { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: auto; border: 0; padding: 4px 10px 5px; border-radius: 10px; background: var(--glass); color: var(--glass-ink); box-shadow: 0 2px 10px rgba(0,0,0,.18); text-align: center; line-height: 1.25; white-space: nowrap; direction: inherit; }
 .lbl b { display: block; font-size: 12.5px; font-weight: 700; }
 .lbl span { display: block; font-size: 10.5px; color: var(--faint); }
 .lbl span i, .card i.num { font-style: normal; }
@@ -82,7 +82,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .card { bottom: 12px; inset-inline-start: 12px; width: min(320px, calc(100% - 24px)); padding: 12px 14px; border-radius: 14px; background: var(--glass); color: var(--glass-ink); box-shadow: 0 6px 24px rgba(0,0,0,.2); backdrop-filter: blur(6px); }
 .card .k { font-size: 12px; color: var(--faint); font-weight: 600; }
 .card h3 { margin: 0; font-family: var(--f-disp); font-size: 19px; line-height: 1.3; }
-.card .d { font-family: var(--f-num); font-size: 14px; direction: ltr; text-align: right; }
+.card .d { font-family: var(--f-num); font-size: 14px; direction: ltr; text-align: start; }
 .card p { margin: 6px 0 0; font-size: 12.5px; color: var(--faint); }
 .card .dw { font-size: 14px; }
 .card .x { position: absolute; top: 8px; inset-inline-end: 8px; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--faint); font-size: 18px; line-height: 1; }
@@ -92,7 +92,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .viewer.walking .hint { bottom: auto; top: 98px; }
 .joy { bottom: 18px; inset-inline-end: 18px; width: 116px; height: 116px; border-radius: 50%; background: rgba(255,255,255,.28); border: 1.5px solid rgba(255,255,255,.65); box-shadow: 0 4px 16px rgba(0,0,0,.18); touch-action: none; }
 .joy .knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-.joy::after { content: "مشي"; position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 11px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.joy::after { content: var(--walk, "مشي"); position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 11px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .load { inset: 0; display: grid; place-items: center; background: #DCE6EE; color: #33424D; font-size: 14px; font-weight: 600; }
 .load.err { color: #8A3B33; padding: 24px; text-align: center; line-height: 1.8; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
@@ -117,45 +117,45 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <div class="app" id="app" dir="rtl" lang="ar">
   <header class="top">
     <div>
-      <h1>آمانيثير ثلاثي الأبعاد</h1>
-      <p class="sub">تاون هاوس · مساحة البيع <span class="num">259.77</span> م² · الأرض <span class="num">8 × 25</span> م · من المخططات المعمارية وصور البروشور</p>
+      <h1 id="h1">آمانيثير ثلاثي الأبعاد</h1>
+      <p class="sub" id="sub">تاون هاوس · مساحة البيع <span class="num">259.77</span> م² · الأرض <span class="num">8 × 25</span> م · من المخططات المعمارية وصور البروشور</p>
     </div>
-    <span class="demo">نسخة تجريبية</span>
+    <span class="demo" data-en="Preview">نسخة تجريبية</span>
   </header>
 
   <div class="bar">
-    <div class="seg" role="group" aria-label="طريقة العرض">
-      <button type="button" data-mode="ext" aria-pressed="true">من برّا</button>
-      <button type="button" data-mode="floors" aria-pressed="false">الأدوار من فوق</button>
-      <button type="button" data-mode="walk" aria-pressed="false">تجوّل داخل البيت</button>
+    <div class="seg" role="group" aria-label="طريقة العرض" data-en-aria="View mode">
+      <button type="button" data-mode="ext" aria-pressed="true" data-en="Outside">من برّا</button>
+      <button type="button" data-mode="floors" aria-pressed="false" data-en="Floors from above">الأدوار من فوق</button>
+      <button type="button" data-mode="walk" aria-pressed="false" data-en="Walk inside">تجوّل داخل البيت</button>
     </div>
     <div class="tg">
-      <button type="button" id="tNb" aria-pressed="true">البيوت المجاورة</button>
-      <button type="button" id="tFence" aria-pressed="false">السور الأمامي</button>
-      <button type="button" id="tPool" aria-pressed="true" hidden>المسبح (اختياري)</button>
+      <button type="button" id="tNb" aria-pressed="true" data-en="Neighbours">البيوت المجاورة</button>
+      <button type="button" id="tFence" aria-pressed="false" data-en="Front fence">السور الأمامي</button>
+      <button type="button" id="tPool" aria-pressed="true" hidden data-en="Pool (optional)">المسبح (اختياري)</button>
     </div>
   </div>
 
   <div class="viewer" id="viewer">
-    <canvas id="cv" aria-label="نموذج ثلاثي الأبعاد لفيلا آمانيثير" tabindex="0"></canvas>
+    <canvas id="cv" aria-label="نموذج ثلاثي الأبعاد لفيلا آمانيثير" data-en-aria="3D model of the آمانيثير villa" tabindex="0"></canvas>
     <div class="labels" id="labels"></div>
     <div class="ov floors" id="floors" hidden>
-      <button type="button" data-f="0" aria-pressed="true">الأرضي</button>
-      <button type="button" data-f="1" aria-pressed="false">الأول</button>
-      <button type="button" data-f="2" aria-pressed="false">الملحق والسطح</button>
+      <button type="button" data-f="0" aria-pressed="true" data-en="Ground">الأرضي</button>
+      <button type="button" data-f="1" aria-pressed="false" data-en="First">الأول</button>
+      <button type="button" data-f="2" aria-pressed="false" data-en="Annex &amp; roof">الملحق والسطح</button>
     </div>
     <div class="ov vctl">
-      <button type="button" id="bReset" aria-label="رجوع للمنظر الأساسي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg></button>
-      <button type="button" id="bFull" aria-label="ملء الشاشة" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
+      <button type="button" id="bReset" aria-label="رجوع للمنظر الأساسي" data-en-aria="Reset view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg></button>
+      <button type="button" id="bFull" aria-label="ملء الشاشة" data-en-aria="Full screen" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
     </div>
     <div class="ov where" id="where" hidden></div>
     <div class="ov card" id="card" hidden></div>
     <div class="ov joy" id="joy" hidden><div class="knob" id="knob"></div></div>
-    <div class="ov hint" id="hint">اسحب لتلف حول البيت · قرّب بإصبعين أو بالعجلة</div>
-    <div class="ov load" id="load">جاري بناء البيت…</div>
+    <div class="ov hint" id="hint" data-en="Drag to orbit · pinch or scroll to zoom">اسحب لتلف حول البيت · قرّب بإصبعين أو بالعجلة</div>
+    <div class="ov load" id="load" data-en="Building the house…">جاري بناء البيت…</div>
   </div>
 
-  <section class="facts" aria-label="أرقام النموذج">
+  <section class="facts" id="facts" aria-label="أرقام النموذج" data-en-aria="Model figures">
 
     <div class="fact"><div class="k">الدور الأرضي</div><div class="v"><span class="num">113.43</span> م²</div><div class="s">مجلس، معيشة وطعام، مطبخ، 2 دورة مياه</div></div>
     <div class="fact"><div class="k">الدور الأول</div><div class="v"><span class="num">112.43</span> م²</div><div class="s">4 غرف نوم، 3 حمامات، غرفة ملابس</div></div>
@@ -164,7 +164,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   
   </section>
 
-  <footer class="foot">
+  <footer class="foot" id="foot">
 
     <p>المصدر: المخططات المعمارية لنموذج آمانيثير (أكتوبر 2024) بمقاساتها بالسنتيمتر، وصور الواجهة في بروشور المشروع، والمرجع الفني للنماذج.</p>
     <p>الجدران والفتحات والارتفاعات والدرج مأخوذة من المخططات. الألوان والشبك والأثاث توضيحية من البروشور، والبيوت المجاورة شكل تقريبي. المرجع المعتمد مخططات المطوّر.</p>
@@ -177,10 +177,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   setTimeout(function () {
     if (window.__mReady) return;
     var l = document.getElementById("load");
-    if (l) { l.hidden = false; l.classList.add("err"); l.textContent = "تعذّر تحميل العرض ثلاثي الأبعاد. تأكد من الاتصال وحدّث الصفحة."; }
+    if (l) { l.hidden = false; l.classList.add("err"); l.textContent = /[?&]lang=en/.test(location.search) ? "Could not load the 3D view. Check your connection and refresh the page." : "تعذّر تحميل العرض ثلاثي الأبعاد. تأكد من الاتصال وحدّث الصفحة."; }
   }, 15000);
 </script>
 <script>try{var t=new URLSearchParams(location.search).get("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<script>window.__EN = {"title": "Amanecer 3D", "name": "Amanecer", "sub": "Townhouse · Sellable area <span class=\"num\">259.77<\/span> m² · Plot <span class=\"num\">8 × 25<\/span> m · From the architectural drawings and brochure renders", "facts": "\n    <div class=\"fact\"><div class=\"k\">Ground floor<\/div><div class=\"v\"><span class=\"num\">113.43<\/span> m²<\/div><div class=\"s\">Majlis, living &amp; dining, kitchen, 2 WCs<\/div><\/div>\n    <div class=\"fact\"><div class=\"k\">First floor<\/div><div class=\"v\"><span class=\"num\">112.43<\/span> m²<\/div><div class=\"s\">4 bedrooms, 3 bathrooms, dressing room<\/div><\/div>\n    <div class=\"fact\"><div class=\"k\">Annex<\/div><div class=\"v\"><span class=\"num\">33.91<\/span> m²<\/div><div class=\"s\">Maid's room with bathroom, laundry and two roof terraces<\/div><\/div>\n    <div class=\"fact\"><div class=\"k\">Heights<\/div><div class=\"v\"><span class=\"num\">3.05<\/span> m and <span class=\"num\">3.45<\/span> m<\/div><div class=\"s\">Clear floor height / floor to floor<\/div><\/div>\n  ", "foot": "\n    <p>Source: the architectural drawings of the Amanecer model (October 2024) with dimensions in centimetres, the façade renders in the project brochure, and the technical reference for the models.<\/p>\n    <p>Walls, openings, heights and the staircase are taken from the drawings. Colours, lattice and furniture are illustrative, from the brochure. Neighbouring houses are approximate. The reference is the developer's drawings.<\/p>\n  "};</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from "three";
@@ -188,6 +189,17 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const $ = (id) => document.getElementById(id);
+const EN = new URLSearchParams(location.search).get("lang") === "en";
+const tr = (a, e) => (EN ? e : a);
+const ROOM_EN = { "المجلس": "Majlis", "المعيشة والطعام": "Living & dining", "المطبخ": "Kitchen", "المدخل": "Entrance", "دورة مياه الضيوف": "Guest WC", "المغاسل": "Wash basins", "دورة مياه العائلة": "Family WC", "مستودع تحت الدرج": "Under-stair storage", "الدرج": "Staircase", "الحوش الجانبي": "Side yard", "الفناء الأمامي والموقف": "Front yard & parking", "الفناء الخلفي": "Back yard", "مطبخ الطبخ": "Cooking kitchen", "المطبخ الثاني": "Second kitchen", "غرفة النوم الرئيسية": "Master bedroom", "غرفة الملابس": "Dressing room", "حمام الغرفة الرئيسية": "Master bathroom", "حمام": "Bathroom", "الممر": "Corridor", "غرفة الخادمة": "Maid's room", "حمام الخادمة": "Maid's bathroom", "غرفة استراحة العائلة": "Family lounge", "منطقة الغسيل": "Laundry area", "الغسيل": "Laundry", "السطح الأمامي": "Front roof terrace", "السطح الخلفي": "Back roof terrace", "حمام الاستراحة": "Lounge bathroom" };
+const enName = (n) => { if (ROOM_EN[n]) return ROOM_EN[n]; let m = /^غرفة نوم (\d+)$/.exec(n); if (m) return "Bedroom " + m[1]; m = /^حمام غرفة نوم (\d+)$/.exec(n); if (m) return "Bedroom " + m[1] + " bathroom"; return n; };
+const enDim = (d) => d.replace("عمق", "depth").replace("عرض", "width").replace("جدار", "wall").replace(/\s*م$/, " m");
+if (EN && window.__EN) {
+  const ap = $("app"); ap.dir = "ltr"; ap.lang = "en"; ap.dataset.lang = "en"; ap.style.setProperty("--walk", '"Walk"'); document.documentElement.lang = "en"; document.title = window.__EN.title;
+  $("h1").textContent = window.__EN.title; $("sub").innerHTML = window.__EN.sub; $("facts").innerHTML = window.__EN.facts; $("foot").innerHTML = window.__EN.foot;
+  document.querySelectorAll("[data-en]").forEach((e) => { e.textContent = e.dataset.en; });
+  document.querySelectorAll("[data-en-aria]").forEach((e) => e.setAttribute("aria-label", e.dataset.enAria));
+}
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const coarse = matchMedia("(pointer: coarse)").matches;
 const LV = [0, 3.45, 6.90, 10.20];
@@ -624,7 +636,7 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ canvas: $("cv"), antialias: true, powerPreference: "high-performance" });
 } catch (e) {
-  $("load").classList.add("err"); $("load").textContent = "المتصفح ما يقدر يعرض النماذج ثلاثية الأبعاد. جرّب متصفح أحدث أو جهاز ثاني.";
+  $("load").classList.add("err"); $("load").textContent = tr("المتصفح ما يقدر يعرض النماذج ثلاثية الأبعاد. جرّب متصفح أحدث أو جهاز ثاني.", "This browser cannot show 3D models. Try a newer browser or another device.");
   throw e;
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, coarse ? 1.75 : 2));
@@ -681,11 +693,11 @@ const hl = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMate
 hl.rotation.x = -Math.PI / 2; hl.visible = false; hl.renderOrder = 3; scene.add(hl);
 
 /* ======================= rooms (names + sizes from the drawings and the model reference) ======================= */
-const ROOMS = MD.rooms.map(([lv, n, r, d], i) => ({ i, lv, n, r, d, area: /×/.test(d) ? d.split("×").map(Number).reduce((p, q) => p * q, 1) : null }));
-const FLOOR_NAME = MD.floorNames;
-const dimHtml = (d) => d.replace(/(\d+(?:\.\d+)?(?:\s*×\s*\d+(?:\.\d+)?)?)/g, '<i class="num">$1</i>') + (/×/.test(d) ? " م" : "");
+const ROOMS = MD.rooms.map(([lv, n, r, d], i) => ({ i, lv, n: EN ? enName(n) : n, ar: n, r, d: EN ? enDim(d) : d, area: /×/.test(d) ? d.split("×").map(Number).reduce((p, q) => p * q, 1) : null }));
+const FLOOR_NAME = EN ? ["Ground floor", "First floor", "Annex & roof"] : MD.floorNames;
+const dimHtml = (d) => d.replace(/(\d+(?:\.\d+)?(?:\s*×\s*\d+(?:\.\d+)?)?)/g, '<i class="num">$1</i>') + (/×/.test(d) ? tr(" م", " m") : "");
 const labelsEl = $("labels");
-const tag = document.createElement("div"); tag.className = "tag"; tag.textContent = MD.tagText; labelsEl.appendChild(tag);
+const tag = document.createElement("div"); tag.className = "tag"; tag.textContent = EN && window.__EN ? window.__EN.name : MD.tagText; labelsEl.appendChild(tag);
 const tagPos = new THREE.Vector3(...MD.tagPos);
 ROOMS.forEach((rm) => {
   const el = document.createElement("button"); el.type = "button"; el.className = "lbl"; el.hidden = true;
@@ -739,8 +751,8 @@ function setMode(m) {
   $("floors").hidden = m === "ext"; closeCard();
   document.querySelector(".tg").style.visibility = m === "floors" ? "hidden" : "visible";
   viewer.classList.toggle("walking", m === "walk");
-  if (m === "ext") { controls.enabled = true; tweenTo(EXT.pos, EXT.tgt); hint("اسحب لتلف حول البيت · قرّب بإصبعين أو بالعجلة"); }
-  if (m === "floors") { controls.enabled = true; const v = floorView(S.floor); tweenTo(v.pos, v.tgt); hint("اضغط على اسم أي غرفة لعرض مقاسها"); }
+  if (m === "ext") { controls.enabled = true; tweenTo(EXT.pos, EXT.tgt); hint(tr("اسحب لتلف حول البيت · قرّب بإصبعين أو بالعجلة", "Drag to orbit · pinch or scroll to zoom")); }
+  if (m === "floors") { controls.enabled = true; const v = floorView(S.floor); tweenTo(v.pos, v.tgt); hint(tr("اضغط على اسم أي غرفة لعرض مقاسها", "Tap any room name to see its size")); }
   if (m === "walk") enterWalk(S.floor);
   setFloorChips(); vis();
 }
@@ -766,9 +778,9 @@ function pickRoom(rm) {
   S.room = rm; ROOMS.forEach((r) => r.el.classList.toggle("on", r === rm));
   const [x0, y0, x1, y1] = rm.r; hl.scale.set((x1 - x0) / 100, (y1 - y0) / 100, 1); hl.position.set((x0 + x1) / 200, LV[rm.lv] + 0.03, (y0 + y1) / 200); hl.visible = true;
   const card = $("card"); card.hidden = false;
-  card.innerHTML = `<button class="x" type="button" aria-label="إغلاق">×</button><div class="k">${FLOOR_NAME[rm.lv]}</div><h3>${rm.n}</h3>` +
-    `<div class="dw">${dimHtml(rm.d)}${rm.area ? ` · المساحة ≈ <i class="num">${rm.area.toFixed(1)}</i> م²` : ""}</div>` +
-    `<p>${rm.lv === 2 && /السطح/.test(rm.n) ? "سطح مكشوف يحيط فيه جدار خصوصية بارتفاع 2 م." : "المقاس الداخلي حسب المخطط المعتمد."}</p>`;
+  card.innerHTML = `<button class="x" type="button" aria-label="${tr("إغلاق", "Close")}">×</button><div class="k">${FLOOR_NAME[rm.lv]}</div><h3>${rm.n}</h3>` +
+    `<div class="dw">${dimHtml(rm.d)}${rm.area ? ` · ${tr("المساحة", "Area")} ≈ <i class="num">${rm.area.toFixed(1)}</i> ${tr("م²", "m²")}` : ""}</div>` +
+    `<p>${rm.lv === 2 && /السطح/.test(rm.ar) ? tr("سطح مكشوف يحيط فيه جدار خصوصية بارتفاع 2 م.", "Open roof terrace with a 2 m privacy wall around it.") : tr("المقاس الداخلي حسب المخطط المعتمد.", "Internal size per the approved drawings.")}</p>`;
   card.querySelector(".x").onclick = closeCard;
 }
 function closeCard() { $("card").hidden = true; hl.visible = false; S.room = null; ROOMS.forEach((r) => r.el.classList.remove("on")); }
@@ -776,7 +788,7 @@ function closeCard() { $("card").hidden = true; hl.visible = false; S.room = nul
 /* ======================= walk mode ======================= */
 const SPAWN = MD.spawn;
 const W = { on: false, lvl: 0, x: 0, z: 0, yaw: 0, pitch: -0.05, jx: 0, jy: 0, keys: new Set() };
-function enterWalk(f) { headLamp.intensity = 1.25; W.on = true; controls.enabled = false; S.tween = null; $("joy").hidden = false; $("where").hidden = false; spawn(f); hint(coarse ? "اسحب الشاشة للالتفات · استخدم الدائرة للمشي" : "اسحب للالتفات · الأسهم أو W A S D للمشي · أو الدائرة"); }
+function enterWalk(f) { headLamp.intensity = 1.25; W.on = true; controls.enabled = false; S.tween = null; $("joy").hidden = false; $("where").hidden = false; spawn(f); hint(coarse ? tr("اسحب الشاشة للالتفات · استخدم الدائرة للمشي", "Drag the screen to look around · use the circle to walk") : tr("اسحب للالتفات · الأسهم أو W A S D للمشي · أو الدائرة", "Drag to look around · arrow keys or W A S D to walk · or the circle")); }
 function exitWalk() { headLamp.intensity = 0; W.on = false; $("joy").hidden = true; $("where").hidden = true; camera.rotation.set(0, 0, 0); controls.enabled = true; }
 function spawn(f) { const s = SPAWN[f]; Object.assign(W, { lvl: f, x: s.x, z: s.z, yaw: s.yaw, pitch: -0.05 }); S.floor = f; setFloorChips(); placeWalkCam(); updateWhere(); }
 function placeWalkCam() { camera.position.set(W.x, LV[W.lvl] + 1.6, W.z); camera.rotation.order = "YXZ"; camera.rotation.set(W.pitch, W.yaw, 0); }

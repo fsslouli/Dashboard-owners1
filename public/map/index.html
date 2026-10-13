@@ -262,22 +262,22 @@ button { cursor: pointer; }
 <div class="app" id="app" dir="rtl" lang="ar">
   <header class="top">
     <div>
-      <h1>خريطة بلوكات البورادا</h1>
-      <p class="sub">فلل البورادا · الفرسان — <span class="num">24</span> بلوك · <span class="num">596</span> فيلا · الإنجاز حسب آخر تقرير للمطوّر (<span id="lastm"></span>)</p>
+      <h1 data-en="Alborada Block Map">خريطة بلوكات البورادا</h1>
+      <p class="sub" data-en-html="Alborada Villas · Al Fursan — <span class=&quot;num&quot;>24</span> blocks · <span class=&quot;num&quot;>596</span> villas · Progress per the developer's latest report (<span id=&quot;lastm&quot;></span>)">فلل البورادا · الفرسان — <span class="num">24</span> بلوك · <span class="num">596</span> فيلا · الإنجاز حسب آخر تقرير للمطوّر (<span id="lastm"></span>)</p>
     </div>
   </header>
 
   <div class="tools">
     <form class="find" id="find" autocomplete="off" novalidate>
-      <label for="q">رقم الفيلا</label>
-      <input id="q" name="q" inputmode="numeric" enterkeyhint="search" placeholder="اكتب رقم فيلتك، مثل 120" aria-describedby="qerr">
-      <button type="submit">اعرض موقعها</button>
+      <label for="q" data-en="Villa number">رقم الفيلا</label>
+      <input id="q" name="q" inputmode="numeric" enterkeyhint="search" placeholder="اكتب رقم فيلتك، مثل 120" data-en-ph="e.g. 120" aria-describedby="qerr">
+      <button type="submit" data-en="Locate">اعرض موقعها</button>
       <span class="err" id="qerr" role="status" aria-live="polite"></span>
     </form>
-    <div class="seg" role="group" aria-label="تلوين الخريطة">
-      <button type="button" data-mode="prog" aria-pressed="true">الإنجاز</button>
-      <button type="button" data-mode="phase" aria-pressed="false">المراحل</button>
-      <button type="button" data-mode="plan" aria-pressed="false">المخطط والنماذج</button>
+    <div class="seg" role="group" aria-label="تلوين الخريطة" data-en-aria="Map colouring">
+      <button type="button" data-mode="prog" aria-pressed="true" data-en="Progress">الإنجاز</button>
+      <button type="button" data-mode="phase" aria-pressed="false" data-en="Phases">المراحل</button>
+      <button type="button" data-mode="plan" aria-pressed="false" data-en="Plan & models">المخطط والنماذج</button>
     </div>
   </div>
 
@@ -285,25 +285,25 @@ button { cursor: pointer; }
     <div class="colmap">
     <div class="mapcard">
       <div class="mapwrap" id="wrap">
-        <div id="map" role="application" aria-label="المخطط الرئيسي للمشروع مع حدود البلوكات"></div>
-        <div class="north" aria-hidden="true" title="اتجاه الشمال">
+        <div id="map" role="application" aria-label="المخطط الرئيسي للمشروع مع حدود البلوكات" data-en-aria="Project master plan with block boundaries"></div>
+        <div class="north" aria-hidden="true" title="اتجاه الشمال" data-en-title="North">
           <svg viewBox="0 0 28 28"><path d="M14 3 L19 17 L14 14.5 L9 17 Z" fill="var(--accent)"/><path d="M14 14.5 L19 17 L14 25 L9 17 Z" fill="var(--faint)" opacity=".45"/></svg>
         </div>
         <div class="mapctl">
-          <button type="button" id="zin" aria-label="تكبير"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-          <button type="button" id="zout" aria-label="تصغير"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
-          <button type="button" id="zfit" aria-label="عرض المشروع كامل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>
-          <button type="button" id="zfull" aria-label="ملء الشاشة" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
+          <button type="button" id="zin" aria-label="تكبير" data-en-aria="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" id="zout" aria-label="تصغير" data-en-aria="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <button type="button" id="zfit" aria-label="عرض المشروع كامل" data-en-aria="Fit whole project"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>
+          <button type="button" id="zfull" aria-label="ملء الشاشة" data-en-aria="Full screen" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
         </div>
-        <div class="hint" id="hint">اضغط على أي بلوك · قرّب لرؤية أرقام الفلل</div>
+        <div class="hint" id="hint" data-en="Tap any block · zoom in to see villa numbers">اضغط على أي بلوك · قرّب لرؤية أرقام الفلل</div>
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
       </div>
       <div class="legend" id="legend" aria-live="polite"></div>
     </div>
     <details class="tbl" id="tbl">
-    <summary>جدول البلوكات الـ<span class="num">24</span></summary>
+    <summary data-en-html="The <span class=&quot;num&quot;>24</span> blocks table">جدول البلوكات الـ<span class="num">24</span></summary>
     <div class="wrap"><table>
-      <thead><tr><th>البلوك</th><th>أرقام الفلل</th><th>العدد</th><th>المرحلة</th><th>الإنجاز</th><th>عن الشهر السابق</th></tr></thead>
+      <thead><tr><th data-en="Block">البلوك</th><th data-en="Villa numbers">أرقام الفلل</th><th data-en="Count">العدد</th><th data-en="Phase">المرحلة</th><th data-en="Progress">الإنجاز</th><th data-en="vs previous month">عن الشهر السابق</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table></div>
     </details>
@@ -312,8 +312,8 @@ button { cursor: pointer; }
   </div>
 
   <footer class="foot">
-    <p>المصادر: المخطط الرئيسي في بروشور ad home لفلل البورادا، وتقارير التقدّم الشهرية من المطوّر، والمرجع الفني للنماذج (المساحات).</p>
-    <p>حدود البلوكات ومواقع الفلل ونموذج كل فيلا مستخرجة آليًا من المخطط وألوانه للاسترشاد، والمرجع المعتمد وثائق المطوّر. نسب الإنجاز على مستوى البلوك، والتقارير ما تعطي نسبة لكل فيلا.</p>
+    <p data-en="Sources: the master plan in the ad home Alborada brochure, the developer's monthly progress reports, and the technical reference for the models (areas).">المصادر: المخطط الرئيسي في بروشور ad home لفلل البورادا، وتقارير التقدّم الشهرية من المطوّر، والمرجع الفني للنماذج (المساحات).</p>
+    <p data-en="Block boundaries, villa positions and each villa's model are extracted automatically from the plan and its colours, for guidance only. The reference is the developer's documents. Progress is per block; the reports do not give a figure per villa.">حدود البلوكات ومواقع الفلل ونموذج كل فيلا مستخرجة آليًا من المخطط وألوانه للاسترشاد، والمرجع المعتمد وثائق المطوّر. نسب الإنجاز على مستوى البلوك، والتقارير ما تعطي نسبة لكل فيلا.</p>
     <p id="gapnote"></p>
   </footer>
 </div>
@@ -346,22 +346,46 @@ try {
   D.phases = {}; [1, 2, 3, 4].forEach((p) => { D.phases[p] = months.map((k) => val((by.get(k) || {}).phases, "p" + p)); });
   D.total = months.map((k) => val((by.get(k) || {}).phases, "total"));
   D.gap = {}; (notes || []).forEach((n) => { if (months.includes(n.month) && !by.has(n.month)) D.gap[n.month] = n.note; });
-  months.forEach((k) => { if (!by.has(k) && !D.gap[k]) D.gap[k] = "لا يوجد تقرير تقدّم لهذا الشهر"; });
+  months.forEach((k) => { if (!by.has(k) && !D.gap[k]) D.gap[k] = tr("لا يوجد تقرير تقدّم لهذا الشهر", "No progress report for this month"); });
   LIVE = true;
 } catch (e) { /* احتياط: النسخة المضمّنة */ }
+/* تحديث تلقائي: كل دقيقة (وعند رجوع الصفحة للواجهة) نقارن بصمة بيانات التقدم، ولو تغيّرت نعيد التحميل. البلوك المحدد يرجع من الـ#hash والوضع من التخزين. */
+{
+  const sig = async () => { const r = await sb("progress_matrix_v?select=month,phases,blocks&order=month"); return JSON.stringify(r); };
+  let base = null, busy = false;
+  const check = async () => {
+    if (busy || document.hidden || !LIVE) return; busy = true;
+    try { const n = await sig(); if (base === null) base = n; else if (n !== base) location.reload(); } catch (e) { /* يحاول بالدورة القادمة */ }
+    busy = false;
+  };
+  check(); setInterval(check, 60000); document.addEventListener("visibilitychange", check);
+}
 
 const W = D.W, H = D.H;
-const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const EN = new URLSearchParams(location.search).get("lang") === "en";
+const tr = (a, e) => (EN ? e : a);
+const P = tr("٪", "%");
+const SEP = tr("، ", ", ");
+if (EN) {
+  const ap = document.getElementById("app"); ap.dir = "ltr"; ap.lang = "en"; document.documentElement.lang = "en"; document.title = "Alborada Block Map";
+  document.getElementById("q").style.textAlign = "left";
+  document.querySelectorAll("[data-en]").forEach((e) => { e.textContent = e.dataset.en; });
+  document.querySelectorAll("[data-en-html]").forEach((e) => { e.innerHTML = e.dataset.enHtml; });
+  document.querySelectorAll("[data-en-ph]").forEach((e) => e.setAttribute("placeholder", e.dataset.enPh));
+  document.querySelectorAll("[data-en-aria]").forEach((e) => e.setAttribute("aria-label", e.dataset.enAria));
+  document.querySelectorAll("[data-en-title]").forEach((e) => e.setAttribute("title", e.dataset.enTitle));
+}
+const MONTHS = tr(["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"], ["January","February","March","April","May","June","July","August","September","October","November","December"]);
 const mName = (k) => MONTHS[+k.slice(5, 7) - 1] + " " + k.slice(0, 4);
 const mOnly = (k) => MONTHS[+k.slice(5, 7) - 1];
 const LAST = D.months.length - 1;
 const PREV = (() => { for (let i = LAST - 1; i >= 0; i--) if (D.total[i] != null) return i; return -1; })();
-const PH = { 1: "المرحلة الأولى", 2: "المرحلة الثانية", 3: "المرحلة الثالثة", 4: "المرحلة الرابعة" };
+const PH = { 1: tr("المرحلة الأولى", "Phase 1"), 2: tr("المرحلة الثانية", "Phase 2"), 3: tr("المرحلة الثالثة", "Phase 3"), 4: tr("المرحلة الرابعة", "Phase 4") };
 const MOD = {
-  a: { n: "آمانيثير", t: "تاون هاوس", nsa: "259.77", plot: "200" },
-  l: { n: "ألبا", t: "فيلا شبه متصلة", nsa: "275.71", plot: "250" },
-  r: { n: "أورورا", t: "فيلا مستقلة", nsa: "290.85", plot: "250–349.55" },
-  d: { n: "البادا", t: "فيلا مستقلة", nsa: "323.72", plot: "330–440.42" },
+  a: { n: tr("آمانيثير", "Amanecer"), t: tr("تاون هاوس", "Townhouse"), nsa: "259.77", plot: "200" },
+  l: { n: tr("ألبا", "Alba"), t: tr("فيلا شبه متصلة", "Semi-detached villa"), nsa: "275.71", plot: "250" },
+  r: { n: tr("أورورا", "Aurora"), t: tr("فيلا مستقلة", "Detached villa"), nsa: "290.85", plot: "250–349.55" },
+  d: { n: tr("البادا", "Albada"), t: tr("فيلا مستقلة", "Detached villa"), nsa: "323.72", plot: "330–440.42" },
 };
 const MOD_ORDER = ["r", "l", "a", "d"];
 const BY = {}; D.blocks.forEach((b) => (BY[b.b] = b));
@@ -383,8 +407,9 @@ const app = document.getElementById("app"), wrap = document.getElementById("wrap
 const panel = document.getElementById("panel"), legend = document.getElementById("legend");
 document.getElementById("lastm").textContent = mName(D.months[LAST]);
 const gapKeys = Object.keys(D.gap || {});
-document.getElementById("gapnote").textContent = gapKeys.map((k) => `${mName(k)}: ${D.gap[k]}.`).join(" ");
-if (!LIVE) document.getElementById("gapnote").textContent += " تعذّر تحديث البيانات الآن، المعروض آخر نسخة محفوظة.";
+const gapTxt = (k) => (EN ? (/سحب/.test(D.gap[k]) ? "The developer did not issue a progress report for this month (withdrawn)" : "No progress report for this month") : D.gap[k]);
+document.getElementById("gapnote").textContent = gapKeys.map((k) => `${mName(k)}: ${gapTxt(k)}.`).join(" ");
+if (!LIVE) document.getElementById("gapnote").textContent += tr(" تعذّر تحديث البيانات الآن، المعروض آخر نسخة محفوظة.", " Could not refresh the data now; showing the last saved copy.");
 
 /* ---------- colour helpers (OKLab mix of the progress ramp tokens) ---------- */
 const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -440,7 +465,7 @@ D.blocks.forEach((b) => {
 });
 D.blocks.forEach((b) => {
   const lv = lastV(b);
-  const html = `<div class="pin${b.v ? "" : " nod"}" data-b="${b.b}"><span class="pn">${b.b}</span><span class="pv">${lv != null ? Math.round(lv) + "٪" : "—"}</span>${stalled(b) ? '<span class="stl"></span>' : ""}</div>`;
+  const html = `<div class="pin${b.v ? "" : " nod"}" data-b="${b.b}"><span class="pn">${b.b}</span><span class="pv">${lv != null ? Math.round(lv) + P : "—"}</span>${stalled(b) ? '<span class="stl"></span>' : ""}</div>`;
   const m = L.marker(LL(b.c[0], b.c[1]), { icon: L.divIcon({ className: "pinw", html, iconSize: null }), keyboard: true, riseOnHover: true, bubblingMouseEvents: false });
   m.on("click", () => selectBlock(b.b, {}));
   /* icons only exist once the map has a view, so decorate them on "add" */
@@ -448,7 +473,7 @@ D.blocks.forEach((b) => {
     const el = m.getElement(); if (!el) return;
     el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectBlock(b.b, {}); } });
     el.setAttribute("role", "button");
-    el.setAttribute("aria-label", `بلوك ${b.b}، الفلل من ${b.a} إلى ${b.z}` + (lv != null ? `، الإنجاز ${f2(lv)}٪` : ""));
+    el.setAttribute("aria-label", tr(`بلوك ${b.b}، الفلل من ${b.a} إلى ${b.z}`, `Block ${b.b}, villas ${b.a} to ${b.z}`) + (lv != null ? tr(`، الإنجاز ${f2(lv)}${P}`, `, progress ${f2(lv)}%`) : ""));
   });
   m.addTo(map); pins[b.b] = m;
 });
@@ -475,7 +500,7 @@ function onZoom() {
   const zv = z >= Z_VILLA;
   if (zv !== wrap.classList.contains("zv")) {
     wrap.classList.toggle("zv", zv);
-    if (zv) toast("اضغط على أي فيلا لعرض تفاصيلها");
+    if (zv) toast(tr("اضغط على أي فيلا لعرض تفاصيلها", "Tap any villa for its details"));
     renderLegend();
   }
   if (z > FIT + 0.6) loadHi();
@@ -531,7 +556,7 @@ function applySel() {
   if (S.sel && S.sel.t === "v") {
     const v = D.villas[S.sel.n - 1];
     ring.setLatLng(LL(v[0], v[1])); if (!map.hasLayer(ring)) ring.addTo(map);
-    const lb = ring.getElement() && ring.getElement().querySelector("b"); if (lb) lb.textContent = "فيلا " + S.sel.n;
+    const lb = ring.getElement() && ring.getElement().querySelector("b"); if (lb) lb.textContent = tr("فيلا ", "Villa ") + S.sel.n;
   } else if (map.hasLayer(ring)) map.removeLayer(ring);
 }
 function setHash(h) { try { history.replaceState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} }
@@ -582,7 +607,7 @@ document.getElementById("find").addEventListener("submit", (e) => {
   e.preventDefault();
   const raw = toLatin(q.value).replace(/[^0-9]/g, "");
   const n = raw ? parseInt(raw, 10) : NaN;
-  if (!(n >= 1 && n <= 596)) { qerr.textContent = "اكتب رقم فيلا من 1 إلى 596"; q.focus(); return; }
+  if (!(n >= 1 && n <= 596)) { qerr.textContent = tr("اكتب رقم فيلا من 1 إلى 596", "Enter a villa number from 1 to 596"); q.focus(); return; }
   qerr.textContent = ""; hideHint(); q.blur();
   selectVilla(n, { fly: true });
 });
@@ -598,7 +623,7 @@ function chart(main, ctx, mainLabel, ctxLabel) {
   const path = (arr) => seg(arr).map((s) => "M" + s.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L")).join(" ");
   let g = "";
   [0, 50, 100].forEach((v) => { g += `<line class="grid" x1="${pl}" x2="${w - pr}" y1="${ys(v)}" y2="${ys(v)}"/><text class="axis" x="${pl - 5}" y="${ys(v) + 3.5}" text-anchor="end">${v}</text>`; });
-  D.months.forEach((k, i) => { if (main[i] == null && D.gap[k]) g += `<text class="gapm" x="${xs(i)}" y="${ys(6)}" text-anchor="middle">لا تقرير</text>`; });
+  D.months.forEach((k, i) => { if (main[i] == null && D.gap[k]) g += `<text class="gapm" x="${xs(i)}" y="${ys(6)}" text-anchor="middle">${tr("لا تقرير", "No report")}</text>`; });
   g += `<text class="axl" x="${xs(0)}" y="${h - 4}" text-anchor="start">${mOnly(D.months[0])}</text><text class="axl" x="${xs(LAST)}" y="${h - 4}" text-anchor="end">${mOnly(D.months[LAST])}</text>`;
   if (ctx) g += `<path class="l-ctx" d="${path(ctx)}"/>`;
   g += `<path class="l-main" d="${path(main)}"/>`;
@@ -606,14 +631,14 @@ function chart(main, ctx, mainLabel, ctxLabel) {
   main.forEach((v, i) => { if (v != null) g += `<circle class="hit" data-i="${i}" cx="${xs(i)}" cy="${ys(v)}" r="13"/>`; });
   const lg = ctx ? `<div class="ctl"><span><i></i>${esc(mainLabel)}</span><span><i class="ctx"></i>${esc(ctxLabel)}</span></div>` : "";
   setTimeout(() => wireChart(id, main, ctx, mainLabel, ctxLabel, xs, ys, w, h), 0);
-  return `<div class="chart" id="${id}"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(mainLabel)} شهريًا من ${mName(D.months[0])} إلى ${mName(D.months[LAST])}">${g}</svg>${lg}</div>`;
+  return `<div class="chart" id="${id}"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(mainLabel)} ${tr("شهريًا من", "monthly from")} ${mName(D.months[0])} ${tr("إلى", "to")} ${mName(D.months[LAST])}">${g}</svg>${lg}</div>`;
 }
 function wireChart(id, main, ctx, ml, cl, xs, ys, w, h) {
   const box = document.getElementById(id); if (!box) return;
   const tip = document.createElement("div"); tip.className = "ctip"; tip.hidden = true; box.appendChild(tip);
   const show = (i) => {
     const svg = box.querySelector("svg"), k = svg.clientWidth / w;
-    tip.innerHTML = `${mName(D.months[i])}: <span class="num">${f2(main[i])}٪</span>` + (ctx && ctx[i] != null ? ` · ${esc(cl)} <span class="num">${f2(ctx[i])}٪</span>` : "");
+    tip.innerHTML = `${mName(D.months[i])}: <span class="num">${f2(main[i])}${P}</span>` + (ctx && ctx[i] != null ? ` · ${esc(cl)} <span class="num">${f2(ctx[i])}${P}</span>` : "");
     tip.style.left = xs(i) * k + "px"; tip.style.top = ys(main[i]) * k + "px"; tip.hidden = false;
   };
   box.querySelectorAll(".hit").forEach((c) => {
@@ -633,18 +658,18 @@ function modsLine(m) {
 function deltaLine(b) {
   const d = deltaV(b); if (d == null) return "";
   const pm = mOnly(D.months[PREV]);
-  if (Math.abs(d) <= 0.05) return `<div class="delta">بدون تغيير عن ${pm}</div>`;
-  return `<div class="delta"><b>${d > 0 ? "+" : ""}${f2(d)}</b> نقطة عن ${pm}</div>`;
+  if (Math.abs(d) <= 0.05) return `<div class="delta">${tr("بدون تغيير عن", "No change from")} ${pm}</div>`;
+  return `<div class="delta"><b>${d > 0 ? "+" : ""}${f2(d)}</b> ${tr("نقطة عن", "pts vs")} ${pm}</div>`;
 }
 function progBox(b, villaMode) {
   const v = lastV(b), pv = D.phases[b.ph] ? D.phases[b.ph][LAST] : null;
-  const st = stalled(b) ? `<span class="chip warn">بدون تقدم عن ${mOnly(D.months[PREV])}</span>` : "";
+  const st = stalled(b) ? `<span class="chip warn">${tr("بدون تقدم عن", "No progress since")} ${mOnly(D.months[PREV])}</span>` : "";
   return `<div class="prog">
-    <div class="row"><div><div class="kick">${villaMode ? "إنجاز البلوك " + b.b : "نسبة الإنجاز"}</div><div class="big">${f2(v)}<i>٪</i></div></div><div style="text-align:end"><div class="when">${mName(D.months[LAST])}</div>${deltaLine(b)}</div></div>
+    <div class="row"><div><div class="kick">${villaMode ? (EN ? `Block ${b.b} progress` : "إنجاز البلوك " + b.b) : tr("نسبة الإنجاز", "Progress")}</div><div class="big">${f2(v)}<i>٪</i></div></div><div style="text-align:end"><div class="when">${mName(D.months[LAST])}</div>${deltaLine(b)}</div></div>
     ${st}
-    <div class="meter" aria-hidden="true"><span style="width:${v}%"></span>${pv != null ? `<i class="tick" style="left:${pv}%"><em>${PH[b.ph]} ${f2(pv)}٪</em></i>` : ""}</div>
-    ${chart(b.v, D.phases[b.ph], "البلوك " + b.b, PH[b.ph])}
-    <p class="note">ترتيبه ${N(rankOf(b))} من ${N(tracked.length)} بلوكًا في تقارير المطوّر.</p>
+    <div class="meter" aria-hidden="true"><span style="width:${v}%"></span>${pv != null ? `<i class="tick" style="left:${pv}%"><em>${PH[b.ph]} ${f2(pv)}${P}</em></i>` : ""}</div>
+    ${chart(b.v, D.phases[b.ph], tr("البلوك ", "Block ") + b.b, PH[b.ph])}
+    <p class="note">${EN ? `Ranked ${N(rankOf(b))} of ${N(tracked.length)} blocks in the developer reports.` : `ترتيبه ${N(rankOf(b))} من ${N(tracked.length)} بلوكًا في تقارير المطوّر.`}</p>
   </div>`;
 }
 function renderPanel() {
@@ -653,28 +678,28 @@ function renderPanel() {
   if (sel.t === "b") {
     const b = BY[sel.n];
     panel.innerHTML = `
-      <div class="ph"><div><div class="kick">بلوك</div><h2 class="ttl">${b.b}<small>الفلل ${N(b.a)} – ${N(b.z)}</small></h2></div>
-        ${b.ph ? `<span class="chip">${swP(b.ph)}${PH[b.ph]}</span>` : `<span class="chip">غير مدرج بالتقارير</span>`}</div>
+      <div class="ph"><div><div class="kick">${tr("بلوك", "Block")}</div><h2 class="ttl">${b.b}<small>${tr("الفلل", "Villas")} ${N(b.a)} – ${N(b.z)}</small></h2></div>
+        ${b.ph ? `<span class="chip">${swP(b.ph)}${PH[b.ph]}</span>` : `<span class="chip">${tr("غير مدرج بالتقارير", "Not in the reports")}</span>`}</div>
       <dl class="facts">
-        <div><dt>عدد الفلل</dt><dd>${N(b.z - b.a + 1)} فيلا</dd></div>
-        <div><dt>النماذج</dt><dd>${modsLine(b.m)}</dd></div>
+        <div><dt>${tr("عدد الفلل", "Villas")}</dt><dd>${N(b.z - b.a + 1)} ${tr("فيلا", "villas")}</dd></div>
+        <div><dt>${tr("النماذج", "Models")}</dt><dd>${modsLine(b.m)}</dd></div>
       </dl>
-      ${b.v ? progBox(b, false) : `<p class="note box">ما فيه نسبة إنجاز لهذا البلوك في تقارير التقدّم الشهرية من المطوّر (آخرها ${mName(D.months[LAST])}).</p>`}
-      <div class="acts"><button class="btn pri" data-act="zoomb">قرّب على فلل البلوك</button><button class="btn" data-act="home">رجوع للملخص</button></div>`;
+      ${b.v ? progBox(b, false) : `<p class="note box">${tr("ما فيه نسبة إنجاز لهذا البلوك في تقارير التقدّم الشهرية من المطوّر (آخرها", "No progress figure for this block in the developer's monthly reports (latest:")} ${mName(D.months[LAST])}${tr(").", ").")}</p>`}
+      <div class="acts"><button class="btn pri" data-act="zoomb">${tr("قرّب على فلل البلوك", "Zoom to block villas")}</button><button class="btn" data-act="home">${tr("رجوع للملخص", "Back to summary")}</button></div>`;
   } else {
     const n = sel.n, v = D.villas[n - 1], md = MOD[v[2]], b = blockOf(n);
     panel.innerHTML = `
-      <div class="ph"><div><div class="kick">فيلا</div><h2 class="ttl">${n}</h2></div><span class="chip">${swM(v[2])}${md.n}</span></div>
+      <div class="ph"><div><div class="kick">${tr("فيلا", "Villa")}</div><h2 class="ttl">${n}</h2></div><span class="chip">${swM(v[2])}${md.n}</span></div>
       <dl class="facts">
-        <div><dt>النموذج</dt><dd>${md.n} · ${md.t}</dd></div>
-        <div><dt>مساحة البيع</dt><dd>${N(md.nsa)} م²</dd></div>
-        <div><dt>مساحة الأرض</dt><dd>${N(md.plot)} م²</dd></div>
-        <div><dt>البلوك</dt><dd><button class="lnk" data-act="blk">بلوك ${b.b}</button> · الفلل ${N(b.a)} – ${N(b.z)}${b.ph ? " · " + PH[b.ph] : ""}</dd></div>
+        <div><dt>${tr("النموذج", "Model")}</dt><dd>${md.n} · ${md.t}</dd></div>
+        <div><dt>${tr("مساحة البيع", "Sellable area")}</dt><dd>${N(md.nsa)} ${tr("م²", "sqm")}</dd></div>
+        <div><dt>${tr("مساحة الأرض", "Plot area")}</dt><dd>${N(md.plot)} ${tr("م²", "sqm")}</dd></div>
+        <div><dt>${tr("البلوك", "Block")}</dt><dd><button class="lnk" data-act="blk">${tr("بلوك", "Block")} ${b.b}</button> · ${tr("الفلل", "Villas")} ${N(b.a)} – ${N(b.z)}${b.ph ? " · " + PH[b.ph] : ""}</dd></div>
       </dl>
-      ${b.v ? progBox(b, true) : `<p class="note box">بلوك ${b.b} غير مدرج في تقارير التقدّم الشهرية من المطوّر، فما فيه نسبة إنجاز له.</p>`}
-      ${v[3] ? `<p class="note">رقم هذه الفيلا مغطّى بطيّة البروشور، فموقعها محدد من ترتيب الفلل اللي حولها.</p>` : ""}
-      <p class="note">النموذج حسب لون الفيلا في المخطط، والمساحات من المرجع الفني للنماذج.</p>
-      <div class="acts"><button class="btn" data-act="blk">عرض البلوك</button><button class="btn" data-act="home">رجوع للملخص</button></div>`;
+      ${b.v ? progBox(b, true) : `<p class="note box">${EN ? `Block ${b.b} is not in the developer's monthly progress reports, so it has no progress figure.` : `بلوك ${b.b} غير مدرج في تقارير التقدّم الشهرية من المطوّر، فما فيه نسبة إنجاز له.`}</p>`}
+      ${v[3] ? `<p class="note">${tr("رقم هذه الفيلا مغطّى بطيّة البروشور، فموقعها محدد من ترتيب الفلل اللي حولها.", "This villa's number is hidden by the brochure fold, so its position is inferred from the surrounding villas.")}</p>` : ""}
+      <p class="note">${tr("النموذج حسب لون الفيلا في المخطط، والمساحات من المرجع الفني للنماذج.", "The model follows the villa colour on the plan; areas are from the technical reference for the models.")}</p>
+      <div class="acts"><button class="btn" data-act="blk">${tr("عرض البلوك", "View block")}</button><button class="btn" data-act="home">${tr("رجوع للملخص", "Back to summary")}</button></div>`;
   }
 }
 function renderSummary() {
@@ -683,16 +708,16 @@ function renderSummary() {
   const untr = D.blocks.filter((b) => !b.v).map((b) => b.b);
   const mt = {}; D.villas.forEach((v) => (mt[v[2]] = (mt[v[2]] || 0) + 1));
   panel.innerHTML = `
-    <div class="ph"><div><div class="kick">إجمالي إنجاز المشروع</div><div class="big" style="font-size:34px;margin-top:4px">${f2(tl)}<i>٪</i></div></div>
-      <div style="text-align:end"><div class="when">${mName(D.months[LAST])}</div>${tp != null ? `<div class="delta"><b>+${f2(tl - tp)}</b> نقطة عن ${mOnly(D.months[PREV])}</div>` : ""}</div></div>
-    ${chart(D.total, null, "إجمالي المشروع", "")}
-    <div><p class="sec-h">المراحل · اضغط لإبراز بلوكاتها</p><ul class="phl">
-      ${[1, 2, 3, 4].map((p) => `<li><button type="button" data-pf="${p}" aria-pressed="${S.pf === p}">${swP(p)}<span class="nm">${PH[p]}</span><span class="v">${f2(D.phases[p][LAST])}٪</span><span class="bl">بلوكات ${D.blocks.filter((b) => b.ph === p).map((b) => b.b).join("، ")}</span></button></li>`).join("")}
+    <div class="ph"><div><div class="kick">${tr("إجمالي إنجاز المشروع", "Overall project progress")}</div><div class="big" style="font-size:34px;margin-top:4px">${f2(tl)}<i>٪</i></div></div>
+      <div style="text-align:end"><div class="when">${mName(D.months[LAST])}</div>${tp != null ? `<div class="delta"><b>+${f2(tl - tp)}</b> ${tr("نقطة عن", "pts vs")} ${mOnly(D.months[PREV])}</div>` : ""}</div></div>
+    ${chart(D.total, null, tr("إجمالي المشروع", "Project total"), "")}
+    <div><p class="sec-h">${tr("المراحل · اضغط لإبراز بلوكاتها", "Phases · tap to highlight their blocks")}</p><ul class="phl">
+      ${[1, 2, 3, 4].map((p) => `<li><button type="button" data-pf="${p}" aria-pressed="${S.pf === p}">${swP(p)}<span class="nm">${PH[p]}</span><span class="v">${f2(D.phases[p][LAST])}${P}</span><span class="bl">${tr("بلوكات", "Blocks")} ${D.blocks.filter((b) => b.ph === p).map((b) => b.b).join(SEP)}</span></button></li>`).join("")}
     </ul></div>
-    ${st.length ? `<div><p class="sec-h">بدون تقدم عن ${mOnly(D.months[PREV])}</p><div class="chips">${st.map((b) => `<button type="button" data-b="${b.b}">بلوك ${b.b} · ${f2(lastV(b))}٪</button>`).join("")}</div></div>` : ""}
-    <p class="note box">${N(untr.length)} بلوكات ما لها نسبة في تقارير المطوّر: ${untr.join("، ")}.</p>
-    <div><p class="sec-h">النماذج في المشروع (حسب ألوان المخطط)</p>${modsLine(mt)}</div>
-    <p class="note">اضغط على أي بلوك في الخريطة، أو اكتب رقم فيلتك فوق.</p>`;
+    ${st.length ? `<div><p class="sec-h">${tr("بدون تقدم عن", "No progress since")} ${mOnly(D.months[PREV])}</p><div class="chips">${st.map((b) => `<button type="button" data-b="${b.b}">${tr("بلوك", "Block")} ${b.b} · ${f2(lastV(b))}${P}</button>`).join("")}</div></div>` : ""}
+    <p class="note box">${EN ? `${N(untr.length)} blocks have no figure in the developer reports: ${untr.join(SEP)}.` : `${N(untr.length)} بلوكات ما لها نسبة في تقارير المطوّر: ${untr.join(SEP)}.`}</p>
+    <div><p class="sec-h">${tr("النماذج في المشروع (حسب ألوان المخطط)", "Models in the project (by plan colours)")}</p>${modsLine(mt)}</div>
+    <p class="note">${tr("اضغط على أي بلوك في الخريطة، أو اكتب رقم فيلتك فوق.", "Tap any block on the map, or type your villa number above.")}</p>`;
 }
 panel.addEventListener("click", (e) => {
   const t = e.target.closest("[data-act],[data-pf],[data-b]"); if (!t) return;
@@ -710,22 +735,22 @@ function renderLegend() {
   const modelsLg = MOD_ORDER.map((k) => `<span class="li">${swM(k)}${MOD[k].n}</span>`).join("");
   let h = "";
   if (S.mode === "prog" && !zv) {
-    h = `<span class="li"><span class="grad"><span class="bar"></span><span class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100٪</span></span></span></span>
-      <span class="li"><i class="sw dash"></i>بدون نسبة في التقارير</span>
-      <span class="li"><i class="lgstl"></i>بدون تقدم عن ${mOnly(D.months[PREV])}</span>`;
+    h = `<span class="li"><span class="grad"><span class="bar"></span><span class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100${P}</span></span></span></span>
+      <span class="li"><i class="sw dash"></i>${tr("بدون نسبة في التقارير", "No figure in the reports")}</span>
+      <span class="li"><i class="lgstl"></i>${tr("بدون تقدم عن", "No progress since")} ${mOnly(D.months[PREV])}</span>`;
   } else if (S.mode === "phase" && !zv) {
-    h = [1, 2, 3, 4].map((p) => `<span class="li">${swP(p)}${PH[p]}</span>`).join("") + `<span class="li"><i class="sw dash"></i>غير مدرج بالتقارير</span>`;
+    h = [1, 2, 3, 4].map((p) => `<span class="li">${swP(p)}${PH[p]}</span>`).join("") + `<span class="li"><i class="sw dash"></i>${tr("غير مدرج بالتقارير", "Not in the reports")}</span>`;
   } else {
-    h = `<span class="li" style="color:var(--ink);font-weight:600">لون الفيلا في المخطط = النموذج:</span>` + modelsLg;
+    h = `<span class="li" style="color:var(--ink);font-weight:600">${tr("لون الفيلا في المخطط = النموذج:", "Villa colour on the plan = model:")}</span>` + modelsLg;
   }
-  h += `<span class="tip">${zv ? "اضغط على أي فيلا لعرض نموذجها ومساحتها." : "قرّب على المخطط بإصبعين أو بالعجلة لرؤية أرقام الفلل."}</span>`;
+  h += `<span class="tip">${zv ? tr("اضغط على أي فيلا لعرض نموذجها ومساحتها.", "Tap any villa for its model and area.") : tr("قرّب على المخطط بإصبعين أو بالعجلة لرؤية أرقام الفلل.", "Pinch or scroll to zoom in and see villa numbers.")}</span>`;
   legend.innerHTML = h;
 }
 
 /* ---------- table ---------- */
 document.getElementById("tbody").innerHTML = D.blocks.map((b) => {
   const v = lastV(b), d = deltaV(b);
-  return `<tr data-b="${b.b}" tabindex="0"><td><b>بلوك ${b.b}</b></td><td class="n">${b.a} – ${b.z}</td><td class="n">${b.z - b.a + 1}</td><td>${b.ph ? PH[b.ph] : "—"}</td><td class="n">${v != null ? f2(v) + "٪" : "—"}</td><td class="n">${d != null ? (d > 0 ? "+" : "") + f2(d) : "—"}</td></tr>`;
+  return `<tr data-b="${b.b}" tabindex="0"><td><b>${tr("بلوك", "Block")} ${b.b}</b></td><td class="n">${b.a} – ${b.z}</td><td class="n">${b.z - b.a + 1}</td><td>${b.ph ? PH[b.ph] : "—"}</td><td class="n">${v != null ? f2(v) + P : "—"}</td><td class="n">${d != null ? (d > 0 ? "+" : "") + f2(d) : "—"}</td></tr>`;
 }).join("");
 const tb = document.getElementById("tbody");
 const pickRow = (tr) => { selectBlock(+tr.dataset.b, { fly: true, quiet: true }); wrap.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" }); };
