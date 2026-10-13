@@ -1055,7 +1055,7 @@ export function PublicSite({ share = null } = {}) {
 .doc-disclaimer{display:flex;gap:9px;align-items:flex-start;background:${T.brass}0F;border:1px solid ${T.brass}33;
   border-radius:13px;padding:11px 13px;margin-bottom:16px;font-size:12px;color:${T.muted};line-height:1.8;}
 .doc-disclaimer svg{flex-shrink:0;margin-top:1px;color:${T.brass};}
-.doc-list{display:grid;grid-template-columns:1fr;gap:11px;}
+.doc-list{display:grid;grid-template-columns:1fr;gap:14px;}
 .doc-card{display:flex;align-items:center;gap:13px;width:100%;text-align:start;background:${T.surface};
   border:1px solid ${T.line};border-inline-start:4px solid ${T.brass};border-radius:16px;padding:11px 13px;
   box-shadow:${T.shadow};font-family:inherit;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
@@ -1574,7 +1574,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   const docVids = videos[doc.id] || [];
                   const has3d = ["amanecer", "alba", "aurora", "albada"].includes(doc.id);
                   return (
-                    <Fragment key={doc.id}>
+                    <div key={doc.id} className="doc-group" style={{ display: "grid", gap: 8, paddingBottom: 14, borderBottom: docsList[docsList.length - 1] === doc ? "none" : `1px solid ${T.line}` }}>
                     <button
                       className="doc-card"
                       data-ek={`doc-${String(doc.id).toLowerCase().replace(/[^a-z0-9_-]/g, "")}`}
@@ -1611,7 +1611,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                       <span className="doc-go"><Go size={17} /></span>
                     </button>
                     {has3d && (
-                      <button className="doc-card" data-ek={`doc3d-${doc.id}`} style={{ borderInlineStartColor: accent, marginTop: -4, padding: "10px 14px", minHeight: 0, alignItems: "center", gap: 10 }}
+                      <button className="doc-card" data-ek={`doc3d-${doc.id}`} style={{ borderInlineStartColor: accent, padding: "10px 14px", minHeight: 0, alignItems: "center", gap: 10 }}
                         onClick={() => { logEvent("nav", "model3d_open", doc.id, null); setModel3d({ id: doc.id, nameAr: doc.nameAr, nameEn: doc.nameEn }); }}>
                         <span className="doc-thumb" style={{ borderColor: accent + "55", width: 38, height: 38, display: "grid", placeItems: "center", color: accent }}><Box size={20} /></span>
                         <span className="doc-info">
@@ -1621,7 +1621,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                         <span className="doc-go"><Go size={17} /></span>
                       </button>
                     )}
-                    </Fragment>
+                    </div>
                   );
                 })}
               </div>
