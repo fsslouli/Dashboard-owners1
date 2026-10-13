@@ -378,7 +378,7 @@ function opening(g, lvl, base, W, alongX, o) {
     const leaf = (h, d) => B(h, h + d * th, face, face + sw * lw, y0 + 0.01, y1 - 0.02, m);
     if (k === "edoor" && lvl >= 0) {
       const keep = g; g = keep + "_o"; leaf(a + 1, 1); g = keep + "_c"; B(a + 1, b - 1, tm - 2, tm + 2, y0 + 0.01, y1 - 0.02, m); g = keep;
-    } else { leaf(a + 1, 1); if (k === "door2") leaf(b - 1, -1); }
+    } else if (k === "mdoor") { leaf(a + 1, 1); } /* interior door leaves are left out: an open leaf stands in the walkway, the doorway stays clear */
   } else if (k === "gdoor") {
     B(a, b, tm - 2.5, tm + 2.5, y0, y1, "metal");
     const [x0, x1, yy0, yy1] = alongX ? [a, b, Y1, Y2] : [X1, X2, a, b]; if (lvl >= 0) block(lvl, x0, yy0, x1, yy1);
