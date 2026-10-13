@@ -335,7 +335,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
      عشان ما نضغط على خدمة الترجمة المجانية دفعة وحدة */
   /* ترجمة دفعة واحدة بعد اعتماد المزامنة — بدل صف صف بفاصل ٣٠٠ملي.
      الدالة import-assist تترجم حتى ١٢٠ بندًا بطلب واحد، وترجع تلقائيًا
-     للمترجم المجاني لو مفتاح الذكاء الاصطناعي مو مضبوط. */
+     للمترجم المجاني لو مفتاح الترجمة المتقدمة مو مضبوط. */
   const backgroundTranslate = async (ids) => {
     if (!ids || !ids.length) return;
     try {
@@ -570,7 +570,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
                   </label>
                   {on && (<>
                     <ASegmented value={mapping[name]?.target} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], target: v } }))} options={ADMIN_TARGETS.map((t) => ({ value: t.key, label: t.label }))} />
-                    {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "append", label: "➕ إلحاق ذكي" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
+                    {mapping[name]?.target !== "ignore" && <div style={{ marginTop: 8 }}><ASegmented value={mapping[name]?.mode} onChange={(v) => setMapping((m) => ({ ...m, [name]: { ...m[name], mode: v } }))} options={[{ value: "merge", label: "مقارنة وتحديث" }, { value: "append", label: "➕ إلحاق" }, { value: "replace", label: "⚠️ استبدال كامل" }]} /></div>}
                     {mapping[name]?.mode === "append" && mapping[name]?.target === "inquiries" && (
                       <div style={{ marginTop: 8 }}>
                         <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>تسمية الفلتر (يظهر بالموقع العام — تقدر تعدله)</label>
