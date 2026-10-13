@@ -1574,7 +1574,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   const docVids = videos[doc.id] || [];
                   const has3d = ["amanecer", "alba", "aurora", "albada"].includes(doc.id);
                   return (
-                    <div key={doc.id} className="doc-group" style={{ display: "grid", gap: 8, paddingBottom: 14, borderBottom: docsList[docsList.length - 1] === doc ? "none" : `1px solid ${T.line}` }}>
+                    <div key={doc.id} className="doc-group" style={{ display: "grid", gap: 8, padding: 10, borderRadius: 14, border: `1px solid ${T.line}`, background: T.sunken }}>
                     <button
                       className="doc-card"
                       data-ek={`doc-${String(doc.id).toLowerCase().replace(/[^a-z0-9_-]/g, "")}`}
