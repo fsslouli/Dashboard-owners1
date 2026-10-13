@@ -7,7 +7,7 @@ import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } 
 import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
 import { AttachmentViewer, toView, useAttachments } from "./attach-kit.jsx";
@@ -20,7 +20,7 @@ import { startTextOverrides } from "./text-overrides.js";
 import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf } from "./site-custom.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, Box, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* تبويبات الموقع العام — بيانات ثابتة؛ ترتيبها يتبع nav_labels._order (وضع التحرير) وإلا الترتيب الأصلي */
 const PUBLIC_TAB_KEYS = ["overview", "notes", "progress", "docs", "gallery"];
@@ -227,6 +227,7 @@ export function PublicSite({ share = null } = {}) {
   const [docView, setDocView] = useState(null);
   const [docLink, setDocLink] = useState(null);
   const [docLinkIdx, setDocLinkIdx] = useState(0);
+  const [model3d, setModel3d] = useState(null); // {id, nameAr, nameEn} — المجسم ثلاثي الأبعاد (صفحة ثابتة /3d/<id>.html)
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
 
@@ -1571,9 +1572,10 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   const accent = doc.color ? DOC_COLORS[resolved][doc.color] : T.brass;
                   const Go = lang === "en" ? ChevronRight : ChevronLeft;
                   const docVids = videos[doc.id] || [];
+                  const has3d = ["amanecer", "alba", "aurora", "albada"].includes(doc.id);
                   return (
+                    <Fragment key={doc.id}>
                     <button
-                      key={doc.id}
                       className="doc-card"
                       data-ek={`doc-${String(doc.id).toLowerCase().replace(/[^a-z0-9_-]/g, "")}`}
                       style={{ borderInlineStartColor: accent }}
@@ -1608,6 +1610,18 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                       </span>
                       <span className="doc-go"><Go size={17} /></span>
                     </button>
+                    {has3d && (
+                      <button className="doc-card" data-ek={`doc3d-${doc.id}`} style={{ borderInlineStartColor: accent, marginTop: -4, padding: "10px 14px", minHeight: 0, alignItems: "center", gap: 10 }}
+                        onClick={() => { logEvent("nav", "model3d_open", doc.id, null); setModel3d({ id: doc.id, nameAr: doc.nameAr, nameEn: doc.nameEn }); }}>
+                        <span className="doc-thumb" style={{ borderColor: accent + "55", width: 38, height: 38, display: "grid", placeItems: "center", color: accent }}><Box size={20} /></span>
+                        <span className="doc-info">
+                          <span className="doc-name" style={{ fontSize: 14 }}>{L("مجسم ثلاثي الأبعاد", "3D model")} — {L(doc.nameAr, doc.nameEn)}</span>
+                          <span className="doc-sub">{L("تجوّل داخل الفيلا وبين الأدوار", "Walk through the villa and its floors")}</span>
+                        </span>
+                        <span className="doc-go"><Go size={17} /></span>
+                      </button>
+                    )}
+                    </Fragment>
                   );
                 })}
               </div>
@@ -1663,6 +1677,16 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
+        {model3d && (
+          <div role="dialog" aria-modal="true" aria-label={L(`مجسم ${model3d.nameAr} ثلاثي الأبعاد`, `${model3d.nameEn || model3d.nameAr} 3D model`)}
+            style={{ position: "fixed", inset: 0, zIndex: 400, background: T.bg || "#000", display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.line || "rgba(128,128,128,.25)"}`, color: T.paper || "inherit" }}>
+              <b style={{ fontSize: 14 }}>{L("مجسم ثلاثي الأبعاد", "3D model")} — {L(model3d.nameAr, model3d.nameEn)}</b>
+              <button onClick={() => setModel3d(null)} aria-label={L("إغلاق", "Close")} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 6 }}><X size={20} /></button>
+            </div>
+            <iframe title="3D" src={`/3d/${model3d.id}.html?theme=${resolved}`} allow="fullscreen" style={{ flex: 1, width: "100%", border: 0 }} />
+          </div>
+        )}
         {docLink && <AttachmentViewer list={docLink} index={docLinkIdx} onIndex={setDocLinkIdx} onClose={() => setDocLink(null)} lang={lang} />}
         <DocViewerSheet doc={docView} videos={docView ? videos[docView.id] || [] : []} onClose={() => setDocView(null)} />
 
