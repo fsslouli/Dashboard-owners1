@@ -370,25 +370,7 @@ function opening(g, lvl, base, W, alongX, o) {
       B(a, b, of, s1, y1, y1 + th / 100, "frame"); B(a, b, of, s1, y0 - th / 100, y0, "frame");
     }
   } else if (k === "door" || k === "door2" || k === "edoor" || k === "mdoor") {
-    const m = k === "edoor" ? "doorE" : k === "mdoor" ? "metal" : "doorL", sw = o.sw, th = 4;
-    const lw = (k === "door2" ? (b - a) / 2 : b - a) - 3, face = sw > 0 ? t1 : t0;
-    const leaf = (h, d) => B(h, h + d * th, face, face + sw * lw, y0 + 0.01, y1 - 0.02, m);
-    if (k === "edoor" && lvl >= 0) {
-      const keep = g; g = keep + "_o"; leaf(a + 1, 1); g = keep + "_c"; B(a + 1, b - 1, tm - 2, tm + 2, y0 + 0.01, y1 - 0.02, m); g = keep;
-    } else if (k === "mdoor") { leaf(a + 1, 1);
-    } else {
-      /* interior leaves that would stand in a corridor are omitted (decided once the room list exists) */
-      const gg = g, drawLeaf = () => {
-        const f2 = sw > 0 ? t1 : t0;
-        const cx = alongX ? (a + b) / 2 : tm, cy = alongX ? tm : (a + b) / 2;
-        const hit = (r) => cx > r[0] - 35 && cx < r[2] + 35 && cy > r[1] - 35 && cy < r[3] + 35;
-        if ((MD.rooms || []).some((r) => r[0] === (lvl >= 0 ? lvl : LV.indexOf(base)) && r[1] === "الممر" && hit(r[2]))) return; /* doors that open onto a corridor are left without a leaf so the corridor stays clear */
-        const keep = g; g = gg;
-        const lf = (h, d) => B(h, h + d * th, f2, f2 + sw * lw, y0 + 0.01, y1 - 0.02, m);
-        lf(a + 1, 1); if (k === "door2") lf(b - 1, -1); g = keep;
-      };
-      deferredLeaves.push(drawLeaf);
-    }
+    /* door leaves are intentionally not drawn: the doorways stay open so nothing stands in the walkways */
   } else if (k === "gdoor") {
     B(a, b, tm - 2.5, tm + 2.5, y0, y1, "metal");
     const [x0, x1, yy0, yy1] = alongX ? [a, b, Y1, Y2] : [X1, X2, a, b]; if (lvl >= 0) block(lvl, x0, yy0, x1, yy1);
@@ -669,7 +651,6 @@ sun.position.set(MD.fvc[0] + 15, 26, MD.fvc[1] + 24); sun.target.position.set(MD
 sun.castShadow = true; sun.shadow.mapSize.set(coarse ? 1536 : 2048, coarse ? 1536 : 2048);
 Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 5, far: 90 }); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
 
-deferredLeaves.forEach((f) => f());
 const G = acc.build();
 const groupNames = ["S0", "S1", "S2", "S3", "W0", "W0_o", "W0_c", "W1", "W2", "C0", "C1", "C2", "F0", "F1", "F2", "FC0", "FC1", "FC2", "SITE", "FENCE", "STREET", "FIN", "POOL"];
 groupNames.forEach((n) => { if (!G[n]) G[n] = new THREE.Group(); scene.add(G[n]); });
