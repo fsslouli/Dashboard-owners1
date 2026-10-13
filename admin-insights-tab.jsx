@@ -86,6 +86,59 @@ function SectionVisits({ T, from, to }) {
   );
 }
 
+/* متابعة قسم «المخططات والمستندات» كاملاً: دخول القسم، فتح كل مستند، المجسمات، الخريطة التفاعلية وما يُستخدم داخلها */
+const DOC_NAMES = { master: "المخطط الرئيسي", amanecer: "آمانيثير", alba: "ألبا", aurora: "أورورا", albada: "البادا" };
+const MODE_NAMES = { ext: "خارجي", floors: "الأدوار", walk: "تجوّل" };
+const FLOOR_NAMES = { 0: "الأرضي", 1: "الأول", 2: "الثاني", 3: "السطح" };
+function DocsVisits({ T, from, to }) {
+  const [st, setSt] = useState(null);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const q = (b) => b.gte("at", from.toISOString()).lt("at", to.toISOString()).limit(10000);
+      const [t, n] = await Promise.all([
+        q(supabase.from("site_events").select("session_id").eq("type", "tab").eq("category", "docs")),
+        q(supabase.from("site_events").select("session_id,category,value").eq("type", "nav").in("category", ["doc_open", "model3d_open", "model3d_mode", "model3d_floor", "blockmap_open", "blockmap_block", "blockmap_villa"])),
+      ]);
+      if (!live) return;
+      const ev = n.data || [];
+      const uniq = (a) => new Set((a || []).map((x) => x.session_id)).size;
+      const of = (c) => ev.filter((x) => x.category === c);
+      const rank = (a, label) => { const m = {}; a.forEach((x) => { const k = label(x.value || ""); (m[k] ||= []).push(x); }); return Object.entries(m).map(([k, v]) => ({ k, n: v.length, u: uniq(v) })).sort((x, y) => y.n - x.n); };
+      setSt({
+        tab: (t.data || []).length, tabU: uniq(t.data),
+        docs: rank(of("doc_open"), (v) => DOC_NAMES[v] || v || "—"),
+        m3: of("model3d_open").length, m3U: uniq(of("model3d_open")),
+        m3by: rank(of("model3d_open"), (v) => DOC_NAMES[v] || v || "—"),
+        modes: rank(of("model3d_mode"), (v) => { const [m, k] = v.split(":"); return `${DOC_NAMES[m] || m} · ${MODE_NAMES[k] || k}`; }),
+        floors: rank(of("model3d_floor"), (v) => { const [m, k] = v.split(":"); return `${DOC_NAMES[m] || m} · ${FLOOR_NAMES[k] || "طابق " + k}`; }),
+        map: of("blockmap_open").length, mapU: uniq(of("blockmap_open")),
+        blocks: rank(of("blockmap_block"), (v) => "بلوك " + (v || "—")),
+        villaSearch: of("blockmap_villa").length,
+      });
+    })();
+    return () => { live = false; };
+  }, [from, to]);
+  if (!st) return null;
+  return (
+    <Panel T={T} title="متابعة المخططات والمستندات" note="عدد المرات · عدد الجلسات المختلفة، حسب المدة المختارة بالأعلى. لا يُسجَّل أي رقم فيلا يكتبه الزائر، فقط عدد مرات البحث.">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8 }}>
+        <Kpi T={T} label="دخول قسم المخططات" value={num(st.tab)} sub={`جلسات مختلفة: ${num(st.tabU)}`} />
+        <Kpi T={T} label="فتح المجسمات ثلاثية الأبعاد" value={num(st.m3)} sub={`جلسات مختلفة: ${num(st.m3U)}`} />
+        <Kpi T={T} label="فتح الخريطة التفاعلية" value={num(st.map)} sub={`جلسات مختلفة: ${num(st.mapU)} · بحث فيلا: ${num(st.villaSearch)}`} />
+      </div>
+      <div style={{ marginTop: 12, fontSize: 12, color: T.muted, marginBottom: 6 }}>فتح المستندات والمخططات</div>
+      <Ranked T={T} rows={st.docs} valueKey="n" sub="u" empty="ما انفتح مستند بعد" />
+      <div style={{ marginTop: 12, fontSize: 12, color: T.muted, marginBottom: 6 }}>المجسمات: أي نموذج انفتح</div>
+      <Ranked T={T} rows={st.m3by} valueKey="n" sub="u" empty="ما انفتح مجسم بعد" />
+      <div style={{ marginTop: 12, fontSize: 12, color: T.muted, marginBottom: 6 }}>داخل المجسم: أي وضع وأي طابق (يبدأ العدّاد من هذا التحديث)</div>
+      <Ranked T={T} rows={[...st.modes, ...st.floors]} valueKey="n" sub="u" empty="لا بيانات بعد" />
+      <div style={{ marginTop: 12, fontSize: 12, color: T.muted, marginBottom: 6 }}>داخل الخريطة: أكثر البلوكات ضغطاً</div>
+      <Ranked T={T} rows={st.blocks} valueKey="n" sub="u" empty="لا بيانات بعد" />
+    </Panel>
+  );
+}
+
 function Ranked({ T, rows, empty = "لا بيانات بعد", valueKey = "n", sub }) {
   const list = (rows || []).filter((r) => r && r.k != null);
   if (!list.length) return <div style={{ fontSize: 12.5, color: T.muted }}>{empty}</div>;
@@ -190,6 +243,7 @@ export function AInsightsTab({ flashToast, canExport, canPurge, log }) {
       {data && (
         <>
           <SectionVisits T={T} from={bounds[0]} to={bounds[1]} />
+          <DocsVisits T={T} from={bounds[0]} to={bounds[1]} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8 }}>
             <Kpi T={T} label="الجلسات (الزيارات)" value={num(t.sessions)} />
             <Kpi T={T} label="زوّار مختلفون" value={num(t.visitors)} sub={`عائدون: ${num(t.returning)}`} />

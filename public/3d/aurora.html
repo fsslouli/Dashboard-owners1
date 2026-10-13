@@ -742,8 +742,9 @@ function setFloor(f) {
   if (S.mode === "walk") spawn(f);
 }
 function setFloorChips() { document.querySelectorAll("#floors button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.f === S.floor ? "true" : "false")); }
-document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
-document.querySelectorAll("#floors button").forEach((b) => (b.onclick = () => setFloor(+b.dataset.f)));
+const ping = (k, v) => { try { if (parent !== window) parent.postMessage({ t: "site-ping", k, v: String(v) }, location.origin); } catch (e) {} };
+document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => { setMode(b.dataset.mode); ping("mode", b.dataset.mode); }));
+document.querySelectorAll("#floors button").forEach((b) => (b.onclick = () => { setFloor(+b.dataset.f); ping("floor", b.dataset.f); }));
 $("tNb").onclick = () => { S.nb = !S.nb; $("tNb").setAttribute("aria-pressed", S.nb); vis(); };
 $("tPool").onclick = () => { S.pool = !S.pool; $("tPool").setAttribute("aria-pressed", S.pool); vis(); };
 $("tFence").onclick = () => { S.fence = !S.fence; $("tFence").setAttribute("aria-pressed", S.fence); vis(); };

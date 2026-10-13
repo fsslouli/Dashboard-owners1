@@ -546,13 +546,16 @@ function flyVis(ll, z) {
   if (!off) return map.flyTo(ll, z, opt);
   map.flyTo(map.unproject(map.project(ll, z).add([0, off]), z), z, opt);
 }
+const ping = (k, v) => { try { if (parent !== window) parent.postMessage({ t: "site-ping", k, v: v == null ? "" : String(v) }, location.origin); } catch (e) {} };
 function selectBlock(n, o) {
+  if (!o || !o.quiet) ping("block", n);
   S.sel = { t: "b", n }; applySel(); renderPanel(); setHash("b" + n);
   if (o && o.fly) map.flyToBounds(polys[n].getBounds(), { paddingTopLeft: [40, PAD_T + 6], paddingBottomRight: [40, 30 + sheetH()], maxZoom: o.zoomIn ? -0.9 : Math.max(map.getZoom(), FIT + 0.4), duration: reduced ? 0 : 0.7, animate: !reduced });
   if (o && o.zoomIn) loadHi();
   if (!o || !o.quiet) reveal();
 }
 function selectVilla(n, o) {
+  if (!o || !o.quiet) ping("villa", "");
   S.sel = { t: "v", n }; applySel(); renderPanel(); setHash("v" + n); loadHi();
   if (o && o.fly) { const v = D.villas[n - 1]; flyVis(LL(v[0], v[1]), Math.max(map.getZoom(), -0.75)); }
   if (!o || !o.quiet) reveal();

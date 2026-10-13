@@ -228,6 +228,21 @@ export function PublicSite({ share = null } = {}) {
   const [docLink, setDocLink] = useState(null);
   const [docLinkIdx, setDocLinkIdx] = useState(0);
   const [model3d, setModel3d] = useState(null); // {kind:"3d"|"map", id, nameAr, nameEn} — المجسم ثلاثي الأبعاد (/3d/<id>.html) أو الخريطة التفاعلية (/map/)
+  /* تتبع ما يجري داخل المجسم/الخريطة: الصفحات المضمّنة ترسل ping لنفس النطاق فقط (الوضع، الطابق، البلوك)، بدون أي نص يكتبه الزائر */
+  useEffect(() => {
+    if (!model3d) return undefined;
+    const NAMES = { block: "blockmap_block", villa: "blockmap_villa", mode: "model3d_mode", floor: "model3d_floor" };
+    const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data;
+      if (!d || d.t !== "site-ping" || !NAMES[d.k] || !/^[\w-]{0,20}$/.test(String(d.v))) return;
+      const isMap = model3d.kind === "map";
+      if (isMap !== (d.k === "block" || d.k === "villa")) return;
+      logEvent("nav", NAMES[d.k], isMap ? (d.v || null) : `${model3d.id}:${d.v}`, null);
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [model3d]);
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
 
