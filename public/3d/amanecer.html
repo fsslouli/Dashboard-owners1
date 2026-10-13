@@ -381,11 +381,12 @@ function opening(g, lvl, base, W, alongX, o) {
       const keep = g; g = keep + "_o"; leaf(a + 1, 1); g = keep + "_c"; B(a + 1, b - 1, tm - 2, tm + 2, y0 + 0.01, y1 - 0.02, m); g = keep;
     } else if (k === "mdoor") { leaf(a + 1, 1);
     } else {
-      /* interior leaves swing into the room, never into a corridor (decided once the room list exists) */
+      /* interior leaves that would stand in a corridor are omitted (decided once the room list exists) */
       const gg = g, drawLeaf = () => {
         const pt = (sg) => alongX ? [(a + b) / 2, tm + sg * 60] : [tm + sg * 60, (a + b) / 2];
         const inCorr = (q) => (MD.rooms || []).some((r) => r[0] === lvl && r[1] === "الممر" && q[0] >= r[2][0] && q[0] <= r[2][2] && q[1] >= r[2][1] && q[1] <= r[2][3]);
-        const s2 = inCorr(pt(sw)) && !inCorr(pt(-sw)) ? -sw : sw, f2 = s2 > 0 ? t1 : t0, keep = g; g = gg;
+        if (inCorr(pt(sw))) return; /* a leaf that would stand in the corridor is left out */
+        const s2 = sw, f2 = s2 > 0 ? t1 : t0, keep = g; g = gg;
         const lf = (h, d) => B(h, h + d * th, f2, f2 + s2 * lw, y0 + 0.01, y1 - 0.02, m);
         lf(a + 1, 1); if (k === "door2") lf(b - 1, -1); g = keep;
       };
