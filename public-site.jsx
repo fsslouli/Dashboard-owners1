@@ -1710,7 +1710,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               <b style={{ fontSize: 14 }}>{model3d.kind === "map" ? L(model3d.nameAr, model3d.nameEn) : <>{L("مجسم ثلاثي الأبعاد", "3D model")} — {L(model3d.nameAr, model3d.nameEn)}</>}</b>
               <button onClick={() => setModel3d(null)} aria-label={L("إغلاق", "Close")} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 6 }}><X size={20} /></button>
             </div>
-            <iframe title={model3d.kind === "map" ? "map" : "3D"} src={model3d.kind === "map" ? `/map/index.html?theme=${resolved}` : `/3d/${model3d.id}.html?theme=${resolved}`} allow="fullscreen" style={{ flex: 1, width: "100%", border: 0 }} />
+            <iframe title={model3d.kind === "map" ? "map" : "3D"} src={model3d.kind === "map" ? `/map/index.html?theme=${resolved}&lang=${lang === "en" ? "en" : "ar"}` : `/3d/${model3d.id}.html?theme=${resolved}&lang=${lang === "en" ? "en" : "ar"}`} allow="fullscreen" style={{ flex: 1, width: "100%", border: 0 }} />
           </div>
         )}
         {docLink && <AttachmentViewer list={docLink} index={docLinkIdx} onIndex={setDocLinkIdx} onClose={() => setDocLink(null)} lang={lang} />}
