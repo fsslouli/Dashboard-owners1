@@ -20,7 +20,7 @@ import { startTextOverrides } from "./text-overrides.js";
 import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf } from "./site-custom.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, Box, FileText, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, Box, FileText, Map as MapIcon, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
 
 /* تبويبات الموقع العام — بيانات ثابتة؛ ترتيبها يتبع nav_labels._order (وضع التحرير) وإلا الترتيب الأصلي */
 const PUBLIC_TAB_KEYS = ["overview", "notes", "progress", "docs", "gallery"];
@@ -227,7 +227,7 @@ export function PublicSite({ share = null } = {}) {
   const [docView, setDocView] = useState(null);
   const [docLink, setDocLink] = useState(null);
   const [docLinkIdx, setDocLinkIdx] = useState(0);
-  const [model3d, setModel3d] = useState(null); // {id, nameAr, nameEn} — المجسم ثلاثي الأبعاد (صفحة ثابتة /3d/<id>.html)
+  const [model3d, setModel3d] = useState(null); // {kind:"3d"|"map", id, nameAr, nameEn} — المجسم ثلاثي الأبعاد (/3d/<id>.html) أو الخريطة التفاعلية (/map/)
   const [built, setBuilt] = useState(false);
   const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
 
@@ -1612,11 +1612,22 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                     </button>
                     {has3d && (
                       <button className="doc-card" data-ek={`doc3d-${doc.id}`} style={{ borderInlineStartColor: accent, padding: "10px 14px", minHeight: 0, alignItems: "center", gap: 10 }}
-                        onClick={() => { logEvent("nav", "model3d_open", doc.id, null); setModel3d({ id: doc.id, nameAr: doc.nameAr, nameEn: doc.nameEn }); }}>
+                        onClick={() => { logEvent("nav", "model3d_open", doc.id, null); setModel3d({ kind: "3d", id: doc.id, nameAr: doc.nameAr, nameEn: doc.nameEn }); }}>
                         <span className="doc-thumb" style={{ borderColor: accent + "55", width: 38, height: 38, display: "grid", placeItems: "center", color: accent }}><Box size={20} /></span>
                         <span className="doc-info">
                           <span className="doc-name" style={{ fontSize: 14 }}>{L("مجسم ثلاثي الأبعاد", "3D model")} — {L(doc.nameAr, doc.nameEn)}</span>
                           <span className="doc-sub">{L("تجوّل داخل الفيلا وبين الأدوار", "Walk through the villa and its floors")}</span>
+                        </span>
+                        <span className="doc-go"><Go size={17} /></span>
+                      </button>
+                    )}
+                    {doc.id === "master" && (
+                      <button className="doc-card" data-ek="doc-blockmap" style={{ borderInlineStartColor: accent, padding: "10px 14px", minHeight: 0, alignItems: "center", gap: 10 }}
+                        onClick={() => { logEvent("nav", "blockmap_open", doc.id, null); setModel3d({ kind: "map", id: "map", nameAr: "الخريطة التفاعلية للبلوكات", nameEn: "Interactive block map" }); }}>
+                        <span className="doc-thumb" style={{ borderColor: accent + "55", width: 38, height: 38, display: "grid", placeItems: "center", color: accent }}><MapIcon size={20} /></span>
+                        <span className="doc-info">
+                          <span className="doc-name" style={{ fontSize: 14 }}>{L("الخريطة التفاعلية للبلوكات", "Interactive block map")}</span>
+                          <span className="doc-sub">{L("اضغط أي بلوك لتشوف نسبة إنجازه ونماذجه، والبيانات محدّثة من تقدم التنفيذ", "Tap any block for its progress and models, live from the progress data")}</span>
                         </span>
                         <span className="doc-go"><Go size={17} /></span>
                       </button>
@@ -1678,13 +1689,13 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
         {model3d && (
-          <div role="dialog" aria-modal="true" aria-label={L(`مجسم ${model3d.nameAr} ثلاثي الأبعاد`, `${model3d.nameEn || model3d.nameAr} 3D model`)}
+          <div role="dialog" aria-modal="true" aria-label={model3d.kind === "map" ? L(model3d.nameAr, model3d.nameEn) : L(`مجسم ${model3d.nameAr} ثلاثي الأبعاد`, `${model3d.nameEn || model3d.nameAr} 3D model`)}
             style={{ position: "fixed", inset: 0, zIndex: 400, background: T.bg || "#000", display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.line || "rgba(128,128,128,.25)"}`, color: T.paper || "inherit" }}>
-              <b style={{ fontSize: 14 }}>{L("مجسم ثلاثي الأبعاد", "3D model")} — {L(model3d.nameAr, model3d.nameEn)}</b>
+              <b style={{ fontSize: 14 }}>{model3d.kind === "map" ? L(model3d.nameAr, model3d.nameEn) : <>{L("مجسم ثلاثي الأبعاد", "3D model")} — {L(model3d.nameAr, model3d.nameEn)}</>}</b>
               <button onClick={() => setModel3d(null)} aria-label={L("إغلاق", "Close")} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 6 }}><X size={20} /></button>
             </div>
-            <iframe title="3D" src={`/3d/${model3d.id}.html?theme=${resolved}`} allow="fullscreen" style={{ flex: 1, width: "100%", border: 0 }} />
+            <iframe title={model3d.kind === "map" ? "map" : "3D"} src={model3d.kind === "map" ? `/map/index.html?theme=${resolved}` : `/3d/${model3d.id}.html?theme=${resolved}`} allow="fullscreen" style={{ flex: 1, width: "100%", border: 0 }} />
           </div>
         )}
         {docLink && <AttachmentViewer list={docLink} index={docLinkIdx} onIndex={setDocLinkIdx} onClose={() => setDocLink(null)} lang={lang} />}

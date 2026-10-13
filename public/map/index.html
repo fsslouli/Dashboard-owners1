@@ -1,0 +1,753 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>خريطة بلوكات البورادا</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<script>try{var t=new URLSearchParams(location.search).get("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+ .leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas, .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer { position: absolute; left: 0; top: 0; } .leaflet-container { overflow: hidden; } .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow { -webkit-user-select: none; -moz-user-select: none; user-select: none; -webkit-user-drag: none; } .leaflet-tile::selection { background: transparent; } .leaflet-safari .leaflet-tile { image-rendering: -webkit-optimize-contrast; } .leaflet-safari .leaflet-tile-container { width: 1600px; height: 1600px; -webkit-transform-origin: 0 0; } .leaflet-marker-icon, .leaflet-marker-shadow { display: block; } .leaflet-container .leaflet-overlay-pane svg { max-width: none !important; max-height: none !important; } .leaflet-container .leaflet-marker-pane img, .leaflet-container .leaflet-shadow-pane img, .leaflet-container .leaflet-tile-pane img, .leaflet-container img.leaflet-image-layer, .leaflet-container .leaflet-tile { max-width: none !important; max-height: none !important; width: auto; padding: 0; } .leaflet-container img.leaflet-tile { mix-blend-mode: plus-lighter; } .leaflet-container.leaflet-touch-zoom { -ms-touch-action: pan-x pan-y; touch-action: pan-x pan-y; } .leaflet-container.leaflet-touch-drag { -ms-touch-action: pinch-zoom; touch-action: none; touch-action: pinch-zoom; } .leaflet-container.leaflet-touch-drag.leaflet-touch-zoom { -ms-touch-action: none; touch-action: none; } .leaflet-container { -webkit-tap-highlight-color: transparent; } .leaflet-container a { -webkit-tap-highlight-color: rgba(51, 181, 229, 0.4); } .leaflet-tile { filter: inherit; visibility: hidden; } .leaflet-tile-loaded { visibility: inherit; } .leaflet-zoom-box { width: 0; height: 0; -moz-box-sizing: border-box; box-sizing: border-box; z-index: 800; } .leaflet-overlay-pane svg { -moz-user-select: none; } .leaflet-pane { z-index: 400; } .leaflet-tile-pane { z-index: 200; } .leaflet-overlay-pane { z-index: 400; } .leaflet-shadow-pane { z-index: 500; } .leaflet-marker-pane { z-index: 600; } .leaflet-tooltip-pane { z-index: 650; } .leaflet-popup-pane { z-index: 700; } .leaflet-map-pane canvas { z-index: 100; } .leaflet-map-pane svg { z-index: 200; } .leaflet-vml-shape { width: 1px; height: 1px; } .lvml { display: inline-block; position: absolute; } .leaflet-control { position: relative; z-index: 800; pointer-events: visiblePainted; pointer-events: auto; } .leaflet-top, .leaflet-bottom { position: absolute; z-index: 1000; pointer-events: none; } .leaflet-top { top: 0; } .leaflet-right { right: 0; } .leaflet-bottom { bottom: 0; } .leaflet-left { left: 0; } .leaflet-control { float: left; clear: both; } .leaflet-right .leaflet-control { float: right; } .leaflet-top .leaflet-control { margin-top: 10px; } .leaflet-bottom .leaflet-control { margin-bottom: 10px; } .leaflet-left .leaflet-control { margin-left: 10px; } .leaflet-right .leaflet-control { margin-right: 10px; } .leaflet-fade-anim .leaflet-popup { opacity: 0; -webkit-transition: opacity 0.2s linear; -moz-transition: opacity 0.2s linear; transition: opacity 0.2s linear; } .leaflet-fade-anim .leaflet-map-pane .leaflet-popup { opacity: 1; } .leaflet-zoom-animated { -webkit-transform-origin: 0 0; -ms-transform-origin: 0 0; transform-origin: 0 0; } svg.leaflet-zoom-animated { will-change: transform; } .leaflet-zoom-anim .leaflet-zoom-animated { -webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1); -moz-transition: -moz-transform 0.25s cubic-bezier(0,0,0.25,1); transition: transform 0.25s cubic-bezier(0,0,0.25,1); } .leaflet-zoom-anim .leaflet-tile, .leaflet-pan-anim .leaflet-tile { -webkit-transition: none; -moz-transition: none; transition: none; } .leaflet-zoom-anim .leaflet-zoom-hide { visibility: hidden; } .leaflet-interactive { cursor: pointer; } .leaflet-grab { cursor: -webkit-grab; cursor: -moz-grab; cursor: grab; } .leaflet-crosshair, .leaflet-crosshair .leaflet-interactive { cursor: crosshair; } .leaflet-popup-pane, .leaflet-control { cursor: auto; } .leaflet-dragging .leaflet-grab, .leaflet-dragging .leaflet-grab .leaflet-interactive, .leaflet-dragging .leaflet-marker-draggable { cursor: move; cursor: -webkit-grabbing; cursor: -moz-grabbing; cursor: grabbing; } .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-image-layer, .leaflet-pane > svg path, .leaflet-tile-container { pointer-events: none; } .leaflet-marker-icon.leaflet-interactive, .leaflet-image-layer.leaflet-interactive, .leaflet-pane > svg path.leaflet-interactive, svg.leaflet-image-layer.leaflet-interactive path { pointer-events: visiblePainted; pointer-events: auto; } .leaflet-container { background: #ddd; outline-offset: 1px; } .leaflet-container a { color: #0078A8; } .leaflet-zoom-box { border: 2px dotted #38f; background: rgba(255,255,255,0.5); } .leaflet-container { font-family: "Helvetica Neue", Arial, Helvetica, sans-serif; font-size: 12px; font-size: 0.75rem; line-height: 1.5; } .leaflet-bar { box-shadow: 0 1px 5px rgba(0,0,0,0.65); border-radius: 4px; } .leaflet-bar a { background-color: #fff; border-bottom: 1px solid #ccc; width: 26px; height: 26px; line-height: 26px; display: block; text-align: center; text-decoration: none; color: black; } .leaflet-bar a, .leaflet-control-layers-toggle { background-position: 50% 50%; background-repeat: no-repeat; display: block; } .leaflet-bar a:hover, .leaflet-bar a:focus { background-color: #f4f4f4; } .leaflet-bar a:first-child { border-top-left-radius: 4px; border-top-right-radius: 4px; } .leaflet-bar a:last-child { border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; border-bottom: none; } .leaflet-bar a.leaflet-disabled { cursor: default; background-color: #f4f4f4; color: #bbb; } .leaflet-touch .leaflet-bar a { width: 30px; height: 30px; line-height: 30px; } .leaflet-touch .leaflet-bar a:first-child { border-top-left-radius: 2px; border-top-right-radius: 2px; } .leaflet-touch .leaflet-bar a:last-child { border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; } .leaflet-control-zoom-in, .leaflet-control-zoom-out { font: bold 18px 'Lucida Console', Monaco, monospace; text-indent: 1px; } .leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out { font-size: 22px; } .leaflet-control-layers { box-shadow: 0 1px 5px rgba(0,0,0,0.4); background: #fff; border-radius: 5px; } .leaflet-control-layers-toggle { width: 36px; height: 36px; } .leaflet-retina .leaflet-control-layers-toggle { background-size: 26px 26px; } .leaflet-touch .leaflet-control-layers-toggle { width: 44px; height: 44px; } .leaflet-control-layers .leaflet-control-layers-list, .leaflet-control-layers-expanded .leaflet-control-layers-toggle { display: none; } .leaflet-control-layers-expanded .leaflet-control-layers-list { display: block; position: relative; } .leaflet-control-layers-expanded { padding: 6px 10px 6px 6px; color: #333; background: #fff; } .leaflet-control-layers-scrollbar { overflow-y: scroll; overflow-x: hidden; padding-right: 5px; } .leaflet-control-layers-selector { margin-top: 2px; position: relative; top: 1px; } .leaflet-control-layers label { display: block; font-size: 13px; font-size: 1.08333em; } .leaflet-control-layers-separator { height: 0; border-top: 1px solid #ddd; margin: 5px -10px 5px -6px; } .leaflet-default-icon-path { } .leaflet-container .leaflet-control-attribution { background: #fff; background: rgba(255, 255, 255, 0.8); margin: 0; } .leaflet-control-attribution, .leaflet-control-scale-line { padding: 0 5px; color: #333; line-height: 1.4; } .leaflet-control-attribution a { text-decoration: none; } .leaflet-control-attribution a:hover, .leaflet-control-attribution a:focus { text-decoration: underline; } .leaflet-attribution-flag { display: inline !important; vertical-align: baseline !important; width: 1em; height: 0.6669em; } .leaflet-left .leaflet-control-scale { margin-left: 5px; } .leaflet-bottom .leaflet-control-scale { margin-bottom: 5px; } .leaflet-control-scale-line { border: 2px solid #777; border-top: none; line-height: 1.1; padding: 2px 5px 1px; white-space: nowrap; -moz-box-sizing: border-box; box-sizing: border-box; background: rgba(255, 255, 255, 0.8); text-shadow: 1px 1px #fff; } .leaflet-control-scale-line:not(:first-child) { border-top: 2px solid #777; border-bottom: none; margin-top: -2px; } .leaflet-control-scale-line:not(:first-child):not(:last-child) { border-bottom: 2px solid #777; } .leaflet-touch .leaflet-control-attribution, .leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar { box-shadow: none; } .leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar { border: 2px solid rgba(0,0,0,0.2); background-clip: padding-box; } .leaflet-popup { position: absolute; text-align: center; margin-bottom: 20px; } .leaflet-popup-content-wrapper { padding: 1px; text-align: left; border-radius: 12px; } .leaflet-popup-content { margin: 13px 24px 13px 20px; line-height: 1.3; font-size: 13px; font-size: 1.08333em; min-height: 1px; } .leaflet-popup-content p { margin: 17px 0; margin: 1.3em 0; } .leaflet-popup-tip-container { width: 40px; height: 20px; position: absolute; left: 50%; margin-top: -1px; margin-left: -20px; overflow: hidden; pointer-events: none; } .leaflet-popup-tip { width: 17px; height: 17px; padding: 1px; margin: -10px auto 0; pointer-events: auto; -webkit-transform: rotate(45deg); -moz-transform: rotate(45deg); -ms-transform: rotate(45deg); transform: rotate(45deg); } .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: white; color: #333; box-shadow: 0 3px 14px rgba(0,0,0,0.4); } .leaflet-container a.leaflet-popup-close-button { position: absolute; top: 0; right: 0; border: none; text-align: center; width: 24px; height: 24px; font: 16px/24px Tahoma, Verdana, sans-serif; color: #757575; text-decoration: none; background: transparent; } .leaflet-container a.leaflet-popup-close-button:hover, .leaflet-container a.leaflet-popup-close-button:focus { color: #585858; } .leaflet-popup-scrolled { overflow: auto; } .leaflet-oldie .leaflet-popup-content-wrapper { -ms-zoom: 1; } .leaflet-oldie .leaflet-popup-tip { width: 24px; margin: 0 auto; -ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)"; filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678); } .leaflet-oldie .leaflet-control-zoom, .leaflet-oldie .leaflet-control-layers, .leaflet-oldie .leaflet-popup-content-wrapper, .leaflet-oldie .leaflet-popup-tip { border: 1px solid #999; } .leaflet-div-icon { background: #fff; border: 1px solid #666; } .leaflet-tooltip { position: absolute; padding: 6px; background-color: #fff; border: 1px solid #fff; border-radius: 3px; color: #222; white-space: nowrap; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.4); } .leaflet-tooltip.leaflet-interactive { cursor: pointer; pointer-events: auto; } .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before { position: absolute; pointer-events: none; border: 6px solid transparent; background: transparent; content: ""; } .leaflet-tooltip-bottom { margin-top: 6px; } .leaflet-tooltip-top { margin-top: -6px; } .leaflet-tooltip-bottom:before, .leaflet-tooltip-top:before { left: 50%; margin-left: -6px; } .leaflet-tooltip-top:before { bottom: 0; margin-bottom: -12px; border-top-color: #fff; } .leaflet-tooltip-bottom:before { top: 0; margin-top: -12px; margin-left: -6px; border-bottom-color: #fff; } .leaflet-tooltip-left { margin-left: -6px; } .leaflet-tooltip-right { margin-left: 6px; } .leaflet-tooltip-left:before, .leaflet-tooltip-right:before { top: 50%; margin-top: -6px; } .leaflet-tooltip-left:before { right: 0; margin-right: -12px; border-left-color: #fff; } .leaflet-tooltip-right:before { left: 0; margin-left: -12px; border-right-color: #fff; } @media print { .leaflet-control { -webkit-print-color-adjust: exact; print-color-adjust: exact; } } 
+</style>
+<style>
+/* Layout: a plan desk — tools strip on top, the master plan with a side ledger (stacked on phones), legend under the map */
+:root {
+  --bg: #F7F9FB; --surface: #FFFFFF; --sunken: #F1F5F8;
+  --ink: #1F2C35; --muted: #5F7280; --faint: #7E8F9A;
+  --accent: #1B7F8E; --on-accent: #FFFFFF; --accent-soft: rgba(27,127,142,.10);
+  --line: rgba(20,45,60,.10); --line-2: rgba(20,45,60,.18);
+  --shadow: 0 1px 2px rgba(20,45,60,.05), 0 12px 28px -20px rgba(20,45,60,.28);
+  --warn: #8A6318; --warn-bg: rgba(138,99,24,.12);
+  --map-bg: #E6ECF0; --veil: #FFFFFF; --veil-o: .5; --outline: #1F2C35; --halo: #FFFFFF; --sel: #1F2C35;
+  /* phases: one-hue ordinal ramp (phase 1 = first wave = darkest) */
+  --ph1: #3f247b; --ph2: #6245ae; --ph3: #8973d5; --ph4: #b4a7ed;
+  /* progress: one-hue sequential ramp, 0% → 100% */
+  --pr0: #dcf3f8; --pr1: #9ad3dd; --pr2: #4ba7b7; --pr3: #097989; --pr4: #014e59;
+  /* villa models: the brochure's own legend colours */
+  --m-a: #833F4C; --m-l: #A97C38; --m-r: #39613C; --m-d: #434A98;
+  --f-body: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, sans-serif;
+  --f-disp: "Cairo", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 16px; --r-sm: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141C22; --surface: #1C262D; --sunken: #111920;
+    --ink: #DBE3E8; --muted: #8FA0AB; --faint: #6E808C;
+    --accent: #5FBCCB; --on-accent: #101820; --accent-soft: rgba(95,188,203,.12);
+    --line: rgba(255,255,255,.08); --line-2: rgba(255,255,255,.16);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 14px 30px -22px rgba(0,0,0,.8);
+    --warn: #D8B274; --warn-bg: rgba(216,178,116,.14);
+    --map-bg: #0E151A; --veil: #141C22; --veil-o: .5; --outline: #E6EDF1; --halo: #0B1116; --sel: #FFFFFF;
+    --ph1: #d8d1fe; --ph2: #b3a3f7; --ph3: #8f79dc; --ph4: #6c56b2;
+    --pr0: #123339; --pr1: #085762; --pr2: #1c8292; --pr3: #43afc1; --pr4: #80dbeb;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141C22; --surface: #1C262D; --sunken: #111920;
+  --ink: #DBE3E8; --muted: #8FA0AB; --faint: #6E808C;
+  --accent: #5FBCCB; --on-accent: #101820; --accent-soft: rgba(95,188,203,.12);
+  --line: rgba(255,255,255,.08); --line-2: rgba(255,255,255,.16);
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 14px 30px -22px rgba(0,0,0,.8);
+  --warn: #D8B274; --warn-bg: rgba(216,178,116,.14);
+  --map-bg: #0E151A; --veil: #141C22; --veil-o: .5; --outline: #E6EDF1; --halo: #0B1116; --sel: #FFFFFF;
+  --ph1: #d8d1fe; --ph2: #b3a3f7; --ph3: #8f79dc; --ph4: #6c56b2;
+  --pr0: #123339; --pr1: #085762; --pr2: #1c8292; --pr3: #43afc1; --pr4: #80dbeb;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.app { max-width: 1240px; margin: 0 auto; padding: 18px 16px 28px; display: flex; flex-direction: column; gap: 14px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 16px; }
+.top h1 { margin: 0; font-family: var(--f-disp); font-weight: 700; font-size: clamp(22px, 3.2vw, 28px); line-height: 1.25; text-wrap: balance; }
+.top .sub { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+.demo { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.demo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* tools */
+.tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; }
+.find { display: flex; gap: 8px; align-items: center; flex: 1 1 300px; max-width: 460px; position: relative; }
+.find label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.find input { flex: 1; min-width: 0; height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface); font-family: var(--f-num); font-size: 16px; direction: ltr; text-align: right; }
+.find input::placeholder { font-family: var(--f-body); color: var(--faint); font-size: 14px; }
+.find button { height: 42px; padding: 0 16px; border-radius: 12px; border: 0; background: var(--accent); color: var(--on-accent); font-weight: 600; white-space: nowrap; }
+.find .err { position: absolute; top: 100%; inset-inline-start: 0; margin-top: 4px; font-size: 12.5px; color: var(--warn); }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--sunken); border: 1px solid var(--line); }
+.seg button { border: 0; background: none; height: 34px; padding: 0 14px; border-radius: 9px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--line); }
+
+/* stage */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
+.colmap { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); overflow: auto; }
+.mapcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.mapwrap { position: relative; }
+#map { height: 360px; background: var(--map-bg); direction: ltr; outline: none; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 14px 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.legend .li { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; flex: none; box-shadow: inset 0 0 0 1px var(--line-2); }
+.sw.dash { background: none; box-shadow: none; border: 1.5px dashed var(--muted); }
+.grad { display: inline-flex; flex-direction: column; gap: 3px; direction: ltr; }
+.grad .bar { width: 168px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--pr0), var(--pr1), var(--pr2), var(--pr3), var(--pr4)); box-shadow: inset 0 0 0 1px var(--line); }
+.grad .ticks { display: flex; justify-content: space-between; font-family: var(--f-num); font-size: 10.5px; color: var(--faint); }
+.lgstl { position: relative; width: 15px; height: 15px; border-radius: 50%; background: var(--warn); display: inline-block; flex: none; }
+.lgstl::before, .lgstl::after { content: ""; position: absolute; top: 4px; width: 2px; height: 7px; border-radius: 1px; background: var(--surface); }
+.lgstl::before { left: 4.5px; } .lgstl::after { left: 8.5px; }
+.legend .tip { flex-basis: 100%; color: var(--faint); font-size: 12px; }
+
+/* map chrome */
+.mapctl { position: absolute; z-index: 800; top: 10px; inset-inline-end: 10px; display: flex; gap: 6px; }
+.mapctl button { width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); display: grid; place-items: center; box-shadow: var(--shadow); }
+.mapctl svg { width: 18px; height: 18px; }
+.north { position: absolute; z-index: 800; top: 10px; inset-inline-start: 10px; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line-2); display: grid; place-items: center; box-shadow: var(--shadow); }
+.north svg { width: 26px; height: 26px; transform: rotate(-57deg); }
+.north text { font-family: var(--f-disp); font-size: 9px; font-weight: 700; fill: var(--ink); }
+.hint { position: absolute; z-index: 800; bottom: 12px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 120px); padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 12px; box-shadow: var(--shadow); text-align: center; transition: opacity .3s; pointer-events: none; }
+.hint.gone { opacity: 0; }
+.toast { position: absolute; z-index: 801; top: 56px; left: 50%; transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 12.5px; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+.toast.on { opacity: .92; }
+
+/* leaflet layers */
+.leaflet-container { font-family: var(--f-body); background: var(--map-bg); }
+.plan-img.hi { opacity: 0; transition: opacity .35s; }
+.plan-img.hi.ready { opacity: 1; }
+.veil { fill: var(--veil); fill-opacity: var(--veil-o); stroke: none; transition: fill-opacity .35s; }
+.m-plan .veil, .zv .veil { fill-opacity: 0; }
+.halo { fill: none; stroke: var(--halo); stroke-opacity: .85; stroke-width: 6px; stroke-linejoin: round; pointer-events: none; transition: stroke-opacity .3s; }
+.blk { stroke: var(--outline); stroke-opacity: .85; stroke-width: 2px; stroke-linejoin: round; fill: var(--surface); fill-opacity: 0; transition: fill-opacity .3s, stroke-width .15s; cursor: pointer; }
+.m-prog .blk.trk { fill: var(--pc, var(--pr2)); fill-opacity: .8; }
+.m-phase .blk.ph1 { fill: var(--ph1); fill-opacity: .8; }
+.m-phase .blk.ph2 { fill: var(--ph2); fill-opacity: .8; }
+.m-phase .blk.ph3 { fill: var(--ph3); fill-opacity: .8; }
+.m-phase .blk.ph4 { fill: var(--ph4); fill-opacity: .8; }
+.m-prog .blk.untrk, .m-phase .blk.ph0 { stroke-dasharray: 7 6; fill: var(--surface); fill-opacity: .2; }
+.m-plan .blk { fill-opacity: 0; stroke-opacity: .7; }
+.zv .blk { fill-opacity: 0 !important; stroke-width: 1.6px; }
+.has-sel .blk:not(.sel) { fill-opacity: .34; }
+.has-sel.zv .blk:not(.sel), .has-sel.m-plan .blk:not(.sel) { fill-opacity: 0; stroke-opacity: .35; }
+.blk.sel { stroke: var(--sel); stroke-opacity: 1; stroke-width: 4px; }
+.pf1 .blk:not(.ph1), .pf2 .blk:not(.ph2), .pf3 .blk:not(.ph3), .pf4 .blk:not(.ph4) { fill-opacity: .12; stroke-opacity: .3; }
+
+.pinw { width: 0 !important; height: 0 !important; }
+.pin { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; transition: opacity .25s, transform .15s; }
+.pin .pn { min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; display: grid; place-items: center; background: var(--surface); color: var(--ink); font-family: var(--f-disp); font-weight: 700; font-size: 14px; line-height: 1; box-shadow: 0 0 0 1.5px var(--line-2), 0 2px 6px rgba(0,0,0,.25); }
+.pin .pv { display: none; padding: 1px 6px; border-radius: 7px; background: var(--ink); color: var(--bg); font-family: var(--f-num); font-size: 10.5px; line-height: 1.5; direction: ltr; }
+.m-prog.zt .pin .pv { display: block; }
+.pin.nod .pn { color: var(--muted); box-shadow: 0 0 0 1.5px var(--line-2), 0 2px 6px rgba(0,0,0,.18); }
+.pin.nod .pv { background: var(--sunken); color: var(--muted); box-shadow: 0 0 0 1px var(--line-2); }
+.pin .stl { display: none; position: absolute; top: -5px; inset-inline-end: -7px; width: 15px; height: 15px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px var(--surface); }
+.pin .stl::before, .pin .stl::after { content: ""; position: absolute; top: 4px; width: 2px; height: 7px; border-radius: 1px; background: var(--surface); }
+.pin .stl::before { left: 4.5px; } .pin .stl::after { left: 8.5px; }
+.m-prog .pin .stl { display: block; }
+.pin.sel .pn { background: var(--sel); color: var(--bg); box-shadow: 0 0 0 2px var(--surface), 0 3px 10px rgba(0,0,0,.35); }
+.leaflet-marker-icon:focus-visible .pn { outline: 2px solid var(--accent); outline-offset: 2px; }
+.zv .pin { opacity: 0; pointer-events: none; }
+.vringw { width: 0 !important; height: 0 !important; pointer-events: none; }
+.vring { position: absolute; transform: translate(-50%, -50%); width: 46px; height: 46px; border-radius: 50%; border: 3px solid var(--sel); box-shadow: 0 0 0 3px var(--halo), 0 0 18px rgba(0,0,0,.35); }
+.vring::after { content: ""; position: absolute; inset: -10px; border-radius: 50%; border: 2px solid var(--sel); opacity: .0; animation: ping 1.8s ease-out infinite; }
+.vring b { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); padding: 2px 9px; border-radius: 8px; background: var(--sel); color: var(--bg); font-family: var(--f-disp); font-size: 13px; white-space: nowrap; direction: rtl; }
+@keyframes ping { 0% { opacity: .7; transform: scale(.7); } 100% { opacity: 0; transform: scale(1.35); } }
+
+/* side ledger */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ph { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.kick { font-size: 12.5px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+.ttl { margin: 0; font-family: var(--f-disp); font-weight: 700; font-size: 30px; line-height: 1.15; }
+.ttl small { font-family: var(--f-body); font-size: 14px; font-weight: 500; color: var(--muted); margin-inline-start: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.chip.warn { background: var(--warn-bg); border-color: transparent; color: var(--warn); }
+.facts { margin: 0; display: grid; gap: 8px; }
+.facts > div { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.facts dt { color: var(--muted); font-size: 12.5px; }
+.facts dd { margin: 0; font-size: 14px; }
+.mods { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.mods span { display: inline-flex; align-items: center; gap: 6px; }
+.mods .sw { width: 11px; height: 11px; border-radius: 3px; }
+.prog { padding: 14px; border-radius: 12px; background: var(--sunken); display: flex; flex-direction: column; gap: 10px; }
+.prog .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.big { font-family: var(--f-num); font-weight: 500; font-size: 30px; line-height: 1; direction: ltr; }
+.big i { font-style: normal; font-size: 18px; color: var(--muted); }
+.when { font-size: 12.5px; color: var(--muted); }
+.delta { font-size: 13px; color: var(--muted); }
+.delta b { font-family: var(--f-num); font-weight: 500; color: var(--ink); direction: ltr; unicode-bidi: isolate; }
+.meter { position: relative; height: 8px; border-radius: 4px; background: var(--line); direction: ltr; margin-bottom: 18px; }
+.meter > span { position: absolute; inset-block: 0; left: 0; border-radius: 4px; background: var(--accent); }
+.meter .tick { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--ink); border-radius: 1px; }
+.meter .tick em { position: absolute; top: 18px; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; direction: rtl; }
+.chart { position: relative; direction: ltr; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid { stroke: var(--line-2); stroke-width: 1; }
+.chart .axis { fill: var(--faint); font-family: var(--f-num); font-size: 10px; }
+.chart .axl { fill: var(--faint); font-family: var(--f-body); font-size: 10.5px; }
+.chart .l-main { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .l-ctx { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.chart .dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.chart .dot.end { fill: var(--accent); }
+.chart .hit { fill: transparent; cursor: pointer; }
+.chart .gapm { fill: var(--faint); font-family: var(--f-body); font-size: 9.5px; }
+.chart .ctl { display: flex; gap: 14px; justify-content: flex-end; font-size: 11.5px; color: var(--muted); direction: rtl; margin-top: 4px; }
+.chart .ctl span { display: inline-flex; align-items: center; gap: 6px; }
+.chart .ctl i { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--accent); }
+.chart .ctl i.ctx { border-top: 1.5px dashed var(--faint); }
+.ctip { position: absolute; z-index: 5; transform: translate(-50%, -100%); margin-top: -8px; padding: 4px 8px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 11.5px; white-space: nowrap; pointer-events: none; direction: rtl; }
+.note { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+.note.box { padding: 10px 12px; border-radius: 10px; background: var(--sunken); }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); font-size: 13px; font-weight: 600; }
+.btn.pri { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.lnk { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.phl { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.phl button { width: 100%; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; text-align: start; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; background: none; }
+.phl button:hover { background: var(--sunken); }
+.phl button[aria-pressed="true"] { background: var(--sunken); border-color: var(--line-2); }
+.phl .nm { font-size: 13.5px; font-weight: 600; }
+.phl .bl { grid-column: 2; font-size: 12px; color: var(--muted); }
+.phl .v { grid-row: 1 / span 2; grid-column: 3; font-family: var(--f-num); font-size: 15px; direction: ltr; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); font-size: 12.5px; font-weight: 600; }
+.sec-h { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+/* table view */
+.tbl { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+.tbl summary { cursor: pointer; padding: 14px 18px; font-weight: 600; font-size: 14px; list-style-position: inside; }
+.tbl .wrap { overflow-x: auto; padding: 0 12px 12px; }
+.tbl table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+.tbl th, .tbl td { padding: 9px 10px; text-align: start; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tbl tbody tr { cursor: pointer; }
+.tbl tbody tr:hover { background: var(--sunken); }
+.tbl td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; text-align: end; }
+.foot { color: var(--faint); font-size: 12px; line-height: 1.8; max-width: 80ch; }
+.foot p { margin: 0 0 4px; }
+
+/* fullscreen map */
+.app.full .mapcard { position: fixed; inset: 0; z-index: 900; border-radius: 0; border: 0; }
+.app.full #map { height: 100% !important; }
+.app.full .mapwrap { height: 100%; }
+.app.full .mapcard .legend { display: none; }
+.app.full .panel { position: fixed; z-index: 950; left: 0; right: 0; top: auto; bottom: 0; max-height: 44%; overflow: auto; border-radius: 18px 18px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.app.full .mapcard .mapwrap { padding-top: env(safe-area-inset-top, 0px); }
+
+@media (max-width: 900px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .colmap { display: contents; }
+  .mapcard { order: 1; } .panel { order: 2; position: static; max-height: none; overflow: visible; } .tbl { order: 3; }
+}
+@media (max-width: 520px) {
+  .app { padding-top: 14px; gap: 12px; }
+  .find label { display: none; }
+  .seg { width: 100%; }
+  .seg button { flex: 1; padding: 0 8px; }
+  .pin .pn { min-width: 22px; height: 22px; padding: 0 4px; font-size: 12px; }
+  .pin .stl { width: 13px; height: 13px; top: -6px; inset-inline-end: -6px; }
+  .pin .stl::before { left: 3.5px; top: 3px; height: 7px; } .pin .stl::after { left: 7.5px; top: 3px; height: 7px; }
+  .mapctl button { width: 32px; height: 32px; border-radius: 9px; }
+  .north { width: 32px; height: 32px; }
+  .pin .pv { font-size: 9.5px; padding: 0 4px; }
+  .hint { max-width: calc(100% - 110px); font-size: 11.5px; }
+  .ttl { font-size: 27px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="app" id="app" dir="rtl" lang="ar">
+  <header class="top">
+    <div>
+      <h1>خريطة بلوكات البورادا</h1>
+      <p class="sub">فلل البورادا · الفرسان — <span class="num">24</span> بلوك · <span class="num">596</span> فيلا · الإنجاز حسب آخر تقرير للمطوّر (<span id="lastm"></span>)</p>
+    </div>
+  </header>
+
+  <div class="tools">
+    <form class="find" id="find" autocomplete="off" novalidate>
+      <label for="q">رقم الفيلا</label>
+      <input id="q" name="q" inputmode="numeric" enterkeyhint="search" placeholder="اكتب رقم فيلتك، مثل 120" aria-describedby="qerr">
+      <button type="submit">اعرض موقعها</button>
+      <span class="err" id="qerr" role="status" aria-live="polite"></span>
+    </form>
+    <div class="seg" role="group" aria-label="تلوين الخريطة">
+      <button type="button" data-mode="prog" aria-pressed="true">الإنجاز</button>
+      <button type="button" data-mode="phase" aria-pressed="false">المراحل</button>
+      <button type="button" data-mode="plan" aria-pressed="false">المخطط والنماذج</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="colmap">
+    <div class="mapcard">
+      <div class="mapwrap" id="wrap">
+        <div id="map" role="application" aria-label="المخطط الرئيسي للمشروع مع حدود البلوكات"></div>
+        <div class="north" aria-hidden="true" title="اتجاه الشمال">
+          <svg viewBox="0 0 28 28"><path d="M14 3 L19 17 L14 14.5 L9 17 Z" fill="var(--accent)"/><path d="M14 14.5 L19 17 L14 25 L9 17 Z" fill="var(--faint)" opacity=".45"/></svg>
+        </div>
+        <div class="mapctl">
+          <button type="button" id="zin" aria-label="تكبير"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" id="zout" aria-label="تصغير"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <button type="button" id="zfit" aria-label="عرض المشروع كامل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>
+          <button type="button" id="zfull" aria-label="ملء الشاشة" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
+        </div>
+        <div class="hint" id="hint">اضغط على أي بلوك · قرّب لرؤية أرقام الفلل</div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+      <div class="legend" id="legend" aria-live="polite"></div>
+    </div>
+    <details class="tbl" id="tbl">
+    <summary>جدول البلوكات الـ<span class="num">24</span></summary>
+    <div class="wrap"><table>
+      <thead><tr><th>البلوك</th><th>أرقام الفلل</th><th>العدد</th><th>المرحلة</th><th>الإنجاز</th><th>عن الشهر السابق</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    </details>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <footer class="foot">
+    <p>المصادر: المخطط الرئيسي في بروشور ad home لفلل البورادا، وتقارير التقدّم الشهرية من المطوّر، والمرجع الفني للنماذج (المساحات).</p>
+    <p>حدود البلوكات ومواقع الفلل ونموذج كل فيلا مستخرجة آليًا من المخطط وألوانه للاسترشاد، والمرجع المعتمد وثائق المطوّر. نسب الإنجاز على مستوى البلوك، والتقارير ما تعطي نسبة لكل فيلا.</p>
+    <p id="gapnote"></p>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(async () => {
+"use strict";
+const D = {"W":5230,"H":2680,"months":["2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"gap":{"2026-07":"المطوّر لم يُصدر تقرير تقدّم لهذا الشهر"},"blocks":[{"b":1,"a":1,"z":26,"ph":1,"poly":[[5037,490],[5044,490],[5050,492],[5056,495],[5062,498],[5067,502],[5071,507],[5074,513],[5077,519],[5078,525],[5079,532],[5079,767],[5078,774],[5077,780],[5074,786],[5071,792],[5067,797],[5062,801],[5056,804],[5050,807],[5044,808],[5037,809],[4387,809],[4380,808],[4374,807],[4368,804],[4362,801],[4357,797],[4353,792],[4350,786],[4347,780],[4346,774],[4345,767],[4345,532],[4346,525],[4347,519],[4350,513],[4353,507],[4357,502],[4362,498],[4368,495],[4374,492],[4380,490],[4387,490]],"c":[4712,649],"m":{"r":2,"l":12,"a":12},"v":[47.64,50.02,51.88,53.56,54.44,null,58.03,59.1]},{"b":2,"a":27,"z":54,"ph":1,"poly":[[4273,491],[4280,492],[4286,494],[4292,496],[4298,500],[4303,504],[4307,509],[4310,514],[4313,520],[4314,527],[4315,534],[4314,769],[4313,776],[4312,782],[4309,788],[4306,794],[4302,799],[4296,803],[4291,807],[4285,809],[4278,811],[4272,811],[3543,808],[3537,808],[3530,806],[3524,804],[3519,800],[3514,796],[3509,791],[3506,785],[3503,779],[3502,773],[3501,766],[3502,530],[3503,524],[3504,517],[3507,511],[3510,506],[3515,501],[3520,496],[3525,493],[3532,490],[3538,489],[3544,488]],"c":[3908,649],"m":{"r":4,"l":12,"a":12},"v":[45.28,46.26,48.93,50.29,52.63,null,56.13,56.45]},{"b":3,"a":55,"z":80,"ph":1,"poly":[[5027,914],[5033,915],[5040,916],[5046,919],[5051,922],[5056,927],[5061,932],[5064,938],[5067,944],[5068,950],[5069,957],[5068,1167],[5067,1173],[5066,1180],[5063,1186],[5060,1191],[5055,1196],[5050,1200],[5044,1204],[5038,1206],[5032,1208],[5025,1208],[4375,1206],[4369,1205],[4362,1203],[4356,1201],[4351,1197],[4346,1193],[4342,1188],[4338,1182],[4336,1176],[4334,1170],[4334,1163],[4334,953],[4335,947],[4337,940],[4339,934],[4343,929],[4347,924],[4352,919],[4358,916],[4364,913],[4370,912],[4377,911]],"c":[4701,1059],"m":{"r":2,"l":12,"a":12},"v":[43.75,46.52,49.3,50.22,51.93,null,54.95,57.23]},{"b":4,"a":81,"z":92,"ph":2,"poly":[[4278,913],[4284,913],[4291,915],[4297,917],[4303,921],[4308,925],[4312,930],[4315,936],[4318,942],[4319,948],[4320,955],[4319,1147],[4318,1154],[4317,1160],[4314,1166],[4311,1172],[4307,1177],[4302,1181],[4296,1185],[4290,1187],[4283,1189],[4277,1189],[3970,1188],[3963,1187],[3957,1186],[3950,1183],[3945,1180],[3940,1176],[3936,1170],[3932,1165],[3930,1159],[3928,1152],[3928,1146],[3928,953],[3929,947],[3931,940],[3933,934],[3937,929],[3941,924],[3946,919],[3952,916],[3958,913],[3964,912],[3971,911]],"c":[4123,1050],"m":{"r":8,"l":4},"v":[42.89,44.37,44.87,45.71,48.5,null,54.8,58.13]},{"b":5,"a":93,"z":118,"ph":1,"poly":[[5023,1319],[5030,1320],[5036,1321],[5042,1324],[5048,1327],[5053,1331],[5057,1336],[5060,1342],[5063,1348],[5064,1354],[5065,1361],[5065,1572],[5064,1579],[5063,1585],[5060,1591],[5057,1597],[5053,1602],[5048,1606],[5042,1609],[5036,1612],[5030,1614],[5023,1614],[4362,1614],[4355,1614],[4349,1612],[4343,1609],[4337,1606],[4332,1602],[4328,1597],[4325,1591],[4322,1585],[4320,1579],[4320,1572],[4320,1361],[4320,1354],[4322,1348],[4325,1342],[4328,1336],[4332,1331],[4337,1327],[4343,1324],[4349,1321],[4355,1320],[4362,1319]],"c":[4692,1466],"m":{"r":2,"l":12,"a":12},"v":[41.5,43.58,48.52,49.92,51.71,null,55.06,56.65]},{"b":6,"a":119,"z":150,"ph":2,"poly":[[4176,1309],[4183,1309],[4189,1311],[4195,1314],[4201,1317],[4206,1321],[4210,1326],[4213,1332],[4216,1338],[4217,1345],[4218,1351],[4208,2193],[4208,2200],[4206,2206],[4204,2212],[4200,2218],[4196,2223],[4191,2227],[4185,2230],[4179,2233],[4173,2234],[4166,2234],[3950,2232],[3943,2232],[3937,2230],[3931,2227],[3925,2224],[3920,2220],[3916,2214],[3913,2209],[3910,2203],[3909,2196],[3908,2190],[3918,1348],[3918,1341],[3920,1335],[3922,1329],[3926,1323],[3930,1318],[3935,1314],[3941,1311],[3947,1308],[3953,1307],[3960,1306]],"c":[4062,1770],"m":{"l":16,"a":16},"v":[39.41,43.04,43.56,44.34,47.89,null,52.28,54.21]},{"b":7,"a":151,"z":166,"ph":2,"poly":[[3757,901],[3764,902],[3770,903],[3776,906],[3782,909],[3787,913],[3791,918],[3794,924],[3797,930],[3798,936],[3799,943],[3799,1342],[3798,1349],[3797,1355],[3794,1361],[3791,1367],[3787,1372],[3782,1376],[3776,1379],[3770,1382],[3764,1384],[3757,1384],[3549,1384],[3542,1384],[3536,1382],[3530,1379],[3524,1376],[3519,1372],[3515,1367],[3512,1361],[3509,1355],[3508,1349],[3507,1342],[3507,943],[3508,936],[3509,930],[3512,924],[3515,918],[3519,913],[3524,909],[3530,906],[3536,903],[3542,902],[3549,901]],"c":[3653,1142],"m":{"l":8,"a":8},"v":[41.2,42.7,44.78,45.03,48.05,null,55.35,56.66]},{"b":8,"a":167,"z":194,"ph":2,"poly":[[3767,1407],[3773,1408],[3780,1409],[3786,1412],[3791,1415],[3796,1420],[3801,1424],[3804,1430],[3806,1436],[3808,1443],[3809,1449],[3806,2176],[3806,2183],[3804,2189],[3802,2195],[3798,2201],[3794,2206],[3789,2210],[3783,2214],[3777,2216],[3771,2218],[3764,2218],[3547,2218],[3540,2217],[3534,2215],[3528,2213],[3522,2209],[3517,2205],[3513,2200],[3509,2194],[3507,2188],[3505,2182],[3505,2175],[3507,1448],[3508,1442],[3509,1435],[3512,1429],[3515,1424],[3520,1419],[3525,1414],[3530,1411],[3536,1408],[3543,1407],[3549,1406]],"c":[3656,1812],"m":{"r":4,"l":12,"a":12},"v":[39.68,41.48,43.25,43.8,46.46,null,50.48,52.46]},{"b":9,"a":195,"z":204,"ph":3,"poly":[[3332,487],[3338,488],[3345,490],[3351,492],[3356,496],[3361,500],[3366,505],[3369,511],[3371,517],[3373,523],[3373,530],[3372,789],[3371,795],[3369,802],[3367,808],[3363,813],[3359,818],[3354,822],[3348,826],[3342,828],[3336,830],[3329,830],[3138,829],[3132,828],[3125,827],[3119,824],[3113,821],[3108,816],[3104,811],[3101,806],[3098,800],[3097,793],[3096,786],[3098,528],[3099,521],[3100,515],[3103,509],[3106,503],[3111,498],[3116,494],[3122,490],[3128,488],[3134,486],[3141,486]],"c":[3234,658],"m":{"r":6,"l":4},"v":[33.08,39.38,42.45,43.8,43.95,null,50.4,53.35]},{"b":10,"a":205,"z":222,"ph":3,"poly":[[3351,862],[3358,863],[3364,864],[3370,867],[3376,870],[3381,874],[3385,880],[3389,885],[3391,891],[3393,898],[3393,904],[3392,1350],[3391,1357],[3390,1363],[3387,1369],[3384,1375],[3379,1380],[3374,1384],[3369,1388],[3362,1390],[3356,1392],[3350,1392],[3138,1392],[3132,1391],[3126,1389],[3119,1387],[3114,1383],[3109,1379],[3104,1374],[3101,1368],[3099,1362],[3097,1356],[3097,1349],[3098,903],[3099,897],[3100,890],[3103,884],[3106,879],[3110,874],[3116,869],[3121,866],[3127,863],[3134,862],[3140,861]],"c":[3244,1126],"m":{"l":8,"a":8,"r":2},"v":[34.46,38.2,41.27,42.23,43.95,null,45.96,50.58]},{"b":11,"a":223,"z":236,"ph":0,"poly":[[2840,1626],[2840,1641],[2846,1655],[2896,1705],[2973,1747],[3063,1777],[3173,1790],[3218,1807],[3233,1805],[3261,1793],[3275,1793],[3302,1804],[3317,1806],[3330,1803],[3363,1783],[3376,1771],[3383,1757],[3386,1665],[3395,1636],[3395,1620],[3383,1569],[3369,1548],[3319,1516],[3300,1516],[3272,1526],[3258,1526],[3234,1517],[3215,1515],[3177,1527],[3117,1527],[3081,1513],[3027,1499],[3003,1498],[2975,1512],[2872,1587],[2849,1608]],"c":[3220,1659],"m":{"l":4,"a":4,"d":2,"r":4},"v":null},{"b":12,"a":237,"z":258,"ph":3,"poly":[[2922,867],[2746,868],[2722,883],[2710,912],[2709,930],[2715,971],[2707,1019],[2714,1064],[2709,1136],[2715,1189],[2710,1229],[2712,1287],[2709,1312],[2713,1332],[2710,1377],[2718,1408],[2724,1459],[2741,1495],[2751,1536],[2790,1583],[2811,1591],[2826,1589],[2845,1580],[2967,1494],[2983,1480],[2993,1461],[2991,1441],[2969,1406],[2959,1369],[2966,1306],[2960,1281],[2961,1231],[2955,1196],[2964,1144],[2956,1100],[2962,1015],[2955,972],[2963,935],[2963,915],[2950,882],[2938,872]],"c":[2837,1309],"m":{"r":4,"d":2,"l":8,"a":8},"v":[34.01,28.38,29.51,30.42,31.51,null,32.53,34.89]},{"b":13,"a":259,"z":268,"ph":3,"poly":[[2942,492],[2949,492],[2955,494],[2961,497],[2967,500],[2972,504],[2976,509],[2979,515],[2982,521],[2984,527],[2984,534],[2984,789],[2984,796],[2982,802],[2979,808],[2976,814],[2972,819],[2967,823],[2961,826],[2955,829],[2949,830],[2942,831],[2729,831],[2722,830],[2716,829],[2710,826],[2704,823],[2699,819],[2695,814],[2692,808],[2689,802],[2688,796],[2687,789],[2687,534],[2688,527],[2689,521],[2692,515],[2695,509],[2699,504],[2704,500],[2710,497],[2716,494],[2722,492],[2729,492]],"c":[2835,661],"m":{"r":6,"l":4},"v":[40.7,42.25,43.95,44.2,44.2,null,49.6,50.73]},{"b":14,"a":269,"z":278,"ph":4,"poly":[[2547,519],[2554,520],[2560,521],[2566,524],[2572,527],[2577,531],[2581,536],[2584,542],[2587,548],[2588,554],[2589,561],[2589,794],[2588,801],[2587,807],[2584,813],[2581,819],[2577,824],[2572,828],[2566,831],[2560,834],[2554,836],[2547,836],[2373,836],[2366,836],[2360,834],[2354,831],[2348,828],[2343,824],[2339,819],[2336,813],[2333,807],[2332,801],[2331,794],[2331,561],[2332,554],[2333,548],[2336,542],[2339,536],[2343,531],[2348,527],[2354,524],[2360,521],[2366,520],[2373,519]],"c":[2459,677],"m":{"r":6,"l":4},"v":[43.45,44.2,44.45,44.45,44.45,null,48.56,52.3]},{"b":15,"a":279,"z":309,"ph":4,"poly":[[2375,869],[2359,874],[2344,887],[2325,921],[2326,940],[2342,975],[2342,987],[2333,1015],[2333,1032],[2343,1064],[2339,1156],[2345,1195],[2339,1236],[2342,1267],[2339,1317],[2343,1341],[2340,1381],[2346,1408],[2345,1453],[2354,1482],[2357,1521],[2371,1559],[2376,1593],[2391,1625],[2402,1664],[2420,1694],[2430,1729],[2452,1759],[2468,1794],[2480,1809],[2508,1834],[2531,1838],[2549,1832],[2574,1813],[2596,1771],[2645,1730],[2656,1704],[2648,1670],[2627,1639],[2614,1603],[2599,1577],[2584,1516],[2586,903],[2580,887],[2572,878],[2549,869]],"c":[2462,1019],"m":{"l":8,"a":8,"r":15},"v":[21.26,22.81,22.85,22.94,22.94,null,23.28,23.61]},{"b":16,"a":310,"z":336,"ph":0,"poly":[[2548,1867],[2547,1887],[2559,1919],[2563,1952],[2574,1976],[2585,1988],[2616,2003],[2637,2022],[2668,2039],[2693,2061],[2727,2077],[2756,2098],[2787,2109],[2819,2129],[2848,2136],[2878,2152],[2912,2159],[2949,2175],[2983,2177],[3013,2186],[3045,2187],[3080,2195],[3117,2193],[3174,2200],[3219,2217],[3234,2215],[3262,2203],[3280,2204],[3307,2215],[3325,2215],[3369,2190],[3382,2172],[3386,2065],[3392,2036],[3384,1984],[3378,1969],[3367,1957],[3328,1933],[3310,1930],[3279,1939],[3264,1939],[3237,1928],[3220,1926],[3179,1944],[3125,1947],[3089,1936],[3052,1939],[2989,1927],[2960,1913],[2927,1905],[2892,1885],[2864,1875],[2839,1856],[2809,1841],[2786,1818],[2758,1802],[2720,1764],[2700,1750],[2682,1744],[2656,1750],[2589,1798],[2574,1815]],"c":[3233,2071],"m":{"r":19,"l":4,"a":4},"v":null},{"b":17,"a":337,"z":355,"ph":0,"poly":[[4650,2336],[4657,2336],[4663,2338],[4669,2341],[4675,2344],[4680,2348],[4684,2353],[4687,2359],[4690,2365],[4692,2371],[4692,2378],[4692,2466],[4692,2473],[4690,2479],[4687,2485],[4684,2491],[4680,2496],[4675,2500],[4669,2503],[4663,2506],[4657,2508],[4650,2508],[3510,2508],[3503,2508],[3497,2506],[3491,2503],[3485,2500],[3480,2496],[3476,2491],[3473,2485],[3470,2479],[3468,2473],[3468,2466],[3468,2378],[3468,2371],[3470,2365],[3473,2359],[3476,2353],[3480,2348],[3485,2344],[3491,2341],[3497,2338],[3503,2336],[3510,2336]],"c":[4080,2421],"m":{"r":12,"l":2,"d":5},"v":null},{"b":18,"a":356,"z":374,"ph":0,"poly":[[2323,2078],[2321,2098],[2327,2112],[2368,2158],[2416,2206],[2485,2262],[2530,2284],[2563,2320],[2586,2352],[2673,2399],[2773,2439],[2843,2461],[2958,2487],[3078,2476],[3118,2481],[3149,2496],[3173,2501],[3406,2500],[3433,2490],[3446,2472],[3450,2450],[3450,2405],[3440,2378],[3423,2366],[3394,2358],[3364,2355],[3330,2339],[3312,2339],[3278,2355],[3232,2362],[3040,2356],[2979,2346],[2952,2337],[2922,2334],[2892,2323],[2860,2317],[2748,2275],[2715,2255],[2687,2245],[2664,2227],[2625,2209],[2590,2177],[2551,2127],[2526,2110],[2484,2071],[2450,2033],[2421,2014],[2403,2011],[2376,2020],[2357,2036]],"c":[3050,2412],"m":{"r":17,"l":2},"v":null},{"b":19,"a":375,"z":402,"ph":0,"poly":[[2210,1409],[2189,1363],[2145,1331],[2126,1325],[2088,1335],[2074,1335],[2033,1323],[1978,1347],[1957,1346],[1923,1328],[1910,1325],[1871,1336],[1856,1336],[1832,1327],[1813,1325],[1771,1345],[1746,1347],[1693,1324],[1652,1335],[1638,1335],[1597,1324],[1552,1343],[1435,1361],[1350,1394],[1294,1433],[1287,1448],[1287,1462],[1298,1485],[1389,1598],[1406,1614],[1419,1620],[1435,1621],[1482,1613],[1517,1603],[1551,1605],[1590,1595],[1632,1591],[1658,1594],[1703,1591],[1719,1594],[1765,1592],[1785,1596],[1830,1594],[1852,1603],[1879,1622],[1898,1626],[1915,1621],[1941,1603],[1957,1599],[1998,1600],[2038,1616],[2053,1614],[2081,1602],[2095,1602],[2133,1612],[2152,1606],[2182,1587],[2195,1574],[2201,1558],[2201,1458],[2210,1425]],"c":[1850,1470],"m":{"l":8,"a":8,"r":12},"v":null},{"b":20,"a":403,"z":428,"ph":0,"poly":[[1258,1480],[1233,1482],[1196,1508],[1164,1552],[1138,1578],[1118,1626],[1099,1654],[1089,1696],[1075,1729],[1073,1765],[1062,1796],[1058,1839],[1045,1882],[1022,1922],[1029,1970],[1009,2014],[1010,2033],[1021,2061],[1020,2086],[1013,2102],[996,2121],[987,2139],[993,2184],[974,2227],[975,2245],[995,2293],[1005,2305],[1019,2312],[1093,2316],[1135,2327],[1198,2332],[1214,2326],[1224,2317],[1244,2278],[1243,2228],[1269,2178],[1265,2142],[1267,2087],[1277,2048],[1277,2021],[1285,1995],[1287,1965],[1296,1938],[1298,1904],[1307,1872],[1307,1844],[1315,1815],[1317,1788],[1342,1725],[1366,1696],[1388,1652],[1387,1632],[1374,1610],[1280,1494]],"c":[1158,1953],"m":{"r":14,"l":6,"a":6},"v":null},{"b":21,"a":429,"z":464,"ph":0,"poly":[[995,1170],[970,1170],[938,1187],[914,1216],[879,1247],[863,1273],[839,1296],[825,1323],[801,1351],[784,1385],[765,1410],[748,1451],[733,1473],[724,1505],[707,1534],[701,1568],[686,1600],[682,1633],[669,1668],[668,1699],[657,1737],[655,1769],[640,1817],[617,1857],[624,1906],[604,1949],[605,1968],[617,1999],[617,2016],[609,2039],[588,2068],[589,2123],[568,2163],[569,2181],[588,2230],[599,2244],[612,2251],[669,2267],[723,2262],[807,2285],[825,2279],[834,2271],[865,2215],[866,2195],[858,2162],[870,2129],[871,2110],[858,2076],[858,2056],[865,2035],[891,2008],[898,1993],[893,1948],[907,1914],[908,1896],[896,1866],[895,1847],[900,1812],[914,1771],[913,1738],[922,1683],[935,1653],[941,1620],[956,1594],[968,1555],[984,1534],[999,1503],[1020,1479],[1033,1454],[1057,1429],[1070,1407],[1103,1377],[1125,1337],[1125,1322],[1114,1301],[1021,1190]],"c":[763,1899],"m":{"l":8,"a":8,"r":20},"v":null},{"b":22,"a":465,"z":502,"ph":4,"poly":[[2212,1095],[2197,1052],[2198,1003],[2193,964],[2178,944],[2131,914],[2115,913],[2084,919],[2038,907],[2023,911],[1997,931],[1979,937],[1958,936],[1924,918],[1905,915],[1867,929],[1811,923],[1767,939],[1732,938],[1697,927],[1658,937],[1644,937],[1612,920],[1593,917],[1551,933],[1489,942],[1455,941],[1424,950],[1385,953],[1348,966],[1315,970],[1282,985],[1248,992],[1217,1010],[1179,1022],[1158,1037],[1121,1052],[1098,1070],[1060,1089],[1026,1124],[1021,1136],[1021,1150],[1032,1172],[1130,1289],[1151,1304],[1166,1306],[1210,1292],[1239,1272],[1273,1258],[1292,1244],[1326,1233],[1355,1218],[1413,1201],[1529,1184],[1590,1188],[1631,1198],[1666,1188],[1723,1183],[1774,1189],[1802,1202],[1819,1204],[1868,1182],[1924,1186],[1959,1181],[1990,1185],[2032,1204],[2073,1193],[2087,1193],[2116,1206],[2139,1207],[2181,1189],[2193,1177],[2199,1160],[2200,1135]],"c":[1835,1060],"m":{"r":18,"l":10,"a":10},"v":[26.16,32.04,35.53,37.23,42.78,null,44.17,44.17]},{"b":23,"a":503,"z":550,"ph":4,"poly":[[2192,565],[2183,546],[2166,534],[2134,528],[2082,531],[2033,510],[2016,513],[1993,526],[1972,531],[1899,528],[1853,532],[1821,527],[1762,532],[1710,528],[1632,531],[1598,526],[1565,530],[1521,528],[1501,532],[1452,533],[1424,539],[1393,539],[1361,547],[1329,549],[1296,559],[1263,562],[1233,574],[1197,579],[1169,592],[1136,599],[1108,613],[1078,620],[1049,637],[1015,647],[984,666],[955,676],[931,694],[900,707],[874,727],[846,740],[818,764],[785,783],[761,811],[755,825],[755,841],[768,866],[861,976],[880,991],[900,995],[939,982],[1016,926],[1043,915],[1075,894],[1096,888],[1123,871],[1150,862],[1174,848],[1209,840],[1234,828],[1267,821],[1296,809],[1324,806],[1357,795],[1384,793],[1415,784],[1448,783],[1475,777],[1513,779],[1532,775],[1666,774],[1720,777],[1745,785],[1778,788],[1813,800],[1864,792],[1905,803],[1919,799],[1945,779],[1963,773],[1991,775],[2030,791],[2049,788],[2077,775],[2093,775],[2123,784],[2138,783],[2181,763],[2195,739],[2199,668]],"c":[1822,661],"m":{"l":10,"a":10,"r":28},"v":[19.1,19.5,19.5,19.5,19.5,null,19.88,19.88]},{"b":24,"a":551,"z":596,"ph":0,"poly":[[731,861],[705,859],[672,875],[646,905],[613,931],[598,953],[574,975],[559,999],[535,1022],[517,1052],[495,1074],[479,1104],[458,1127],[441,1159],[419,1185],[409,1214],[390,1242],[382,1269],[362,1300],[354,1329],[338,1356],[330,1390],[313,1418],[307,1449],[292,1483],[289,1513],[277,1545],[275,1575],[264,1605],[263,1639],[255,1668],[253,1702],[237,1757],[219,1791],[219,1808],[227,1841],[204,1887],[204,1903],[214,1932],[213,1954],[204,1974],[176,2000],[171,2009],[169,2054],[157,2090],[161,2112],[173,2130],[186,2162],[196,2174],[207,2180],[268,2188],[320,2210],[343,2212],[390,2205],[405,2199],[418,2186],[431,2160],[434,2102],[449,2049],[453,1991],[460,1971],[480,1946],[486,1932],[480,1885],[501,1841],[501,1825],[492,1786],[501,1748],[520,1713],[516,1680],[516,1622],[527,1592],[530,1561],[544,1530],[551,1500],[564,1476],[572,1443],[589,1415],[600,1384],[615,1361],[627,1326],[691,1228],[763,1137],[842,1060],[859,1028],[858,1009],[846,989],[756,882]],"c":[308,2061],"m":{"r":30,"l":8,"a":8},"v":null}],"villas":[[5019,584,"r",0],[5020,736,"r",0],[4962,586,"l",0],[4959,716,"l",0],[4905,587,"a",0],[4903,713,"a",0],[4874,587,"a",0],[4871,714,"a",0],[4816,585,"l",0],[4813,715,"l",0],[4734,587,"l",0],[4741,714,"l",0],[4690,587,"a",0],[4688,712,"a",0],[4647,586,"a",0],[4644,714,"a",0],[4605,585,"l",0],[4602,714,"l",0],[4522,585,"l",0],[4520,714,"l",0],[4476,586,"a",0],[4476,713,"a",0],[4433,586,"a",0],[4432,714,"a",0],[4388,584,"l",0],[4387,714,"l",0],[4270,564,"r",0],[4271,735,"r",0],[4213,587,"l",0],[4203,716,"l",0],[4164,588,"a",0],[4160,714,"a",0],[4119,587,"a",0],[4113,714,"a",0],[4075,586,"l",0],[4074,716,"l",0],[3996,587,"l",0],[3995,715,"l",0],[3945,587,"a",0],[3946,713,"a",0],[3901,586,"a",0],[3902,714,"a",0],[3857,585,"l",0],[3856,715,"l",0],[3776,585,"l",0],[3771,715,"l",0],[3729,586,"a",0],[3730,714,"a",0],[3682,587,"a",0],[3688,714,"a",0],[3643,586,"l",0],[3640,716,"l",0],[3576,566,"r",0],[3580,735,"r",0],[5020,976,"r",0],[5017,1144,"r",0],[4954,995,"l",0],[4952,1124,"l",0],[4911,997,"a",0],[4908,1123,"a",0],[4866,996,"a",0],[4864,1123,"a",0],[4820,995,"l",0],[4820,1124,"l",0],[4738,995,"l",0],[4734,1124,"l",0],[4692,996,"a",0],[4691,1123,"a",0],[4650,997,"a",0],[4649,1124,"a",0],[4601,995,"l",0],[4600,1124,"l",0],[4520,996,"l",0],[4526,1124,"l",0],[4477,996,"a",0],[4473,1123,"a",0],[4433,996,"a",0],[4432,1124,"a",0],[4390,994,"l",0],[4386,1125,"l",0],[4271,974,"r",0],[4272,1144,"r",0],[4214,975,"r",0],[4213,1145,"r",0],[4151,995,"l",0],[4150,1125,"l",0],[4111,994,"l",0],[4110,1124,"l",0],[4048,975,"r",0],[4047,1144,"r",0],[3988,975,"r",0],[3988,1144,"r",0],[5018,1384,"r",0],[5018,1554,"r",0],[4954,1404,"l",0],[4958,1533,"l",0],[4914,1404,"a",0],[4911,1530,"a",0],[4873,1404,"a",0],[4868,1530,"a",0],[4822,1403,"l",0],[4816,1530,"l",0],[4740,1405,"l",0],[4740,1530,"l",0],[4693,1404,"a",0],[4693,1530,"a",0],[4646,1404,"a",0],[4647,1530,"a",0],[4600,1403,"l",0],[4602,1530,"l",0],[4520,1403,"l",0],[4523,1531,"l",0],[4475,1404,"a",0],[4477,1531,"a",0],[4430,1404,"a",0],[4432,1530,"a",0],[4386,1405,"l",0],[4387,1530,"l",0],[4128,1375,"l",0],[3999,1375,"l",0],[4128,1422,"a",0],[3999,1422,"a",0],[4128,1467,"a",0],[3998,1467,"a",0],[4128,1513,"l",0],[3998,1513,"l",0],[4127,1596,"l",0],[3999,1593,"l",0],[4126,1642,"a",0],[3999,1639,"a",0],[4126,1687,"a",0],[3998,1684,"a",0],[4126,1733,"l",0],[3998,1730,"l",0],[4128,1808,"l",0],[3999,1811,"l",0],[4127,1855,"a",0],[3999,1857,"a",0],[4126,1902,"a",0],[3999,1903,"a",0],[4126,1948,"l",0],[3998,1948,"l",0],[4127,2025,"l",0],[3999,2026,"l",0],[4127,2072,"a",0],[3999,2072,"a",0],[4126,2119,"a",0],[3998,2119,"a",0],[4127,2164,"l",0],[3997,2165,"l",0],[3717,984,"l",0],[3589,982,"l",0],[3717,1030,"a",0],[3589,1028,"a",0],[3717,1075,"a",0],[3588,1076,"a",0],[3718,1119,"l",0],[3588,1120,"l",0],[3717,1195,"l",0],[3590,1194,"l",0],[3717,1241,"a",0],[3590,1239,"a",0],[3718,1286,"a",0],[3589,1284,"a",0],[3718,1332,"l",0],[3589,1330,"l",0],[3738,1448,"r",0],[3569,1446,"r",0],[3718,1507,"l",0],[3590,1508,"l",0],[3718,1556,"a",0],[3590,1554,"a",0],[3718,1601,"a",0],[3589,1600,"a",0],[3717,1648,"l",0],[3588,1645,"l",0],[3716,1727,"l",0],[3590,1725,"l",0],[3717,1772,"a",0],[3590,1771,"a",0],[3717,1819,"a",0],[3589,1819,"a",0],[3718,1865,"l",0],[3589,1866,"l",0],[3718,1940,"l",0],[3591,1941,"l",0],[3718,1987,"a",0],[3590,1989,"a",0],[3717,2035,"a",0],[3589,2037,"a",0],[3717,2082,"l",0],[3588,2083,"l",0],[3740,2145,"r",0],[3569,2143,"r",0],[3330,566,"r",0],[3160,565,"r",0],[3330,616,"r",0],[3160,618,"r",0],[3312,682,"l",0],[3177,682,"l",0],[3312,728,"l",0],[3177,727,"l",0],[3330,787,"r",0],[3160,788,"r",0],[3310,901,"l",0],[3180,901,"l",0],[3310,946,"a",0],[3181,947,"a",0],[3309,991,"a",0],[3181,991,"a",0],[3310,1036,"l",0],[3181,1039,"l",0],[3309,1114,"l",0],[3181,1114,"l",0],[3309,1162,"a",0],[3181,1161,"a",0],[3309,1209,"a",0],[3180,1207,"a",0],[3309,1256,"l",0],[3180,1254,"l",0],[3328,1316,"r",0],[3160,1317,"r",0],[3337,1601,"l",0],[3337,1730,"l",0],[3290,1600,"a",0],[3291,1729,"a",0],[3244,1599,"a",0],[3245,1728,"a",0],[3198,1598,"l",0],[3199,1728,"l",0],[3125,1595,"d",0],[3137,1749,"r",0],[3038,1564,"d",0],[3054,1736,"r",0],[2975,1706,"r",0],[2905,1662,"r",0],[2801,1539,"r",0],[2935,1461,"d",0],[2770,1466,"r",0],[2906,1336,"d",0],[2753,1389,"r",0],[2900,1262,"l",0],[2751,1326,"r",0],[2899,1215,"a",0],[2770,1264,"l",0],[2899,1167,"a",0],[2770,1217,"a",0],[2900,1120,"l",0],[2771,1171,"a",0],[2901,1044,"l",0],[2771,1125,"l",0],[2900,998,"a",0],[2772,1043,"l",0],[2900,951,"a",0],[2772,998,"a",0],[2901,905,"l",0],[2772,951,"a",0],[2771,905,"l",0],[2920,794,"r",0],[2751,796,"r",0],[2900,734,"l",0],[2768,734,"l",0],[2901,688,"l",0],[2768,688,"l",0],[2919,624,"r",0],[2750,624,"r",0],[2920,572,"r",0],[2750,571,"r",0],[2550,568,"r",0],[2380,572,"r",0],[2550,628,"r",0],[2380,625,"r",0],[2531,688,"l",0],[2398,689,"l",0],[2530,734,"l",0],[2398,734,"l",0],[2548,796,"r",0],[2380,796,"r",0],[2530,907,"l",0],[2401,908,"l",0],[2529,952,"a",0],[2401,953,"a",0],[2530,998,"a",0],[2401,999,"a",0],[2530,1045,"l",0],[2401,1044,"l",0],[2529,1126,"l",0],[2403,1123,"l",0],[2530,1172,"a",0],[2402,1170,"a",0],[2530,1217,"a",0],[2401,1217,"a",0],[2531,1262,"l",0],[2400,1263,"l",0],[2550,1326,"r",0],[2380,1328,"r",0],[2552,1388,"r",0],[2380,1384,"r",0],[2559,1451,"r",0],[2388,1462,"r",0],[2573,1512,"r",1],[2402,1530,"r",0],[2588,1573,"r",1],[2421,1599,"r",0],[2603,1634,"r",1],[2446,1665,"r",0],[2617,1695,"r",0],[2478,1728,"r",0],[2514,1789,"r",0],[2600,1865,"r",1],[2697,1795,"r",0],[2602,1939,"r",0],[2748,1841,"r",0],[2652,1983,"r",0],[2806,1885,"r",0],[2704,2021,"r",0],[2866,1919,"r",0],[2761,2056,"r",0],[2930,1947,"r",0],[2819,2085,"r",0],[2996,1968,"r",0],[2880,2112,"r",0],[3066,1981,"r",0],[2945,2131,"r",0],[3136,1988,"r",0],[3006,2145,"r",0],[3200,2008,"l",0],[3072,2154,"r",0],[3246,2009,"a",0],[3136,2158,"r",0],[3291,2009,"a",0],[3199,2139,"l",0],[3338,2010,"l",0],[3245,2138,"a",0],[3291,2137,"a",0],[3338,2136,"l",0],[4646,2400,"r",0],[4584,2417,"l",0],[4539,2415,"l",0],[4473,2401,"r",0],[4417,2401,"r",0],[4353,2401,"r",0],[4295,2401,"r",0],[4236,2401,"r",0],[4178,2401,"r",0],[4115,2401,"r",0],[4058,2401,"r",0],[3995,2402,"r",0],[3936,2400,"r",0],[3883,2401,"r",0],[3805,2416,"d",0],[3732,2417,"d",0],[3658,2415,"d",0],[3588,2416,"d",0],[3515,2415,"d",0],[3406,2402,"r",0],[3343,2417,"l",0],[3299,2415,"l",0],[3232,2401,"r",0],[3177,2401,"r",0],[3115,2400,"r",0],[3048,2394,"r",0],[2982,2386,"r",0],[2927,2375,"r",0],[2864,2359,"r",0],[2802,2340,"r",0],[2742,2316,"r",0],[2683,2287,"r",0],[2628,2258,"r",0],[2596,2217,"r",1],[2558,2189,"r",0],[2509,2147,"r",0],[2461,2105,"r",0],[2415,2058,"r",0],[2156,1532,"l",0],[2150,1407,"l",0],[2110,1533,"a",0],[2102,1406,"a",0],[2064,1534,"a",0],[2056,1405,"a",0],[2018,1535,"l",0],[2009,1404,"l",0],[1952,1555,"r",0],[1933,1406,"l",0],[1893,1555,"r",0],[1887,1405,"a",0],[1834,1555,"r",0],[1840,1405,"a",0],[1778,1555,"r",0],[1794,1404,"l",0],[1712,1554,"r",0],[1717,1406,"l",0],[1655,1554,"r",0],[1670,1406,"a",0],[1596,1555,"r",0],[1624,1405,"a",0],[1539,1556,"r",0],[1577,1404,"l",0],[1457,1576,"r",0],[1515,1387,"r",0],[1427,1407,"r",0],[1354,1437,"r",0],[1232,1530,"r",0],[1336,1664,"r",0],[1184,1588,"r",0],[1300,1726,"r",0],[1146,1654,"r",0],[1277,1796,"r",0],[1119,1725,"r",0],[1268,1854,"r",0],[1105,1793,"r",0],[1258,1913,"r",0],[1096,1851,"r",0],[1249,1972,"r",0],[1105,1911,"l",0],[1239,2030,"r",0],[1098,1959,"a",0],[1230,2090,"r",0],[1091,2007,"a",0],[1200,2148,"l",0],[1083,2054,"l",0],[1191,2195,"a",0],[1071,2126,"l",0],[1184,2240,"a",0],[1064,2173,"a",0],[1177,2286,"l",0],[1056,2220,"a",0],[1049,2267,"l",0],[772,2219,"l",0],[644,2204,"l",0],[778,2174,"a",0],[653,2157,"a",0],[785,2129,"a",0],[661,2109,"a",0],[796,2079,"l",0],[666,2061,"l",0],[807,2011,"l",0],[678,1989,"l",0],[814,1964,"a",0],[687,1941,"a",0],[822,1916,"a",0],[694,1893,"a",0],[830,1868,"l",0],[702,1845,"l",0],[861,1811,"r",0],[693,1786,"r",0],[870,1753,"r",0],[702,1728,"r",0],[882,1690,"r",0],[713,1664,"r",0],[899,1626,"r",0],[729,1600,"r",0],[924,1562,"r",0],[751,1539,"r",0],[956,1504,"r",0],[778,1476,"r",0],[992,1447,"r",0],[809,1418,"r",0],[1033,1391,"r",0],[845,1362,"r",0],[1080,1344,"r",0],[884,1308,"r",0],[927,1258,"r",0],[972,1212,"r",0],[1182,1262,"r",0],[1072,1131,"r",0],[1238,1229,"r",0],[1129,1095,"r",0],[1297,1200,"r",0],[1188,1064,"r",0],[1359,1179,"r",0],[1248,1038,"r",0],[1421,1162,"r",0],[1313,1014,"r",0],[1485,1150,"r",0],[1378,996,"r",0],[1551,1147,"r",0],[1444,984,"r",0],[1612,1145,"r",0],[1514,977,"r",0],[1671,1146,"r",0],[1578,995,"l",0],[1730,1145,"r",0],[1624,996,"a",0],[1795,1126,"l",0],[1670,997,"a",0],[1841,1126,"a",0],[1716,997,"l",0],[1887,1125,"a",0],[1794,995,"l",0],[1932,1126,"l",0],[1840,996,"a",0],[2009,1124,"l",0],[1886,997,"a",0],[2056,1125,"a",0],[1933,997,"l",0],[2104,1125,"a",0],[2010,995,"l",0],[2151,1126,"l",0],[2057,996,"a",0],[2103,996,"a",0],[2150,996,"l",0],[2149,715,"l",0],[2150,586,"l",0],[2102,715,"a",0],[2103,587,"a",0],[2056,716,"a",0],[2056,587,"a",0],[2010,717,"l",0],[2010,588,"l",0],[1932,715,"l",0],[1934,587,"l",0],[1886,716,"a",0],[1888,587,"a",0],[1840,716,"a",0],[1841,588,"a",0],[1794,717,"l",0],[1795,588,"l",0],[1731,736,"r",0],[1717,588,"l",0],[1671,737,"r",0],[1670,587,"a",0],[1612,736,"r",0],[1624,587,"a",0],[1552,738,"r",0],[1578,586,"l",0],[1488,740,"r",0],[1515,568,"r",0],[1425,746,"r",0],[1448,572,"r",0],[1365,756,"r",0],[1384,580,"r",0],[1301,770,"r",0],[1322,592,"r",0],[1242,787,"r",0],[1261,604,"r",0],[1181,807,"r",0],[1199,621,"r",0],[1124,831,"r",0],[1137,642,"r",0],[1068,858,"r",0],[1079,664,"r",0],[1013,888,"r",0],[1020,691,"r",0],[960,919,"r",0],[963,719,"r",0],[907,955,"r",0],[908,752,"r",0],[854,784,"r",0],[802,822,"r",0],[819,1028,"r",0],[707,900,"r",0],[772,1074,"r",0],[664,942,"r",0],[730,1119,"r",0],[620,988,"r",0],[689,1169,"r",0],[579,1035,"r",0],[651,1220,"r",0],[540,1084,"r",0],[616,1275,"r",0],[502,1136,"r",0],[585,1329,"r",0],[468,1191,"r",0],[556,1385,"r",0],[438,1246,"r",0],[531,1445,"r",0],[408,1300,"r",0],[509,1504,"r",0],[381,1360,"r",0],[494,1565,"r",0],[359,1418,"r",0],[476,1628,"r",0],[338,1478,"r",0],[465,1688,"r",0],[322,1539,"r",0],[446,1745,"r",0],[308,1600,"r",0],[426,1803,"l",0],[298,1662,"r",0],[418,1851,"a",0],[289,1715,"r",0],[410,1898,"a",0],[298,1782,"l",0],[402,1945,"l",0],[291,1829,"a",0],[390,2021,"l",0],[284,1876,"a",0],[383,2067,"a",0],[276,1923,"l",0],[376,2112,"a",0],[263,1997,"l",0],[369,2158,"l",0],[256,2044,"a",0],[249,2091,"a",0],[241,2138,"l",0]],"phases":{"1":[44.54,46.6,49.66,51,52.68,null,62.7,63.5],"2":[40.8,42.9,44.12,44.72,47.73,null,52,53.5],"3":[35.56,37.05,39.3,40.16,40.9,null,46.4,47.5],"4":[27.49,29.64,30.58,31.03,32.42,null,34.7,34.7]},"total":[37.1,39.05,40.91,41.73,43.43,null,48.95,49.8],"override":{"2026-08":true,"2026-09":true}};
+/* ---------- بيانات حيّة: نفس مصدر تبويب «تقدم التنفيذ» (progress_matrix_v + progress_blocks + progress_month_notes).
+   النسخة المضمّنة أعلاه احتياط فقط لو تعذّر الاتصال. ---------- */
+const SB = "https://codnqkeycfhznzbqlpds.supabase.co/rest/v1/", KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
+async function sb(q) { const r = await fetch(SB + q, { headers: { apikey: KEY, Authorization: "Bearer " + KEY } }); if (!r.ok) throw new Error(q + " " + r.status); return r.json(); }
+let LIVE = false;
+try {
+  const [rows, blk, notes] = await Promise.all([sb("progress_matrix_v?select=month,phases,blocks&order=month"), sb("progress_blocks?select=block_number,phase,sort_order"), sb("progress_month_notes?select=month,note")]);
+  if (!Array.isArray(rows) || !rows.length) throw new Error("empty");
+  const by = new Map(rows.map((r) => [r.month, r]));
+  const keys = [...by.keys()].sort(), first = keys[0], last = keys[keys.length - 1];
+  const months = []; let [y, m] = first.split("-").map(Number);
+  for (let i = 0; i < 240; i++) { const k = y + "-" + String(m).padStart(2, "0"); months.push(k); if (k === last) break; m++; if (m > 12) { m = 1; y++; } }
+  const val = (o, k) => (o && o[k] != null ? +o[k] : null);
+  const phOf = new Map((blk || []).map((r) => [+r.block_number, +String(r.phase).replace("p", "")]));
+  const tracked = new Set(); rows.forEach((r) => Object.keys(r.blocks || {}).forEach((b) => tracked.add(+b)));
+  D.blocks.forEach((b) => {
+    if (phOf.has(b.b)) b.ph = phOf.get(b.b);
+    b.v = tracked.has(b.b) ? months.map((k) => val((by.get(k) || {}).blocks, String(b.b))) : null;
+  });
+  D.months = months;
+  D.phases = {}; [1, 2, 3, 4].forEach((p) => { D.phases[p] = months.map((k) => val((by.get(k) || {}).phases, "p" + p)); });
+  D.total = months.map((k) => val((by.get(k) || {}).phases, "total"));
+  D.gap = {}; (notes || []).forEach((n) => { if (months.includes(n.month) && !by.has(n.month)) D.gap[n.month] = n.note; });
+  months.forEach((k) => { if (!by.has(k) && !D.gap[k]) D.gap[k] = "لا يوجد تقرير تقدّم لهذا الشهر"; });
+  LIVE = true;
+} catch (e) { /* احتياط: النسخة المضمّنة */ }
+
+const W = D.W, H = D.H;
+const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const mName = (k) => MONTHS[+k.slice(5, 7) - 1] + " " + k.slice(0, 4);
+const mOnly = (k) => MONTHS[+k.slice(5, 7) - 1];
+const LAST = D.months.length - 1;
+const PREV = (() => { for (let i = LAST - 1; i >= 0; i--) if (D.total[i] != null) return i; return -1; })();
+const PH = { 1: "المرحلة الأولى", 2: "المرحلة الثانية", 3: "المرحلة الثالثة", 4: "المرحلة الرابعة" };
+const MOD = {
+  a: { n: "آمانيثير", t: "تاون هاوس", nsa: "259.77", plot: "200" },
+  l: { n: "ألبا", t: "فيلا شبه متصلة", nsa: "275.71", plot: "250" },
+  r: { n: "أورورا", t: "فيلا مستقلة", nsa: "290.85", plot: "250–349.55" },
+  d: { n: "البادا", t: "فيلا مستقلة", nsa: "323.72", plot: "330–440.42" },
+};
+const MOD_ORDER = ["r", "l", "a", "d"];
+const BY = {}; D.blocks.forEach((b) => (BY[b.b] = b));
+const blockOf = (n) => D.blocks.find((b) => n >= b.a && n <= b.z);
+const lastV = (b) => (b.v ? b.v[LAST] : null);
+const prevV = (b) => (b.v && PREV >= 0 ? b.v[PREV] : null);
+const deltaV = (b) => (lastV(b) != null && prevV(b) != null ? +(lastV(b) - prevV(b)).toFixed(2) : null);
+const stalled = (b) => { const d = deltaV(b); return d != null && Math.abs(d) < 0.2; };
+const f2 = (v) => v.toFixed(2);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const N = (v) => `<span class="num">${v}</span>`;
+const tracked = D.blocks.filter((b) => b.v);
+const rankOf = (b) => [...tracked].sort((x, y) => lastV(y) - lastV(x)).findIndex((x) => x.b === b.b) + 1;
+const toLatin = (s) => String(s).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+const app = document.getElementById("app"), wrap = document.getElementById("wrap");
+const panel = document.getElementById("panel"), legend = document.getElementById("legend");
+document.getElementById("lastm").textContent = mName(D.months[LAST]);
+const gapKeys = Object.keys(D.gap || {});
+document.getElementById("gapnote").textContent = gapKeys.map((k) => `${mName(k)}: ${D.gap[k]}.`).join(" ");
+if (!LIVE) document.getElementById("gapnote").textContent += " تعذّر تحديث البيانات الآن، المعروض آخر نسخة محفوظة.";
+
+/* ---------- colour helpers (OKLab mix of the progress ramp tokens) ---------- */
+const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const gam = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+function hex2lab(h) {
+  h = h.trim(); if (h.length === 4) h = "#" + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+  const [r, g, b] = [1, 3, 5].map((i) => lin(parseInt(h.slice(i, i + 2), 16) / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+}
+function lab2hex([L, a, b]) {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3, s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+  return "#" + rgb.map((v) => Math.round(Math.min(1, Math.max(0, gam(Math.min(1, Math.max(0, v))))) * 255).toString(16).padStart(2, "0")).join("");
+}
+function rampAt(t) {
+  const cs = getComputedStyle(document.documentElement);
+  const st = [0, 1, 2, 3, 4].map((i) => hex2lab(cs.getPropertyValue("--pr" + i) || "#888888"));
+  t = Math.min(1, Math.max(0, t)) * 4; const i = Math.min(3, Math.floor(t)), f = t - i;
+  return lab2hex(st[i].map((v, k) => v + (st[i + 1][k] - v) * f));
+}
+
+/* ---------- map ---------- */
+const LL = (x, y) => L.latLng(H - y, x);
+const full = L.latLngBounds(LL(0, H), LL(W, 0));
+const map = L.map("map", {
+  crs: L.CRS.Simple, zoomControl: false, attributionControl: false, zoomSnap: 0.1, zoomDelta: 0.5,
+  wheelPxPerZoomLevel: 110, maxZoom: 0.3, minZoom: -7, bounceAtZoomLimits: false, inertia: !reduced,
+  zoomAnimation: !reduced, fadeAnimation: !reduced, maxBounds: full.pad(0.12), maxBoundsViscosity: 0.85,
+});
+map.createPane("plan").style.zIndex = 200;
+map.createPane("veil").style.zIndex = 250;
+map.createPane("blk").style.zIndex = 400;
+L.imageOverlay("plan-lo.webp", full, { pane: "plan", className: "plan-img lo", alt: "" }).addTo(map);
+let hi = null;
+function loadHi() {
+  if (hi) return;
+  hi = L.imageOverlay("plan-hi.webp", full, { pane: "plan", className: "plan-img hi", alt: "" });
+  hi.on("load", () => { const el = hi.getElement(); if (el) el.classList.add("ready"); });
+  hi.addTo(map);
+}
+L.rectangle(full, { renderer: L.svg({ pane: "veil" }), className: "veil", interactive: false, stroke: false }).addTo(map);
+const blkR = L.svg({ pane: "blk", padding: 0.6 });
+const polys = {}, pins = {};
+let bb = null;
+D.blocks.forEach((b) => {
+  const ll = b.poly.map(([x, y]) => LL(x, y));
+  L.polygon(ll, { renderer: blkR, className: "halo", interactive: false }).addTo(map);
+  const p = L.polygon(ll, { renderer: blkR, className: `blk ph${b.ph} ${b.v ? "trk" : "untrk"}`, bubblingMouseEvents: false });
+  p.on("click", (e) => onBlockClick(b, e));
+  p.addTo(map); polys[b.b] = p;
+  bb = bb ? bb.extend(p.getBounds()) : L.latLngBounds(p.getBounds().getSouthWest(), p.getBounds().getNorthEast());
+});
+D.blocks.forEach((b) => {
+  const lv = lastV(b);
+  const html = `<div class="pin${b.v ? "" : " nod"}" data-b="${b.b}"><span class="pn">${b.b}</span><span class="pv">${lv != null ? Math.round(lv) + "٪" : "—"}</span>${stalled(b) ? '<span class="stl"></span>' : ""}</div>`;
+  const m = L.marker(LL(b.c[0], b.c[1]), { icon: L.divIcon({ className: "pinw", html, iconSize: null }), keyboard: true, riseOnHover: true, bubblingMouseEvents: false });
+  m.on("click", () => selectBlock(b.b, {}));
+  /* icons only exist once the map has a view, so decorate them on "add" */
+  m.on("add", () => {
+    const el = m.getElement(); if (!el) return;
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectBlock(b.b, {}); } });
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", `بلوك ${b.b}، الفلل من ${b.a} إلى ${b.z}` + (lv != null ? `، الإنجاز ${f2(lv)}٪` : ""));
+  });
+  m.addTo(map); pins[b.b] = m;
+});
+const ring = L.marker(LL(0, 0), { icon: L.divIcon({ className: "vringw", html: '<div class="vring"><b></b></div>', iconSize: null }), interactive: false, keyboard: false });
+
+let FIT = -3;
+const mapEl = document.getElementById("map");
+const bbW = bb.getEast() - bb.getWest(), bbH = bb.getNorth() - bb.getSouth();
+const PAD_T = 54, PAD_B = 12, PAD_X = 10;
+function sizeMap() {
+  if (app.classList.contains("full")) { mapEl.style.height = ""; return; }
+  const cw = mapEl.clientWidth || wrap.clientWidth || 360;
+  mapEl.style.height = Math.max(220, Math.min(640, Math.round(cw * (bbH / bbW) + PAD_T + PAD_B + 6))) + "px";
+}
+function fitZoom() { return map.getBoundsZoom(bb, false, L.point(PAD_X * 2, PAD_T + PAD_B)); }
+function fit(animate) {
+  const z = fitZoom();
+  FIT = z; map.setMinZoom(z - 0.6);
+  map.fitBounds(bb, { paddingTopLeft: [PAD_X, PAD_T], paddingBottomRight: [PAD_X, PAD_B], animate: !!animate && !reduced });
+}
+const Z_VILLA = -1.35;
+function onZoom() {
+  const z = map.getZoom();
+  const zv = z >= Z_VILLA;
+  if (zv !== wrap.classList.contains("zv")) {
+    wrap.classList.toggle("zv", zv);
+    if (zv) toast("اضغط على أي فيلا لعرض تفاصيلها");
+    renderLegend();
+  }
+  if (z > FIT + 0.6) loadHi();
+  wrap.classList.toggle("zt", z >= FIT + 0.7 || mapEl.clientWidth >= 700);
+}
+map.on("zoomend", onZoom);
+map.on("zoom", onZoom);
+const hint = document.getElementById("hint");
+const hideHint = () => hint.classList.add("gone");
+map.on("movestart zoomstart", hideHint);
+let tt = null;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("on");
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove("on"), 2400);
+}
+document.getElementById("zin").onclick = () => map.zoomIn(0.6);
+document.getElementById("zout").onclick = () => map.zoomOut(0.6);
+document.getElementById("zfit").onclick = () => fit(true);
+document.getElementById("zfull").onclick = () => setFull(!app.classList.contains("full"));
+function setFull(on) {
+  app.classList.toggle("full", on);
+  document.getElementById("zfull").setAttribute("aria-pressed", on ? "true" : "false");
+  document.documentElement.style.overflow = on ? "hidden" : "";
+  sizeMap();
+  setTimeout(() => { map.invalidateSize(); onZoom(); }, 30);
+}
+
+/* ---------- state ---------- */
+const S = { mode: "prog", sel: null, pf: 0 };
+function setMode(m) {
+  S.mode = m;
+  wrap.classList.remove("m-prog", "m-phase", "m-plan"); wrap.classList.add("m-" + m);
+  document.querySelectorAll(".seg button").forEach((bt) => bt.setAttribute("aria-pressed", bt.dataset.mode === m ? "true" : "false"));
+  store.set("bmap-mode", m);
+  renderLegend();
+}
+document.querySelectorAll(".seg button").forEach((bt) => (bt.onclick = () => setMode(bt.dataset.mode)));
+function setPF(p) {
+  S.pf = S.pf === p ? 0 : p;
+  [1, 2, 3, 4].forEach((k) => wrap.classList.toggle("pf" + k, S.pf === k));
+  if (S.pf && S.mode === "plan") setMode("phase");
+  if (!S.sel) renderPanel();
+}
+function applySel() {
+  const sb = S.sel ? (S.sel.t === "b" ? S.sel.n : blockOf(S.sel.n).b) : null;
+  wrap.classList.toggle("has-sel", !!sb);
+  D.blocks.forEach((b) => {
+    const p = polys[b.b]._path; if (p) p.classList.toggle("sel", b.b === sb);
+    const pe = pins[b.b].getElement(), pn = pe && pe.querySelector(".pin"); if (pn) pn.classList.toggle("sel", b.b === sb);
+  });
+  if (sb) polys[sb].bringToFront();
+  if (S.sel && S.sel.t === "v") {
+    const v = D.villas[S.sel.n - 1];
+    ring.setLatLng(LL(v[0], v[1])); if (!map.hasLayer(ring)) ring.addTo(map);
+    const lb = ring.getElement() && ring.getElement().querySelector("b"); if (lb) lb.textContent = "فيلا " + S.sel.n;
+  } else if (map.hasLayer(ring)) map.removeLayer(ring);
+}
+function setHash(h) { try { history.replaceState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} }
+function reveal() {
+  if (app.classList.contains("full")) { panel.scrollTop = 0; return; }
+  const r = panel.getBoundingClientRect();
+  if (r.top > innerHeight - 140) window.scrollBy({ top: r.top - innerHeight + 260, behavior: reduced ? "auto" : "smooth" });
+}
+const sheetH = () => (app.classList.contains("full") ? panel.offsetHeight : 0);
+function flyVis(ll, z) {
+  const off = sheetH() / 2, opt = { duration: reduced ? 0 : 0.9, animate: !reduced };
+  if (!off) return map.flyTo(ll, z, opt);
+  map.flyTo(map.unproject(map.project(ll, z).add([0, off]), z), z, opt);
+}
+function selectBlock(n, o) {
+  S.sel = { t: "b", n }; applySel(); renderPanel(); setHash("b" + n);
+  if (o && o.fly) map.flyToBounds(polys[n].getBounds(), { paddingTopLeft: [40, PAD_T + 6], paddingBottomRight: [40, 30 + sheetH()], maxZoom: o.zoomIn ? -0.9 : Math.max(map.getZoom(), FIT + 0.4), duration: reduced ? 0 : 0.7, animate: !reduced });
+  if (o && o.zoomIn) loadHi();
+  if (!o || !o.quiet) reveal();
+}
+function selectVilla(n, o) {
+  S.sel = { t: "v", n }; applySel(); renderPanel(); setHash("v" + n); loadHi();
+  if (o && o.fly) { const v = D.villas[n - 1]; flyVis(LL(v[0], v[1]), Math.max(map.getZoom(), -0.75)); }
+  if (!o || !o.quiet) reveal();
+}
+function clearSel() { S.sel = null; applySel(); renderPanel(); setHash(""); }
+function nearestVilla(b, x, y) {
+  let best = null, bd = 1e9;
+  for (let n = b.a; n <= b.z; n++) { const v = D.villas[n - 1]; const d = Math.hypot(v[0] - x, v[1] - y); if (d < bd) { bd = d; best = n; } }
+  return bd <= 46 ? best : null;
+}
+function onBlockClick(b, e) {
+  hideHint();
+  if (map.getZoom() >= Z_VILLA) { const n = nearestVilla(b, e.latlng.lng, H - e.latlng.lat); if (n) return selectVilla(n, {}); }
+  selectBlock(b.b, {});
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (app.classList.contains("full")) setFull(false); else if (S.sel) clearSel();
+});
+
+/* ---------- search ---------- */
+const q = document.getElementById("q"), qerr = document.getElementById("qerr");
+document.getElementById("find").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const raw = toLatin(q.value).replace(/[^0-9]/g, "");
+  const n = raw ? parseInt(raw, 10) : NaN;
+  if (!(n >= 1 && n <= 596)) { qerr.textContent = "اكتب رقم فيلا من 1 إلى 596"; q.focus(); return; }
+  qerr.textContent = ""; hideHint(); q.blur();
+  selectVilla(n, { fly: true });
+});
+q.addEventListener("input", () => { if (qerr.textContent) qerr.textContent = ""; });
+
+/* ---------- small line chart: block (or project) vs context series ---------- */
+let chartSeq = 0;
+function chart(main, ctx, mainLabel, ctxLabel) {
+  const id = "c" + (++chartSeq), w = 320, h = 118, pl = 26, pr = 10, pt = 10, pb = 22;
+  const xs = (i) => pl + (i * (w - pl - pr)) / (D.months.length - 1);
+  const ys = (v) => pt + (1 - v / 100) * (h - pt - pb);
+  const seg = (arr) => { const out = []; let cur = []; arr.forEach((v, i) => { if (v == null) { if (cur.length) out.push(cur); cur = []; } else cur.push([xs(i), ys(v)]); }); if (cur.length) out.push(cur); return out; };
+  const path = (arr) => seg(arr).map((s) => "M" + s.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L")).join(" ");
+  let g = "";
+  [0, 50, 100].forEach((v) => { g += `<line class="grid" x1="${pl}" x2="${w - pr}" y1="${ys(v)}" y2="${ys(v)}"/><text class="axis" x="${pl - 5}" y="${ys(v) + 3.5}" text-anchor="end">${v}</text>`; });
+  D.months.forEach((k, i) => { if (main[i] == null && D.gap[k]) g += `<text class="gapm" x="${xs(i)}" y="${ys(6)}" text-anchor="middle">لا تقرير</text>`; });
+  g += `<text class="axl" x="${xs(0)}" y="${h - 4}" text-anchor="start">${mOnly(D.months[0])}</text><text class="axl" x="${xs(LAST)}" y="${h - 4}" text-anchor="end">${mOnly(D.months[LAST])}</text>`;
+  if (ctx) g += `<path class="l-ctx" d="${path(ctx)}"/>`;
+  g += `<path class="l-main" d="${path(main)}"/>`;
+  main.forEach((v, i) => { if (v != null) g += `<circle class="dot${i === LAST ? " end" : ""}" cx="${xs(i)}" cy="${ys(v)}" r="${i === LAST ? 4.5 : 3.5}"/>`; });
+  main.forEach((v, i) => { if (v != null) g += `<circle class="hit" data-i="${i}" cx="${xs(i)}" cy="${ys(v)}" r="13"/>`; });
+  const lg = ctx ? `<div class="ctl"><span><i></i>${esc(mainLabel)}</span><span><i class="ctx"></i>${esc(ctxLabel)}</span></div>` : "";
+  setTimeout(() => wireChart(id, main, ctx, mainLabel, ctxLabel, xs, ys, w, h), 0);
+  return `<div class="chart" id="${id}"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(mainLabel)} شهريًا من ${mName(D.months[0])} إلى ${mName(D.months[LAST])}">${g}</svg>${lg}</div>`;
+}
+function wireChart(id, main, ctx, ml, cl, xs, ys, w, h) {
+  const box = document.getElementById(id); if (!box) return;
+  const tip = document.createElement("div"); tip.className = "ctip"; tip.hidden = true; box.appendChild(tip);
+  const show = (i) => {
+    const svg = box.querySelector("svg"), k = svg.clientWidth / w;
+    tip.innerHTML = `${mName(D.months[i])}: <span class="num">${f2(main[i])}٪</span>` + (ctx && ctx[i] != null ? ` · ${esc(cl)} <span class="num">${f2(ctx[i])}٪</span>` : "");
+    tip.style.left = xs(i) * k + "px"; tip.style.top = ys(main[i]) * k + "px"; tip.hidden = false;
+  };
+  box.querySelectorAll(".hit").forEach((c) => {
+    const i = +c.dataset.i;
+    c.addEventListener("pointerenter", () => show(i));
+    c.addEventListener("click", () => show(i));
+    c.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") tip.hidden = true; });
+  });
+}
+
+/* ---------- panel ---------- */
+const swM = (k) => `<i class="sw" style="background:var(--m-${k})"></i>`;
+const swP = (p) => `<i class="sw" style="background:var(--ph${p})"></i>`;
+function modsLine(m) {
+  return `<span class="mods">${MOD_ORDER.filter((k) => m[k]).sort((x, y) => m[y] - m[x]).map((k) => `<span>${swM(k)}${MOD[k].n} ${N(m[k])}</span>`).join("")}</span>`;
+}
+function deltaLine(b) {
+  const d = deltaV(b); if (d == null) return "";
+  const pm = mOnly(D.months[PREV]);
+  if (Math.abs(d) <= 0.05) return `<div class="delta">بدون تغيير عن ${pm}</div>`;
+  return `<div class="delta"><b>${d > 0 ? "+" : ""}${f2(d)}</b> نقطة عن ${pm}</div>`;
+}
+function progBox(b, villaMode) {
+  const v = lastV(b), pv = D.phases[b.ph] ? D.phases[b.ph][LAST] : null;
+  const st = stalled(b) ? `<span class="chip warn">بدون تقدم عن ${mOnly(D.months[PREV])}</span>` : "";
+  return `<div class="prog">
+    <div class="row"><div><div class="kick">${villaMode ? "إنجاز البلوك " + b.b : "نسبة الإنجاز"}</div><div class="big">${f2(v)}<i>٪</i></div></div><div style="text-align:end"><div class="when">${mName(D.months[LAST])}</div>${deltaLine(b)}</div></div>
+    ${st}
+    <div class="meter" aria-hidden="true"><span style="width:${v}%"></span>${pv != null ? `<i class="tick" style="left:${pv}%"><em>${PH[b.ph]} ${f2(pv)}٪</em></i>` : ""}</div>
+    ${chart(b.v, D.phases[b.ph], "البلوك " + b.b, PH[b.ph])}
+    <p class="note">ترتيبه ${N(rankOf(b))} من ${N(tracked.length)} بلوكًا في تقارير المطوّر.</p>
+  </div>`;
+}
+function renderPanel() {
+  const sel = S.sel;
+  if (!sel) return renderSummary();
+  if (sel.t === "b") {
+    const b = BY[sel.n];
+    panel.innerHTML = `
+      <div class="ph"><div><div class="kick">بلوك</div><h2 class="ttl">${b.b}<small>الفلل ${N(b.a)} – ${N(b.z)}</small></h2></div>
+        ${b.ph ? `<span class="chip">${swP(b.ph)}${PH[b.ph]}</span>` : `<span class="chip">غير مدرج بالتقارير</span>`}</div>
+      <dl class="facts">
+        <div><dt>عدد الفلل</dt><dd>${N(b.z - b.a + 1)} فيلا</dd></div>
+        <div><dt>النماذج</dt><dd>${modsLine(b.m)}</dd></div>
+      </dl>
+      ${b.v ? progBox(b, false) : `<p class="note box">ما فيه نسبة إنجاز لهذا البلوك في تقارير التقدّم الشهرية من المطوّر (آخرها ${mName(D.months[LAST])}).</p>`}
+      <div class="acts"><button class="btn pri" data-act="zoomb">قرّب على فلل البلوك</button><button class="btn" data-act="home">رجوع للملخص</button></div>`;
+  } else {
+    const n = sel.n, v = D.villas[n - 1], md = MOD[v[2]], b = blockOf(n);
+    panel.innerHTML = `
+      <div class="ph"><div><div class="kick">فيلا</div><h2 class="ttl">${n}</h2></div><span class="chip">${swM(v[2])}${md.n}</span></div>
+      <dl class="facts">
+        <div><dt>النموذج</dt><dd>${md.n} · ${md.t}</dd></div>
+        <div><dt>مساحة البيع</dt><dd>${N(md.nsa)} م²</dd></div>
+        <div><dt>مساحة الأرض</dt><dd>${N(md.plot)} م²</dd></div>
+        <div><dt>البلوك</dt><dd><button class="lnk" data-act="blk">بلوك ${b.b}</button> · الفلل ${N(b.a)} – ${N(b.z)}${b.ph ? " · " + PH[b.ph] : ""}</dd></div>
+      </dl>
+      ${b.v ? progBox(b, true) : `<p class="note box">بلوك ${b.b} غير مدرج في تقارير التقدّم الشهرية من المطوّر، فما فيه نسبة إنجاز له.</p>`}
+      ${v[3] ? `<p class="note">رقم هذه الفيلا مغطّى بطيّة البروشور، فموقعها محدد من ترتيب الفلل اللي حولها.</p>` : ""}
+      <p class="note">النموذج حسب لون الفيلا في المخطط، والمساحات من المرجع الفني للنماذج.</p>
+      <div class="acts"><button class="btn" data-act="blk">عرض البلوك</button><button class="btn" data-act="home">رجوع للملخص</button></div>`;
+  }
+}
+function renderSummary() {
+  const tl = D.total[LAST], tp = D.total[PREV];
+  const st = tracked.filter(stalled);
+  const untr = D.blocks.filter((b) => !b.v).map((b) => b.b);
+  const mt = {}; D.villas.forEach((v) => (mt[v[2]] = (mt[v[2]] || 0) + 1));
+  panel.innerHTML = `
+    <div class="ph"><div><div class="kick">إجمالي إنجاز المشروع</div><div class="big" style="font-size:34px;margin-top:4px">${f2(tl)}<i>٪</i></div></div>
+      <div style="text-align:end"><div class="when">${mName(D.months[LAST])}</div>${tp != null ? `<div class="delta"><b>+${f2(tl - tp)}</b> نقطة عن ${mOnly(D.months[PREV])}</div>` : ""}</div></div>
+    ${chart(D.total, null, "إجمالي المشروع", "")}
+    <div><p class="sec-h">المراحل · اضغط لإبراز بلوكاتها</p><ul class="phl">
+      ${[1, 2, 3, 4].map((p) => `<li><button type="button" data-pf="${p}" aria-pressed="${S.pf === p}">${swP(p)}<span class="nm">${PH[p]}</span><span class="v">${f2(D.phases[p][LAST])}٪</span><span class="bl">بلوكات ${D.blocks.filter((b) => b.ph === p).map((b) => b.b).join("، ")}</span></button></li>`).join("")}
+    </ul></div>
+    ${st.length ? `<div><p class="sec-h">بدون تقدم عن ${mOnly(D.months[PREV])}</p><div class="chips">${st.map((b) => `<button type="button" data-b="${b.b}">بلوك ${b.b} · ${f2(lastV(b))}٪</button>`).join("")}</div></div>` : ""}
+    <p class="note box">${N(untr.length)} بلوكات ما لها نسبة في تقارير المطوّر: ${untr.join("، ")}.</p>
+    <div><p class="sec-h">النماذج في المشروع (حسب ألوان المخطط)</p>${modsLine(mt)}</div>
+    <p class="note">اضغط على أي بلوك في الخريطة، أو اكتب رقم فيلتك فوق.</p>`;
+}
+panel.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-act],[data-pf],[data-b]"); if (!t) return;
+  if (t.dataset.pf) return setPF(+t.dataset.pf);
+  if (t.dataset.b) return selectBlock(+t.dataset.b, { fly: true, quiet: true });
+  const a = t.dataset.act;
+  if (a === "home") { clearSel(); fit(true); }
+  else if (a === "zoomb") selectBlock(S.sel.n, { fly: true, zoomIn: true, quiet: true });
+  else if (a === "blk") selectBlock(blockOf(S.sel.n).b, { fly: true, quiet: true });
+});
+
+/* ---------- legend ---------- */
+function renderLegend() {
+  const zv = wrap.classList.contains("zv");
+  const modelsLg = MOD_ORDER.map((k) => `<span class="li">${swM(k)}${MOD[k].n}</span>`).join("");
+  let h = "";
+  if (S.mode === "prog" && !zv) {
+    h = `<span class="li"><span class="grad"><span class="bar"></span><span class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100٪</span></span></span></span>
+      <span class="li"><i class="sw dash"></i>بدون نسبة في التقارير</span>
+      <span class="li"><i class="lgstl"></i>بدون تقدم عن ${mOnly(D.months[PREV])}</span>`;
+  } else if (S.mode === "phase" && !zv) {
+    h = [1, 2, 3, 4].map((p) => `<span class="li">${swP(p)}${PH[p]}</span>`).join("") + `<span class="li"><i class="sw dash"></i>غير مدرج بالتقارير</span>`;
+  } else {
+    h = `<span class="li" style="color:var(--ink);font-weight:600">لون الفيلا في المخطط = النموذج:</span>` + modelsLg;
+  }
+  h += `<span class="tip">${zv ? "اضغط على أي فيلا لعرض نموذجها ومساحتها." : "قرّب على المخطط بإصبعين أو بالعجلة لرؤية أرقام الفلل."}</span>`;
+  legend.innerHTML = h;
+}
+
+/* ---------- table ---------- */
+document.getElementById("tbody").innerHTML = D.blocks.map((b) => {
+  const v = lastV(b), d = deltaV(b);
+  return `<tr data-b="${b.b}" tabindex="0"><td><b>بلوك ${b.b}</b></td><td class="n">${b.a} – ${b.z}</td><td class="n">${b.z - b.a + 1}</td><td>${b.ph ? PH[b.ph] : "—"}</td><td class="n">${v != null ? f2(v) + "٪" : "—"}</td><td class="n">${d != null ? (d > 0 ? "+" : "") + f2(d) : "—"}</td></tr>`;
+}).join("");
+const tb = document.getElementById("tbody");
+const pickRow = (tr) => { selectBlock(+tr.dataset.b, { fly: true, quiet: true }); wrap.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" }); };
+tb.addEventListener("click", (e) => { const tr = e.target.closest("tr"); if (tr) pickRow(tr); });
+tb.addEventListener("keydown", (e) => { if (e.key === "Enter") { const tr = e.target.closest("tr"); if (tr) pickRow(tr); } });
+
+/* ---------- theme-aware progress colours ---------- */
+function paint() { D.blocks.forEach((b) => { if (b.v && polys[b.b]._path) polys[b.b]._path.style.setProperty("--pc", rampAt(lastV(b) / 100)); }); }
+paint();
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paint); } catch (e) {}
+new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+
+/* ---------- boot ---------- */
+const sm = store.get("bmap-mode");
+setMode(["prog", "phase", "plan"].includes(sm) ? sm : "prog");
+sizeMap(); map.invalidateSize();
+fit(false);
+paint();
+onZoom();
+const hm = /^#([bv])(\d{1,3})$/.exec(location.hash || "");
+if (hm && hm[1] === "v" && +hm[2] >= 1 && +hm[2] <= 596) selectVilla(+hm[2], { fly: true, quiet: true });
+else if (hm && hm[1] === "b" && BY[+hm[2]]) selectBlock(+hm[2], { fly: true, quiet: true });
+else renderPanel();
+if (/[?&]t\b/.test(location.search)) window.__bmap = { map, LL, D };
+let rz = null;
+addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { const c = map.getCenter(), z = map.getZoom(); sizeMap(); map.invalidateSize(); const old = FIT; const nz = fitZoom(); FIT = nz; map.setMinZoom(nz - 0.6); if (z <= old + 0.05) fit(false); else map.setView(c, z, { animate: false }); onZoom(); }, 120); });
+})();
+</script>
