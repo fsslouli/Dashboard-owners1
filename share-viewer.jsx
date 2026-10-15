@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { THEMES, hideBoot } from "./site-data.jsx";
 import { PublicSite } from "./public-site.jsx";
+import { ShareGuard } from "./share-guard.jsx";
 import { SHARE_MESSAGES, callShare, createTracker, isValidToken, shareTokenFromHash } from "./share-kit.jsx";
 
 const skey = (t) => `share_sid_${t.slice(0, 12)}`;
@@ -157,7 +158,7 @@ export function ShareApp() {
       </Card>
     );
   }
-  if (st === "ready" && shareProp) return <PublicSite share={shareProp} />;
+  if (st === "ready" && shareProp) return (<><PublicSite share={shareProp} /><ShareGuard label={grant?.note} sid={readSid(token)} /></>);
   const m = SHARE_MESSAGES[st] || SHARE_MESSAGES.unknown;
   return <Card title={m.t} text={m.d} />;
 }
