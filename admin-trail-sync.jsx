@@ -9,6 +9,7 @@ import { CAT_ORDER, FLAG_META, isFlagLive } from "./site-data.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import * as Brain from "./import-brain.js";
+import { SchedBtn } from "./schedule-kit.jsx";
 import { AlertTriangle, Check, ChevronDown, ChevronUp, Download, FileSpreadsheet, History, ListPlus, Paperclip, Pencil, PlusCircle, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from "lucide-react";
 
 /* ── تبويب المزامنة والتحرير اليدوي — يكتب فعليًا على جدول inquiries ── */
@@ -489,6 +490,12 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   };
   const startAdd = () => { setEditing("new"); setForm({ ...ADMIN_BLANK_INQ }); };
   const startEdit = (r) => { setEditing(r.id); setForm({ ...r, closed: r.closed, answered: toYesNo(r.answered) }); };
+  const getSchedPatch = async () => {
+    if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return null; }
+    const tf = await autoTranslate(canonicalizeRow(form, categories));
+    const payload = stripCat({ ...tf, answered: toDbBool(tf.answered) });
+    return { patch: editing === "new" ? { ...payload, urgent: false } : payload, label: `${editing === "new" ? "إضافة" : "تعديل"} استفسار${editing === "new" ? "" : " #" + editing}: ${form.note.slice(0, 50)}` };
+  };
   const saveForm = async () => {
     if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return; }
     const translatedForm = await autoTranslate(canonicalizeRow(form, categories));
@@ -779,6 +786,8 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
           )}
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={saveForm} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Check size={15} /> حفظ</button>
+            <SchedBtn T={T} table="inquiries" id={editing === "new" ? null : editing} op={editing === "new" ? "insert" : "update"} getPatch={getSchedPatch} label="جدولة استفسار" text="جدولة النشر" flash={flashToast} onDone={() => { setEditing(null); setForm(null); }}
+              style={{ display: "flex", alignItems: "center", background: "none", color: T.brass, border: `1px solid ${T.brass}66`, borderRadius: 11, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }} />
             <button onClick={() => { setEditing(null); setForm(null); }} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer" }}>إلغاء</button>
           </div>
         </div>

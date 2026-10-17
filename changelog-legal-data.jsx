@@ -13,6 +13,22 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.1.0",
+    dateAr: "17 أكتوبر 2026",
+    dateEn: "October 17, 2026",
+    ar: [
+      "النشر المجدول: تسوي التعديل الحين وتحدد متى يظهر للملاك — بعد ساعة أو ساعتين أو بوقت محدد (بتوقيت الرياض).",
+      "يشتغل على الاستفسارات (إضافة وتعديل) والمعرض (مواضيع وصور ومقاطع) ومقاطع النماذج والمرفقات والروابط الخارجية.",
+      "تبويب جديد «المجدولة»: كل المعلّق بمكان واحد — تحدد وقتًا واحدًا للكل أو لمحدد، أو تنشر الحين، أو تلغي.",
+      "مبني ليقبل الإضافات: نوع جديد يُضاف بسطر واحد بجدول scheduled_targets بدون تعديل أي دالة.",
+    ],
+    en: [
+      "Scheduled publishing: make an edit now and choose when owners see it — in 1h, 2h or at a set time (Riyadh time).",
+      "Works on inquiries, gallery, model videos, attachments and external links; new 'Scheduled' tab manages everything in bulk.",
+      "Extensible: a new schedulable type is one row in scheduled_targets.",
+    ],
+  },
+  {
     version: "6.0.0",
     dateAr: "11 أكتوبر 2026",
     dateEn: "October 11, 2026",

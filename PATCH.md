@@ -1,3 +1,15 @@
+# هذا التحديث (٦.١.٠) — النشر المجدول
+
+## اللي تغيّر
+- زر ساعة بكل عنصر (استفسارات، معرض، مقاطع، مرفقات، روابط) + تبويب «المجدولة» للإدارة الجماعية.
+- ملف جديد `schedule-kit.jsx`.
+
+## قاعدة البيانات (مطلوب)
+- شغّل `migration-scheduled-publishing.sql` مرة وحدة. يفعّل pg_cron ويضيف `scheduled_changes` و`scheduled_targets`.
+- لإضافة نوع جديد مستقبلًا: `insert into scheduled_targets values ('table','الاسم','perm_update','perm_insert أو null');` ثم زر `<SchedBtn />` بالواجهة.
+
+---
+
 # هذا التحديث (٦.٠.٠) — وش سوّيناه ووش باقي عليك
 
 ## اللي تغيّر

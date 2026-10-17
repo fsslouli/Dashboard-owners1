@@ -18,6 +18,7 @@ import {
   Eye, EyeOff, Trash2, Plus, Rows, LayoutGrid, List, LayoutDashboard, Folder, ChevronLeft, ChevronRight, Play,
 } from "lucide-react";
 import { autoTranslateAr } from "./translate-kit.js";
+import { SchedBadge, SchedBtn } from "./schedule-kit.jsx";
 import {
   ACCEPT_DOCS, ATT_BUCKET, AttachmentViewer, KindIcon, LinkField, MEDIA_PUBLIC_COLS, WARN_VIDEO,
   attMetaLine, attTitle, badgeText, sourceLabel, fmtSize, linkFields, toView, uploadAttachmentFile,
@@ -350,6 +351,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
                 <button style={S.ib(false)} onClick={() => toggleTopicPub(t)} title={t.published ? "إخفاء عن الملاك" : "إظهار للملاك"}>
                   {t.published ? <Eye size={16} /> : <EyeOff size={16} />}
                 </button>
+                <SchedBtn T={GT} table="media_topics" id={t.id} patch={{ published: !t.published }} label={`${t.published ? "إخفاء" : "نشر"} موضوع: ${t.title_ar || ""}`} style={S.ib(false)} flash={flashToast} />
                 <button style={S.ib(true)} onClick={() => setConfirmDel({ type: "topic", t })} title="حذف الموضوع"><Trash2 size={15} /></button>
               </span>
             </div>
@@ -390,6 +392,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
                         <button style={S.ib(false)} disabled={j === 0} onClick={() => moveItem(t, j, -1)}><ChevronUp size={14} /></button>
                         <button style={S.ib(false)} disabled={j === t.items.length - 1} onClick={() => moveItem(t, j, 1)}><ChevronDown size={14} /></button>
                         <button style={S.ib(false)} onClick={() => toggleItemPub(t, it)}>{it.published ? <Eye size={14} /> : <EyeOff size={14} />}</button>
+                        <SchedBtn T={GT} table="media_items" id={it.id} patch={{ published: !it.published }} label={`${it.published ? "إخفاء" : "نشر"} عنصر: ${it.title_ar || t.title_ar || ""}`} style={S.ib(false)} flash={flashToast} />
                         <button style={S.ib(true)} onClick={() => setConfirmDel({ type: "item", t, it })}><Trash2 size={13} /></button>
                       </span>
                     </li>

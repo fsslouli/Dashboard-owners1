@@ -16,6 +16,7 @@ import { downloadMeetingSheet, nextMeetingName, openInquiries } from "./admin-me
 import { ATelegramCard } from "./admin-telegram.jsx";
 import { AGalleryTab } from "./gallery-kit.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
+import { AScheduledTab, usePendingCount } from "./schedule-kit.jsx";
 import { ALinksTab } from "./admin-links-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
 import { AdminShell } from "./admin-shell.jsx";
@@ -123,6 +124,7 @@ const ADMIN_TABS = [
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
   { key: "gallery", label: "معرض الموقع", perms: ["manage_gallery"] },
   { key: "links", label: "الروابط الخارجية", perms: ["manage_links"] },
+  { key: "scheduled", label: "المجدولة", perms: ["edit_inquiry", "add_inquiry", "manage_gallery", "manage_media", "manage_links"] },
   { key: "share", label: "روابط المشاركة", perms: ["manage_share"] },
   { key: "site", label: "تخصيص الموقع والنسخ", perms: ["manage_theme"] },
   { key: "labels", label: "تسمية الأقسام", perms: ["manage_theme"] },
@@ -195,6 +197,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "media" && <AMediaTab flashToast={flashToast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
         {activeTab === "gallery" && <AGalleryTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_gallery")} />}
         {activeTab === "links" && <ALinksTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_links")} />}
+        {activeTab === "scheduled" && <AScheduledTab T={T} flashToast={flashToast} log={log} />}
         {activeTab === "share" && <AShareTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_share")} by={profile?.name || session.user.email} />}
         {activeTab === "site" && <SiteCustomPanel supabase={supabase} T={T} log={log} toast={flashToast} canManage={has("manage_theme")} />}
         {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_theme")} />}

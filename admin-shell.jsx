@@ -6,7 +6,7 @@
    ═══════════════════════════════════════════════════════════ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity, BarChart3, Bell, Clapperboard, ExternalLink, FileSpreadsheet, FileText, Filter, History,
+  Activity, AlarmClock, BarChart3, Bell, Clapperboard, ExternalLink, FileSpreadsheet, FileText, Filter, History,
   Images, LayoutDashboard, Link2, LogOut, Menu, MousePointerClick, Palette, PenLine, Search, ShieldCheck,
   Type, Users, X, Layers, Wand2,
 } from "lucide-react";
@@ -14,14 +14,14 @@ import {
 export const ADMIN_NAV_GROUPS = [
   { title: "الرئيسية", keys: ["dashboard", "brief"] },
   { title: "البيانات", keys: ["sync", "filters"] },
-  { title: "محتوى الموقع", keys: ["site", "notices", "media", "gallery", "links", "labels", "theme"] },
+  { title: "محتوى الموقع", keys: ["site", "notices", "media", "gallery", "links", "scheduled", "labels", "theme"] },
   { title: "التحليلات", keys: ["analytics", "insights"] },
   { title: "المشاركة", keys: ["share"] },
   { title: "النظام", keys: ["audit", "users", "security"] },
 ];
 const ICONS = {
   dashboard: LayoutDashboard, brief: FileText, sync: FileSpreadsheet, filters: Filter, notices: Bell,
-  media: Clapperboard, gallery: Images, links: ExternalLink, labels: Type, theme: Palette,
+  media: Clapperboard, gallery: Images, links: ExternalLink, scheduled: AlarmClock, labels: Type, theme: Palette,
   analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users, security: ShieldCheck, site: Wand2,
 };
 const iconOf = (k) => ICONS[k] || Layers;
