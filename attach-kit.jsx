@@ -25,6 +25,7 @@ import { RotateCw,
 } from "lucide-react";
 import { logEvent, supabase as sharedSupabase } from "./app-bootstrap.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
+import { SchedBadge, SchedBtn } from "./schedule-kit.jsx";
 import { createYtPlayer, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
 
 /* ── ثوابت ── */
@@ -966,7 +967,7 @@ export function AAttachmentRow({ row, view, T, index, count, canEdit, onMove, on
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           style={{ width: "100%", border: 0, borderBottom: "1px solid transparent", background: "none", fontSize: 13, color: T.paper, padding: "2px 0", fontFamily: "inherit" }} />
         <span style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {hidden && <span style={{ color: "#C0392B" }}>مخفي عن الملاك · </span>}{attMetaLine(view)}
+          {hidden && <span style={{ color: "#C0392B" }}>مخفي عن الملاك · </span>}<SchedBadge T={T} table="inquiry_attachments" id={row.id} />{" "}{attMetaLine(view)}
         </span>
       </span>
       {canEdit && (
@@ -981,6 +982,7 @@ export function AAttachmentRow({ row, view, T, index, count, canEdit, onMove, on
               <button type="button" style={aIco(T)} disabled={index === 0} onClick={() => onMove(-1)} aria-label="تحريك للأعلى"><ChevronUp size={15} /></button>
               <button type="button" style={aIco(T)} disabled={index === count - 1} onClick={() => onMove(1)} aria-label="تحريك للأسفل"><ChevronDown size={15} /></button>
               <button type="button" style={aIco(T)} onClick={onToggle} aria-label={hidden ? "إظهار للملاك" : "إخفاء عن الملاك"}>{hidden ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+              <SchedBtn T={T} table="inquiry_attachments" id={row.id} patch={{ published: hidden }} label={`${hidden ? "نشر" : "إخفاء"} مرفق: ${row.title_ar || view.title || ""}`} style={aIco(T)} />
               <button type="button" style={aIco(T, true)} onClick={() => setConfirm(true)} aria-label="حذف"><Trash2 size={14} /></button>
             </>
           )}

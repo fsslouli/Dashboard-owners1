@@ -5,6 +5,7 @@ import { supabase } from "./app-bootstrap.jsx";
 import { DOCS } from "./site-data.jsx";
 import { useEffect, useRef, useState } from "react";
 import { autoTranslateAr } from "./translate-kit.js";
+import { SchedBadge, SchedBtn } from "./schedule-kit.jsx";
 import { createYtPlayer, fmtDuration, loadYouTubeApi, parseYouTube, ytErrorText, ytShortUrl, ytThumb } from "./youtube-kit.js";
 import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronUp, Clapperboard, Eye, EyeOff, Link2, Pencil, Play, PlusCircle, Trash2, XCircle } from "lucide-react";
 
@@ -393,6 +394,7 @@ export function AMediaTab({ flashToast, log, canManage, canStats }) {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 11.5, color: T.muted, display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center" }}>
                           {r.published ? <ABadge kind="ok">ظاهر للزوّار</ABadge> : <ABadge kind="change">مخفي</ABadge>}
+                          <SchedBadge T={{ brass: "#1B7F8E" }} table="model_videos" id={r.id} />
                           {r.duration_s > 0 && <span className="mono" dir="ltr">{fmtDuration(r.duration_s)}</span>}
                           {canStats && plays[`${r.doc_id}:${r.youtube_id}`] != null && <span>{plays[`${r.doc_id}:${r.youtube_id}`]} تشغيل</span>}
                         </div>
@@ -405,6 +407,7 @@ export function AMediaTab({ flashToast, log, canManage, canStats }) {
                           <button onClick={() => togglePub(r)} title={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} aria-label={r.published ? "إخفاء عن الزوّار" : "إظهار للزوّار"} style={iconBtn()}>
                             {r.published ? <EyeOff size={13} /> : <Eye size={13} />}
                           </button>
+                          <SchedBtn T={{ surface: "#fff", sunken: "#F7F9FB", line: "#E1E8EC", paper: "#1F2C35", muted: "#5F7280", brass: "#1B7F8E", onAccent: "#fff" }} table="model_videos" id={r.id} patch={{ published: !r.published }} label={`${r.published ? "إخفاء" : "إظهار"} مقطع: ${docName(r.doc_id)} — ${r.title_ar || r.yt_title || r.youtube_id}`} style={iconBtn()} flash={flashToast} />
                           {confirmDel === r.id ? (
                             <>
                               <button onClick={() => remove(r)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "0 10px", fontSize: 11.5, cursor: "pointer" }}>تأكيد</button>

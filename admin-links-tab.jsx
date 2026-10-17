@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Eye, EyeOff, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { autoTranslateAr } from "./translate-kit.js";
+import { SchedBadge, SchedBtn } from "./schedule-kit.jsx";
 import { DEFAULT_DISCLAIMER_AR, LINK_PLACEMENTS, hostOf, safeUrl } from "./links-kit.jsx";
 
 const S = {
@@ -201,6 +202,7 @@ export function ALinksTab({ supabase, flashToast, log, canManage }) {
             <div style={{ display: "flex", gap: 2 }}>
               <a style={{ ...S.ib(), textDecoration: "none" }} href={safeUrl(r.url) || "#"} target="_blank" rel="noopener noreferrer" aria-label="تجربة الرابط"><ExternalLink size={16} /></a>
               <button type="button" style={S.ib()} aria-label={r.published ? "إخفاء" : "نشر"} onClick={() => togglePub(r)}>{r.published ? <Eye size={16} /> : <EyeOff size={16} />}</button>
+              <SchedBtn T={{ surface: "#fff", sunken: "#F7F9FB", line: "#E1E8EC", paper: "#1F2C35", muted: "#5F7280", brass: "#1B7F8E", onAccent: "#fff" }} table="external_links" id={r.id} patch={{ published: !r.published }} label={`${r.published ? "إخفاء" : "نشر"} رابط: ${r.title_ar || ""}`} style={S.ib()} flash={flashToast} />
               <button type="button" style={S.ib()} aria-label="تعديل" onClick={() => setEditing(editing === r.id ? null : r.id)}><Pencil size={16} /></button>
               <button type="button" style={S.ib(true)} aria-label="حذف" onClick={() => setConfirmDel(r.id)}><Trash2 size={16} /></button>
             </div>

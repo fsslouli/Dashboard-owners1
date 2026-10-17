@@ -35,6 +35,7 @@ export const DEFAULT_ADMIN_LABELS = [
   { key: "labels", ar: "تسمية الأقسام" },
   { key: "site", ar: "تخصيص الموقع والنسخ" },
   { key: "links", ar: "الروابط الخارجية" },
+  { key: "scheduled", ar: "المجدولة" },
   { key: "share", ar: "روابط المشاركة" },
   { key: "insights", ar: "التحليلات الشاملة" },
   { key: "security", ar: "الأمان" },

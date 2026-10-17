@@ -34,6 +34,7 @@ import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, INQ_FIELDS_ADMIN, toDbBool, toYesNo
 import { afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { AInquiryTrail } from "./admin-trail-sync.jsx";
+import { SchedBtn } from "./schedule-kit.jsx";
 import { CAT_ORDER } from "./site-data.jsx";
 import { NAV_ORDER_KEY, dropLocalHistory, orderedKeys, patchNavLabels, readLocalHistory, useNavLabels } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
@@ -338,13 +339,24 @@ function InquirySheet({ target, onClose }) {
     return out;
   };
 
-  const save = async () => {
-    if (!form.note?.trim()) { setErr("لازم نص الملاحظة على الأقل"); return; }
-    setErr(""); setBusy(true);
+  const buildFields = async () => {
     const clean = await translateMissing(canonicalizeRow(form, categories));
     const fields = {};
     INQ_FIELDS_ADMIN.concat(["reply_en"]).forEach((k) => { if (k in clean && (k !== "cat" || hasCatCol)) fields[k] = clean[k]; });
     fields.answered = toDbBool(clean.answered);
+    return fields;
+  };
+  /* جدولة: نفس التعديل لكن ما ينكتب للجدول الحي إلا بالوقت المحدد */
+  const getSchedPatch = async () => {
+    if (!form.note?.trim()) { setErr("لازم نص الملاحظة على الأقل"); return null; }
+    const fields = await buildFields();
+    return { patch: isNew ? { ...fields, urgent: false } : fields, label: `${isNew ? "إضافة" : "تعديل"} استفسار${isNew ? "" : " #" + target.id}: ${form.note.slice(0, 50)}` };
+  };
+
+  const save = async () => {
+    if (!form.note?.trim()) { setErr("لازم نص الملاحظة على الأقل"); return; }
+    setErr(""); setBusy(true);
+    const fields = await buildFields();
     let error;
     if (isNew) {
       const { data: top } = await supabase.from("inquiries").select("id").order("id", { ascending: false }).limit(1);
@@ -400,6 +412,8 @@ function InquirySheet({ target, onClose }) {
             {err && <div role="alert" style={{ color: "#C0392B", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
             <div style={{ display: "flex", gap: 10, position: "sticky", bottom: 0, background: T.surface, padding: "10px 0 2px" }}>
               <button onClick={save} disabled={busy || !canSave} style={{ display: "flex", alignItems: "center", gap: 7, background: "#1E8E5A", color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", opacity: busy || !canSave ? 0.6 : 1, fontFamily: "inherit" }}><Check size={15} /> {busy ? "جارٍ الحفظ…" : "حفظ"}</button>
+              {canSave && <SchedBtn T={T} table="inquiries" id={isNew ? null : target.id} op={isNew ? "insert" : "update"} getPatch={getSchedPatch} label="جدولة استفسار" text="جدولة النشر" flash={ed.toast} onDone={onClose}
+                style={{ display: "flex", alignItems: "center", background: "none", color: T.brass, border: `1px solid ${T.brass}66`, borderRadius: 11, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }} />}
               <button onClick={onClose} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>إلغاء</button>
             </div>
           </>
