@@ -16,7 +16,7 @@ import { downloadMeetingSheet, nextMeetingName, openInquiries } from "./admin-me
 import { ATelegramCard } from "./admin-telegram.jsx";
 import { AGalleryTab } from "./gallery-kit.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
-import { AScheduledTab, usePendingCount } from "./schedule-kit.jsx";
+import { AScheduledTab, ExitSummary, usePendingCount } from "./schedule-kit.jsx";
 import { ALinksTab } from "./admin-links-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
 import { AdminShell } from "./admin-shell.jsx";
@@ -156,7 +156,13 @@ function AdminHome({ session, onLogout }) {
   useEffect(() => { refreshProfile(); refreshInquiries(); refreshProgress(); refreshCategories(); }, [session.user.id]);
 
   const flashToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2800); };
+  /* ملخص الجلسة: كل ما نُفّذ بهالجلسة (يُعرض قبل الخروج) */
+  const [sessionLog, setSessionLog] = useState([]);
+  const [exitFor, setExitFor] = useState(null);
+  const guardExit = (go) => () => { if (sessionLog.length || pendingCount) setExitFor(() => go); else go(); };
+  const pendingCount = usePendingCount();
   const log = async (action, details) => {
+    setSessionLog((l) => [...l, { action, details: details || "", at: new Date().toISOString() }]);
     await supabase.from("audit_log").insert({ user_name: profile?.name || session.user.email, action, details });
   };
 
@@ -180,8 +186,8 @@ function AdminHome({ session, onLogout }) {
     <>
       <AdminShell T={T} tabs={shellTabs} activeKey={activeTab} onSelect={setTab} stats={liveStats}
         userLabel={profile?.name || session.user.email}
-        onLogout={async () => { await supabase.auth.signOut(); window.location.hash = ""; window.location.reload(); }}
-        onEditSite={canEditSite ? () => { window.location.hash = "#edit"; } : null}>
+        onLogout={guardExit(async () => { await supabase.auth.signOut(); window.location.hash = ""; window.location.reload(); })}
+        onEditSite={canEditSite ? guardExit(() => { window.location.hash = "#edit"; }) : null}>
         {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
         {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
         {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canRestore={has("restore_backup")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
@@ -207,6 +213,8 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "security" && <ASecurityTab flashToast={flashToast} log={log} email={session.user.email} />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}
       </AdminShell>
+
+      {exitFor && <ExitSummary T={T} items={sessionLog} onBack={() => setExitFor(null)} onGo={(k) => { setExitFor(null); if (k) setTab(k); }} onConfirm={() => { const f = exitFor; setExitFor(null); f(); }} />}
 
       {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: T.paper, color: T.bg, padding: "11px 20px", borderRadius: 12, fontSize: 13, display: "flex", alignItems: "center", gap: 8, boxShadow: T.shadowUp, zIndex: 70 }}><Check size={15} /> {toast}</div>}
     </>

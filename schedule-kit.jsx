@@ -291,3 +291,54 @@ export function AScheduledTab({ T, flashToast, log }) {
     </div>
   );
 }
+
+/* ── ملخص الجلسة قبل الخروج ───────────────────────────── */
+export function ExitSummary({ T, items, onBack, onGo, onConfirm }) {
+  const { rows, available, targets } = useScheduled();
+  const pend = available ? rows.filter((r) => r.status === "pending") : [];
+  const failed = available ? rows.filter((r) => r.status === "failed") : [];
+  const hm = (iso) => new Date(iso).toLocaleTimeString("ar-SA-u-nu-latn", { timeZone: "Asia/Riyadh", hour: "numeric", minute: "2-digit" });
+  const sec = { fontSize: 12, fontWeight: 700, color: T.muted, margin: "14px 0 6px" };
+  const row = { fontSize: 12.5, padding: "6px 0", borderTop: `1px solid ${T.line}`, lineHeight: 1.7 };
+  useEffect(() => { const k = (e) => { if (e.key === "Escape") onBack(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onBack]);
+  return createPortal(
+    <div dir="rtl" style={{ position: "fixed", inset: 0, zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={onBack} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.5)" }} />
+      <div role="dialog" aria-modal="true" style={{ position: "relative", width: "min(520px,100%)", maxHeight: "86vh", overflowY: "auto", background: T.surface, color: T.paper, border: `1px solid ${T.line}`, borderRadius: 16, padding: 18, fontFamily: "system-ui, sans-serif" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Check size={17} color={T.brass} />
+          <div style={{ fontSize: 15, fontWeight: 800, flex: 1 }}>ملخص قبل الخروج</div>
+          <button onClick={onBack} aria-label="إغلاق" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${T.line}`, background: "none", color: T.muted, cursor: "pointer" }}><X size={15} /></button>
+        </div>
+
+        <div style={sec}>انحفظ ونُشر بهالجلسة ({items.length})</div>
+        {!items.length && <div style={{ ...row, color: T.faint }}>ما في تعديلات مباشرة.</div>}
+        {items.map((it, i) => (
+          <div key={i} style={row}><b>{it.action}</b>{it.details ? <span style={{ color: T.muted }}> — {it.details}</span> : null} <span style={{ color: T.faint, fontSize: 11 }}>{hm(it.at)}</span></div>
+        ))}
+
+        {available && (
+          <>
+            <div style={sec}>مجدول ولسا ما ظهر ({pend.length})</div>
+            {!pend.length && <div style={{ ...row, color: T.faint }}>ما في شي مجدول.</div>}
+            {pend.map((r) => (
+              <div key={r.id} style={row}><b>{describe(r, targets)}</b>{r.label ? <span style={{ color: T.muted }}> — {r.label}</span> : null}<div style={{ color: T.brass, fontSize: 11.5 }}>{fmtRiyadh(r.publish_at)} · {fmtIn(r.publish_at)}</div></div>
+            ))}
+            {failed.length > 0 && (
+              <div role="alert" style={{ marginTop: 10, border: "1px solid #C0392B66", borderRadius: 10, padding: "8px 10px", fontSize: 12.5, color: "#C0392B" }}>
+                {failed.length} تعديل مجدول فشل تطبيقه — راجعه بتبويب «المجدولة».
+              </div>
+            )}
+          </>
+        )}
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+          <button type="button" onClick={onConfirm} style={{ display: "flex", alignItems: "center", gap: 7, background: T.brass, color: T.onAccent || "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}><Check size={15} /> تمام، اخرج</button>
+          <button type="button" onClick={onBack} style={{ background: "none", color: T.muted, border: `1px solid ${T.line}`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>ارجع للوحة</button>
+          {available && (pend.length > 0 || failed.length > 0) && <button type="button" onClick={() => onGo("scheduled")} style={{ background: "none", color: T.brass, border: `1px solid ${T.brass}66`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>افتح المجدولة</button>}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
