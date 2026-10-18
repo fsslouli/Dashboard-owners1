@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.5.1",
+    dateAr: "18 أكتوبر 2026",
+    dateEn: "October 18, 2026",
+    ar: [
+      "إصلاح لوحة الإدارة على الجوال: زر «خروج» كان ينقص تحت شريط المتصفح ولا يمكن الوصول له. صارت القائمة الجانبية تتمرر لآخرها، وأضفنا زر خروج في الشريط العلوي دائمًا.",
+    ],
+    en: [
+      "Admin mobile fix: the “Log out” button was hidden under the browser bar and unreachable. The side menu now scrolls fully, and a log-out button is always available in the top bar.",
+    ],
+  },
+  {
     version: "6.5.0",
     dateAr: "18 أكتوبر 2026",
     dateEn: "October 18, 2026",

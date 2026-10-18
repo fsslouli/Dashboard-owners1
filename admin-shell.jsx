@@ -42,7 +42,7 @@ export function groupTabs(tabs) {
 
 const CSS = `
 .ash{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100vh}
-.ash-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;padding:16px 12px;gap:6px}
+.ash-side{position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;padding:16px 12px;gap:6px}
 .ash-top{display:none}
 .ash-main{min-width:0}
 .ash-body{max-width:1080px;margin:0 auto;padding:22px 22px 80px}
@@ -53,7 +53,7 @@ const CSS = `
 .ash-scrim{display:none}
 @media (max-width:959px){
   .ash{display:block}
-  .ash-side{position:fixed;inset:0 0 0 auto;width:min(86vw,320px);height:100vh;z-index:40;transform:translateX(105%);transition:transform .2s ease;box-shadow:-12px 0 40px rgba(0,0,0,.25)}
+  .ash-side{position:fixed;inset:0 0 0 auto;width:min(86vw,320px);height:100vh;height:100dvh;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));z-index:40;transform:translateX(105%);transition:transform .2s ease;box-shadow:-12px 0 40px rgba(0,0,0,.25)}
   .ash-side[data-open="1"]{transform:none}
   .ash-scrim[data-open="1"]{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30}
   .ash-top{display:flex}
@@ -184,6 +184,7 @@ export function AdminShell({ T, tabs, activeKey, onSelect, stats, userLabel, onL
             <button className="ash-btn" onClick={() => setOpen(true)} aria-label="فتح القائمة" style={iconBtn}><Menu size={18} /></button>
             <div style={{ fontSize: 14, fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{active?.label || "لوحة الإدارة"}</div>
             <button className="ash-btn" onClick={() => setFind(true)} aria-label="بحث سريع" style={iconBtn}><Search size={16} /></button>
+            <button className="ash-btn" onClick={onLogout} aria-label="خروج" style={iconBtn}><LogOut size={16} /></button>
             {onEditSite && <button className="ash-btn" onClick={onEditSite} aria-label="تحرير الموقع مباشرة" style={{ ...iconBtn, background: T.brass, color: T.onAccent, border: 0 }}><PenLine size={16} /></button>}
           </header>
           <main className="ash-body">
