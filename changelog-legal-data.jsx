@@ -13,6 +13,23 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.4.0",
+    dateAr: "18 أكتوبر 2026",
+    dateEn: "October 18, 2026",
+    ar: [
+      "عمود جديد في الاستفسارات: «الجهة المختصة» (من يعطيك الجواب): فريق المشروع أو المبيعات وما بعد البيع، مع فلتر جديد في لوحة الفلاتر وبحث يشمله.",
+      "في البطاقة والجدول تظهر شارة الجهة لاستفسارات المبيعات فقط حتى ما تزدحم الواجهة، وفي تفاصيل الاستفسار تظهر الجهة دائمًا.",
+      "الإدارة: حقل الجهة في نموذج التعديل والإضافة، ويُقرأ من ملف إكسل (عمود «الجهة المختصة»)، ويُسجَّل تغييره في سجل المراجعات.",
+      "الموقع يشتغل طبيعيًا قبل تطبيق تحديث قاعدة البيانات، وتظهر الجهة والفلتر تلقائيًا بعد تطبيقه.",
+    ],
+    en: [
+      "New inquiries column: \"Responsible party\" (who gives the answer): Project Team or Sales & After-Sales, with a new filter and search support.",
+      "Cards and table show the party pill for Sales inquiries only to keep the UI clean; the detail panel always shows it.",
+      "Admin: party field in the edit/add forms, Excel import support (\"الجهة المختصة\" column), and revision-log tracking.",
+      "The site works normally before the database update is applied; the party and filter appear automatically afterwards.",
+    ],
+  },
+  {
     version: "6.3.0",
     dateAr: "18 أكتوبر 2026",
     dateEn: "October 18, 2026",

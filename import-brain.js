@@ -82,7 +82,7 @@ export function toYesNoSmart(v) {
 
 /* ── ٣. تصحيحات آمنة يسويها المحرك بنفسه ──
    «آمنة» = ما تغيّر المعنى، وتقدر تراجعها كلها بالقائمة قبل الاعتماد. */
-const TEXT_FIELDS = ["model", "loc", "pri", "cat", "status", "owner", "month", "note", "reply", "note_en", "reply_en"];
+const TEXT_FIELDS = ["model", "loc", "pri", "cat", "party", "status", "owner", "month", "note", "reply", "note_en", "reply_en"];
 
 export function autoFixRow(row) {
   const out = { ...row };
@@ -142,7 +142,7 @@ export function closestApproved(value, approved, floor = 0.62) {
 
 /* ══════════ مسمّيات ومستويات ══════════ */
 const FIELD_AR = {
-  id: "الرقم", model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", status: "الحالة",
+  id: "الرقم", model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", party: "الجهة المختصة", status: "الحالة",
   owner: "المسؤول", month: "الشهر", note: "الملاحظة", note_en: "الملاحظة (EN)",
   reply: "الرد", reply_en: "الرد (EN)", closed: "الإغلاق", answered: "حالة الرد", meetings: "الاجتماعات",
 };
@@ -310,7 +310,7 @@ export function auditLogic(rows = [], { existing = [], approved = {}, meta = {},
 
     const cur = byId.get(key);
     if (cur) {
-      ["note", "reply", "status", "cat", "loc", "model", "month", "owner", "pri"].forEach((f) => {
+      ["note", "reply", "status", "cat", "party", "loc", "model", "month", "owner", "pri"].forEach((f) => {
         if (row[f] !== undefined && !isBlank(cur[f]) && isBlank(row[f]))
           add("high", "CLEARS_FIELD",
             `الملف يفرّغ حقل «${fieldLabel(f)}» وهو معبّأ حاليًا — غالبًا شيت ناقص مو حذفًا مقصودًا`, { ...at, field: f });

@@ -10,12 +10,12 @@ const PUBLIC_LOG = CHANGELOG
   .map((e) => ({ ...e, ar: (e.ar || []).filter((l) => !NEG_AR.test(l)), en: (e.en || []).filter((l) => !NEG_EN.test(l)) }))
   .filter((e) => e.ar.length > 0);
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
-import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
+import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
-import { CatPill, Chip, LangToggle, Select } from "./ui-atoms.jsx";
+import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
-import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, User, X } from "lucide-react";
+import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, User, Users, X } from "lucide-react";
 
 /* ── ١١. الإقرار القانوني ولوحة سجل التحديثات ── */
 export function LegalDisclaimer({ onAgree: onAgreeParent }) {
@@ -152,6 +152,17 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
         </div>
 
         <div className="sheet-body" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
+          {cats.party && cats.party.length > 0 && (
+            <>
+              <div className="sec-lbl">{L("الجهة المختصة", "Responsible party")}</div>
+              <div className="flex flex-wrap items-center" style={{ gap: 8, marginBottom: 24 }}>
+                {cats.party.map((p) => (
+                  <Chip key={p} on={isOn("party", p)} onClick={() => dmulti("party", p)}
+                    count={ALL.filter((r) => r.party === p).length}>{trParty(lang, p)}</Chip>
+                ))}
+              </div>
+            </>
+          )}
           <div className="sec-lbl">{L("الاجتماع", "Meeting")}</div>
           <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
             {cats.meetings.map((m) => (
@@ -719,6 +730,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
             <span className="mono sheet-id">{L("استفسار", "Inquiry")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
+            <PartyPill party={r.party} always />
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
@@ -751,6 +763,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
 
           <div className="meta-list">
             {[[Tag, L("الفئة", "Category"), r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")],
+              ...(r.party ? [[Users, L("الجهة المختصة", "Responsible party"), trParty(lang, r.party)]] : []),
               [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)], [User, L("صاحب الرد", "Engineer"), trOwn(lang, r.owner)],
               [Calendar, L("شهر الرد", "Reply Month"), trMonth(lang, r.month)], [Ruler, L("حالة الإغلاق", "Closure Status"), r.closed ? L("مقفل", "Closed") : L("مفتوح", "Open")],
               [Droplet, L("حالة الرد", "Reply Status"), r.answered ? L("تم الرد", "Replied") : L("بانتظار الرد", "Awaiting reply")]].map(([Ic, k, v]) => (
