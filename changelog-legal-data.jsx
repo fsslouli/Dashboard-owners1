@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.4.1",
+    dateAr: "18 أكتوبر 2026",
+    dateEn: "October 18, 2026",
+    ar: [
+      "شارة الجهة المختصة صارت تظهر لكل الاستفسارات في البطاقة والجدول والتفاصيل بلونين مختلفين: المبيعات وما بعد البيع بالكهرماني، وفريق المشروع بالأزرق.",
+    ],
+    en: [
+      "The responsible-party pill now shows on every inquiry (cards, table, details) in two colors: Sales & After-Sales in amber, Project Team in blue.",
+    ],
+  },
+  {
     version: "6.4.0",
     dateAr: "18 أكتوبر 2026",
     dateEn: "October 18, 2026",
