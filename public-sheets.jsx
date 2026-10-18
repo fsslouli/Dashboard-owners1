@@ -730,7 +730,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
             <span className="mono sheet-id">{L("استفسار", "Inquiry")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
-            <PartyPill party={r.party} always />
+            <PartyPill party={r.party} />
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>

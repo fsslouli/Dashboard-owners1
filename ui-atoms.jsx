@@ -331,11 +331,12 @@ export function CatPill({ cat }) {
 
 /* شارة الجهة المختصة (6.4.0) — بالبطاقة والجدول تظهر للمبيعات وما بعد البيع فقط (الاستثناء اللي يستاهل التنبيه،
    لأن أغلب البنود عند فريق المشروع)، وبلوحة التفاصيل (always) تظهر للجهتين */
-export function PartyPill({ party, always }) {
+export function PartyPill({ party }) {
   const { T } = useT();
   const { lang } = useLang();
-  if (!party || (!always && party !== PARTY_SALES)) return null;
-  const cc = party === PARTY_SALES ? T.brass : T.muted;
+  if (!party) return null;
+  /* لونان ثابتان يقرآن في الفاتح والداكن: المبيعات كهرماني، فريق المشروع أزرق */
+  const cc = party === PARTY_SALES ? "#C98A1B" : "#3A7CA5";
   return (
     <span className="cat-pill" style={{ color: cc, background: `${cc}16`, borderColor: `${cc}33` }}>
       {trParty(lang, party)}
@@ -360,7 +361,7 @@ export function Row({ r, onOpen }) {
       <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
       <td className="td-note">
         <span className="td-note-t">{trNote(lang, r)}</span>
-        {(r.isPinned || r.isImportantActive || r.isNew || !r.closed || r.attCount > 0 || r.party === PARTY_SALES) && (
+        {(r.isPinned || r.isImportantActive || r.isNew || !r.closed || r.attCount > 0 || r.party) && (
           <span className="td-tags">
             <PartyPill party={r.party} />
             {r.isPinned && <span className="tag" style={{ color: T.brass, display: "inline-flex", alignItems: "center", gap: 3 }}><Pin size={9} /> {lang === "en" ? "Pinned" : "مثبّت"}</span>}
