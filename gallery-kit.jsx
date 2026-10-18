@@ -602,7 +602,7 @@ export function GallerySection({ supabase, T, L, lang, onlyTopics = null, extra 
     const items = async () => {
       const r = await supabase.from("media_items").select(MEDIA_PUBLIC_COLS).eq("published", true).order("sort_order");
       /* قبل تشغيل migration-attachments.sql ما فيه الأعمدة الجديدة — نقرأ القديمة */
-      return r.error ? supabase.from("media_items").select("*").eq("published", true).order("sort_order") : r;
+      return r.error ? supabase.from("media_items").select(MEDIA_PUBLIC_COLS.replace(",published_at,display_date", "")).eq("published", true).order("sort_order") : r;
     };
     const load = async () => {
       const my = ++seq;

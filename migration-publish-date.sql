@@ -33,3 +33,7 @@ begin
     execute format('create trigger trg_stamp_published_at before insert or update on public.%I for each row execute function public.stamp_published_at()', t);
   end loop;
 end $$;
+
+-- الزائر (anon) يقرأ أعمدة محددة فقط، فنفتح العمودين الجديدين (غير حساسين)
+grant select (published_at, display_date) on public.media_items to anon, authenticated;
+grant select (published_at, display_date) on public.inquiry_attachments to anon, authenticated;

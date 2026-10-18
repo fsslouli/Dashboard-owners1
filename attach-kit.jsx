@@ -35,8 +35,8 @@ export const WARN_VIDEO = 20 * 1024 * 1024;
 const EGRESS_MONTH = 5 * 1024 * 1024 * 1024;          /* حصة النقل الشهرية بالخطة المجانية */
 const STORAGE_QUOTA = 1024 * 1024 * 1024;             /* 1GB */
 const PDFJS_CDN = "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/legacy/build/";
-export const ATT_PUBLIC_COLS = "id,inquiry_id,kind,source,provider,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order,published_at,display_date,created_at";
-export const MEDIA_PUBLIC_COLS = "id,topic_id,kind,source,provider,bucket,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order,published_at,display_date,created_at";
+export const ATT_PUBLIC_COLS = "id,inquiry_id,kind,source,provider,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order,published_at,display_date";
+export const MEDIA_PUBLIC_COLS = "id,topic_id,kind,source,provider,bucket,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order,published_at,display_date";
 export const ACCEPT_ALL = ".pdf,application/pdf,video/*,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.dwg,.zip";
 export const ACCEPT_DOCS = ".pdf,application/pdf,video/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
 
@@ -875,7 +875,7 @@ export function useAttachments() {
       const my = ++seq;
       try {
         let { data, error } = await sharedSupabase.from("inquiry_attachments").select(ATT_PUBLIC_COLS).eq("published", true).order("sort_order").order("id");
-        if (error) ({ data, error } = await sharedSupabase.from("inquiry_attachments").select(ATT_PUBLIC_COLS.replace(",published_at,display_date,created_at", "")).eq("published", true).order("sort_order").order("id"));
+        if (error) ({ data, error } = await sharedSupabase.from("inquiry_attachments").select(ATT_PUBLIC_COLS.replace(",published_at,display_date", "")).eq("published", true).order("sort_order").order("id"));
         if (!alive || my !== seq || error) return;
         const m = {};
         (data || []).forEach((r) => { (m[r.inquiry_id] || (m[r.inquiry_id] = [])).push(r); });
