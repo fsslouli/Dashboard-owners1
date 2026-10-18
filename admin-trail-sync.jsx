@@ -5,7 +5,7 @@ import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findN
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { supabase } from "./app-bootstrap.jsx";
-import { CAT_ORDER, FLAG_META, isFlagLive } from "./site-data.jsx";
+import { CAT_ORDER, FLAG_META, PARTY_ORDER, isFlagLive } from "./site-data.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import * as Brain from "./import-brain.js";
@@ -136,8 +136,14 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   useEffect(() => {
     supabase.from("inquiries").select("cat").limit(1).then(({ error }) => { if (error) setHasCatCol(false); });
   }, []);
-  const INQ_FIELDS = useMemo(() => (hasCatCol ? INQ_FIELDS_ADMIN : INQ_FIELDS_ADMIN.filter((f) => f !== "cat")), [hasCatCol]);
-  const stripCat = (obj) => { if (hasCatCol) return obj; const { cat, ...rest } = obj; return rest; };
+  /* نفس الفكرة لعمود "party" (الجهة المختصة، 6.4.0): ملف إكسل فيه العمود + قاعدة بيانات بدون الهجرة
+     = نشيله من الكتابة والمقارنة تلقائيًا، فتكمل المزامنة بدون خطأ وتشتغل الجهة وحدها بعد تطبيق الهجرة. */
+  const [hasPartyCol, setHasPartyCol] = useState(true);
+  useEffect(() => {
+    supabase.from("inquiries").select("party").limit(1).then(({ error }) => { if (error) setHasPartyCol(false); });
+  }, []);
+  const INQ_FIELDS = useMemo(() => INQ_FIELDS_ADMIN.filter((f) => (f !== "cat" || hasCatCol) && (f !== "party" || hasPartyCol)), [hasCatCol, hasPartyCol]);
+  const stripOptional = (obj) => { const o = { ...obj }; if (!hasCatCol) delete o.cat; if (!hasPartyCol) delete o.party; return o; };
   /* ═══ أمان الفرز: نتحقق إذا عمود "created_at" (تاريخ الإضافة) موجود فعلًا — لو قاعدة
      البيانات ما انحدّثت بعد بملف setup-supabase.sql، فرز "الأحدث إضافة" يرجع تلقائيًا
      لترتيب رقم الاستفسار بدل ما يسبب خطأ. ═══ */
@@ -493,13 +499,13 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const getSchedPatch = async () => {
     if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return null; }
     const tf = await autoTranslate(canonicalizeRow(form, categories));
-    const payload = stripCat({ ...tf, answered: toDbBool(tf.answered) });
+    const payload = stripOptional({ ...tf, answered: toDbBool(tf.answered) });
     return { patch: editing === "new" ? { ...payload, urgent: false } : payload, label: `${editing === "new" ? "إضافة" : "تعديل"} استفسار${editing === "new" ? "" : " #" + editing}: ${form.note.slice(0, 50)}` };
   };
   const saveForm = async () => {
     if (!form.note?.trim()) { flashToast("لازم نص الملاحظة على الأقل"); return; }
     const translatedForm = await autoTranslate(canonicalizeRow(form, categories));
-    const payload = stripCat({ ...translatedForm, answered: toDbBool(translatedForm.answered) });
+    const payload = stripOptional({ ...translatedForm, answered: toDbBool(translatedForm.answered) });
     if (editing === "new") {
       const nextId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
       await supabase.from("inquiries").insert({ ...payload, id: nextId, urgent: false });
@@ -765,6 +771,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
             {afieldInput(ADMIN_FIELD_LABEL.loc, form.loc, (v) => setForm((f) => ({ ...f, loc: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.pri, form.pri, (v) => setForm((f) => ({ ...f, pri: v })), catVals("pri", ["عالية جدًا", "عالية", "متوسطة", "عادية"]))}
             {afieldInput(ADMIN_FIELD_LABEL.cat, form.cat ?? "", (v) => setForm((f) => ({ ...f, cat: v })), ["", ...catVals("cat", CAT_ORDER)])}
+            {hasPartyCol && afieldInput(ADMIN_FIELD_LABEL.party, form.party ?? "", (v) => setForm((f) => ({ ...f, party: v })), ["", ...PARTY_ORDER])}
             {afieldInput(ADMIN_FIELD_LABEL.status, form.status, (v) => setForm((f) => ({ ...f, status: v })), catVals("status", ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"]))}
             {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })), null, catVals("owner", []))}
             {afieldInput(ADMIN_FIELD_LABEL.month, form.month, (v) => setForm((f) => ({ ...f, month: v })))}

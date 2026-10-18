@@ -4,7 +4,7 @@ import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-
 import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
 import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
-import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
+import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -33,7 +33,7 @@ const PUBLIC_TAB_META = {
 };
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
+export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, party: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
 
 /* ═══ v2.8.4 — منطق التصفية مستقل عن حالة اللوحة ═══
    استُخرج من useMemo الخاص بـ match() عشان تقدر لوحة "الفلاتر" تحسب عدد نتائج
@@ -45,6 +45,7 @@ export function passesFilters(r, f, nq, nqId) {
   if (!pick(f.zone, (a) => a.includes(r.zone))) return false;
   if (!pick(f.pri, (a) => a.includes(r.pri))) return false;
   if (!pick(f.cat, (a) => a.includes(r.cat))) return false;
+  if (!pick(f.party, (a) => a.includes(r.party))) return false;
   if (!pick(f.sta, (a) => a.includes(r.sta))) return false;
   if (!pick(f.model, (a) => a.some((m) => r.models.includes(m)))) return false;
   if (!pick(f.own, (a) => a.includes(r.owner))) return false;
@@ -55,9 +56,12 @@ export function passesFilters(r, f, nq, nqId) {
   if (f.important && !r.isImportantActive) return false;
   if (f.urgent && !r.isUrgentActive) return false;
   if (f.att && !r.attCount) return false;
-  if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.sta}`).includes(nq)) return false;
+  if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.party || ""} ${r.sta}`).includes(nq)) return false;
   return true;
 }
+
+/* هل عمود party موجود بقاعدة البيانات؟ يُحدَّث عند أول فشل مؤكد (الطلب بدونه نجح) */
+let PARTY_COL_OK = true;
 
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
@@ -252,7 +256,7 @@ export function PublicSite({ share = null } = {}) {
      يبقى الموقع شغّال بالنسخة الأساسية (BASE) بدون أي انقطاع. */
   useEffect(() => {
     const mapRow = (r) => ({
-      id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", sta: r.status,
+      id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
       answered: !!r.answered, owner: r.owner, month: r.month,
       closed: r.closed === "نعم" || r.closed === true,
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
@@ -267,7 +271,13 @@ export function PublicSite({ share = null } = {}) {
            ما تنزل للزائر أصلاً (وقاعدة البيانات تمنعها عنه بصلاحية عمود مستقلة). */
         const PUBLIC_COLS = "id,model,loc,pri,cat,status,owner,month,note,note_en,reply,reply_en," +
           "closed,urgent,answered,meetings,updated_at,last_modified,important,created_at,urgent_until,important_until";
-        const { data: rows, error } = await supabase.from("inquiries").select(PUBLIC_COLS).order("id");
+        /* عمود party (الجهة المختصة، 6.4.0) يُطلب فقط لو موجود بقاعدة البيانات: لو الهجرة ما انطبّقت بعد،
+           الطلب الأول يفشل فنعيد بدونه — ويبقى الموقع حيًّا بكل بياناته (بدون الجهة) بدل ما يرجع للنسخة الأساسية. */
+        let { data: rows, error } = await supabase.from("inquiries").select(PARTY_COL_OK ? PUBLIC_COLS + ",party" : PUBLIC_COLS).order("id");
+        if (error && PARTY_COL_OK) {
+          const retry = await supabase.from("inquiries").select(PUBLIC_COLS).order("id");
+          if (!retry.error) { PARTY_COL_OK = false; rows = retry.data; error = null; }
+        }
         if (!error && rows && rows.length) setData((d) => ({ ...d, records: rows.map(mapRow) }));
       } catch {}
       finally { setLoading(false); }
@@ -532,6 +542,7 @@ export function PublicSite({ share = null } = {}) {
   const cats = useMemo(() => ({
     pri: uniqSorted(ALL.map((r) => r.pri), priOrder),
     cat: uniqSorted(ALL.map((r) => r.cat), catOrder),
+    party: uniqSorted(ALL.map((r) => r.party), PARTY_ORDER),
     sta: uniqSorted(ALL.map((r) => r.sta), staOrder),
     models: MODEL_LIST.filter((m) => ALL.some((r) => r.models.includes(m))),
     owners: uniqSorted(ALL.map((r) => r.owner), liveCats.owner || []),
@@ -627,6 +638,7 @@ export function PublicSite({ share = null } = {}) {
     arr(f.sta).forEach((x) => out.push({ k: "sta", l: trSta(lang, x) }));
     arr(f.pri).forEach((x) => out.push({ k: "pri", l: trPri(lang, x) }));
     arr(f.cat).forEach((x) => out.push({ k: "cat", l: trCat(lang, x) }));
+    arr(f.party).forEach((x) => out.push({ k: "party", l: trParty(lang, x) }));
     arr(f.model).forEach((x) => out.push({ k: "model", l: trModel(lang, x) }));
     arr(f.own).forEach((x) => out.push({ k: "own", l: trOwn(lang, x) }));
     arr(f.mon).forEach((x) => out.push({ k: "mon", l: trMonth(lang, x) }));

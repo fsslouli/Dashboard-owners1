@@ -1,6 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-excel-utils */
 import { ADMIN_FIELD_LABEL, CURRENT_ADMIN_THEME, INQ_FIELDS_ADMIN, toMonthKey, useSystemTheme } from "./admin-core.jsx";
-import { MONTH_AR, MONTH_EN_LABEL, PG_BLOCK_DISPLAY_ORDER, monthKeyOf, nextMonthKey } from "./site-data.jsx";
+import { MONTH_AR, MONTH_EN_LABEL, PARTY_SALES, PARTY_TEAM, PG_BLOCK_DISPLAY_ORDER, monthKeyOf, nextMonthKey } from "./site-data.jsx";
 import * as XLSX from "xlsx";
 import * as Brain from "./import-brain.js";
 import { Check, MinusCircle, Pencil, PlusCircle, ShieldAlert } from "lucide-react";
@@ -67,6 +67,8 @@ const HEADER_ALIASES = {
   /* عمود الفئة — العنوان الرسمي بالملف "تصنيف نوع البند"، والباقي صياغات بديلة محتملة.
      كلها بعيدة نصيًا عن عناوين الأعمدة الأخرى، فما تتعارض مع المطابقة التقريبية القائمة. */
   cat: ["cat", "category", "الفئة", "الفئه", "التصنيف", "تصنيف", "تصنيف نوع البند", "نوع البند", "تصنيف البند", "فئة البند", "نوع الاستفسار", "تصنيف الاستفسار"],
+  /* الجهة المختصة بالإجابة (6.4.0) — «الجهة المعنية» محجوزة لعمود المسؤول (owner) أعلاه، فما نستعملها هنا */
+  party: ["party", "الجهة المختصة", "الجهه المختصه", "الجهة المختصة بالإجابة", "الجهة المسؤولة عن الإجابة", "من يجاوب"],
   status: ["status", "الحالة", "حالة المقترح", "حالة الاعتماد"],
   owner: ["owner", "المهندس", "المسؤول", "صاحب الرد", "المهندس المسؤول", "الجهة المعنية"],
   month: ["month", "الشهر", "شهر الرد", "شهر الرد (نص)", "تاريخ الطلب", "تاريخ الرد", "التاريخ"],
@@ -104,6 +106,12 @@ function resolveHeaderKey(rawKey) {
 const VALUE_ALIASES = {
   status: { "غير معتمده": "تم الرفض", "غير معتمد": "تم الرفض", "مرفوضه": "تم الرفض", "مرفوض": "تم الرفض" },
   cat: { "تصحيح تنفيذي": "تصحيح عيب تنفيذي" },
+  /* صياغات شائعة للجهة المختصة تُردّ لقيمتها المعتمدة — المفاتيح تمرّ بنفس تطبيع الحروف الذي تمرّ به القيم */
+  party: Object.fromEntries([
+    ["المبيعات", PARTY_SALES], ["مبيعات", PARTY_SALES], ["مركز المبيعات", PARTY_SALES], ["ما بعد البيع", PARTY_SALES],
+    ["مبيعات وما بعد البيع", PARTY_SALES], ["المبيعات و ما بعد البيع", PARTY_SALES],
+    ["مدير المشروع", PARTY_TEAM], ["فريق العمل", PARTY_TEAM], ["المشروع", PARTY_TEAM],
+  ].map(([k, v]) => [normalizeArabic(k), v])),
 };
 function applyValueAliases(row) {
   const out = { ...row };

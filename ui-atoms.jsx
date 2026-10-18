@@ -1,7 +1,7 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: ui-atoms */
 import { logEvent } from "./app-bootstrap.jsx";
 import { useEdit } from "./edit-ctx.js";
-import { catColor, hashPick, trCat, trLoc, trMeeting, trMonth, trNote, trPri, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
+import { PARTY_SALES, catColor, hashPick, trCat, trLoc, trMeeting, trMonth, trNote, trParty, trPri, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, Clock, LayoutGrid, Monitor, Moon, Paperclip, Sparkles, Sun, Table, Users, XCircle, Pin } from "lucide-react";
@@ -329,6 +329,20 @@ export function CatPill({ cat }) {
   );
 }
 
+/* شارة الجهة المختصة (6.4.0) — بالبطاقة والجدول تظهر للمبيعات وما بعد البيع فقط (الاستثناء اللي يستاهل التنبيه،
+   لأن أغلب البنود عند فريق المشروع)، وبلوحة التفاصيل (always) تظهر للجهتين */
+export function PartyPill({ party, always }) {
+  const { T } = useT();
+  const { lang } = useLang();
+  if (!party || (!always && party !== PARTY_SALES)) return null;
+  const cc = party === PARTY_SALES ? T.brass : T.muted;
+  return (
+    <span className="cat-pill" style={{ color: cc, background: `${cc}16`, borderColor: `${cc}33` }}>
+      {trParty(lang, party)}
+    </span>
+  );
+}
+
 export function Row({ r, onOpen }) {
   const { T } = useT();
   const { lang } = useLang();
@@ -346,8 +360,9 @@ export function Row({ r, onOpen }) {
       <td className="td-nw" style={{ color: pc }}>{trPri(lang, r.pri)}</td>
       <td className="td-note">
         <span className="td-note-t">{trNote(lang, r)}</span>
-        {(r.isPinned || r.isImportantActive || r.isNew || !r.closed || r.attCount > 0) && (
+        {(r.isPinned || r.isImportantActive || r.isNew || !r.closed || r.attCount > 0 || r.party === PARTY_SALES) && (
           <span className="td-tags">
+            <PartyPill party={r.party} />
             {r.isPinned && <span className="tag" style={{ color: T.brass, display: "inline-flex", alignItems: "center", gap: 3 }}><Pin size={9} /> {lang === "en" ? "Pinned" : "مثبّت"}</span>}
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
@@ -410,6 +425,7 @@ export function Card({ r, i, onOpen, reduced }) {
         {r.isPinned && <span className="tag" style={{ color: T.brass, display: "inline-flex", alignItems: "center", gap: 3 }}><Pin size={9} /> {lang === "en" ? "Pinned" : "مثبّت"}</span>}
         <span className="tag" style={{ color: pc }}>{trPri(lang, r.pri)}</span>
         <CatPill cat={r.cat} />
+        <PartyPill party={r.party} />
         {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {lang === "en" ? "Important" : "مهم"}</span>}
         {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {lang === "en" ? "New" : "جديد"}</span>}
         {!r.closed && <span className="tag tag-open">{lang === "en" ? "Open" : "مفتوح"}</span>}

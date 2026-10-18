@@ -18,6 +18,15 @@ export const STA_ORDER = ["معتمدة", "تم الرفض", "قيد الدرا�
    تنضاف تلقائيًا بعدها عبر نفس محرك المطابقة الذكي المستخدم مع باقي الأعمدة. */
 export const CAT_ORDER = ["تصحيح عيب تنفيذي", "تصميمي/جمالي", "ترقية", "استفسار فني توضيحي", "تجاري", "إداري/نظامي"];
 
+/* ── الجهة المختصة بالإجابة (6.4.0) ──
+   تحدد من يجاوب على البند: فريق المشروع أو المبيعات وما بعد البيع. مستقلة عن «الفئة»:
+   الفئة تصف طبيعة البند، والجهة تصف من يجيب (مثلًا بندان إداريان قد يجاوبهما طرفان مختلفان).
+   قيمة ثالثة مستقبلًا = سطر واحد هنا + ترجمتها بـ PARTY_EN، بلا تعديل بقاعدة البيانات (العمود نصي حر). */
+export const PARTY_TEAM = "فريق المشروع";
+export const PARTY_SALES = "المبيعات وما بعد البيع";
+export const PARTY_ORDER = [PARTY_TEAM, PARTY_SALES];
+const PARTY_EN = { [PARTY_TEAM]: "Project team", [PARTY_SALES]: "Sales & after-sales" };
+
 /* ── مستندات المخططات (تبويب "المخططات والمستندات") ── */
 /* ── مصدر المخططات: صور WebP مقصوصة لكل دور/واجهة على حدة (تجربة جوال أفضل من PDF) ── */
 export const DOC_BASE = "https://codnqkeycfhznzbqlpds.supabase.co/storage/v1/object/public/Owners%20docs/";
@@ -229,6 +238,7 @@ export const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.fin
 export const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
 export const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
 export const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : (CAT_AR[v] || v));
+export const trParty = (lang, v) => (lang === "en" ? PARTY_EN[v] || v : v);
 export const trMeeting = (lang, v) => (lang === "en" ? trLookup(MEETING_EN, v) : v);
 export const trMonth = (lang, m) => {
   if (!/^\d{4}-\d{2}$/.test(m || "")) return lang === "en" ? "—" : "—";
@@ -649,7 +659,7 @@ export const fmtDate = (iso) => {
 
 /* ── النسخة الأساسية كسجلات نصية ── مستوردة من inquiries.json */
 export const BASE = INQUIRIES_DATA.map((r) => ({
-  id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", sta: r.status,
+  id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
   answered: !!r.answered, owner: r.owner, month: r.month, closed: !!r.closed,
   meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
   meetings: Array.isArray(r.meetings) ? r.meetings : [],
