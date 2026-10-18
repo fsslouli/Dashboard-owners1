@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.5.0",
+    dateAr: "18 أكتوبر 2026",
+    dateEn: "October 18, 2026",
+    ar: [
+      "تاريخ النشر صار يظهر على كل الملفات: مكتبة الصور والمقاطع والتقارير، ومرفقات الاستفسارات (مثل «نُشر 18 أكتوبر 2026»).",
+      "الإدارة: خانة «تاريخ معروض» اختيارية لكل ملف، لو تبي يظهر تاريخ غير تاريخ النشر (مثل تقرير شهر سابق)، وإذا تركتها فاضية يظهر تاريخ النشر تلقائيًا.",
+      "جدولة النشر: أضفنا خيار «بعد ٢٤ ساعة»، وتاريخ النشر يتسجّل لحظة الظهور الفعلي للملاك، لا لحظة الرفع.",
+    ],
+    en: [
+      "Every file now shows its publish date: library photos, videos and reports, and inquiry attachments (e.g. “Published October 18, 2026”).",
+      "Admin: an optional “display date” per file to show a date other than the publish date (e.g. a previous month's report); when left empty the publish date is shown automatically.",
+      "Scheduled publishing: added a “in 24 hours” option, and the publish date is stamped when the file actually becomes visible to owners, not when it was uploaded.",
+    ],
+  },
+  {
     version: "6.4.1",
     dateAr: "18 أكتوبر 2026",
     dateEn: "October 18, 2026",

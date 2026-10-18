@@ -114,6 +114,7 @@ export function WhenModal({ T, title, sub, confirmText = "جدولة", onPick, o
     { k: "1h", t: "بعد ساعة", ms: () => Date.now() + 3600e3 },
     { k: "2h", t: "بعد ساعتين", ms: () => Date.now() + 7200e3 },
     { k: "4h", t: "بعد ٤ ساعات", ms: () => Date.now() + 4 * 3600e3 },
+    { k: "24h", t: "بعد ٢٤ ساعة", ms: () => Date.now() + 24 * 3600e3 },
     { k: "t9", t: "بكرة ٩ صباحًا", ms: () => tomorrowAt(9) },
     { k: "t18", t: "بكرة ٦ مساءً", ms: () => tomorrowAt(18) },
   ];

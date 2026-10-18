@@ -35,8 +35,8 @@ export const WARN_VIDEO = 20 * 1024 * 1024;
 const EGRESS_MONTH = 5 * 1024 * 1024 * 1024;          /* حصة النقل الشهرية بالخطة المجانية */
 const STORAGE_QUOTA = 1024 * 1024 * 1024;             /* 1GB */
 const PDFJS_CDN = "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/legacy/build/";
-export const ATT_PUBLIC_COLS = "id,inquiry_id,kind,source,provider,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order";
-export const MEDIA_PUBLIC_COLS = "id,topic_id,kind,source,provider,bucket,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order";
+export const ATT_PUBLIC_COLS = "id,inquiry_id,kind,source,provider,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order,published_at,display_date,created_at";
+export const MEDIA_PUBLIC_COLS = "id,topic_id,kind,source,provider,bucket,title_ar,title_en,storage_path,thumb_path,external_url,embed_url,youtube_id,file_name,mime,ext,size_bytes,pages,duration_s,vertical,sort_order,published_at,display_date,created_at";
 export const ACCEPT_ALL = ".pdf,application/pdf,video/*,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.dwg,.zip";
 export const ACCEPT_DOCS = ".pdf,application/pdf,video/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
 
@@ -294,7 +294,18 @@ export function toView(row, supabase = sharedSupabase, bucketDefault = ATT_BUCKE
     title_ar: row.title_ar || null, title_en: row.title_en || null, name: row.file_name || null, ext: row.ext || null,
     size: row.size_bytes || null, pages: row.pages || null, dur: row.duration_s || null, vertical: !!row.vertical,
     published: row.published !== false,
+    date: row.display_date || null, dateIsCustom: !!row.display_date, pubAt: row.published_at || row.created_at || null,
   };
+}
+/* تاريخ النشر المعروض: المخصص إن وُجد وإلا وقت النشر الفعلي (ميلادي، توقيت الرياض) */
+export function pubDateText(a, lang) {
+  const raw = a.date || a.pubAt;
+  if (!raw) return null;
+  const d = a.date ? new Date(`${a.date}T12:00:00+03:00`) : new Date(raw);
+  if (isNaN(d)) return null;
+  const f = new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "ar-u-nu-latn", { timeZone: "Asia/Riyadh", day: "numeric", month: "long", year: "numeric" }).format(d);
+  const lbl = a.dateIsCustom ? (lang === "en" ? "Dated" : "بتاريخ") : (lang === "en" ? "Published" : "نُشر");
+  return `${lbl} ${f}`;
 }
 export function attTitle(a, lang) {
   const t = lang === "en" ? a.title_en || a.title_ar : a.title_ar;
@@ -441,6 +452,7 @@ export function AttachmentTiles({ items, lang = "ar", onOpen, big, T }) {
               <span className="atk-cap">
                 <span className="atk-t">{title}</span>
                 {!title.includes(src) && <span className="atk-s">{src}</span>}
+                {pubDateText(a, lang) && <span className="atk-s">{pubDateText(a, lang)}</span>}
               </span>
             )}
           </button>
@@ -862,7 +874,8 @@ export function useAttachments() {
     const load = async () => {
       const my = ++seq;
       try {
-        const { data, error } = await sharedSupabase.from("inquiry_attachments").select(ATT_PUBLIC_COLS).eq("published", true).order("sort_order").order("id");
+        let { data, error } = await sharedSupabase.from("inquiry_attachments").select(ATT_PUBLIC_COLS).eq("published", true).order("sort_order").order("id");
+        if (error) ({ data, error } = await sharedSupabase.from("inquiry_attachments").select(ATT_PUBLIC_COLS.replace(",published_at,display_date,created_at", "")).eq("published", true).order("sort_order").order("id"));
         if (!alive || my !== seq || error) return;
         const m = {};
         (data || []).forEach((r) => { (m[r.inquiry_id] || (m[r.inquiry_id] = [])).push(r); });
@@ -950,8 +963,29 @@ export function LinkField({ T, placeholder, onAdd, allow }) {
   );
 }
 
+/* تاريخ النشر + تاريخ مخصص اختياري (لوحة الإدارة) — يطبّق على المرفقات وعناصر المكتبة */
+export function ADateField({ row, table, supabase, T, canEdit = true, onSaved, flash }) {
+  const pub = row.published_at || row.created_at;
+  const shown = pub ? new Date(pub).toLocaleDateString("ar-u-nu-latn", { timeZone: "Asia/Riyadh", day: "numeric", month: "short", year: "numeric" }) : "—";
+  const save = async (v) => {
+    const { error } = await supabase.from(table).update({ display_date: v || null }).eq("id", row.id);
+    if (error) { flash && flash("تعذّر حفظ التاريخ"); return; }
+    flash && flash(v ? "انحفظ التاريخ المعروض" : "رجع التاريخ تلقائي (تاريخ النشر)");
+    onSaved && onSaved();
+  };
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: T.faint, flexWrap: "wrap" }}>
+      <span>{row.published === false ? "غير منشور" : `نُشر ${shown}`}</span>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>تاريخ معروض
+        <input type="date" dir="ltr" defaultValue={row.display_date || ""} disabled={!canEdit} onChange={(e) => save(e.target.value)} aria-label="التاريخ المعروض للملاك (اتركه فاضي ليكون تاريخ النشر)"
+          style={{ border: `1px solid ${T.line}`, borderRadius: 6, background: T.sunken, color: T.paper, fontSize: 11, padding: "1px 4px", fontFamily: "inherit" }} />
+      </label>
+    </span>
+  );
+}
+
 /* صف مرفق بلوحة الإدارة */
-export function AAttachmentRow({ row, view, T, index, count, canEdit, onMove, onToggle, onDelete, onTitle, onPreview }) {
+export function AAttachmentRow({ row, view, T, index, count, canEdit, onMove, onToggle, onDelete, onTitle, onPreview, supabase, onDateSaved, flash }) {
   const [confirm, setConfirm] = useState(false);
   const hidden = row.published === false;
   const placeholder = attTitle({ ...view, title_ar: null, title_en: null }, "ar");
@@ -969,6 +1003,7 @@ export function AAttachmentRow({ row, view, T, index, count, canEdit, onMove, on
         <span style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {hidden && <span style={{ color: "#C0392B" }}>مخفي عن الملاك · </span>}<SchedBadge T={T} table="inquiry_attachments" id={row.id} />{" "}{attMetaLine(view)}
         </span>
+        {supabase && <ADateField row={row} table="inquiry_attachments" supabase={supabase} T={T} canEdit={canEdit} onSaved={onDateSaved} flash={flash} />}
       </span>
       {canEdit && (
         <span className="atk-arow-acts">
@@ -1129,7 +1164,7 @@ export function AAttachmentsPanel({ supabase, inquiryId, T, flashToast, log, can
         <ol style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((r, idx) => (
             <AAttachmentRow key={r.id} row={r} view={views[idx]} T={T} index={idx} count={rows.length} canEdit={canEdit}
-              onMove={(d) => move(idx, d)} onToggle={() => toggle(r)} onDelete={() => remove(r)} onTitle={(t) => saveTitle(r, t)} onPreview={() => setPreview(idx)} />
+              onMove={(d) => move(idx, d)} onToggle={() => toggle(r)} onDelete={() => remove(r)} onTitle={(t) => saveTitle(r, t)} onPreview={() => setPreview(idx)} supabase={supabase} onDateSaved={load} flash={flashToast} />
           ))}
           {pending.map((p) => (
             <li key={p.key} className="atk-arow" style={{ background: T.surface, border: `1px solid ${T.line}` }}>
