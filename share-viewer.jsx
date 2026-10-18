@@ -158,7 +158,7 @@ export function ShareApp() {
       </Card>
     );
   }
-  if (st === "ready" && shareProp) return (<><PublicSite share={shareProp} /><ShareGuard label={grant?.note} sid={readSid(token)} /></>);
+  if (st === "ready" && shareProp) return (<><PublicSite share={shareProp} /><ShareGuard label={grant?.note} sid={readSid(token)} wm={grant?.scope?.wm} /></>);
   const m = SHARE_MESSAGES[st] || SHARE_MESSAGES.unknown;
   return <Card title={m.t} text={m.d} />;
 }
