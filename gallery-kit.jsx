@@ -20,7 +20,7 @@ import {
 import { autoTranslateAr } from "./translate-kit.js";
 import { SchedBadge, SchedBtn } from "./schedule-kit.jsx";
 import {
-  ACCEPT_DOCS, ATT_BUCKET, AttachmentViewer, KindIcon, LinkField, MEDIA_PUBLIC_COLS, WARN_VIDEO,
+  ACCEPT_DOCS, ADateField, ATT_BUCKET, pubDateText, AttachmentViewer, KindIcon, LinkField, MEDIA_PUBLIC_COLS, WARN_VIDEO,
   attMetaLine, attTitle, badgeText, sourceLabel, fmtSize, linkFields, toView, uploadAttachmentFile,
 } from "./attach-kit.jsx";
 
@@ -387,6 +387,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
                         <div style={{ fontSize: 11.5, color: "#8FA0AB", direction: "ltr", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {it.youtube_id ? `youtu.be/${it.youtube_id}` : attMetaLine(toView(it, supabase, "gallery"))}
                         </div>
+                        <ADateField row={it} table="media_items" supabase={supabase} T={GT} flash={flashToast} onSaved={() => load && load()} />
                       </span>
                       <span style={{ display: "flex" }}>
                         <button style={S.ib(false)} disabled={j === 0} onClick={() => moveItem(t, j, -1)}><ChevronUp size={14} /></button>
@@ -517,6 +518,7 @@ function DocRow({ a, T, lang, onOpen }) {
       <span className="doc-info">
         <span className="doc-name">{title}</span>
         <span className="doc-meta" style={{ color: T.brass }}>{meta}</span>
+        {pubDateText(a, lang) && <span className="doc-meta" style={{ color: T.muted }}>{pubDateText(a, lang)}</span>}
       </span>
       <span className="doc-go"><Go size={17} /></span>
     </button>
@@ -579,7 +581,7 @@ function FolderRows({ views, lang, open }) {
             <KindIcon kind={a.kind} size={17} />
             {isMediaKind(a) && a.thumb && <img src={a.thumb} alt="" loading="lazy" decoding="async" onError={hideBroken} />}
           </span>
-          <span className="glx-rn">{attTitle(a, lang)}</span>
+          <span className="glx-rn">{attTitle(a, lang)}{pubDateText(a, lang) && <span style={{ display: "block", fontSize: 11, opacity: 0.7, fontWeight: 400 }}>{pubDateText(a, lang)}</span>}</span>
           <span className="glx-rb">{chipOf(a, lang)}</span>
           <span className="glx-rg"><Go size={15} /></span>
         </button>
@@ -600,7 +602,7 @@ export function GallerySection({ supabase, T, L, lang, onlyTopics = null, extra 
     const items = async () => {
       const r = await supabase.from("media_items").select(MEDIA_PUBLIC_COLS).eq("published", true).order("sort_order");
       /* قبل تشغيل migration-attachments.sql ما فيه الأعمدة الجديدة — نقرأ القديمة */
-      return r.error ? supabase.from("media_items").select("*").eq("published", true).order("sort_order") : r;
+      return r.error ? supabase.from("media_items").select(MEDIA_PUBLIC_COLS.replace(",published_at,display_date", "")).eq("published", true).order("sort_order") : r;
     };
     const load = async () => {
       const my = ++seq;
