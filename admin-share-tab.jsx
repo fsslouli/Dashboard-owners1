@@ -9,6 +9,8 @@ import { useSystemTheme } from "./admin-core.jsx";
 import { DOCS } from "./site-data.jsx";
 import { SHARE_HOST, SHARE_TABS, buildShareUrl, lookupKey, makeSalt, makeToken, pinHash } from "./share-kit.jsx";
 import { ShareReport } from "./admin-share-report.jsx";
+import { WM_DEFAULTS, WmControls, sanitizeWm } from "./share-wm-kit.jsx";
+import { ShareMessageCard } from "./share-message-kit.jsx";
 
 const DURATIONS = [
   { v: 60, l: "ساعة" }, { v: 360, l: "٦ ساعات" }, { v: 1440, l: "يوم" },
@@ -36,7 +38,7 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
   const [copied, setCopied] = useState(false);
   const [f, setF] = useState({
     label: "", note: "", tabs: ["overview", "notes"], allDocs: true, docs: DOCS.map((d) => d.id),
-    allTopics: true, topics: [], hideCommunity: true, mins: 1440, opens: 1, session: 30, pin: "",
+    allTopics: true, topics: [], hideCommunity: true, mins: 1440, opens: 1, session: 30, pin: "", wm: { ...WM_DEFAULTS },
   });
   const set = (p) => setF((x) => ({ ...x, ...p }));
   const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -63,7 +65,7 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
     if (f.tabs.includes("docs") && !f.allDocs && !f.docs.length) { flashToast("اختر مخططًا واحدًا على الأقل أو فعّل «كل المخططات»"); return; }
     if (f.tabs.includes("gallery") && !f.allTopics && !f.topics.length) { flashToast("اختر موضوعًا واحدًا على الأقل أو فعّل «كل المواضيع»"); return; }
     const pinVal = f.pin.trim();
-    if (pinVal && !/^[A-Za-z0-9]{4,12}$/.test(pinVal)) { flashToast("رمز الدخول: ٤ إلى ١٢ خانة (أرقام أو أحرف إنجليزية)"); return; }
+    if (pinVal && !/^[0-9]{4,12}$/.test(pinVal)) { flashToast("رمز الدخول: ٤ إلى ١٢ رقمًا (أرقام فقط)"); return; }
     setBusy(true);
     const token = makeToken();
     const token_hash = await lookupKey(token);
@@ -74,6 +76,7 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
       docs: f.tabs.includes("docs") && !f.allDocs ? f.docs : null,
       topics: f.tabs.includes("gallery") && !f.allTopics ? f.topics : null,
       hideCommunity: !!f.hideCommunity,
+      wm: sanitizeWm({ ...f.wm, who: String(f.wm.who || "").trim() || f.label.trim() }),
     };
     const { error } = await supabase.from("share_links").insert({
       token_hash, label: f.label.trim(), note: f.note.trim() || null, scope,
@@ -83,8 +86,13 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
     setBusy(false);
     if (error) { flashToast("تعذّر إنشاء الرابط — تأكد من تشغيل migration-share-links.sql"); return; }
     log && log("إنشاء رابط مشاركة", f.label.trim());
-    setCreated({ url: buildShareUrl(token), label: f.label.trim(), pin: pinVal || null }); setCopied(false);
-    set({ label: "", note: "", pin: "" });
+    const expiresAt = new Date(Date.now() + f.mins * 60000);
+    setCreated({
+      url: buildShareUrl(token), label: f.label.trim(), pin: pinVal || null,
+      durL: DURATIONS.find((d) => d.v === f.mins)?.l || "", expiresL: fmt(expiresAt),
+      opensL: f.opens === 1 ? "مرة واحدة" : `${f.opens} مرات`, sessL: SESSIONS.find((d) => d.v === f.session)?.l || `${f.session} دقيقة`,
+    }); setCopied(false);
+    set({ label: "", note: "", pin: "", wm: { ...f.wm, who: "" } });
     load();
   };
   const copy = async (text) => {
@@ -105,7 +113,7 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
   const addOpen = (r) => patch(r, { max_opens: Math.min(100, r.max_opens + 1) }, "أُضيفت فتحة");
   const clone = (r) => {
     const sc = r.scope || {};
-    setF((x) => ({ ...x, label: `${r.label} (نسخة)`, note: r.note || "", tabs: sc.tabs || x.tabs, allDocs: !Array.isArray(sc.docs), docs: Array.isArray(sc.docs) ? sc.docs : DOCS.map((d) => d.id), allTopics: !Array.isArray(sc.topics), topics: Array.isArray(sc.topics) ? sc.topics : [], hideCommunity: !!sc.hideCommunity, opens: OPENS.includes(r.max_opens) ? r.max_opens : 1, session: r.session_minutes, pin: "" }));
+    setF((x) => ({ ...x, label: `${r.label} (نسخة)`, note: r.note || "", tabs: sc.tabs || x.tabs, allDocs: !Array.isArray(sc.docs), docs: Array.isArray(sc.docs) ? sc.docs : DOCS.map((d) => d.id), allTopics: !Array.isArray(sc.topics), topics: Array.isArray(sc.topics) ? sc.topics : [], hideCommunity: !!sc.hideCommunity, opens: OPENS.includes(r.max_opens) ? r.max_opens : 1, session: r.session_minutes, pin: "", wm: { ...WM_DEFAULTS, ...sanitizeWm(sc.wm), who: "" } }));
     window.scrollTo?.({ top: 0, behavior: "smooth" });
     flashToast("نُسخت الإعدادات في النموذج — اضغط «إنشاء الرابط» لرابط جديد");
   };
@@ -150,6 +158,7 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
             <button onClick={() => copy(created.url)} style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: T.brass, color: T.onAccent || "#fff", borderRadius: 10, padding: "9px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "تم النسخ" : "نسخ الرابط"}</button>
             <button onClick={() => setCreated(null)} style={{ border: `1px solid ${T.line}`, background: "none", color: T.muted, borderRadius: 10, padding: "9px 14px", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>إخفاء</button>
           </div>
+          <ShareMessageCard T={T} created={created} onCopyFail={() => flashToast("المتصفح منع النسخ — حدد النص وانسخه يدويًا")} />
         </div>
       )}
 
@@ -183,9 +192,11 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
         )}
         <div style={{ marginBottom: 14 }}>{chk(f.hideCommunity, "إخفاء زر مجتمع الملاك (رابط تليجرام)", () => set({ hideCommunity: !f.hideCommunity }), "tg")}</div>
 
+        <WmControls T={T} value={f.wm} onChange={(wm) => set({ wm })} name={f.label.trim()} />
+
         <label style={lab}>رمز دخول PIN (اختياري — طبقة حماية ثانية، يُحفظ مشفّرًا ولا يُعرض لاحقًا)</label>
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          <input value={f.pin} onChange={(e) => set({ pin: e.target.value })} maxLength={12} dir="ltr" placeholder="مثال: 482915 — اتركه فارغًا بلا رمز" style={{ ...inp, flex: 1 }} />
+          <input value={f.pin} onChange={(e) => set({ pin: e.target.value.replace(/\D/g, "") })} inputMode="numeric" maxLength={12} dir="ltr" placeholder="أرقام فقط، مثال: 482915 — اتركه فارغًا بلا رمز" style={{ ...inp, flex: 1 }} />
           <button type="button" onClick={randomPin} title="رمز عشوائي" style={{ display: "flex", alignItems: "center", gap: 5, border: `1px solid ${T.line}`, background: "none", color: T.muted, borderRadius: 10, padding: "0 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Dices size={14} /> عشوائي</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
@@ -215,6 +226,7 @@ export function AShareTab({ supabase, flashToast, log, canManage, by }) {
             </div>
             <div style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.9, marginTop: 6 }}>
               الأقسام: {tabsTxt || "—"}<br />
+              العلامة المائية: {r.scope?.wm ? `سواد ${sanitizeWm(r.scope.wm).opacity}% · خط ${sanitizeWm(r.scope.wm).size}` : "الافتراضية"}<br />
               ينتهي: {fmt(r.expires_at)} · فُتح {r.opens} من {r.max_opens} · آخر فتح: {fmt(r.last_opened_at)}<br />
               أُنشئ: {fmt(r.created_at)}{r.created_by ? ` بواسطة ${r.created_by}` : ""}{r.has_pin ? " · محميّ برمز PIN" : ""}
               {agg[r.id] ? <><br />النشاط: {agg[r.id].n} جلسة · {agg[r.id].ev} حدث · مدة التصفح {Math.round(agg[r.id].ms / 60000)} د</> : <><br />لم يُفتح بعد</>}

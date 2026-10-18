@@ -5,13 +5,16 @@
    ما تمنع لقطة الجوال نفسها (المتصفح ما يشوفها): الغرض الردع وتتبّع المصدر. */
 import { useEffect, useMemo, useState } from "react";
 import { EyeOff } from "lucide-react";
+import { WmLayer, sanitizeWm } from "./share-wm-kit.jsx";
 
 const pad = (n) => (n < 10 ? "0" + n : "" + n);
 const stamp = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const isField = (el) => !!el?.closest?.("input,textarea,[contenteditable='true']");
 
-export function ShareGuard({ label, sid }) {
+/* wm: إعدادات العلامة من scope.wm (6.3.0). بدونها (روابط قديمة) يبقى السلوك السابق حرفيًا. */
+export function ShareGuard({ label, sid, wm }) {
+  const cfg = useMemo(() => (wm && typeof wm === "object" ? sanitizeWm(wm) : null), [wm]);
   const [lost, setLost] = useState(false);
   const [minute, setMinute] = useState(stamp);
   useEffect(() => { const t = setInterval(() => setMinute(stamp()), 30000); return () => clearInterval(t); }, []);
@@ -47,7 +50,9 @@ export function ShareGuard({ label, sid }) {
 
   return (
     <>
-      <div aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: 2147483000, pointerEvents: "none", opacity: 0.1, backgroundImage: bg }} />
+      {cfg
+        ? <WmLayer fixed wm={cfg} name={cfg.who} sid={sid} minute={minute} />
+        : <div aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: 2147483000, pointerEvents: "none", opacity: 0.1, backgroundImage: bg }} />}
       {lost && (
         <div role="alert" dir="rtl" onClick={() => setLost(false)} style={{ position: "fixed", inset: 0, zIndex: 2147483001, background: "var(--share-cover-bg, #0F1A20)", color: "#E7EEF2", display: "grid", placeContent: "center", gap: 10, textAlign: "center", padding: 24, fontFamily: "system-ui, sans-serif" }}>
           <EyeOff size={30} style={{ margin: "0 auto", opacity: 0.8 }} />

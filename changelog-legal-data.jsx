@@ -13,6 +13,23 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.3.0",
+    dateAr: "18 أكتوبر 2026",
+    dateEn: "October 18, 2026",
+    ar: [
+      "العلامة المائية في روابط المشاركة صارت قابلة للضبط لكل رابط: درجة السواد والحجم والزاوية والتباعد واللون، وتحدد ماذا تكتب (الاسم، معرّف الجلسة، الوقت، ونص إضافي) مع معاينة حيّة. الاسم افتراضيًا اسم الرابط وتقدر تختار أي اسم غيره بنفس نموذج إنشاء الرابط.",
+      "رسالة جاهزة بعد إنشاء الرابط فيها الرابط وتعليمات الاستخدام والمدة وعدد مرات الدخول ومدة الجلسة، بزر نسخ. الرمز يطلع افتراضيًا برسالة منفصلة (قابل للتغيير).",
+      "رمز الدخول صار أرقامًا فقط (٤ إلى ١٢ رقمًا) عند الإنشاء. الروابط القديمة برموزها تشتغل كما هي.",
+      "الروابط القديمة تبقى بنفس العلامة السابقة، والإعدادات تُحفظ داخل بيانات الرابط بدون أي تعديل على قاعدة البيانات.",
+    ],
+    en: [
+      "Share-link watermark is now configurable per link: darkness, size, angle, spacing, color and what it says (name, session id, time, extra text), with a live preview; the name defaults to the link name and can be set to anything in the create-link form.",
+      "Ready-to-send message after creating a link: link, usage instructions, validity, open count and session length, with a copy button. The PIN goes in a separate message by default (switchable).",
+      "PIN is now digits only (4 to 12) when creating a link. Existing links and their PINs keep working.",
+      "Older links keep the previous watermark; settings live inside the link's data, no database change.",
+    ],
+  },
+  {
     version: "6.2.0",
     dateAr: "17 أكتوبر 2026",
     dateEn: "October 17, 2026",
