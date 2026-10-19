@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.5.2",
+    dateAr: "19 أكتوبر 2026",
+    dateEn: "October 19, 2026",
+    ar: [
+      "تحديث رابط قروب الملاك على تليجرام: زر «انضم لمجتمع الملاك» صار يفتح القروب الجديد.",
+    ],
+    en: [
+      "Updated the owners' Telegram group link: the “Join the Owners Community” button now opens the new group.",
+    ],
+  },
+  {
     version: "6.5.1",
     dateAr: "18 أكتوبر 2026",
     dateEn: "October 18, 2026",
