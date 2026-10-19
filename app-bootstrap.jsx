@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const SUPABASE_URL = "https://codnqkeycfhznzbqlpds.supabase.co";
 export const SUPABASE_ANON_KEY = "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu";
-export const TELEGRAM_URL = "https://t.me/+thhB4M36VkFkYjZk";
+export const TELEGRAM_URL = "https://t.me/+g8eICIqj7RFhNTQ8";
 /* عميل Supabase الحقيقي — يُستخدم بلوحة الإدارة (تسجيل الدخول + قراءة/كتابة البيانات).
    نفس الرابط والمفتاح العام أعلاه، آمنين للنشر بالمتصفح طالما RLS مفعّلة (راجع setup-supabase.sql) */
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
