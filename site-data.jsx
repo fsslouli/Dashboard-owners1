@@ -188,6 +188,8 @@ const LOC_EN = {
   "الطابق الأرضي": "Ground Floor", "الطابق الأول": "First Floor", "الأرضي والأول": "Ground + First Floor",
   "الحوش الخلفي (الأرضي)": "Backyard (Ground Floor)", "الحوش الخلفي (الأرضي) والسطح": "Backyard (Ground Floor) & Roof",
   "الحوش الأمامي": "Front Yard", "الكهرباء": "Electrical",
+  /* 6.8.0 — قيم حيّة كانت بلا ترجمة */
+  "الحوش (الأرضي)": "Yard (Ground Floor)", "جدار الفلل المتلاصقة": "Party Wall Between Adjoining Villas",
 };
 const CAT_AR = { "تصحيح عيب تنفيذي": "تصحيح تنفيذي" };
 const CAT_EN = {
@@ -204,7 +206,7 @@ const OWN_EN = {
   "أبو علي": "Abu Ali", "م/إبراهيم": "Eng. Ibrahim", "وديان": "Wedyan",
 };
 export const MEETING_ORDER = ["الاجتماع السادس ميداني", "الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
-const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)" };
+const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)", "الاجتماع السادس (ميداني)": "6th Meeting (Site Visit)", "الاجتماع السابع": "7th Meeting" };
 export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /* ── بحث مُتسامح بالترجمة ──
@@ -213,8 +215,21 @@ export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "
    بالوضع الإنجليزي. نجرّب المطابقة الحرفية أولًا، وإلا نطابق بالنسخة المُوحَّدة عبر norm().
    ملاحظة: norm معرَّفة أدناه، والاستدعاء هنا يحصل وقت العرض لا وقت التحميل — فما فيه مشكلة. */
 const normMapCache = new WeakMap();
-function trLookup(map, v) {
-  if (v == null || v === "") return v;
+/* 6.8.0 — قاموس ترجمة ديناميكي: أي اسم/منصب/قيمة فلتر جديدة (ما لها ترجمة ثابتة بالكود) تُترجم تلقائيًا من لوحة الإدارة
+   وتنحفظ بـ nav_labels._i18n، والموقع يقرأها هنا. الترجمة الثابتة بالكود تغلب دائمًا على الديناميكية (تصحيح يدوي مضمون). */
+let DYN_EN = {}, DYN_REF = null, DYN_NORM = null;
+export function setDynEn(m) {
+  if (m === DYN_REF) return;
+  DYN_REF = m;
+  DYN_EN = m && typeof m === "object" && !Array.isArray(m) ? m : {};
+  DYN_NORM = null;
+}
+function dynLookup(v) {
+  if (DYN_EN[v] != null) return DYN_EN[v];
+  if (!DYN_NORM) { DYN_NORM = {}; for (const k of Object.keys(DYN_EN)) { const n = norm(k); if (DYN_NORM[n] == null) DYN_NORM[n] = DYN_EN[k]; } }
+  return DYN_NORM[norm(v)];
+}
+function staticLookup(map, v) {
   if (map[v] != null) return map[v];
   let nm = normMapCache.get(map);
   if (!nm) {
@@ -222,7 +237,19 @@ function trLookup(map, v) {
     for (const k of Object.keys(map)) { const n = norm(k); if (nm[n] == null) nm[n] = map[k]; }
     normMapCache.set(map, nm);
   }
-  return nm[norm(v)] ?? v;
+  return nm[norm(v)];
+}
+function trLookup(map, v) {
+  if (v == null || v === "") return v;
+  return staticLookup(map, v) ?? dynLookup(v) ?? v;
+}
+/* هل القيمة تحتاج ترجمة تلقائية؟ (فيها حروف عربية وما لها ترجمة ثابتة ولا ديناميكية) */
+const EN_MAPS = { owner: OWN_EN, owner_title: OWNER_TITLE_EN, loc: LOC_EN, cat: CAT_EN, pri: PRI_EN, status: STA_EN, party: PARTY_EN, meeting: MEETING_EN };
+export function needsEn(kind, v) {
+  if (typeof v !== "string" || !/[\u0621-\u064A]/.test(v)) return false;
+  const m = EN_MAPS[kind];
+  if (m && staticLookup(m, v) != null) return false;
+  return dynLookup(v) == null;
 }
 
 
@@ -248,7 +275,7 @@ export const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.fin
 export const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
 export const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
 export const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : (CAT_AR[v] || v));
-export const trParty = (lang, v) => (lang === "en" ? PARTY_EN[v] || v : v);
+export const trParty = (lang, v) => (lang === "en" ? trLookup(PARTY_EN, v) : v);
 export const trOwnTitle = (lang, v) => (lang === "en" ? trLookup(OWNER_TITLE_EN, v) : v);
 export const trMeeting = (lang, v) => (lang === "en" ? trLookup(MEETING_EN, v) : v);
 export const trMonth = (lang, m) => {

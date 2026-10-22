@@ -38,6 +38,7 @@ import { SchedBtn } from "./schedule-kit.jsx";
 import { CAT_ORDER, OWNER_TITLE_ORDER, PARTY_ORDER } from "./site-data.jsx";
 import { NAV_ORDER_KEY, dropLocalHistory, orderedKeys, patchNavLabels, readLocalHistory, useNavLabels } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
+import { syncLabelTranslations } from "./label-i18n.js";
 import { isNumericText, normText, originalTextOf } from "./text-overrides.js";
 
 const go = (hash) => { window.location.hash = hash; };
@@ -90,6 +91,12 @@ function EditProviderInner({ children }) {
     toastTimer.current = setTimeout(() => setToastMsg(""), 2800);
   }, []);
   const has = useCallback((p) => !!profile && (profile.perms || []).includes(p), [profile]);
+  /* 6.8.0 — عند دخول مشرف له صلاحية تخصيص الموقع: أي قيمة جديدة بلا ترجمة تُترجم وتنحفظ تلقائيًا */
+  useEffect(() => {
+    if (!profile || !(profile.perms || []).includes("manage_theme")) return;
+    const t = setTimeout(() => { syncLabelTranslations(supabase).then((r) => { if (r?.added) toast(`تُرجمت ${r.added} قيمة جديدة تلقائيًا`); }); }, 2500);
+    return () => clearTimeout(t);
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
   const log = useCallback(async (action, details) => {
     try { await supabase.from("audit_log").insert({ user_name: profile?.name || session?.user?.email, action, details }); } catch (_) { /* السجل ما يوقف العمل */ }
   }, [profile, session]);
@@ -309,6 +316,7 @@ function InquirySheet({ target, onClose }) {
   const { T, categories, hasCatCol, hasPartyCol, hasOwnerTitleCol } = ed;
   const isNew = target.mode === "new";
   const [form, setForm] = useState(isNew ? { ...ADMIN_BLANK_INQ } : null);
+  const [orig, setOrig] = useState(null); /* النسخة المحمّلة من القاعدة — لكشف الترجمة القديمة (6.8.0) */
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -318,6 +326,7 @@ function InquirySheet({ target, onClose }) {
     supabase.from("inquiries").select("*").eq("id", target.id).single().then(({ data, error }) => {
       if (!alive) return;
       if (error || !data) { setErr("تعذّر تحميل الاستفسار"); return; }
+      setOrig(data);
       setForm({ ...data, answered: toYesNo(data.answered) });
     });
     return () => { alive = false; };
@@ -338,6 +347,12 @@ function InquirySheet({ target, onClose }) {
 
   const translateMissing = async (obj) => {
     const out = { ...obj };
+    /* 6.8.0 — لو تغيّر النص العربي والإنجليزي ما لمسه أحد، الإنجليزي القديم يُفرَّغ ويُعاد ترجمته */
+    if (orig) {
+      const same = (x, y) => (x || "") === (y || "");
+      if (!same(out.note, orig.note) && same(out.note_en, orig.note_en)) out.note_en = "";
+      if (!same(out.reply, orig.reply) && same(out.reply_en, orig.reply_en)) out.reply_en = "";
+    }
     if (out.note && !out.note_en) { const t = await autoTranslateAr(supabase, out.note); if (t) out.note_en = t; }
     if (out.reply && !out.reply_en) { const t = await autoTranslateAr(supabase, out.reply); if (t) out.reply_en = t; }
     return out;
@@ -373,6 +388,7 @@ function InquirySheet({ target, onClose }) {
     }
     setBusy(false);
     if (error) { setErr("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return; }
+    if (ed.has("manage_theme")) syncLabelTranslations(supabase); /* اسم/منصب/قيمة جديدة ← ترجمة تلقائية بالخلفية */
     onClose();
   };
 

@@ -1,6 +1,7 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-trail-sync */
 import { AImportAudit } from "./admin-audit-tab.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
+import { syncLabelTranslations } from "./label-i18n.js";
 import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
@@ -404,35 +405,46 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       let nextAppendId = inquiries.length ? Math.max(...inquiries.map((r) => r.id)) + 1 : 1;
       const todayISOOuter = new Date().toISOString().slice(0, 10);
       const pendingTranslateIds = [];
+      /* 6.8.0 — الترجمة الإنجليزية القديمة ما تبقى لو تغيّر النص العربي: تُفرَّغ وتُعاد ترجمتها */
+      const oldById = new Map((backupInq || []).map((r) => [String(r.id), r]));
+      const same = (x, y) => (x || "") === (y || "");
+      const freshTr = (key, patch) => {
+        const old = oldById.get(String(key)); if (!old) return patch;
+        const p = { ...patch };
+        if (p.note !== undefined && !same(p.note, old.note) && (p.note_en === undefined || same(p.note_en, old.note_en))) p.note_en = null;
+        if (p.reply !== undefined && !same(p.reply, old.reply) && old.reply_en) p.reply_en = null;
+        return p;
+      };
+      const needsTr = (r) => !!((r.note && !r.note_en) || (r.reply && !r.reply_en));
       for (const res of diffResults) {
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
             const rows = res.newRows.map((r) => ({ ...buildInsertPayload(r), id: Number(r.id), urgent: false }));
             const { error } = await supabase.rpc("replace_inquiries_full", { p_rows: rows });
             if (error) throw error;
-            rows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
+            rows.forEach((r) => { if (needsTr(r)) pendingTranslateIds.push(r.id); });
             count += rows.length;
           } else if (res.mode === "append") {
             const newRows = res.added.map((r) => ({ ...buildInsertPayload(r), id: nextAppendId++, urgent: false, last_modified: todayISOOuter, meetings: res.tag ? [res.tag] : [] }));
             if (newRows.length) await supabase.from("inquiries").insert(newRows);
-            newRows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
+            newRows.forEach((r) => { if (needsTr(r)) pendingTranslateIds.push(r.id); });
             for (const { key, row } of res.changed || []) {
-              const patch = buildPatchPayload(row);
+              const patch = freshTr(key, buildPatchPayload(row));
               await supabase.from("inquiries").update(patch).eq("id", Number(key));
-              if (patch.note && !patch.note_en) pendingTranslateIds.push(Number(key));
+              if (needsTr(patch)) pendingTranslateIds.push(Number(key));
             }
             count += newRows.length + (res.changed ? res.changed.length : 0);
           } else {
             for (const { key, row } of res.changed) {
-              const patch = buildPatchPayload(row);
+              const patch = freshTr(key, buildPatchPayload(row));
               await supabase.from("inquiries").update(patch).eq("id", Number(key));
-              if (patch.note && !patch.note_en) pendingTranslateIds.push(Number(key));
+              if (needsTr(patch)) pendingTranslateIds.push(Number(key));
             }
             // العناصر المضافة فعليًا (مو المعدّلة) توسم "جديد" تلقائيًا لمدة ٧ أيام
             const todayISO = new Date().toISOString().slice(0, 10);
             const newRows = res.added.map((row) => ({ ...buildInsertPayload(row), id: Number(row.id), urgent: false, last_modified: todayISO }));
             if (newRows.length) await supabase.from("inquiries").insert(newRows);
-            newRows.forEach((r) => { if (r.note && !r.note_en) pendingTranslateIds.push(r.id); });
+            newRows.forEach((r) => { if (needsTr(r)) pendingTranslateIds.push(r.id); });
             count += res.added.length + res.changed.length;
           }
         } else if (res.target === "progress") {
@@ -460,6 +472,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       if (addVals.length) log("إضافة قيم فلترة تلقائيًا", addVals.map((v) => `${v.value} → ${v.categoryLabel}`).join("، "));
       addCols.forEach((c) => log("إنشاء فئة فلترة من عمود جديد", `"${c.column}" بقيم: ${c.values.join("، ")}`));
       log("مزامنة بيانات", `تم اعتماد ${count} عنصر عبر ${diffResults.length} شيت`);
+      syncLabelTranslations(supabase).then((r) => { if (r?.added) log("ترجمة تلقائية للقيم الجديدة", `${r.added} قيمة`); });
       await refreshInquiries(); await refreshProgress();
       flashToast(`تم تحديث الموقع بالكامل — ${count} عنصر`);
       loadBackups();

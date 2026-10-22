@@ -4,7 +4,7 @@ import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-
 import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
 import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
-import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
+import { setDynEn, AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -162,6 +162,7 @@ export function PublicSite({ share = null } = {}) {
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
   const navLabels = useNavLabels(supabase);
+  setDynEn(navLabels && navLabels._i18n); /* 6.8.0 — ترجمات القيم الجديدة التلقائية (تُقرأ قبل رسم أي مكوّن) */
   const ed = useEdit();   /* null خارج وضع التحرير — ما يتغيّر شي بالموقع العام */
   /* تسمية النصوص (٦.٠.٠): خريطة {أصل: جديد} من لوحة/وضع التحرير تُطبَّق على كل الزوّار لحظيًا */
   const textMap = navLabels && navLabels._texts;

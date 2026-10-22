@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.8.0",
+    dateAr: "22 أكتوبر 2026",
+    dateEn: "October 22, 2026",
+    ar: [
+      "ترجمة تلقائية كاملة للقيم الجديدة: أي اسم أو منصب أو موقع أو فئة أو حالة جديدة تُضاف (من الإكسل أو نموذج التعديل) تُترجم بالخلفية وتظهر بالإنجليزية بالموقع دون تدخل.",
+      "الترجمة الثابتة بالكود تبقى هي الأولى (للتصحيح اليدوي)، والمترجمة تلقائيًا تُحفظ بقاموس مشترك بإعدادات الموقع.",
+      "إصلاح: لو تغيّر نص الملاحظة أو الرد بالعربي ولم يتغيّر الإنجليزي، تُفرَّغ الترجمة القديمة وتُعاد ترجمتها تلقائيًا (الإكسل ونموذج التعديل) بدل ما تبقى ترجمة قديمة.",
+    ],
+    en: [
+      "Full automatic translation for new values: any new name, title, location, category or status (added via Excel or the edit form) is translated in the background and shows in English on the site with no manual step.",
+      "Built-in translations in the code still take priority (for manual correction); auto-translated ones are kept in a shared dictionary in the site settings.",
+      "Fix: when the Arabic note or reply text changes but the English wasn't touched, the stale translation is cleared and re-translated automatically (Excel sync and the edit form) instead of staying out of date.",
+    ],
+  },
+  {
     version: "6.7.0",
     dateAr: "22 أكتوبر 2026",
     dateEn: "October 22, 2026",
