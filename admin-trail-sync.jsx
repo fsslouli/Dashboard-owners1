@@ -2,6 +2,7 @@
 import { AImportAudit } from "./admin-audit-tab.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
 import { syncLabelTranslations } from "./label-i18n.js";
+import { autoTranslateAr } from "./translate-kit.js";
 import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
@@ -333,14 +334,9 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const autoTranslate = async (obj) => {
     const out = { ...obj };
     try {
-      if (out.note && !out.note_en) {
-        const { data } = await supabase.functions.invoke("translate-text", { body: { text: out.note } });
-        if (data?.translated) out.note_en = data.translated;
-      }
-      if (out.reply && !out.reply_en) {
-        const { data } = await supabase.functions.invoke("translate-text", { body: { text: out.reply } });
-        if (data?.translated) out.reply_en = data.translated;
-      }
+      /* 6.8.0 — ترجمة بمعجم المصطلحات وتقطيع النص الطويل (translate-kit) بدل الاستدعاء الخام */
+      if (out.note && !out.note_en) { const t = await autoTranslateAr(supabase, out.note); if (t) out.note_en = t; }
+      if (out.reply && !out.reply_en) { const t = await autoTranslateAr(supabase, out.reply); if (t) out.reply_en = t; }
     } catch { /* لو فشلت الترجمة نكمل بدونها — ما توقف المزامنة */ }
     return out;
   };
@@ -363,7 +359,19 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
           reply: r.reply_en ? "" : (r.reply || ""),
         }));
         const { data } = await supabase.functions.invoke("import-assist", { body: { mode: "translate", items } });
-        const byId = new Map((data?.results || []).map((x) => [String(x.id), x]));
+        /* 6.8.0 — نقبل نتيجة هذه الدالة فقط لو المحرّك Claude (مصطلحات البناء صحيحة). لو كان المترجم المجاني
+           (يقص النص عند ~490 حرفًا ويترجم المصطلحات حرفيًا) نترجم بدلها عبر المعجم بالواجهة. */
+        let results = data?.engine === "claude" ? (data?.results || []) : [];
+        if (!results.length) {
+          results = [];
+          for (const r of batch) {
+            const note_en = !r.note_en && r.note ? await autoTranslateAr(supabase, r.note) : "";
+            const reply_en = !r.reply_en && r.reply ? await autoTranslateAr(supabase, r.reply) : "";
+            results.push({ id: String(r.id), note_en, reply_en });
+          }
+          log("ترجمة آلية (تحتاج مراجعة)", `استفسار ${batch.map((r) => r.id).join("، ")} — بمعجم المصطلحات`);
+        }
+        const byId = new Map(results.map((x) => [String(x.id), x]));
         await Promise.all(batch.map(async (r) => {
           const t = byId.get(String(r.id));
           if (!t) return;

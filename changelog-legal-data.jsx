@@ -18,11 +18,15 @@ export const CHANGELOG = [
     dateEn: "October 22, 2026",
     ar: [
       "ترجمة تلقائية كاملة للقيم الجديدة: أي اسم أو منصب أو موقع أو فئة أو حالة جديدة تُضاف (من الإكسل أو نموذج التعديل) تُترجم بالخلفية وتظهر بالإنجليزية بالموقع دون تدخل.",
+      "معجم مصطلحات هندسية للترجمة التلقائية (الأفياش = outlets، الصفاية = drain، المنور = light well، المجلس = majlis…) يمنع الترجمة الحرفية الخاطئة، مع تقطيع الملاحظات الطويلة بدل قصّها عند ~490 حرفًا.",
+      "مراجعة وتصحيح الترجمة الإنجليزية لـ 55 استفسارًا (أخطاء مصطلحات وترجمات ناقصة أو لا تطابق النص العربي).",
       "الترجمة الثابتة بالكود تبقى هي الأولى (للتصحيح اليدوي)، والمترجمة تلقائيًا تُحفظ بقاموس مشترك بإعدادات الموقع.",
       "إصلاح: لو تغيّر نص الملاحظة أو الرد بالعربي ولم يتغيّر الإنجليزي، تُفرَّغ الترجمة القديمة وتُعاد ترجمتها تلقائيًا (الإكسل ونموذج التعديل) بدل ما تبقى ترجمة قديمة.",
     ],
     en: [
       "Full automatic translation for new values: any new name, title, location, category or status (added via Excel or the edit form) is translated in the background and shows in English on the site with no manual step.",
+      "An engineering-terms glossary for automatic translation (outlets, drain, light well, majlis…) prevents wrong literal translations, and long notes are now split into sentences instead of being cut off at ~490 characters.",
+      "Reviewed and corrected the English translation of 55 inquiries (terminology errors, incomplete translations, and text that did not match the Arabic).",
       "Built-in translations in the code still take priority (for manual correction); auto-translated ones are kept in a shared dictionary in the site settings.",
       "Fix: when the Arabic note or reply text changes but the English wasn't touched, the stale translation is cleared and re-translated automatically (Excel sync and the edit form) instead of staying out of date.",
     ],

@@ -7,14 +7,32 @@
    حفظ النص العربي نفسه أبدًا ما يتعطّل بسببها.
    ═══════════════════════════════════════════════════════════ */
 
-/* استدعاء مباشر: await autoTranslateAr(supabase, "نص عربي") → "English text" أو "" */
+import { applyGlossary, splitForTranslation } from "./translation-glossary.js";
+
+/* استدعاء مباشر: await autoTranslateAr(supabase, "نص عربي") → "English text" أو "" (6.8.0: بمعجم مصطلحات + تقطيع للنص الطويل)
+   - المعجم (translation-glossary.js) يثبّت مقابل المصطلحات الهندسية قبل الإرسال للمترجم الآلي.
+   - النص الطويل يُقطَّع لجمل (المترجم المجاني كان يقص عند ~490 حرفًا بصمت).
+   - كله أو لا شي: لو فشلت أي قطعة أو بانت مقصوصة نرجّع "" بدل ترجمة ناقصة تنحفظ كأنها كاملة. */
+const FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE/i;
+const decode = (t) => String(t).replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 export async function autoTranslateAr(supabase, text, target = "en") {
   const t = String(text || "").trim();
   if (!t) return "";
   try {
-    const { data, error } = await supabase.functions.invoke("translate-text", { body: { text: t } });
-    if (error || typeof data?.translated !== "string") return "";
-    return data.translated;
+    const lines = splitForTranslation(t);
+    const outLines = [];
+    for (const chunks of lines) {
+      const done = [];
+      for (const c of chunks) {
+        const body = applyGlossary(c);
+        const { data, error } = await supabase.functions.invoke("translate-text", { body: { text: body } });
+        const en = !error && typeof data?.translated === "string" ? decode(data.translated).replace(/\s{2,}/g, " ").trim() : "";
+        if (!en || FAIL_RX.test(en) || (body.length > 120 && en.length < body.length * 0.3)) return "";
+        done.push(en);
+      }
+      outLines.push(done.join(" "));
+    }
+    return outLines.join("\n").trim();
   } catch (_) {
     return "";
   }

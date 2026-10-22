@@ -13,7 +13,7 @@ import { patchNavLabels } from "./nav-labels-kit.jsx";
 import { needsEn, setDynEn } from "./site-data.jsx";
 
 const AR_RX = /[ء-ي]/;
-const FAIL_RX = /MYMEMORY|WARNING|INVALID|LIMIT EXCEEDED|QUERY LENGTH/i;
+const FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE/i;
 const decode = (t) => String(t).replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 
 /* يجهّز النص للترجمة: يفصل لقب «م/» و«د/» عن الاسم (يترجم الاسم وحده ويرجع اللقب إنجليزيًا) */
