@@ -21,7 +21,7 @@ export function AImportAudit({ diffResults, inquiries, categories, sheets, sheet
   const approved = useMemo(() => {
     const map = {};
     (categories || []).forEach((c) => {
-      const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner" }[c.key];
+      const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner", owner_title: "owner_title" }[c.key];
       if (f && Array.isArray(c.values) && c.values.length) map[f] = c.values;
     });
     return map;

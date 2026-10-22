@@ -4,7 +4,8 @@
    تولّد ملف إكسل فيه ورقة واحدة بنفس شكل أوراق الاجتماعات بملف
    «استفسارات الملاك» (مثل «الاجتماع القادم» / «الاجتماع السابع»):
      • صفّا عناوين: مجموعات مدموجة (بيانات التصنيف · الملاحظة والحل المقترح ·
-       الحالة والمتابعة) ثم عناوين الأعمدة الـ١٢ (A–L) بنفس الترتيب والعرض
+       الحالة والمتابعة) ثم عناوين الأعمدة الـ١٣ (A–M) بنفس الترتيب والعرض
+       (6.7.0: «منصب صاحب الرد» عمود J بجانب «صاحب الرد»، والباقي تزحزح خانة)
      • من اليمين لليسار، الصفّان الأولان مثبّتان، خط Arial وحدود رمادية D9D9D9
      • ألوان الأولوية وحالة المقترح وحالة الرد والإغلاق + نفس قواعد التنسيق
        الشرطي، فأي تعديل يدوي على الحالة يتلوّن تلقائيًا مثل ملفك
@@ -74,9 +75,9 @@ function rowValues(r, statusLabel) {
     B: r.model || "", C: r.loc || "", D: r.pri || "", E: r.note || "",
     F: statusLabel(r.status || ""),
     G: answered ? "تم الرد" : "بانتظار الرد",
-    H: r.reply || "", I: owner,
-    J: monthSerial(mk), Jtext: monthSerial(mk) != null ? mk : "",
-    K: isClosed(r) ? "مقفل" : "مفتوح",
+    H: r.reply || "", I: owner, J: owner ? String(r.owner_title || "").trim() : "",
+    K: monthSerial(mk), Ktext: monthSerial(mk) != null ? mk : "",
+    L: isClosed(r) ? "مقفل" : "مفتوح",
   };
 }
 
@@ -87,7 +88,7 @@ const BADGES = {
   D: { "عالية جدًا": "red", "عالية": "amber", "متوسطة": "blue", "عادية": "grey" },
   F: { "معتمدة": "green", "غير معتمدة": "red", "تم الرفض": "red", "قيد الدراسة": "amber", "تم التصويت": "blue" },
   G: { "تم الرد": "green", "بانتظار الرد": "red" },
-  K: { "مقفل": "green", "مفتوح": "red" },
+  L: { "مقفل": "green", "مفتوح": "red" },
 };
 /* أرقام أنماط الخلايا (cellXfs) بملف styles.xml تحت */
 const S = { group: 1, groupBlue: 2, head: 3, num: 4, center: 5, text: 6, date: 7, badge: { green: 8, red: 9, amber: 10, blue: 11, grey: 12 }, badgePlain: 13 };
@@ -95,10 +96,11 @@ const COLS = [
   { c: "A", w: 6, head: "م" }, { c: "B", w: 17, head: "نوع النموذج" }, { c: "C", w: 14, head: "موقع الملاحظة" },
   { c: "D", w: 12, head: "درجة الأولوية" }, { c: "E", w: 55, head: "الملاحظة / الحل المقترح" }, { c: "F", w: 13, head: "حالة المقترح" },
   { c: "G", w: 13, head: "حالة الرد" }, { c: "H", w: 45, head: "الرد على المقترح" }, { c: "I", w: 16, head: "صاحب الرد" },
-  { c: "J", w: 11, head: "شهر الرد" }, { c: "K", w: 12, head: "حالة الإغلاق" }, { c: "L", w: 11, head: "شهر الرد (نص)" },
+  { c: "J", w: 20, head: "منصب صاحب الرد" },
+  { c: "K", w: 11, head: "شهر الرد" }, { c: "L", w: 12, head: "حالة الإغلاق" }, { c: "M", w: 11, head: "شهر الرد (نص)" },
 ];
 /* تقدير ارتفاع الصف حسب طول النص (إكسل ما يحسب الارتفاع وحده عند الفتح) — أقلّه ٥٢٫٥ مثل ورقتك */
-const LINE_CAP = { B: 15, C: 12, E: 60, H: 48, I: 14 };
+const LINE_CAP = { B: 15, C: 12, E: 60, H: 48, I: 14, J: 18 };
 const rowHeight = (v) => {
   let lines = 1;
   Object.entries(LINE_CAP).forEach(([c, cap]) => {
@@ -155,14 +157,14 @@ function stylesXml() {
 function sheetXml(rows, sst) {
   const str = (ref, s, v) => (blank(v) ? `<c r="${ref}" s="${s}"/>` : `<c r="${ref}" s="${s}" t="s"><v>${sst(v)}</v></c>`);
   const out = [];
-  /* صف ١: عناوين المجموعات (A1:D1 و F1:K1 مدموجة) */
-  out.push('<row r="1" spans="1:12" ht="24" customHeight="1">'
+  /* صف ١: عناوين المجموعات (A1:D1 و F1:L1 مدموجة) */
+  out.push('<row r="1" spans="1:13" ht="24" customHeight="1">'
     + str("A1", S.group, "بيانات التصنيف") + ["B1", "C1", "D1"].map((r) => `<c r="${r}" s="${S.group}"/>`).join("")
     + str("E1", S.groupBlue, "الملاحظة والحل المقترح")
-    + str("F1", S.group, "الحالة والمتابعة") + ["G1", "H1", "I1", "J1", "K1", "L1"].map((r) => `<c r="${r}" s="${S.group}"/>`).join("")
+    + str("F1", S.group, "الحالة والمتابعة") + ["G1", "H1", "I1", "J1", "K1", "L1", "M1"].map((r) => `<c r="${r}" s="${S.group}"/>`).join("")
     + "</row>");
   /* صف ٢: عناوين الأعمدة */
-  out.push(`<row r="2" spans="1:12" ht="30" customHeight="1">${COLS.map((k) => str(`${k.c}2`, S.head, k.head)).join("")}</row>`);
+  out.push(`<row r="2" spans="1:13" ht="30" customHeight="1">${COLS.map((k) => str(`${k.c}2`, S.head, k.head)).join("")}</row>`);
   rows.forEach((v, i) => {
     const n = i + 3;
     const badge = (c) => { const tone = BADGES[c][v[c]]; return tone ? S.badge[tone] : S.badgePlain; };
@@ -170,14 +172,14 @@ function sheetXml(rows, sst) {
       typeof v.A === "number" ? `<c r="A${n}" s="${S.num}"><v>${v.A}</v></c>` : str(`A${n}`, S.num, v.A),
       str(`B${n}`, S.center, v.B), str(`C${n}`, S.center, v.C), str(`D${n}`, blank(v.D) ? S.center : badge("D"), v.D),
       str(`E${n}`, S.text, v.E), str(`F${n}`, blank(v.F) ? S.center : badge("F"), v.F),
-      str(`G${n}`, badge("G"), v.G), str(`H${n}`, S.text, v.H), str(`I${n}`, S.center, v.I),
-      v.J != null ? `<c r="J${n}" s="${S.date}"><v>${v.J}</v></c>` : `<c r="J${n}" s="${S.date}"/>`,
-      str(`K${n}`, badge("K"), v.K),
-      v.J != null
-        ? `<c r="L${n}" s="${S.center}" t="str"><f>IF($J${n}="","",TEXT($J${n},"YYYY-MM"))</f><v>${esc(v.Jtext)}</v></c>`
-        : `<c r="L${n}" s="${S.center}"/>`,
+      str(`G${n}`, badge("G"), v.G), str(`H${n}`, S.text, v.H), str(`I${n}`, S.center, v.I), str(`J${n}`, S.center, v.J),
+      v.K != null ? `<c r="K${n}" s="${S.date}"><v>${v.K}</v></c>` : `<c r="K${n}" s="${S.date}"/>`,
+      str(`L${n}`, badge("L"), v.L),
+      v.K != null
+        ? `<c r="M${n}" s="${S.center}" t="str"><f>IF($K${n}="","",TEXT($K${n},"YYYY-MM"))</f><v>${esc(v.Ktext)}</v></c>`
+        : `<c r="M${n}" s="${S.center}"/>`,
     ];
-    out.push(`<row r="${n}" spans="1:12" ht="${rowHeight(v)}" customHeight="1">${cells.join("")}</row>`);
+    out.push(`<row r="${n}" spans="1:13" ht="${rowHeight(v)}" customHeight="1">${cells.join("")}</row>`);
   });
   const last = Math.max(2, rows.length + 2);
   let prio = 0;
@@ -187,15 +189,15 @@ function sheetXml(rows, sst) {
     + "</conditionalFormatting>";
   return XML_HEAD + `<worksheet xmlns="${NS_MAIN}" xmlns:r="${NS_REL}">`
     + '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'
-    + `<dimension ref="A1:L${last}"/>`
+    + `<dimension ref="A1:M${last}"/>`
     + '<sheetViews><sheetView rightToLeft="1" tabSelected="1" workbookViewId="0">'
     + '<pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A3" sqref="A3"/>'
     + "</sheetView></sheetViews>"
     + '<sheetFormatPr defaultRowHeight="15"/>'
     + `<cols>${COLS.map((k, i) => `<col min="${i + 1}" max="${i + 1}" width="${k.w}" customWidth="1"/>`).join("")}</cols>`
     + `<sheetData>${out.join("")}</sheetData>`
-    + '<mergeCells count="2"><mergeCell ref="A1:D1"/><mergeCell ref="F1:K1"/></mergeCells>'
-    + cf("F", BADGES.F) + cf("D", BADGES.D) + cf("G", BADGES.G) + cf("K", BADGES.K)
+    + '<mergeCells count="2"><mergeCell ref="A1:D1"/><mergeCell ref="F1:L1"/></mergeCells>'
+    + cf("F", BADGES.F) + cf("D", BADGES.D) + cf("G", BADGES.G) + cf("L", BADGES.L)
     + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'
     + '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>'
     + "</worksheet>";

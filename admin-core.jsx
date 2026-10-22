@@ -51,9 +51,9 @@ export const ADMIN_PERMISSIONS = [
   { group: "الإدارة", key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
   { group: "الإدارة", key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },
 ];
-export const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "cat", "party", "status", "owner", "month", "note", "note_en", "reply", "closed", "answered"];
-export const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة (تصنيف نوع البند)", party: "الجهة المختصة (من يجاوب)", status: "الحالة", owner: "المهندس", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
-export const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", party: "فريق المشروع", status: "قيد الدراسة", owner: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا" };
+export const INQ_FIELDS_ADMIN = ["model", "loc", "pri", "cat", "party", "status", "owner", "owner_title", "month", "note", "note_en", "reply", "closed", "answered"];
+export const ADMIN_FIELD_LABEL = { model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة (تصنيف نوع البند)", party: "الجهة المختصة (من يجاوب)", status: "الحالة", owner: "صاحب الرد", owner_title: "منصب صاحب الرد", month: "الشهر", note: "الملاحظة", note_en: "Note (EN)", reply: "الرد", closed: "مغلقة (نعم/لا)", answered: "حالة الرد (تم الرد؟)" };
+export const ADMIN_BLANK_INQ = { model: "", loc: "", pri: "متوسطة", cat: "", party: "فريق المشروع", status: "قيد الدراسة", owner: "", owner_title: "", month: "", note: "", note_en: "", reply: "", closed: "لا", answered: "لا" };
 /* answered عمود boolean حقيقي بقاعدة البيانات (بخلاف closed اللي نص) — نحوّلها بالحدين:
    نص "نعم/لا" أثناء العرض والمقارنة بالإدارة (اتساقًا مع closed)، وBoolean فعلي عند الكتابة الفعلية لقاعدة البيانات */
 export const REAL_BOOL_FIELDS = ["answered"];

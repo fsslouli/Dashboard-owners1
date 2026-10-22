@@ -17,7 +17,7 @@ import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
 import { BlocksView, blocksOf } from "./blocks-kit.jsx";
 import { useEdit } from "./edit-ctx.js";
 import { startTextOverrides } from "./text-overrides.js";
-import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf } from "./site-custom.js";
+import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf, telegramUrlOf } from "./site-custom.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, Box, FileText, Map as MapIcon, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
@@ -181,6 +181,8 @@ export function PublicSite({ share = null } = {}) {
   const pins = useMemo(() => pinsOf(navLabels), [navLabels]);
   const siteStyle = useMemo(() => styleOf(navLabels), [navLabels]);
   const siteText = useMemo(() => siteOf(navLabels), [navLabels]);
+  /* رابط قروب تليجرام من لوحة الإدارة (6.7.0) — ولو ما انحفظ رابط صالح يرجع للافتراضي بالكود */
+  const tgUrl = useMemo(() => telegramUrlOf(navLabels, TELEGRAM_URL), [navLabels]);
   const siteTitle = (lg) => (lg === "en" ? siteText.title_en || "Owner Inquiries" : siteText.title_ar || "استفسارات الملاك");
   /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
   const shareScope = share ? (share.scope || {}) : null;
@@ -258,16 +260,7 @@ export function PublicSite({ share = null } = {}) {
      تلقائيًا بدون ما يحتاج الزائر يحدّث الصفحة. لو فشل الاتصال أو الجدول فاضي،
      يبقى الموقع شغّال بالنسخة الأساسية (BASE) بدون أي انقطاع. */
   useEffect(() => {
-    /* ⚠ DEMO-ONLY — يُحذف قبل الدمج: يحاكي العمود الجديد قبل إضافته لقاعدة البيانات (?otdemo=1) */
-    const OT_SIM = true; // ⚠ DEMO-ONLY: محاكاة العمود الجديد قبل إضافته لقاعدة البيانات
-    const simOwner = (r) => {
-      if (!OT_SIM || r.owner_title) return r;
-      const T0 = { "م/محمد عبدالمعطي": "مدير المشروع", "م/أحمد ملحم": "مدير العمليات", "م/رواحه": "مدير المبيعات السابق" };
-      let owner = r.id === 77 ? "وديان" : (r.owner || ""), t = r.id === 77 ? "مديرة المبيعات الأولى" : T0[owner] || "";
-      const m = owner.match(/^(.*?)\s*\(مالك\)$/); if (m) { owner = m[1]; t = "مالك"; }
-      return { ...r, owner, owner_title: t };
-    };
-    const mapRow = (r0) => { const r = simOwner(r0); return ({
+    const mapRow = (r) => ({
       id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
       answered: !!r.answered, owner: r.owner, ownerTitle: r.owner_title || "", month: r.month,
       closed: r.closed === "نعم" || r.closed === true,
@@ -276,7 +269,7 @@ export function PublicSite({ share = null } = {}) {
       note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
       last_modified: r.last_modified,
       urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
-    }); };
+    });
     const fetchLive = async () => {
       try {
         /* أعمدة محدّدة لا select("*") — أسماء من أدخل البند وعدّله بيانات داخلية
@@ -1023,6 +1016,7 @@ export function PublicSite({ share = null } = {}) {
 .sheet-body::-webkit-scrollbar-thumb{background:${T.faint}66;border-radius:4px;}
 .sheet-note{font-size:15.5px;line-height:2.1;margin:0;color:${T.paper};}
 .reply-box{background:${T.sunken};border-radius:13px;border-right:3px solid transparent;padding:14px 16px;}
+.reply-sign{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:9px;border-top:1px dashed ${T.line};font-size:12.5px;color:${T.muted};}
 .sheet-reply{font-size:14.5px;line-height:2.1;margin:0;color:${T.paper};}
 .meta-list{margin-top:24px;}
 .meta-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;}
@@ -1272,7 +1266,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
             <div className="stamp">
               {!(shareScope && shareScope.hideCommunity) && (
-                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" data-ek="telegram" onClick={() => logEvent("click", "telegram", null, null)}>
+                <a href={tgUrl} target="_blank" rel="noopener noreferrer" className="join-btn" data-ek="telegram" onClick={() => logEvent("click", "telegram", null, null)}>
                   <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
                 </a>
               )}

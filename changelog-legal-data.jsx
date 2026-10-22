@@ -13,6 +13,23 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.7.0",
+    dateAr: "22 أكتوبر 2026",
+    dateEn: "October 22, 2026",
+    ar: [
+      "خانة جديدة «منصب صاحب الرد»: المنصب صار مستقلًا عن الاسم (مثل وديان · مديرة المبيعات الأولى، أبو سلطان · مالك)، ويظهر في تفاصيل كل استفسار.",
+      "فلتر جديد «منصب صاحب الرد» في «الفلاتر والترتيب» بعد «المجيب»، والبحث صار يشمل المنصب.",
+      "الإدارة: حقل المنصب في نموذج الإضافة والتعديل، وقراءته من عمود «منصب صاحب الرد» بملف الإكسل، وتتبعه في سجل التعديلات، وإدارة قيمه من تبويب الفلاتر، وعمود له في ورقة الاجتماع القادم.",
+      "رابط قروب الملاك على تليجرام صار يتعدّل من لوحة الإدارة («تخصيص الموقع» ← «رابط قروب الملاك») ويسري على كل الزوّار فورًا بدون نشر نسخة جديدة.",
+    ],
+    en: [
+      "New field \"Responder's title\": the title is now separate from the name (e.g. Wedyan · Senior Sales Manager, Abu Sultan · Owner) and shows in every inquiry's details.",
+      "New \"Responder's title\" filter under Filters & sort (after Responder), and search now covers the title.",
+      "Admin: a title field in the add/edit forms, Excel import of the \"منصب صاحب الرد\" column, revision-log tracking, managing its values from the Filters tab, and a title column in the next-meeting sheet.",
+      "The owners' Telegram group link can now be edited from the admin panel (Site customization → Owners group link) and applies to all visitors instantly, with no new release needed.",
+    ],
+  },
+  {
     version: "6.5.2",
     dateAr: "19 أكتوبر 2026",
     dateEn: "October 19, 2026",
