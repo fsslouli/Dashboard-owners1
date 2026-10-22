@@ -10,12 +10,12 @@ const PUBLIC_LOG = CHANGELOG
   .map((e) => ({ ...e, ar: (e.ar || []).filter((l) => !NEG_AR.test(l)), en: (e.en || []).filter((l) => !NEG_EN.test(l)) }))
   .filter((e) => e.ar.length > 0);
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
-import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
+import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
-import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, User, Users, X } from "lucide-react";
+import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, Users, X } from "lucide-react";
 
 /* ── ١١. الإقرار القانوني ولوحة سجل التحديثات ── */
 export function LegalDisclaimer({ onAgree: onAgreeParent }) {
@@ -226,6 +226,17 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
                 count={ALL.filter((r) => r.owner === m).length}>{trOwn(lang, m)}</Chip>
             ))}
           </div>
+          {cats.ownerTitles && cats.ownerTitles.length > 0 && (
+            <>
+              <div className="sec-lbl" style={{ marginTop: 24 }}>{L("منصب صاحب الرد", "Responder's title")}</div>
+              <div className="flex flex-wrap items-center" style={{ gap: 8, marginBottom: 0 }}>
+                {cats.ownerTitles.map((t) => (
+                  <Chip key={t} on={isOn("ot", t)} onClick={() => dmulti("ot", t)}
+                    count={ALL.filter((r) => r.ownerTitle === t).length}>{trOwnTitle(lang, t)}</Chip>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("تمييز", "Flags")}</div>
           <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
@@ -689,6 +700,11 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
 
   if (!r) return null;
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
+  /* توقيع الرد (6.7.0): «— الاسم [المنصب]» أسفل صندوق الرد بدل سطر «صاحب الرد» بقائمة البيانات.
+     يظهر فقط لما يكون فيه رد مسجّل وصاحب رد معروف (مو فاضي ولا «غير محدد») */
+  const ownName = r.owner && String(r.owner).trim() !== "غير محدد" ? trOwn(lang, r.owner) : "";
+  const ownTitle = ownName && r.ownerTitle ? trOwnTitle(lang, r.ownerTitle) : "";
+  const replyText = trReply(lang, r);
 
   const handleShare = async () => {
     const url = `${window.location.origin}${window.location.pathname}?note=${r.id}`;
@@ -756,7 +772,13 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
             {L("الرد", "Reply")} <span style={{ color: sc }}>· {trSta(lang, r.sta)}</span>
           </div>
           <div className="reply-box" style={{ borderRightColor: sc }}>
-            <p className="sheet-reply">{trReply(lang, r) || L("لا يوجد رد مسجّل.", "No reply recorded yet.")}</p>
+            <p className="sheet-reply">{replyText || L("لا يوجد رد مسجّل.", "No reply recorded yet.")}</p>
+            {replyText && ownName && (
+              <div className="reply-sign">
+                <span>— {ownName}</span>
+                {ownTitle && <span className="cat-pill" style={{ color: T.brass, background: `${T.brass}16`, borderColor: `${T.brass}33` }}>{ownTitle}</span>}
+              </div>
+            )}
           </div>
 
           <AttachmentsBlock key={r.id} rows={attachments} lang={lang} T={T} />
@@ -764,7 +786,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
           <div className="meta-list">
             {[[Tag, L("الفئة", "Category"), r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")],
               ...(r.party ? [[Users, L("الجهة المختصة", "Responsible party"), trParty(lang, r.party)]] : []),
-              [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)], [User, L("صاحب الرد", "Engineer"), trOwn(lang, r.owner)],
+              [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)],
               [Calendar, L("شهر الرد", "Reply Month"), trMonth(lang, r.month)], [Ruler, L("حالة الإغلاق", "Closure Status"), r.closed ? L("مقفل", "Closed") : L("مفتوح", "Open")],
               [Droplet, L("حالة الرد", "Reply Status"), r.answered ? L("تم الرد", "Replied") : L("بانتظار الرد", "Awaiting reply")]].map(([Ic, k, v]) => (
               <div key={k} className="meta-row">

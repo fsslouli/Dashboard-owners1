@@ -5,7 +5,7 @@ import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findN
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { supabase } from "./app-bootstrap.jsx";
-import { CAT_ORDER, FLAG_META, PARTY_ORDER, isFlagLive } from "./site-data.jsx";
+import { CAT_ORDER, FLAG_META, OWNER_TITLE_ORDER, PARTY_ORDER, isFlagLive } from "./site-data.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import * as Brain from "./import-brain.js";
@@ -18,7 +18,7 @@ import { AlertTriangle, Check, ChevronDown, ChevronUp, Download, FileSpreadsheet
    استفسار يوقف لوحة الإدارة بالكامل. يقرأ من inquiry_revisions (يعبّيها Trigger
    بقاعدة البيانات مع كل إضافة/تعديل) — قراءة فقط، ويختفي بهدوء لو ما فيه سجل. */
 const REV_FIELD_LABEL = {
-  model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", status: "الحالة", owner: "الجهة المجيبة",
+  model: "النموذج", loc: "الموقع", pri: "الأولوية", cat: "الفئة", party: "الجهة المختصة", status: "الحالة", owner: "الجهة المجيبة", owner_title: "منصب صاحب الرد",
   month: "الشهر", note: "نص الاستفسار", reply: "الرد", closed: "مغلق", answered: "تمت الإجابة",
   urgent: "عاجل", important: "مهم", meetings: "الاجتماعات",
 };
@@ -142,8 +142,13 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   useEffect(() => {
     supabase.from("inquiries").select("party").limit(1).then(({ error }) => { if (error) setHasPartyCol(false); });
   }, []);
-  const INQ_FIELDS = useMemo(() => INQ_FIELDS_ADMIN.filter((f) => (f !== "cat" || hasCatCol) && (f !== "party" || hasPartyCol)), [hasCatCol, hasPartyCol]);
-  const stripOptional = (obj) => { const o = { ...obj }; if (!hasCatCol) delete o.cat; if (!hasPartyCol) delete o.party; return o; };
+  /* ونفسها لعمود «منصب صاحب الرد» (owner_title، 6.7.0) */
+  const [hasOwnerTitleCol, setHasOwnerTitleCol] = useState(true);
+  useEffect(() => {
+    supabase.from("inquiries").select("owner_title").limit(1).then(({ error }) => { if (error) setHasOwnerTitleCol(false); });
+  }, []);
+  const INQ_FIELDS = useMemo(() => INQ_FIELDS_ADMIN.filter((f) => (f !== "cat" || hasCatCol) && (f !== "party" || hasPartyCol) && (f !== "owner_title" || hasOwnerTitleCol)), [hasCatCol, hasPartyCol, hasOwnerTitleCol]);
+  const stripOptional = (obj) => { const o = { ...obj }; if (!hasCatCol) delete o.cat; if (!hasPartyCol) delete o.party; if (!hasOwnerTitleCol) delete o.owner_title; return o; };
   /* ═══ أمان الفرز: نتحقق إذا عمود "created_at" (تاريخ الإضافة) موجود فعلًا — لو قاعدة
      البيانات ما انحدّثت بعد بملف setup-supabase.sql، فرز "الأحدث إضافة" يرجع تلقائيًا
      لترتيب رقم الاستفسار بدل ما يسبب خطأ. ═══ */
@@ -291,7 +296,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
            يظهر «معدّلًا» لمجرد اختلاف مسافة أو همزة، فيغرق الفرق الحقيقي. */
         const approvedMap = {};
         (categories || []).forEach((c) => {
-          const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner" }[c.key];
+          const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner", owner_title: "owner_title" }[c.key];
           if (f && Array.isArray(c.values) && c.values.length) approvedMap[f] = c.values;
         });
         let fixCount = 0;
@@ -774,6 +779,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
             {hasPartyCol && afieldInput(ADMIN_FIELD_LABEL.party, form.party ?? "", (v) => setForm((f) => ({ ...f, party: v })), ["", ...PARTY_ORDER])}
             {afieldInput(ADMIN_FIELD_LABEL.status, form.status, (v) => setForm((f) => ({ ...f, status: v })), catVals("status", ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"]))}
             {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, (v) => setForm((f) => ({ ...f, owner: v })), null, catVals("owner", []))}
+            {hasOwnerTitleCol && afieldInput(ADMIN_FIELD_LABEL.owner_title, form.owner_title ?? "", (v) => setForm((f) => ({ ...f, owner_title: v })), null, catVals("owner_title", OWNER_TITLE_ORDER))}
             {afieldInput(ADMIN_FIELD_LABEL.month, form.month, (v) => setForm((f) => ({ ...f, month: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.closed, form.closed, (v) => setForm((f) => ({ ...f, closed: v })), ["نعم", "لا"])}
             {afieldInput(ADMIN_FIELD_LABEL.answered, form.answered, (v) => setForm((f) => ({ ...f, answered: v })), ["نعم", "لا"])}

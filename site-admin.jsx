@@ -6,9 +6,10 @@
    كل تعديل عبر patchNavLabels (يقرأ آخر نسخة ثم يكتب) — والخادم يفرض صلاحية manage_theme.
    ═══════════════════════════════════════════════════════════ */
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Download, Eye, History, Pin, RotateCcw, Trash2, Upload, Plus, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, ExternalLink, Eye, History, Pin, RotateCcw, Send, Trash2, Upload, Plus, Check } from "lucide-react";
 import { NAV_LABELS_MAX_BYTES, patchNavLabels, readLocalHistory, replaceNavLabels, useNavLabels } from "./nav-labels-kit.jsx";
-import { CUSTOM_TAB_ICONS, MAX_CUSTOM_TABS, PAGE_WIDTHS, customTabsOf, hiddenSecsOf, pinsOf, safeColor, sectionLabel, siteOf, styleOf } from "./site-custom.js";
+import { CUSTOM_TAB_ICONS, MAX_CUSTOM_TABS, PAGE_WIDTHS, customTabsOf, hiddenSecsOf, normalizeTelegramUrl, pinsOf, safeColor, sectionLabel, siteOf, styleOf, telegramUrlOf } from "./site-custom.js";
+import { TELEGRAM_URL } from "./app-bootstrap.jsx";
 import { DOCS } from "./site-data.jsx";
 
 /* ── عمليات مشتركة (تستخدمها لوحة الإدارة ووضع التحرير) ── */
@@ -63,7 +64,7 @@ export function validateNavLabels(x) {
     if (k === "_order" || k === "_hide" || k === "_pins" || k === "_tabs") { if (!Array.isArray(v)) return `القيمة ${k} لازم تكون قائمة`; continue; }
     if (k === "_texts") { if (!isObj(v) || Object.values(v).some((t) => typeof t !== "string")) return "النصوص المعدّلة بصيغة غير صحيحة"; continue; }
     if (k === "_blocks") { if (!isObj(v) || Object.values(v).some((a) => !Array.isArray(a))) return "الكتل بصيغة غير صحيحة"; continue; }
-    if (k === "_style" || k === "_site") { if (!isObj(v)) return `القيمة ${k} بصيغة غير صحيحة`; continue; }
+    if (k === "_style" || k === "_site" || k === "_links") { if (!isObj(v)) return `القيمة ${k} بصيغة غير صحيحة`; continue; }
     if (!isObj(v)) return `إعداد التبويب ${k} بصيغة غير صحيحة`;
   }
   return null;
@@ -116,6 +117,12 @@ export function SiteCustomPanel({ supabase, T, log, toast, canManage }) {
   const [title, setTitle] = useState({ ar: "", en: "" });
   useEffect(() => { setTitle({ ar: site.title_ar, en: site.title_en }); }, [site.title_ar, site.title_en]);
   const [newTab, setNewTab] = useState({ ar: "", en: "", icon: "star" });
+  /* رابط قروب تليجرام (6.7.0): يُحفظ بـ nav_labels._links.telegram ويسري على الزوّار فورًا */
+  const tgCurrent = useMemo(() => telegramUrlOf(nl, TELEGRAM_URL), [nl]);
+  const tgCustom = !!(nl && isObj(nl._links) && nl._links.telegram);
+  const [tgDraft, setTgDraft] = useState("");
+  useEffect(() => { setTgDraft(tgCurrent); }, [tgCurrent]);
+  const tgNorm = normalizeTelegramUrl(tgDraft);
 
   const run = async (p, msg, logMsg) => {
     setBusy(true);
@@ -222,6 +229,26 @@ export function SiteCustomPanel({ supabase, T, log, toast, canManage }) {
               <option value="normal">عادي</option><option value="wide">عريض</option><option value="full">كامل الشاشة</option>
             </select>
           </label>
+        </div>
+      </div>
+
+      {/* رابط قروب الملاك على تليجرام */}
+      <div style={S.sec}>
+        <p style={S.h}><Send size={15} color={T.brass} /> رابط قروب الملاك (تليجرام)</p>
+        <p style={S.p}>الرابط اللي يفتحه زر «انضم لمجتمع الملاك». أي تعديل يسري على كل الزوّار فورًا بدون نشر نسخة جديدة. يقبل روابط t.me أو telegram.me فقط.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+          <input style={{ ...S.inp, direction: "ltr", flex: "1 1 260px" }} placeholder="https://t.me/+…" value={tgDraft}
+            onChange={(e) => setTgDraft(e.target.value)} spellCheck={false} autoCapitalize="off" autoCorrect="off" />
+          <button style={S.b("primary")} disabled={busy || !tgNorm || tgNorm === tgCurrent}
+            onClick={() => patch((n) => ({ ...n, _links: { ...(isObj(n._links) ? n._links : {}), telegram: tgNorm } }), "تم حفظ رابط القروب", `تغيير رابط قروب تليجرام: ${tgNorm}`)}><Check size={13} /> حفظ الرابط</button>
+        </div>
+        {tgDraft.trim() && !tgNorm && <p style={{ fontSize: 12, color: "#C0392B", margin: "0 0 8px" }}>الرابط غير صالح — لازم يكون مثل https://t.me/+xxxx</p>}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, fontSize: 12.5, color: T.muted }}>
+          <span>الرابط الحالي{tgCustom ? "" : " (الافتراضي)"}:</span>
+          <a href={tgCurrent} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ color: T.brass, display: "inline-flex", alignItems: "center", gap: 4, wordBreak: "break-all" }}>{tgCurrent} <ExternalLink size={12} /></a>
+          {tgCustom && tgCurrent !== TELEGRAM_URL && (
+            <button style={S.b()} disabled={busy} onClick={() => patch((n) => { const l = { ...(isObj(n._links) ? n._links : {}) }; delete l.telegram; return { ...n, _links: l }; }, "رجع الرابط الافتراضي", "إرجاع رابط قروب تليجرام للافتراضي")}><RotateCcw size={12} /> الرابط الافتراضي</button>
+          )}
         </div>
       </div>
 

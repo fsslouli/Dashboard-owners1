@@ -5,6 +5,7 @@
      _blocks : كتل المحتوى لكل تبويب       _tabs  : تبويبات مخصّصة جديدة
      _hide   : أقسام مخفية عن الزوّار       _pins  : استفسارات مثبّتة بالأعلى
      _style  : لون مميز وعرض الصفحة         _site  : عنوان الموقع
+     _links  : روابط عامة (telegram = رابط قروب الملاك — يتعدّل من لوحة الإدارة بدون نشر كود)
    أمان: كل قيمة تُنظَّف وقت العرض (مفاتيح بحروف آمنة فقط، ألوان #RRGGBB فقط) —
    فحتى لو انحفظت قيمة غريبة ما تقدر تحقن CSS أو سكربت بالصفحة.
    ═══════════════════════════════════════════════════════════ */
@@ -74,6 +75,22 @@ export function siteOf(nl) {
   const s = obj(nl?._site);
   const clip = (v) => (typeof v === "string" ? v.trim().slice(0, 80) : "");
   return { title_ar: clip(s.title_ar), title_en: clip(s.title_en) };
+}
+
+/* رابط قروب تليجرام (6.7.0): من nav_labels._links.telegram، ولو غير موجود أو غير صالح يرجع للرابط الافتراضي بالكود.
+   لا يُقبل إلا https://t.me/… أو https://telegram.me/… بحروف آمنة فقط (ما يقدر أحد يحط رابط غريب أو سكربت). */
+const TG_RE = /^https:\/\/(t|telegram)\.me\/[A-Za-z0-9_+\-/]{3,80}$/;
+export const isTelegramUrl = (u) => typeof u === "string" && TG_RE.test(u.trim());
+/* يكمّل الرابط لو انكتب بدون https:// (مثل t.me/+abc) — ويرجّع نص فاضي لو ما ينفع */
+export const normalizeTelegramUrl = (u) => {
+  let s = String(u || "").trim();
+  if (/^(t|telegram)\.me\//i.test(s)) s = "https://" + s;
+  s = s.replace(/^http:\/\//i, "https://").replace(/^https:\/\/(www\.)?/i, "https://");
+  return isTelegramUrl(s) ? s : "";
+};
+export function telegramUrlOf(nl, fallback) {
+  const u = obj(nl?._links).telegram;
+  return isTelegramUrl(u) ? u.trim() : fallback;
 }
 
 /* أسماء الأقسام القابلة للإخفاء (تظهر بقائمة "الأقسام المخفية") */

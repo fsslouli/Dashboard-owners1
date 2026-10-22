@@ -160,7 +160,7 @@ export function AAnalyticsTab({ flashToast, canExport }) {
    النموذج والموقع مستثنيان من هذا: قيمتهما نص حر تُصنَّف بخوارزمية بالكود
    (مو قيمة محفوظة مباشرة)، فتعديلهما يحتاج تصميم مختلف — يظهران هنا للعِلم
    فقط بدون أزرار تحرير. ── */
-const FILTERS_TIER1 = ["pri", "cat", "status", "owner", "meeting"];
+const FILTERS_TIER1 = ["pri", "cat", "status", "owner", "owner_title", "meeting"];
 
 export function AFiltersTab({ categories, refreshCategories, flashToast, log }) {
   const T = useSystemTheme();

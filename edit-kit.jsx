@@ -35,7 +35,7 @@ import { afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { AInquiryTrail } from "./admin-trail-sync.jsx";
 import { SchedBtn } from "./schedule-kit.jsx";
-import { CAT_ORDER, PARTY_ORDER } from "./site-data.jsx";
+import { CAT_ORDER, OWNER_TITLE_ORDER, PARTY_ORDER } from "./site-data.jsx";
 import { NAV_ORDER_KEY, dropLocalHistory, orderedKeys, patchNavLabels, readLocalHistory, useNavLabels } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
 import { isNumericText, normText, originalTextOf } from "./text-overrides.js";
@@ -63,6 +63,7 @@ function EditProviderInner({ children }) {
   const [categories, setCategories] = useState([]);
   const [hasCatCol, setHasCatCol] = useState(true);
   const [hasPartyCol, setHasPartyCol] = useState(true); // عمود party (6.4.0) — لو الهجرة ما انطبّقت يُشال من الكتابة بدل ما تفشل
+  const [hasOwnerTitleCol, setHasOwnerTitleCol] = useState(true); // عمود owner_title (6.7.0) — نفس الحماية
   const [sheet, setSheet] = useState(null);
   /* وضع نقر واحد فقط بنفس الوقت: تسمية النصوص أو إخفاء الأقسام */
   const [clickMode, setClickMode] = useState(null);
@@ -81,6 +82,7 @@ function EditProviderInner({ children }) {
     supabase.from("filter_categories").select("*").then(({ data }) => setCategories(data || []));
     supabase.from("inquiries").select("cat").limit(1).then(({ error }) => { if (error) setHasCatCol(false); });
     supabase.from("inquiries").select("party").limit(1).then(({ error }) => { if (error) setHasPartyCol(false); });
+    supabase.from("inquiries").select("owner_title").limit(1).then(({ error }) => { if (error) setHasOwnerTitleCol(false); });
   }, [profile]);
 
   const toast = useCallback((m) => {
@@ -112,21 +114,21 @@ function EditProviderInner({ children }) {
     const { data: top } = await supabase.from("inquiries").select("id").order("id", { ascending: false }).limit(1);
     const nextId = (top && top[0] ? top[0].id : 0) + 1;
     const fields = {};
-    INQ_FIELDS_ADMIN.concat(["reply_en"]).forEach((k) => { if (k in src && (k !== "cat" || hasCatCol) && (k !== "party" || hasPartyCol)) fields[k] = src[k]; });
+    INQ_FIELDS_ADMIN.concat(["reply_en"]).forEach((k) => { if (k in src && (k !== "cat" || hasCatCol) && (k !== "party" || hasPartyCol) && (k !== "owner_title" || hasOwnerTitleCol)) fields[k] = src[k]; });
     const { error } = await supabase.from("inquiries").insert({ ...fields, id: nextId, urgent: false, closed: "لا" });
     if (error) { toast("تعذّر التكرار: " + (error.message || "")); return; }
     log("تكرار استفسار (وضع التحرير)", `#${r.id} ← #${nextId}`);
     toast(`أُنشئ #${nextId} نسخةً من #${r.id}`);
-  }, [hasCatCol, hasPartyCol, log, toast]);
+  }, [hasCatCol, hasPartyCol, hasOwnerTitleCol, log, toast]);
 
   const value = useMemo(() => ({
-    on: true, T, supabase, profile, has, log, toast, categories, hasCatCol, hasPartyCol,
+    on: true, T, supabase, profile, has, log, toast, categories, hasCatCol, hasPartyCol, hasOwnerTitleCol,
     openEditor: (target) => setSheet(target),
     renaming, toggleRename: () => setClickMode((m) => (m === "rename" ? null : "rename")),
     sectioning, toggleSections: () => setClickMode((m) => (m === "sections" ? null : "sections")),
     removeInquiry, duplicateInquiry,
     CardActions, TabsEditor, BlocksEditor,
-  }), [T, profile, has, log, toast, categories, hasCatCol, hasPartyCol, removeInquiry, duplicateInquiry, renaming, sectioning]);
+  }), [T, profile, has, log, toast, categories, hasCatCol, hasPartyCol, hasOwnerTitleCol, removeInquiry, duplicateInquiry, renaming, sectioning]);
 
   if (session === undefined || (session && profile === undefined)) return <Center T={T}>جارٍ التحقق من صلاحياتك…</Center>;
   if (!session) {
@@ -304,7 +306,7 @@ function CardActions({ r, inline = false }) {
 /* ═══ نموذج تعديل/إضافة استفسار (درج جانبي) ═══ */
 function InquirySheet({ target, onClose }) {
   const ed = useEdit();
-  const { T, categories, hasCatCol, hasPartyCol } = ed;
+  const { T, categories, hasCatCol, hasPartyCol, hasOwnerTitleCol } = ed;
   const isNew = target.mode === "new";
   const [form, setForm] = useState(isNew ? { ...ADMIN_BLANK_INQ } : null);
   const [err, setErr] = useState("");
@@ -344,7 +346,7 @@ function InquirySheet({ target, onClose }) {
   const buildFields = async () => {
     const clean = await translateMissing(canonicalizeRow(form, categories));
     const fields = {};
-    INQ_FIELDS_ADMIN.concat(["reply_en"]).forEach((k) => { if (k in clean && (k !== "cat" || hasCatCol) && (k !== "party" || hasPartyCol)) fields[k] = clean[k]; });
+    INQ_FIELDS_ADMIN.concat(["reply_en"]).forEach((k) => { if (k in clean && (k !== "cat" || hasCatCol) && (k !== "party" || hasPartyCol) && (k !== "owner_title" || hasOwnerTitleCol)) fields[k] = clean[k]; });
     fields.answered = toDbBool(clean.answered);
     return fields;
   };
@@ -396,6 +398,7 @@ function InquirySheet({ target, onClose }) {
               {hasPartyCol && afieldInput(ADMIN_FIELD_LABEL.party, form.party ?? "", set("party"), ["", ...PARTY_ORDER])}
               {afieldInput(ADMIN_FIELD_LABEL.status, form.status, set("status"), catVals("status", ["معتمدة", "قيد الدراسة", "تم التصويت", "تم الرفض"]))}
               {afieldInput(ADMIN_FIELD_LABEL.owner, form.owner, set("owner"), null, catVals("owner", []))}
+              {hasOwnerTitleCol && afieldInput(ADMIN_FIELD_LABEL.owner_title, form.owner_title ?? "", set("owner_title"), null, catVals("owner_title", OWNER_TITLE_ORDER))}
               {afieldInput(ADMIN_FIELD_LABEL.month, form.month, set("month"))}
               {afieldInput(ADMIN_FIELD_LABEL.closed, form.closed, set("closed"), ["نعم", "لا"])}
               {afieldInput(ADMIN_FIELD_LABEL.answered, form.answered, set("answered"), ["نعم", "لا"])}

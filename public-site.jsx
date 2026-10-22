@@ -4,7 +4,7 @@ import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-
 import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
 import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
-import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
+import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -17,7 +17,7 @@ import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
 import { BlocksView, blocksOf } from "./blocks-kit.jsx";
 import { useEdit } from "./edit-ctx.js";
 import { startTextOverrides } from "./text-overrides.js";
-import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf } from "./site-custom.js";
+import { CUSTOM_TAB_ICONS, PAGE_WIDTHS, customTabsOf, hiddenSecsCss, hiddenSecsOf, onColor, pinsOf, siteOf, styleOf, telegramUrlOf } from "./site-custom.js";
 import { fmtDuration, isYouTubeId } from "./youtube-kit.js";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, ArrowLeft, ArrowUp, Pin, ChevronLeft, ChevronRight, Box, FileText, Map as MapIcon, History, Images, LayoutDashboard, ListChecks, TrendingUp, Play, RefreshCw, RotateCcw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, X } from "lucide-react";
@@ -33,7 +33,7 @@ const PUBLIC_TAB_META = {
 };
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, party: null, sta: null, model: null, own: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
+export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, party: null, sta: null, model: null, own: null, ot: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
 
 /* ═══ v2.8.4 — منطق التصفية مستقل عن حالة اللوحة ═══
    استُخرج من useMemo الخاص بـ match() عشان تقدر لوحة "الفلاتر" تحسب عدد نتائج
@@ -49,6 +49,7 @@ export function passesFilters(r, f, nq, nqId) {
   if (!pick(f.sta, (a) => a.includes(r.sta))) return false;
   if (!pick(f.model, (a) => a.some((m) => r.models.includes(m)))) return false;
   if (!pick(f.own, (a) => a.includes(r.owner))) return false;
+  if (!pick(f.ot, (a) => a.includes(r.ownerTitle))) return false;
   if (!pick(f.mon, (a) => a.includes(r.month))) return false;
   if (!pick(f.meeting, (a) => { const rm = r.meetings && r.meetings.length ? r.meetings : [r.meeting]; return a.some((m) => rm.includes(m)); })) return false;
   if (f.open && r.closed) return false;
@@ -56,12 +57,14 @@ export function passesFilters(r, f, nq, nqId) {
   if (f.important && !r.isImportantActive) return false;
   if (f.urgent && !r.isUrgentActive) return false;
   if (f.att && !r.attCount) return false;
-  if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.pri} ${r.cat} ${r.party || ""} ${r.sta}`).includes(nq)) return false;
+  if (nq && !(nqId != null && r.id === nqId) && !norm(`${r.note} ${r.reply} ${r.loc} ${r.model} ${r.owner} ${r.ownerTitle || ""} ${r.pri} ${r.cat} ${r.party || ""} ${r.sta}`).includes(nq)) return false;
   return true;
 }
 
-/* هل عمود party موجود بقاعدة البيانات؟ يُحدَّث عند أول فشل مؤكد (الطلب بدونه نجح) */
-let PARTY_COL_OK = true;
+/* أعمدة اختيارية بقاعدة البيانات (تضاف بهجرات لاحقة): party = الجهة المختصة (6.4.0)،
+   owner_title = منصب صاحب الرد (6.7.0). لو الهجرة ما انطبّقت بعد، الطلب يفشل فنعيد بدون العمود
+   الناقص ونتذكر — فيبقى الموقع حيًّا بكل بياناته بدل ما يرجع للنسخة الأساسية. */
+const OPT_COLS_OK = { party: true, owner_title: true };
 
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
@@ -178,6 +181,8 @@ export function PublicSite({ share = null } = {}) {
   const pins = useMemo(() => pinsOf(navLabels), [navLabels]);
   const siteStyle = useMemo(() => styleOf(navLabels), [navLabels]);
   const siteText = useMemo(() => siteOf(navLabels), [navLabels]);
+  /* رابط قروب تليجرام من لوحة الإدارة (6.7.0) — ولو ما انحفظ رابط صالح يرجع للافتراضي بالكود */
+  const tgUrl = useMemo(() => telegramUrlOf(navLabels, TELEGRAM_URL), [navLabels]);
   const siteTitle = (lg) => (lg === "en" ? siteText.title_en || "Owner Inquiries" : siteText.title_ar || "استفسارات الملاك");
   /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
   const shareScope = share ? (share.scope || {}) : null;
@@ -257,7 +262,7 @@ export function PublicSite({ share = null } = {}) {
   useEffect(() => {
     const mapRow = (r) => ({
       id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
-      answered: !!r.answered, owner: r.owner, month: r.month,
+      answered: !!r.answered, owner: r.owner, ownerTitle: r.owner_title || "", month: r.month,
       closed: r.closed === "نعم" || r.closed === true,
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
       meetings: Array.isArray(r.meetings) ? r.meetings : [],
@@ -271,12 +276,18 @@ export function PublicSite({ share = null } = {}) {
            ما تنزل للزائر أصلاً (وقاعدة البيانات تمنعها عنه بصلاحية عمود مستقلة). */
         const PUBLIC_COLS = "id,model,loc,pri,cat,status,owner,month,note,note_en,reply,reply_en," +
           "closed,urgent,answered,meetings,updated_at,last_modified,important,created_at,urgent_until,important_until";
-        /* عمود party (الجهة المختصة، 6.4.0) يُطلب فقط لو موجود بقاعدة البيانات: لو الهجرة ما انطبّقت بعد،
-           الطلب الأول يفشل فنعيد بدونه — ويبقى الموقع حيًّا بكل بياناته (بدون الجهة) بدل ما يرجع للنسخة الأساسية. */
-        let { data: rows, error } = await supabase.from("inquiries").select(PARTY_COL_OK ? PUBLIC_COLS + ",party" : PUBLIC_COLS).order("id");
-        if (error && PARTY_COL_OK) {
-          const retry = await supabase.from("inquiries").select(PUBLIC_COLS).order("id");
-          if (!retry.error) { PARTY_COL_OK = false; rows = retry.data; error = null; }
+        /* الأعمدة الاختيارية تُطلب فقط لو موجودة: نجرب الكل، ولو فشل نشيل منصب صاحب الرد أولًا (الأحدث)،
+           ثم الجهة المختصة — وأول محاولة تنجح تحدد الأعمدة الموجودة فعلًا */
+        const optCols = () => Object.keys(OPT_COLS_OK).filter((c) => OPT_COLS_OK[c]);
+        const sel = (cols) => supabase.from("inquiries").select([PUBLIC_COLS, ...cols].join(",")).order("id");
+        let { data: rows, error } = await sel(optCols());
+        if (error && OPT_COLS_OK.owner_title) {
+          const r2 = await sel(optCols().filter((c) => c !== "owner_title"));
+          if (!r2.error) { OPT_COLS_OK.owner_title = false; rows = r2.data; error = null; }
+        }
+        if (error && OPT_COLS_OK.party) {
+          const r3 = await sel([]);
+          if (!r3.error) { OPT_COLS_OK.party = false; OPT_COLS_OK.owner_title = false; rows = r3.data; error = null; }
         }
         if (!error && rows && rows.length) setData((d) => ({ ...d, records: rows.map(mapRow) }));
       } catch {}
@@ -546,12 +557,13 @@ export function PublicSite({ share = null } = {}) {
     sta: uniqSorted(ALL.map((r) => r.sta), staOrder),
     models: MODEL_LIST.filter((m) => ALL.some((r) => r.models.includes(m))),
     owners: uniqSorted(ALL.map((r) => r.owner), liveCats.owner || []),
+    ownerTitles: uniqSorted(ALL.map((r) => r.ownerTitle), liveCats.owner_title && liveCats.owner_title.length ? liveCats.owner_title : OWNER_TITLE_ORDER),
     months: [...new Set(ALL.map((r) => r.month))].filter(Boolean).sort(),
     /* v2.8.6 — قائمة الاجتماعات = كل القيم المعرّفة بلوحة الإدارة + أي اجتماع مرتبط ببند.
        قبل كذا كانت تُبنى من البنود فقط، فأي اجتماع جديد يُضاف من "الفلاتر" ما يظهر
        إطلاقًا لين يُربط به بند واحد على الأقل */
     meetings: uniqSorted([...(liveCats.meeting || []), ...ALL.flatMap((r) => (r.meetings && r.meetings.length ? r.meetings : [r.meeting]))], meetingOrder),
-  }), [ALL, priOrder, catOrder, staOrder, liveCats.owner, liveCats.meeting, meetingOrder]);
+  }), [ALL, priOrder, catOrder, staOrder, liveCats.owner, liveCats.owner_title, liveCats.meeting, meetingOrder]);
 
   const newCount = ALL.filter((r) => r.isNew).length;
   const openCount = ALL.filter((r) => !r.closed).length;
@@ -641,6 +653,7 @@ export function PublicSite({ share = null } = {}) {
     arr(f.party).forEach((x) => out.push({ k: "party", l: trParty(lang, x) }));
     arr(f.model).forEach((x) => out.push({ k: "model", l: trModel(lang, x) }));
     arr(f.own).forEach((x) => out.push({ k: "own", l: trOwn(lang, x) }));
+    arr(f.ot).forEach((x) => out.push({ k: "ot", l: trOwnTitle(lang, x) }));
     arr(f.mon).forEach((x) => out.push({ k: "mon", l: trMonth(lang, x) }));
     arr(f.meeting).forEach((x) => out.push({ k: "meeting", l: trMeeting(lang, x) }));
     if (f.open) out.push({ k: "open", l: L("مفتوحة فقط", "Open only") });
@@ -1003,6 +1016,7 @@ export function PublicSite({ share = null } = {}) {
 .sheet-body::-webkit-scrollbar-thumb{background:${T.faint}66;border-radius:4px;}
 .sheet-note{font-size:15.5px;line-height:2.1;margin:0;color:${T.paper};}
 .reply-box{background:${T.sunken};border-radius:13px;border-right:3px solid transparent;padding:14px 16px;}
+.reply-sign{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:9px;border-top:1px dashed ${T.line};font-size:12.5px;color:${T.muted};}
 .sheet-reply{font-size:14.5px;line-height:2.1;margin:0;color:${T.paper};}
 .meta-list{margin-top:24px;}
 .meta-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;}
@@ -1252,7 +1266,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
             <div className="stamp">
               {!(shareScope && shareScope.hideCommunity) && (
-                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="join-btn" data-ek="telegram" onClick={() => logEvent("click", "telegram", null, null)}>
+                <a href={tgUrl} target="_blank" rel="noopener noreferrer" className="join-btn" data-ek="telegram" onClick={() => logEvent("click", "telegram", null, null)}>
                   <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
                 </a>
               )}
