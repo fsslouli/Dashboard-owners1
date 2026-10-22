@@ -1,27 +1,22 @@
 /* ═══════════════════════════════════════════════════════════
    translate-kit.js — ترجمة تلقائية عربي → إنجليزي، بلا React.
 
-   الفكرة: تكتب عربي بأي حقل بلوحة الإدارة، وينحط الإنجليزي وحده بالخلفية
-   (Supabase Edge Function اسمها "translate")، بدون ما تلمس شي إنت.
-   لو فشلت الترجمة لأي سبب (مفتاح ناقص، الشبكة، إلخ) ترجع نص فاضي بصمت —
-   حفظ النص العربي نفسه أبدًا ما يتعطّل بسببها.
+   6.8.0: كل الترجمة صارت تمر من محرّك واحد بالسيرفر (دالة i18n-translate):
+   Claude بسياق المشروع ومعجمه + فحص جودة آلي، أو مترجم آلي بالمعجم لو ما فيه مفتاح.
+   لو الدالة نفسها ما ردّت (مو منشورة بعد، انقطاع…) نرجع للمسار القديم (translate-text + المعجم بالواجهة).
+   أي فشل يرجّع نص فاضي بصمت — حفظ النص العربي نفسه أبدًا ما يتعطّل بسببها.
    ═══════════════════════════════════════════════════════════ */
 
 import { applyGlossary, splitForTranslation } from "./translation-glossary.js";
 
-/* استدعاء مباشر: await autoTranslateAr(supabase, "نص عربي") → "English text" أو "" (6.8.0: بمعجم مصطلحات + تقطيع للنص الطويل)
-   - المعجم (translation-glossary.js) يثبّت مقابل المصطلحات الهندسية قبل الإرسال للمترجم الآلي.
-   - النص الطويل يُقطَّع لجمل (المترجم المجاني كان يقص عند ~490 حرفًا بصمت).
-   - كله أو لا شي: لو فشلت أي قطعة أو بانت مقصوصة نرجّع "" بدل ترجمة ناقصة تنحفظ كأنها كاملة. */
 const FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE/i;
 const decode = (t) => String(t).replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-export async function autoTranslateAr(supabase, text, target = "en") {
-  const t = String(text || "").trim();
-  if (!t) return "";
+
+/* المسار القديم (احتياط فقط): المعجم + تقطيع النص + translate-text — كله أو لا شي */
+async function legacyTranslate(supabase, t) {
   try {
-    const lines = splitForTranslation(t);
     const outLines = [];
-    for (const chunks of lines) {
+    for (const chunks of splitForTranslation(t)) {
       const done = [];
       for (const c of chunks) {
         const body = applyGlossary(c);
@@ -38,14 +33,27 @@ export async function autoTranslateAr(supabase, text, target = "en") {
   }
 }
 
-/* هوك جاهز لحقل عربي واحد مربوط بحقل إنجليزي ثاني:
-   const { onArBlur, busy } = useAutoTranslate(supabase, setEnglishValue);
-   onArBlur يُستدعى بحدث onBlur لحقل العربي، ويملأ الإنجليزي تلقائيًا —
-   إلا لو كان المستخدم كتب إنجليزي يدوي أصلًا (skipIfFilled=true الافتراضي). */
-export function makeArBlurHandler(supabase, getEn, setEn, { skipIfFilled = true } = {}) {
+/* await autoTranslateAr(supabase, "نص عربي", { kind }) → "English text" أو ""
+   kind: text (فقرة، الافتراضي) · heading (عنوان وسائط/مستند) · label (تسمية قصيرة) · person (اسم) · title (منصب) */
+export async function autoTranslateAr(supabase, text, opts = {}) {
+  const t = String(text || "").trim();
+  if (!t) return "";
+  const kind = opts && typeof opts === "object" && opts.kind ? opts.kind : "text";
+  try {
+    const { data, error } = await supabase.functions.invoke("i18n-translate", { body: { mode: "text", texts: [{ ar: t, kind }] } });
+    if (!error && data && Array.isArray(data.results)) {
+      const en = String(data.results[0]?.en || "").trim();
+      return en; /* الدالة اشتغلت: نعتمد نتيجتها (حتى الفاضية) بدل مترجم أضعف */
+    }
+  } catch (_) { /* نكمل للاحتياط */ }
+  return legacyTranslate(supabase, t);
+}
+
+/* هوك جاهز لحقل عربي واحد مربوط بحقل إنجليزي ثاني (لا يمسح إنجليزي مكتوب يدويًا) */
+export function makeArBlurHandler(supabase, getEn, setEn, { skipIfFilled = true, kind = "text" } = {}) {
   return async (arText) => {
     if (skipIfFilled && String(getEn() || "").trim()) return;
-    const en = await autoTranslateAr(supabase, arText);
+    const en = await autoTranslateAr(supabase, arText, { kind });
     if (en) setEn(en);
     return en;
   };

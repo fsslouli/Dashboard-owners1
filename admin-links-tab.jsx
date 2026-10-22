@@ -43,7 +43,8 @@ function LinkEditor({ row, isNew, onSave, onCancel, supabase }) {
   const href = safeUrl(d.url);
 
   /* الترجمة التلقائية لحقل إنجليزي فاضي عند مغادرة الحقل العربي (لا تمسح إنجليزي مكتوب يدويًا) */
-  const tr = (ar, en) => async () => { if (d[ar].trim() && !d[en].trim()) { const t = await autoTranslateAr(supabase, d[ar]); if (t) setD((x) => (x[en].trim() ? x : { ...x, [en]: t })); } };
+  const KIND = { title_ar: "heading", author_ar: "label", folder_ar: "label", desc_ar: "text", disclaimer_ar: "text" };
+  const tr = (ar, en) => async () => { if (d[ar].trim() && !d[en].trim()) { const t = await autoTranslateAr(supabase, d[ar], { kind: KIND[ar] || "text" }); if (t) setD((x) => (x[en].trim() ? x : { ...x, [en]: t })); } };
 
   const save = async () => {
     if (!d.title_ar.trim()) return setErr("اكتب عنوان الرابط.");

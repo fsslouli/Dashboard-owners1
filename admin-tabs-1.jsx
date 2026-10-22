@@ -2,6 +2,7 @@
 import { ADMIN_EVENT_TYPES, ADMIN_PERMISSIONS, ADMIN_PERM_GROUPS, fmtAdminDate, isoAdminDate, useSystemTheme } from "./admin-core.jsx";
 import { ABadge, ASegmented, aNoteStyle } from "./admin-excel-utils.jsx";
 import { supabase } from "./app-bootstrap.jsx";
+import { kickTranslations } from "./label-i18n.js";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { AlertTriangle, BarChart3, Check, ChevronDown, ChevronUp, Download, History, Lock, Pencil, PlusCircle, RefreshCw, Sparkles, Tag, Trash2, UserPlus, Users, X } from "lucide-react";
@@ -523,6 +524,7 @@ export function ANoticesTab({ flashToast, log }) {
     await supabase.from("notices").insert({ title: form.title.trim(), body: form.body.trim(), kind: form.kind, votes_enabled: form.votesEnabled, expires_at });
     log("نشر إشعار جديد", `"${form.title.trim()}" (${form.kind}) — ${form.durationDays === "0" ? "بدون انتهاء" : `${form.durationDays} يوم`}`);
     flashToast("تم نشر الإشعار على الموقع"); setForm(null); load();
+    kickTranslations(supabase, "notice"); /* 6.8.0 — يظهر بالإنجليزي لزوار النسخة الإنجليزية خلال ثواني */
   };
   const remove = async (n) => { await supabase.from("notices").delete().eq("id", n.id); log("حذف إشعار", n.title); flashToast("تم الحذف"); load(); };
   const [voteCounts, setVoteCounts] = useState({});

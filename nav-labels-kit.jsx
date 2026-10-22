@@ -198,7 +198,7 @@ export function ALabelsTab({ supabase, flashToast, log, canManage }) {
     };
     const onArBlur = async () => {
       if (!twoLang || en.trim() || !ar.trim()) return;
-      const t = await autoTranslateAr(supabase, ar);
+      const t = await autoTranslateAr(supabase, ar, { kind: "label" });
       if (t) setEn(t); /* يقترح الإنجليزي بس، ما يحفظ — لازم تضغط تأكيد */
     };
 

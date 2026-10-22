@@ -168,6 +168,8 @@ const MODEL_EN = { "امانيثير": "Amanecer", "اورورا": "Aurora", "ا
 const SCOPE_EN = {
   "جميع النماذج": "All models", "جميع النماذج عدا امانيثير": "All models except Amanecer",
   "أورورا": "Aurora", "امانيثير و آلبا": "Amanecer & Alba", "البا و امانيثير": "Alba & Amanecer",
+  /* 6.8.0 — نفس القيم بدون مسافة بعد الواو (كذا تنكتب بالملف) كانت تطلع عربي بالنسخة الإنجليزية */
+  "امانيثير والبا": "Amanecer & Alba", "البا وامانيثير": "Alba & Amanecer",
   /* نطاق نموذج واحد — يرد بقاعدة البيانات بصيغ إملائية متفاوتة، والبحث المُوحَّد أدناه يلتقطها كلها */
   "امانيثير": "Amanecer", "البا": "Alba", "البادا": "Albada",
 };
@@ -215,8 +217,8 @@ export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "
    بالوضع الإنجليزي. نجرّب المطابقة الحرفية أولًا، وإلا نطابق بالنسخة المُوحَّدة عبر norm().
    ملاحظة: norm معرَّفة أدناه، والاستدعاء هنا يحصل وقت العرض لا وقت التحميل — فما فيه مشكلة. */
 const normMapCache = new WeakMap();
-/* 6.8.0 — قاموس ترجمة ديناميكي: أي اسم/منصب/قيمة فلتر جديدة (ما لها ترجمة ثابتة بالكود) تُترجم تلقائيًا من لوحة الإدارة
-   وتنحفظ بـ nav_labels._i18n، والموقع يقرأها هنا. الترجمة الثابتة بالكود تغلب دائمًا على الديناميكية (تصحيح يدوي مضمون). */
+/* 6.8.0 — قاموس ترجمة ديناميكي (ذاكرة الترجمة i18n_memory): أي اسم/منصب/قيمة/إشعار جديد ما له ترجمة ثابتة بالكود
+   يترجمه محرّك الترجمة بالسيرفر تلقائيًا، والموقع يقرأه هنا. الترجمة الثابتة بالكود تغلب دائمًا (تصحيح يدوي مضمون). */
 let DYN_EN = {}, DYN_REF = null, DYN_NORM = null;
 export function setDynEn(m) {
   if (m === DYN_REF) return;
@@ -293,6 +295,22 @@ const TR_FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INV
 const isTrFail = (t) => typeof t === "string" && TR_FAIL_RX.test(t);
 export const trNote = (lang, r) => canonNames(lang, lang === "en" ? (r.note_en && !isTrFail(r.note_en) ? r.note_en : r.note) : r.note);
 export const trReply = (lang, r) => canonNames(lang, lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) ? r.reply_en : r.reply) : r.reply);
+/* هل للحقل ترجمة إنجليزية صالحة؟ (فاضي أو رسالة فشل خدمة الترجمة = لا) */
+export const hasEnText = (t) => typeof t === "string" && !!t.trim() && !isTrFail(t);
+/* 6.8.0 — أي نص عربي ديناميكي آخر (إشعار، ملاحظة شهر، قيمة جديدة…) يُترجم من ذاكرة الترجمة (جدول i18n_memory)
+   اللي يعبّيها محرّك الترجمة تلقائيًا؛ ولو ما وصلت ترجمته بعد يبقى النص الأصلي */
+export const trText = (lang, v) => {
+  if (lang !== "en" || typeof v !== "string" || !v.trim()) return v;
+  return dynLookup(v.trim()) ?? v;
+};
+/* الترجمة الثابتة بالكود لقيمة (لو موجودة) — تستخدمها لوحة الترجمة لتمييز القيم المغطاة أصلًا */
+export function staticEnFor(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  for (const m of [OWN_EN, OWNER_TITLE_EN, LOC_EN, CAT_EN, PRI_EN, STA_EN, PARTY_EN, MEETING_EN, SCOPE_EN, MODEL_EN]) {
+    const x = staticLookup(m, v.trim()); if (x != null) return x;
+  }
+  return null;
+}
 
 /* ═══════════════════════════════════════════════════════════
    ٤. نظام الألوان (Theme) — فاتح للنهار وداكن لليل.
@@ -690,8 +708,8 @@ export function zoneOf(loc) {
 
 /* ── التاريخ ── */
 export const MONTH_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-export const fmtDate = (iso) => {
-  try { const d = new Date(iso); return `${d.getDate()} ${MONTH_AR[d.getMonth()]} ${d.getFullYear()}`; }
+export const fmtDate = (iso, lang = "ar") => {
+  try { const d = new Date(iso); return `${d.getDate()} ${(lang === "en" ? MONTH_EN_LABEL : MONTH_AR)[d.getMonth()]} ${d.getFullYear()}`; }
   catch { return ""; }
 };
 

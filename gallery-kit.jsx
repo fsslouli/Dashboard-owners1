@@ -99,7 +99,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
     try {
       let done = 0;
       for (const { table, r } of jobs) {
-        const en = await autoTranslateAr(supabase, clean(r.title_ar));
+        const en = await autoTranslateAr(supabase, clean(r.title_ar), { kind: "heading" });
         if (!en) { if (!done) flashToast("الترجمة التلقائية ما اشتغلت — الخدمة ما ردّت، جرّب بعد شوي"); break; }
         const { error } = await supabase.from(table).update({ title_en: en }).eq("id", r.id);
         if (error) break;
@@ -162,7 +162,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   };
   const renameTopic = (id, title_ar) => setTopics((ts) => ts.map((t) => (t.id === id ? { ...t, title_ar } : t)));
   const saveTopicTitle = async (id, title_ar) => {
-    const title_en = await autoTranslateAr(supabase, title_ar);
+    const title_en = await autoTranslateAr(supabase, title_ar, { kind: "heading" });
     await supabase.from("media_topics").update({ title_ar, ...(title_en ? { title_en } : {}) }).eq("id", id);
   };
   const toggleTopicPub = async (t) => {
@@ -264,7 +264,7 @@ export function AGalleryTab({ supabase, flashToast, log, canManage }) {
   };
 
   const saveItemTitle = async (id, title_ar) => {
-    const title_en = await autoTranslateAr(supabase, title_ar);
+    const title_en = await autoTranslateAr(supabase, title_ar, { kind: "heading" });
     await supabase.from("media_items").update({ title_ar, ...(title_en ? { title_en } : {}) }).eq("id", id);
   };
   const toggleItemPub = async (t, it) => {

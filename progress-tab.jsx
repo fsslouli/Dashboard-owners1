@@ -1,5 +1,5 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: progress-tab */
-import { PG_NOTE, PG_NOTE_EN, PG_PHASE_NAME, PG_PHASE_NAME_EN, extendPlan, fmtDate, trPGLabel, trPGMonth, trPGPNote, trYear, useLang, useT } from "./site-data.jsx";
+import { PG_NOTE, PG_NOTE_EN, PG_PHASE_NAME, PG_PHASE_NAME_EN, extendPlan, fmtDate, trPGLabel, trPGMonth, trPGPNote, trText, trYear, useLang, useT } from "./site-data.jsx";
 import { useInView } from "./site-hooks.jsx";
 import { ChartTip } from "./ui-atoms.jsx";
 import { useEffect, useMemo, useState } from "react";
@@ -13,7 +13,7 @@ export function ProgressTab({ reduced, data, loading }) {
   const D = useMemo(() => extendPlan(data, new Date()), [data]);
   const MONTHS = D.months, TARGET = D.target, PHASES = D.phases, BLOCKS = D.blocks, NOTE = D.note;
   const MONTH_KEYS = D.monthKeys || [], MONTH_NOTES = D.monthNotes || {};
-  const noteFor = (i) => MONTH_NOTES[MONTH_KEYS[i]] || null;
+  const noteFor = (i) => trText(lang, MONTH_NOTES[MONTH_KEYS[i]] || null) || null; /* 6.8.0 — بالإنجليزي من ذاكرة الترجمة */
   const YEARS = D.years, ADDED = D.added || 0;
   const PHASE_NAME = data.phaseName || (lang === "en" ? PG_PHASE_NAME_EN : PG_PHASE_NAME);
   const last = MONTHS.length - 1;
@@ -92,7 +92,7 @@ export function ProgressTab({ reduced, data, loading }) {
       ) : data.updatedAt ? (
         <div className="stamp" style={{ marginBottom: 14 }}>
           <RefreshCw size={13} />
-          {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
+          {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt, lang)}</span>{data.label ? ` — ${trText(lang, data.label)}` : ""}
         </div>
       ) : null}
 
@@ -324,7 +324,7 @@ export function ProgressTab({ reduced, data, loading }) {
           return (
             <details className="note-box" style={{ marginTop: 16 }}>
               <summary style={{ cursor: "pointer" }}>{L("توضيحات على البيانات", "Data clarifications")} ({drops.length + (NOTE ? 1 : 0)})</summary>
-              {NOTE && <div style={{ marginTop: 8 }}>{lang === "en" && NOTE === PG_NOTE ? PG_NOTE_EN : NOTE}</div>}
+              {NOTE && <div style={{ marginTop: 8 }}>{lang === "en" && NOTE === PG_NOTE ? PG_NOTE_EN : trText(lang, NOTE)}</div>}
               {drops.map((r) => (
                 <div key={r.b}>
                   {L("بلوك", "Block")} {r.b} {L("تغيّرت قراءته من", "changed from")} <span className="mono">{r.from.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m0)}{" "}

@@ -1076,7 +1076,7 @@ export function AAttachmentsPanel({ supabase, inquiryId, T, flashToast, log, can
         const up = await uploadAttachmentFile(supabase, f, { prefix: `inq/${inquiryId}` });
         paths = up.paths;
         const title_ar = niceTitle(f.name) || null;
-        const title_en = title_ar ? await autoTranslateAr(supabase, title_ar).catch(() => null) : null;
+        const title_en = title_ar ? await autoTranslateAr(supabase, title_ar, { kind: "heading" }).catch(() => null) : null;
         const { error } = await supabase.from("inquiry_attachments").insert({ inquiry_id: inquiryId, ...up.fields, title_ar, ...(title_en ? { title_en } : {}), sort_order: nextOrder() });
         if (error) throw userErr(dbErrText(error));
         log("إضافة مرفق", `#${inquiryId} — ${f.name}`);
@@ -1100,7 +1100,7 @@ export function AAttachmentsPanel({ supabase, inquiryId, T, flashToast, log, can
     return null;
   };
   const saveTitle = async (row, title_ar) => {
-    const title_en = title_ar ? await autoTranslateAr(supabase, title_ar).catch(() => null) : null;
+    const title_en = title_ar ? await autoTranslateAr(supabase, title_ar, { kind: "heading" }).catch(() => null) : null;
     const { error } = await supabase.from("inquiry_attachments").update({ title_ar: title_ar || null, title_en: title_ar ? title_en || null : null }).eq("id", row.id);
     if (error) flashToast(dbErrText(error)); else load();
   };

@@ -1,8 +1,7 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-trail-sync */
 import { AImportAudit } from "./admin-audit-tab.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
-import { syncLabelTranslations } from "./label-i18n.js";
-import { autoTranslateAr } from "./translate-kit.js";
+import { kickTranslations, runTranslationSweep } from "./label-i18n.js";
 import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
@@ -150,7 +149,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
     supabase.from("inquiries").select("owner_title").limit(1).then(({ error }) => { if (error) setHasOwnerTitleCol(false); });
   }, []);
   const INQ_FIELDS = useMemo(() => INQ_FIELDS_ADMIN.filter((f) => (f !== "cat" || hasCatCol) && (f !== "party" || hasPartyCol) && (f !== "owner_title" || hasOwnerTitleCol)), [hasCatCol, hasPartyCol, hasOwnerTitleCol]);
-  const stripOptional = (obj) => { const o = { ...obj }; if (!hasCatCol) delete o.cat; if (!hasPartyCol) delete o.party; if (!hasOwnerTitleCol) delete o.owner_title; return o; };
+  const stripOptional = (obj) => { const o = { ...obj }; if (!hasCatCol) delete o.cat; if (!hasPartyCol) delete o.party; if (!hasOwnerTitleCol) delete o.owner_title; delete o.i18n; /* 6.8.0 — حالة الترجمة يديرها المحرّك والقاعدة، ما تنكتب من نسخة النموذج */ return o; };
   /* ═══ أمان الفرز: نتحقق إذا عمود "created_at" (تاريخ الإضافة) موجود فعلًا — لو قاعدة
      البيانات ما انحدّثت بعد بملف setup-supabase.sql، فرز "الأحدث إضافة" يرجع تلقائيًا
      لترتيب رقم الاستفسار بدل ما يسبب خطأ. ═══ */
@@ -331,57 +330,28 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
 
+  /* 6.8.0 — الترجمة صارت بالسيرفر بعد الحفظ (محرّك i18n-translate)، فهنا بس نحمي من «ترجمة قديمة»:
+     لو تغيّر النص العربي والإنجليزي ما تغيّر، يُفرَّغ الإنجليزي ويترجمه المحرّك من جديد خلال ثواني. */
   const autoTranslate = async (obj) => {
     const out = { ...obj };
-    try {
-      /* 6.8.0 — ترجمة بمعجم المصطلحات وتقطيع النص الطويل (translate-kit) بدل الاستدعاء الخام */
-      if (out.note && !out.note_en) { const t = await autoTranslateAr(supabase, out.note); if (t) out.note_en = t; }
-      if (out.reply && !out.reply_en) { const t = await autoTranslateAr(supabase, out.reply); if (t) out.reply_en = t; }
-    } catch { /* لو فشلت الترجمة نكمل بدونها — ما توقف المزامنة */ }
+    const old = editing && editing !== "new" ? inquiries.find((x) => x.id === editing) : null;
+    if (old) {
+      const same = (x, y) => (x || "") === (y || "");
+      if (!same(out.note, old.note) && same(out.note_en, old.note_en)) out.note_en = "";
+      if (!same(out.reply, old.reply) && same(out.reply_en, old.reply_en)) out.reply_en = "";
+    }
     return out;
   };
-  /* ترجمة خلفية غير معطّلة — تشتغل بعد اعتماد المزامنة بدون ما توقف الواجهة، وحدة وحدة بفاصل بسيط
-     عشان ما نضغط على خدمة الترجمة المجانية دفعة وحدة */
-  /* ترجمة دفعة واحدة بعد اعتماد المزامنة — بدل صف صف بفاصل ٣٠٠ملي.
-     الدالة import-assist تترجم حتى ١٢٠ بندًا بطلب واحد، وترجع تلقائيًا
-     للمترجم المجاني لو مفتاح الترجمة المتقدمة مو مضبوط. */
-  const backgroundTranslate = async (ids) => {
-    if (!ids || !ids.length) return;
-    try {
-      const { data: rows } = await supabase.from("inquiries")
-        .select("id,note,note_en,reply,reply_en").in("id", ids.slice(0, 300));
-      const need = (rows || []).filter((r) => (r.note && !r.note_en) || (r.reply && !r.reply_en));
-      for (let i = 0; i < need.length; i += 60) {
-        const batch = need.slice(i, i + 60);
-        const items = batch.map((r) => ({
-          id: String(r.id),
-          note: r.note_en ? "" : (r.note || ""),
-          reply: r.reply_en ? "" : (r.reply || ""),
-        }));
-        const { data } = await supabase.functions.invoke("import-assist", { body: { mode: "translate", items } });
-        /* 6.8.0 — نقبل نتيجة هذه الدالة فقط لو المحرّك Claude (مصطلحات البناء صحيحة). لو كان المترجم المجاني
-           (يقص النص عند ~490 حرفًا ويترجم المصطلحات حرفيًا) نترجم بدلها عبر المعجم بالواجهة. */
-        let results = data?.engine === "claude" ? (data?.results || []) : [];
-        if (!results.length) {
-          results = [];
-          for (const r of batch) {
-            const note_en = !r.note_en && r.note ? await autoTranslateAr(supabase, r.note) : "";
-            const reply_en = !r.reply_en && r.reply ? await autoTranslateAr(supabase, r.reply) : "";
-            results.push({ id: String(r.id), note_en, reply_en });
-          }
-          log("ترجمة آلية (تحتاج مراجعة)", `استفسار ${batch.map((r) => r.id).join("، ")} — بمعجم المصطلحات`);
-        }
-        const byId = new Map(results.map((x) => [String(x.id), x]));
-        await Promise.all(batch.map(async (r) => {
-          const t = byId.get(String(r.id));
-          if (!t) return;
-          const patch = {};
-          if (!r.note_en && t.note_en) patch.note_en = t.note_en;
-          if (!r.reply_en && t.reply_en) patch.reply_en = t.reply_en;
-          if (Object.keys(patch).length) await supabase.from("inquiries").update(patch).eq("id", r.id);
-        }));
+  /* 6.8.0 — بعد اعتماد المزامنة: محرّك الترجمة بالسيرفر يترجم كل نص جديد أو تغيّر (والأسماء والقيم الجديدة)
+     بـ Claude ومعجم المشروع، ويحفظ مصدر كل ترجمة. اللي ما يلحق بهالدورة تكمّله الجدولة كل ٥ دقائق تلقائيًا. */
+  const backgroundTranslate = async () => {
+    const r = await runTranslationSweep(supabase, "import");
+    if (r?.ok && !r.busy) {
+      const eng = r.engine === "claude" ? "Claude" : r.engine ? "آلي — يحتاج مراجعة" : "—";
+      if ((r.fields || 0) + (r.terms || 0) > 0 || r.remaining) {
+        log("ترجمة تلقائية بعد المزامنة", `${r.fields || 0} نص + ${r.terms || 0} اسم/قيمة — المحرّك: ${eng}${r.remaining ? ` — المتبقي ${r.remaining} يكمل تلقائيًا` : ""}`);
       }
-    } catch { /* الترجمة تحسين مو شرط — المزامنة نفسها خلصت */ }
+    }
     refreshInquiries();
   };
   /* يبني كائن الحقول الجاهز للكتابة الفعلية بقاعدة البيانات — يحوّل حقول boolean الحقيقية
@@ -427,7 +397,22 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       for (const res of diffResults) {
         if (res.target === "inquiries") {
           if (res.mode === "replace") {
-            const rows = res.newRows.map((r) => ({ ...buildInsertPayload(r), id: Number(r.id), urgent: false }));
+            /* 6.8.0 — الاستبدال الكامل كان يمسح ترجمات الردود (reply_en مو من أعمدة الملف) فتُعاد ترجمتها آليًا:
+               الحين لو النص العربي ما تغيّر نحتفظ بترجمته القديمة ومصدرها كما هي */
+            const rows = res.newRows.map((r) => {
+              const row = { ...buildInsertPayload(r), id: Number(r.id), urgent: false };
+              const old = oldById.get(String(row.id));
+              const i18n = {};
+              if (old) {
+                const oi = old.i18n && typeof old.i18n === "object" ? old.i18n : {};
+                if (!row.note_en && same(row.note, old.note) && old.note_en) { row.note_en = old.note_en; if (oi.note) i18n.note = oi.note; }
+                else if (row.note_en && same(row.note_en, old.note_en) && oi.note) i18n.note = oi.note;
+                if (!row.reply_en && same(row.reply, old.reply) && old.reply_en) { row.reply_en = old.reply_en; if (oi.reply) i18n.reply = oi.reply; }
+                else if (row.reply_en && same(row.reply_en, old.reply_en) && oi.reply) i18n.reply = oi.reply;
+              }
+              if ("i18n" in (old || {})) row.i18n = i18n;
+              return row;
+            });
             const { error } = await supabase.rpc("replace_inquiries_full", { p_rows: rows });
             if (error) throw error;
             rows.forEach((r) => { if (needsTr(r)) pendingTranslateIds.push(r.id); });
@@ -480,13 +465,12 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       if (addVals.length) log("إضافة قيم فلترة تلقائيًا", addVals.map((v) => `${v.value} → ${v.categoryLabel}`).join("، "));
       addCols.forEach((c) => log("إنشاء فئة فلترة من عمود جديد", `"${c.column}" بقيم: ${c.values.join("، ")}`));
       log("مزامنة بيانات", `تم اعتماد ${count} عنصر عبر ${diffResults.length} شيت`);
-      syncLabelTranslations(supabase).then((r) => { if (r?.added) log("ترجمة تلقائية للقيم الجديدة", `${r.added} قيمة`); });
       await refreshInquiries(); await refreshProgress();
       flashToast(`تم تحديث الموقع بالكامل — ${count} عنصر`);
       loadBackups();
       setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]); setStage(null);
       /* الترجمة تصير بالخلفية بدون ما توقّف الحفظ — عشان ما تعلّق الاعتماد لو فيها عدد كبير من الصفوف */
-      if (pendingTranslateIds.length) backgroundTranslate(pendingTranslateIds);
+      backgroundTranslate(); /* نصوص وأسماء وقيم جديدة ← ترجمة تلقائية بالسيرفر */
     } catch (err) {
       flashToast("صار خطأ أثناء الحفظ — تأكد إن جداول Supabase مجهّزة (setup-supabase.sql)");
     }
@@ -541,6 +525,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       log("تعديل استفسار يدويًا", `#${editing} — ${form.note.slice(0, 40)}`); flashToast("تم الحفظ");
     }
     setEditing(null); setForm(null); refreshInquiries();
+    kickTranslations(supabase, "sync-form"); /* نص أو قيمة جديدة ← ترجمة تلقائية بالسيرفر */
   };
   const confirmDelete = async (r) => {
     await supabase.from("inquiries").delete().eq("id", r.id);
