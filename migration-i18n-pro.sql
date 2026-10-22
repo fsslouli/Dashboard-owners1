@@ -586,7 +586,7 @@ commit;
 -- (لو ظهر خطأ هنا: فعّل امتداد pg_net من Database → Extensions ثم شغّل هذا الجزء وحده.
 --  الجزء ١ انحفظ بالفعل، والترجمة تشتغل أيضًا بعد كل حفظ من لوحة الإدارة)
 -- ═══════════════════════════════════════════════════════════════════════
-create extension if not exists pg_net;
+create extension if not exists pg_net with schema extensions;
 select cron.unschedule(jobid) from cron.job where jobname = 'i18n-sweep';
 select cron.schedule('i18n-sweep', '*/5 * * * *', $cron$
   select net.http_post(
