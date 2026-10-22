@@ -26,6 +26,14 @@ export const PARTY_TEAM = "فريق المشروع";
 export const PARTY_SALES = "المبيعات وما بعد البيع";
 export const PARTY_ORDER = [PARTY_TEAM, PARTY_SALES];
 const PARTY_EN = { [PARTY_TEAM]: "Project team", [PARTY_SALES]: "Sales & after-sales" };
+/* منصب صاحب الرد (6.7.0) — عمود مستقل عن الاسم (owner) عشان الفلترة والتجميع يكونون نظيفين،
+   ولو تغيّر منصب أحد يتعدّل بمكان واحد. الترتيب هنا = ترتيب ظهوره بالفلتر لو ما فيه ترتيب
+   محفوظ بلوحة الإدارة (filter_categories.owner_title). قيمة جديدة تنقبل تلقائيًا (نص حر). */
+export const OWNER_TITLE_ORDER = ["مدير المشروع", "مدير العمليات", "مديرة المبيعات الأولى", "مدير المبيعات السابق", "الرئيس التنفيذي", "مالك"];
+const OWNER_TITLE_EN = {
+  "مدير المشروع": "Project Manager", "مدير العمليات": "Operations Manager", "مديرة المبيعات الأولى": "Senior Sales Manager",
+  "مدير المبيعات السابق": "Former Sales Manager", "الرئيس التنفيذي": "CEO", "مالك": "Owner",
+};
 
 /* ── مستندات المخططات (تبويب "المخططات والمستندات") ── */
 /* ── مصدر المخططات: صور WebP مقصوصة لكل دور/واجهة على حدة (تجربة جوال أفضل من PDF) ── */
@@ -192,6 +200,8 @@ const OWN_EN = {
   "أبو سلطان": "Abu Sultan", "م/إبراهيم (مالك)": "Eng. Ibrahim (Owner)",
   /* جهات موجودة فعليًا بقاعدة البيانات وكانت تسقط بلا ترجمة */
   "م/أحمد ملحم": "Eng. Ahmed Malham", "أبو سلطان (مالك)": "Abu Sultan (Owner)", "أبو علي (مالك)": "Abu Ali (Owner)",
+  /* 6.7.0 — بعد فصل المنصب صار الاسم يُكتب وحده («مالك» انتقل لعمود المنصب) */
+  "أبو علي": "Abu Ali", "م/إبراهيم": "Eng. Ibrahim", "وديان": "Wedyan",
 };
 export const MEETING_ORDER = ["الاجتماع السادس ميداني", "الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
 const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)" };
@@ -239,6 +249,7 @@ export const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
 export const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
 export const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : (CAT_AR[v] || v));
 export const trParty = (lang, v) => (lang === "en" ? PARTY_EN[v] || v : v);
+export const trOwnTitle = (lang, v) => (lang === "en" ? trLookup(OWNER_TITLE_EN, v) : v);
 export const trMeeting = (lang, v) => (lang === "en" ? trLookup(MEETING_EN, v) : v);
 export const trMonth = (lang, m) => {
   if (!/^\d{4}-\d{2}$/.test(m || "")) return lang === "en" ? "—" : "—";
@@ -660,7 +671,7 @@ export const fmtDate = (iso) => {
 /* ── النسخة الأساسية كسجلات نصية ── مستوردة من inquiries.json */
 export const BASE = INQUIRIES_DATA.map((r) => ({
   id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
-  answered: !!r.answered, owner: r.owner, month: r.month, closed: !!r.closed,
+  answered: !!r.answered, owner: r.owner, ownerTitle: r.owner_title || "", month: r.month, closed: !!r.closed,
   meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
   meetings: Array.isArray(r.meetings) ? r.meetings : [],
   note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,

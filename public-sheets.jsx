@@ -10,12 +10,18 @@ const PUBLIC_LOG = CHANGELOG
   .map((e) => ({ ...e, ar: (e.ar || []).filter((l) => !NEG_AR.test(l)), en: (e.en || []).filter((l) => !NEG_EN.test(l)) }))
   .filter((e) => e.ar.length > 0);
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
-import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
+import { DOC_BASE, DOC_COLORS, ZONES, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
-import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, User, Users, X } from "lucide-react";
+import { AlertTriangle, Briefcase, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, User, Users, X } from "lucide-react";
+
+/* ⚠ DEMO-ONLY (6.7.0 قيد الاختيار) — أزرار مؤقتة داخل لوحة التفاصيل لتجربة بدائل شكل «منصب صاحب الرد»، تُحذف قبل الدمج */
+const OT_DEMO_KEY = "ot-demo-variant";
+const OT_DEMO_LIST = [["a", "أ", "سطر مستقل"], ["b", "ب", "تحت الاسم"], ["c", "ج", "شارة جنب الاسم"], ["d", "د", "بجانب الاسم بنقطة"], ["e", "هـ", "بين قوسين"],
+  ["i", "و", "شارة ملوّنة حسب الجهة"], ["f", "ز", "شارة برأس اللوحة"], ["g", "ح", "توقيع أسفل الرد"], ["h", "ط", "بطاقة فوق الرد"]];
+const otDemoGet = () => { try { return new URLSearchParams(window.location.search).get("otv") || localStorage.getItem(OT_DEMO_KEY) || "b"; } catch { return "b"; } };
 
 /* ── ١١. الإقرار القانوني ولوحة سجل التحديثات ── */
 export function LegalDisclaimer({ onAgree: onAgreeParent }) {
@@ -226,6 +232,17 @@ export function FiltersSheet({ open, onClose, f, sort, onApply, cats, ALL, nq, n
                 count={ALL.filter((r) => r.owner === m).length}>{trOwn(lang, m)}</Chip>
             ))}
           </div>
+          {cats.ownerTitles && cats.ownerTitles.length > 0 && (
+            <>
+              <div className="sec-lbl" style={{ marginTop: 24 }}>{L("منصب صاحب الرد", "Responder's title")}</div>
+              <div className="flex flex-wrap items-center" style={{ gap: 8, marginBottom: 0 }}>
+                {cats.ownerTitles.map((t) => (
+                  <Chip key={t} on={isOn("ot", t)} onClick={() => dmulti("ot", t)}
+                    count={ALL.filter((r) => r.ownerTitle === t).length}>{trOwnTitle(lang, t)}</Chip>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>{L("تمييز", "Flags")}</div>
           <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
@@ -664,6 +681,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
     return () => window.removeEventListener("keydown", h);
   }, [r, onClose, idx, navList]);
   useEffect(() => { setShareCopied(false); setFeedback(null); }, [r]);
+  const [DV, setDV] = useState(otDemoGet); // ⚠ DEMO-ONLY
 
   /* ثبات الرأس أثناء التنقّل: كل استفسار يفتح من أعلاه بدل ما يرث موضع تمرير الاستفسار السابق،
      وخط خفيف أسفل الرأس يظهر لما يتمرّر المحتوى تحته */
@@ -689,6 +707,35 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
 
   if (!r) return null;
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
+  /* صاحب الرد + منصبه (6.7.0) */
+  const ownName = trOwn(lang, r.owner) || "—";
+  const ownTitle = r.ownerTitle ? trOwnTitle(lang, r.ownerTitle) : "";
+  /* لون حسب نوع المنصب (للبديل «ط»): المبيعات كهرماني، الملاك أخضر، فريق المشروع أزرق */
+  const ttlColor = /مبيعات|Sales/.test(ownTitle) ? "#C98A1B" : /مالك|Owner/.test(ownTitle) ? "#1E8E5A" : "#3A7CA5";
+  const pill = (txt, c, icon) => (
+    <span className="cat-pill" style={{ color: c, background: `${c}16`, borderColor: `${c}33`, display: "inline-flex", alignItems: "center", gap: 5 }}>
+      {icon && <Briefcase size={11} />}{txt}
+    </span>
+  );
+  const ownerCell = !ownTitle || ["a", "f", "g", "h"].includes(DV) ? ownName
+    : DV === "b" ? (
+      <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.35 }}>
+        <span>{ownName}</span>
+        <span style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{ownTitle}</span>
+      </span>
+    ) : DV === "c" ? (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {pill(ownTitle, T.brass)}<span>{ownName}</span>
+      </span>
+    ) : DV === "d" ? (
+      <span>{ownName}<span style={{ color: T.muted }}> · {ownTitle}</span></span>
+    ) : DV === "e" ? (
+      <span>{ownName} ({ownTitle})</span>
+    ) : DV === "i" ? (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {pill(ownTitle, ttlColor, true)}<span>{ownName}</span>
+      </span>
+    ) : ownName;
 
   const handleShare = async () => {
     const url = `${window.location.origin}${window.location.pathname}?note=${r.id}`;
@@ -731,6 +778,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
             <PartyPill party={r.party} />
+            {DV === "f" && ownTitle && pill(ownTitle, T.brass, true)}
             {r.isImportantActive && <span className="tag tag-important"><AlertTriangle size={9} /> {L("مهم", "Important")}</span>}
             {r.isNew && <span className="tag tag-new"><Sparkles size={9} /> {L("جديد", "New")}</span>}
           </div>
@@ -749,14 +797,45 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
           </div>
         </div>
         <div className="sheet-body" ref={bodyRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
+          {/* ⚠ DEMO-ONLY — مبدّل البدائل */}
+          <div style={{ position: "sticky", top: 0, zIndex: 3, margin: "-6px 0 14px", padding: "8px 10px", borderRadius: 12, background: "#FFF6D6", border: "1px solid #E8C65A", boxShadow: "0 2px 8px #0001" }}>
+            <div style={{ fontSize: 11.5, color: "#6B5200", marginBottom: 6, fontWeight: 600 }}>
+              ديمو — شكل المنصب: {(OT_DEMO_LIST.find((x) => x[0] === DV) || [])[1]} · {(OT_DEMO_LIST.find((x) => x[0] === DV) || [])[2]}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {OT_DEMO_LIST.map(([k, lab]) => (
+                <button key={k} onClick={() => { setDV(k); try { localStorage.setItem(OT_DEMO_KEY, k); } catch {} }}
+                  style={{ minWidth: 34, height: 30, borderRadius: 9, border: DV === k ? "2px solid #1E8E5A" : "1px solid #D9C27A", background: DV === k ? "#1E8E5A" : "#fff", color: DV === k ? "#fff" : "#4A3B00", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  {lab}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="sec-lbl">{L("الاستفسار والحل المقترح", "Inquiry & Proposed Solution")}</div>
           <p className="sheet-note">{trNote(lang, r)}</p>
 
           <div className="sec-lbl" style={{ marginTop: 24 }}>
             {L("الرد", "Reply")} <span style={{ color: sc }}>· {trSta(lang, r.sta)}</span>
           </div>
+          {DV === "h" && ownTitle && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 10px", padding: "10px 12px", border: `1px solid ${T.line}`, borderRadius: 13, background: T.surface }}>
+              <span style={{ width: 34, height: 34, borderRadius: 999, background: `${T.brass}1f`, color: T.brass, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flex: "none" }}>
+                {String(ownName).replace(/^م\//, "").trim().charAt(0)}
+              </span>
+              <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: T.paper }}>{ownName}</span>
+                <span style={{ fontSize: 11.5, color: T.muted }}>{ownTitle}</span>
+              </span>
+              <span style={{ marginInlineStart: "auto", fontSize: 11, color: T.faint }}>{L("صاحب الرد", "Responder")}</span>
+            </div>
+          )}
           <div className="reply-box" style={{ borderRightColor: sc }}>
             <p className="sheet-reply">{trReply(lang, r) || L("لا يوجد رد مسجّل.", "No reply recorded yet.")}</p>
+            {DV === "g" && ownTitle && (
+              <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${T.line}`, fontSize: 12, color: T.muted, textAlign: "left" }}>
+                — {ownName}، {ownTitle}
+              </div>
+            )}
           </div>
 
           <AttachmentsBlock key={r.id} rows={attachments} lang={lang} T={T} />
@@ -764,7 +843,9 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
           <div className="meta-list">
             {[[Tag, L("الفئة", "Category"), r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")],
               ...(r.party ? [[Users, L("الجهة المختصة", "Responsible party"), trParty(lang, r.party)]] : []),
-              [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)], [User, L("صاحب الرد", "Engineer"), trOwn(lang, r.owner)],
+              [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)],
+              [User, L("صاحب الرد", "Responder"), ownerCell],
+              ...(r.ownerTitle && DV === "a" ? [[Briefcase, L("منصب صاحب الرد", "Responder's title"), trOwnTitle(lang, r.ownerTitle)]] : []),
               [Calendar, L("شهر الرد", "Reply Month"), trMonth(lang, r.month)], [Ruler, L("حالة الإغلاق", "Closure Status"), r.closed ? L("مقفل", "Closed") : L("مفتوح", "Open")],
               [Droplet, L("حالة الرد", "Reply Status"), r.answered ? L("تم الرد", "Replied") : L("بانتظار الرد", "Awaiting reply")]].map(([Ic, k, v]) => (
               <div key={k} className="meta-row">
