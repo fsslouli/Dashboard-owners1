@@ -1,7 +1,7 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-trail-sync */
 import { AImportAudit } from "./admin-audit-tab.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
-import { kickTranslations, runTranslationSweep } from "./label-i18n.js";
+import { kickTranslations, runAllTranslations } from "./label-i18n.js";
 import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
@@ -330,8 +330,8 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
   const setColDecision = (col, decision) => setNewColumns((prev) => prev.map((c) => (c.column === col ? { ...c, decision } : c)));
   const decideAllCols = (decision) => setNewColumns((prev) => prev.map((c) => ({ ...c, decision })));
 
-  /* 6.8.0 — الترجمة صارت بالسيرفر بعد الحفظ (محرّك i18n-translate)، فهنا بس نحمي من «ترجمة قديمة»:
-     لو تغيّر النص العربي والإنجليزي ما تغيّر، يُفرَّغ الإنجليزي ويترجمه المحرّك من جديد خلال ثواني. */
+  /* 6.8.0 — الترجمة تصير بعد الحفظ بالمحرّك الداخلي (مسودة تنتظر الاعتماد)، فهنا بس نحمي من «ترجمة قديمة»:
+     لو تغيّر النص العربي والإنجليزي ما تغيّر، يُفرَّغ الإنجليزي ويترجمه المحرّك من جديد. */
   const autoTranslate = async (obj) => {
     const out = { ...obj };
     const old = editing && editing !== "new" ? inquiries.find((x) => x.id === editing) : null;
@@ -342,15 +342,14 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
     }
     return out;
   };
-  /* 6.8.0 — بعد اعتماد المزامنة: محرّك الترجمة بالسيرفر يترجم كل نص جديد أو تغيّر (والأسماء والقيم الجديدة)
-     بـ Claude ومعجم المشروع، ويحفظ مصدر كل ترجمة. اللي ما يلحق بهالدورة تكمّله الجدولة كل ٥ دقائق تلقائيًا. */
+  /* 6.8.0 — بعد اعتماد المزامنة: المحرّك الداخلي (لو متحمّل بهالجهاز) يترجم كل نص جديد أو تغيّر
+     والأسماء والقيم الجديدة كمسودات تنتظر الاعتماد من تبويب «الترجمة» — والزوار يشوفون العربي لين تنعتمد. */
   const backgroundTranslate = async () => {
-    const r = await runTranslationSweep(supabase, "import");
+    const r = await runAllTranslations(supabase, "import");
     if (r?.ok && !r.busy) {
-      const eng = r.engine === "claude" ? "Claude" : r.engine ? "آلي — يحتاج مراجعة" : "—";
-      if ((r.fields || 0) + (r.terms || 0) > 0 || r.remaining) {
-        log("ترجمة تلقائية بعد المزامنة", `${r.fields || 0} نص + ${r.terms || 0} اسم/قيمة — المحرّك: ${eng}${r.remaining ? ` — المتبقي ${r.remaining} يكمل تلقائيًا` : ""}`);
-      }
+      const n = (r.fields || 0) + (r.terms || 0);
+      if (n > 0) log("ترجمة تلقائية بعد المزامنة", `${r.fields || 0} نص + ${r.terms || 0} اسم/قيمة — مسودات بانتظار الاعتماد${r.remaining ? ` — باقي ${r.remaining}` : ""}`);
+      else if (r.needsEngine && r.remaining) flashToast(`${r.remaining} نص ينتظر الترجمة — جهّز المحرك من تبويب «الترجمة»`);
     }
     refreshInquiries();
   };
@@ -470,7 +469,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       loadBackups();
       setSheets(null); setDiffResults(null); setNewValues([]); setNewColumns([]); setStage(null);
       /* الترجمة تصير بالخلفية بدون ما توقّف الحفظ — عشان ما تعلّق الاعتماد لو فيها عدد كبير من الصفوف */
-      backgroundTranslate(); /* نصوص وأسماء وقيم جديدة ← ترجمة تلقائية بالسيرفر */
+      backgroundTranslate(); /* نصوص وأسماء وقيم جديدة ← ترجمة داخلية كمسودات */
     } catch (err) {
       flashToast("صار خطأ أثناء الحفظ — تأكد إن جداول Supabase مجهّزة (setup-supabase.sql)");
     }
@@ -525,7 +524,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
       log("تعديل استفسار يدويًا", `#${editing} — ${form.note.slice(0, 40)}`); flashToast("تم الحفظ");
     }
     setEditing(null); setForm(null); refreshInquiries();
-    kickTranslations(supabase, "sync-form"); /* نص أو قيمة جديدة ← ترجمة تلقائية بالسيرفر */
+    kickTranslations(supabase, "sync-form"); /* نص أو قيمة جديدة ← ترجمة داخلية كمسودة */
   };
   const confirmDelete = async (r) => {
     await supabase.from("inquiries").delete().eq("id", r.id);

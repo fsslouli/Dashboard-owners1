@@ -92,10 +92,25 @@ function EditProviderInner({ children }) {
     toastTimer.current = setTimeout(() => setToastMsg(""), 2800);
   }, []);
   const has = useCallback((p) => !!profile && (profile.perms || []).includes(p), [profile]);
-  /* 6.8.0 — عند دخول أي مشرف تحرير: محرّك الترجمة بالسيرفر يترجم أي نص أو قيمة جديدة ناقصة (بدون انتظار الجدولة) */
+  /* 6.8.0 — عند دخول مشرف تحرير: المحرّك الداخلي (لو متحمّل بهالجهاز) يترجم أي نص أو قيمة جديدة كمسودة،
+     ولمن يعتمد الترجمة: تنبيه لو فيه مسودات بانتظار اعتماده */
   useEffect(() => {
-    if (!profile || !(profile.perms || []).length) return;
-    const t = setTimeout(() => { syncLabelTranslations(supabase).then((r) => { if (r?.added) toast(`تُرجم ${r.added} نص تلقائيًا`); }); }, 2500);
+    const perms = (profile && profile.perms) || [];
+    if (!perms.some((p) => p === "edit_inquiry" || p === "import_excel" || p === "manage_theme")) return undefined;
+    const t = setTimeout(async () => {
+      const r = await syncLabelTranslations(supabase);
+      if (r?.added) { toast(`انترجم ${r.added} نص كمسودة — راجعها واعتمدها من تبويب «الترجمة»`); return; }
+      if (r?.needsEngine && r.remaining) { toast(`فيه ${r.remaining} نص ينتظر الترجمة — جهّز المحرك من تبويب «الترجمة»`); return; }
+      if (!perms.includes("edit_inquiry")) return;
+      try {
+        const [a, b] = await Promise.all([
+          supabase.from("inquiries").select("id", { count: "exact", head: true }).or("i18n->note->>e.eq.local,i18n->reply->>e.eq.local"),
+          supabase.from("i18n_memory").select("ar", { count: "exact", head: true }).eq("engine", "local"),
+        ]);
+        const n = (a.error ? 0 : a.count || 0) + (b.error ? 0 : b.count || 0);
+        if (n) toast(`فيه ${n} مسودة ترجمة بانتظار اعتمادك — تبويب «الترجمة»`);
+      } catch (_) { /* تنبيه اختياري */ }
+    }, 2500);
     return () => clearTimeout(t);
   }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
   const log = useCallback(async (action, details) => {
@@ -348,9 +363,9 @@ function InquirySheet({ target, onClose }) {
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
   const canSave = isNew ? ed.has("add_inquiry") : ed.has("edit_inquiry");
 
-  /* 6.8.0 — الترجمة صارت بالسيرفر (Claude + معجم المشروع) بعد الحفظ مباشرة، فما نترجم هنا.
+  /* 6.8.0 — الترجمة تصير بعد الحفظ بالمحرّك الداخلي (معجم المشروع، مسودة تنتظر الاعتماد)، فما نترجم هنا.
      بس لو تغيّر النص العربي والإنجليزي ما لمسه أحد، الإنجليزي القديم يُفرَّغ عشان ما يظهر ترجمة لنص قديم
-     (والمحرّك يترجم الجديد خلال ثواني). إنجليزي مكتوب يدويًا يُحفظ كما هو ويُعتبر «مراجَع». */
+     (والمحرّك يترجم الجديد كمسودة). إنجليزي مكتوب يدويًا يُحفظ كما هو ويُعتبر «معتمد». */
   const translateMissing = async (obj) => {
     const out = { ...obj };
     if (orig) {
@@ -391,7 +406,7 @@ function InquirySheet({ target, onClose }) {
     }
     setBusy(false);
     if (error) { setErr("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return; }
-    kickTranslations(supabase, "inquiry-save"); /* نص أو اسم أو قيمة جديدة ← ترجمة تلقائية بالسيرفر خلال ثواني */
+    kickTranslations(supabase, "inquiry-save"); /* نص أو اسم أو قيمة جديدة ← ترجمة داخلية كمسودة خلال ثواني */
     onClose();
   };
 

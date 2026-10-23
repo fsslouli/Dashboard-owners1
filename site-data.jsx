@@ -218,7 +218,7 @@ export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "
    ملاحظة: norm معرَّفة أدناه، والاستدعاء هنا يحصل وقت العرض لا وقت التحميل — فما فيه مشكلة. */
 const normMapCache = new WeakMap();
 /* 6.8.0 — قاموس ترجمة ديناميكي (ذاكرة الترجمة i18n_memory): أي اسم/منصب/قيمة/إشعار جديد ما له ترجمة ثابتة بالكود
-   يترجمه محرّك الترجمة بالسيرفر تلقائيًا، والموقع يقرأه هنا. الترجمة الثابتة بالكود تغلب دائمًا (تصحيح يدوي مضمون). */
+   يترجمه المحرّك الداخلي كمسودة، ويقرأه الموقع هنا بعد اعتماده. الترجمة الثابتة بالكود تغلب دائمًا (تصحيح يدوي مضمون). */
 let DYN_EN = {}, DYN_REF = null, DYN_NORM = null;
 export function setDynEn(m) {
   if (m === DYN_REF) return;
@@ -293,8 +293,13 @@ export const trMonth = (lang, m) => {
    بالضبط نفس تصرفها المعتاد مع أي ملاحظة ما وصلتها ترجمة بعد. */
 const TR_FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE|IS AN INVALID (SOURCE|TARGET) LANGUAGE|PLEASE SELECT TWO DISTINCT LANGUAGES|INVALID EMAIL PROVIDED|NO TRANSLATIONS? (FOUND|AVAILABLE)/i;
 const isTrFail = (t) => typeof t === "string" && TR_FAIL_RX.test(t);
-export const trNote = (lang, r) => canonNames(lang, lang === "en" ? (r.note_en && !isTrFail(r.note_en) ? r.note_en : r.note) : r.note);
-export const trReply = (lang, r) => canonNames(lang, lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) ? r.reply_en : r.reply) : r.reply);
+/* 6.8.0 — الإنجليزي يظهر للزوار بس لو معتمد: مراجَع يدويًا (human) أو مراجَع سابقًا (reviewed).
+   المسودة (ترجمة المحرّك الداخلي قبل اعتمادها) أو الترجمة القديمة لنص عربي تغيّر (stale) ما تظهر:
+   يظهر النص العربي مع تنبيه «قيد المراجعة». بدون حالة (قبل تطبيق الهجرة) = السلوك السابق. */
+const APPROVED_EN = new Set(["human", "reviewed", "claude"]);
+export const isDraftEn = (r, field) => { const e = r && r.trEng && r.trEng[field]; return !!e && !APPROVED_EN.has(e); };
+export const trNote = (lang, r) => canonNames(lang, lang === "en" ? (r.note_en && !isTrFail(r.note_en) && !isDraftEn(r, "note") ? r.note_en : r.note) : r.note);
+export const trReply = (lang, r) => canonNames(lang, lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) && !isDraftEn(r, "reply") ? r.reply_en : r.reply) : r.reply);
 /* هل للحقل ترجمة إنجليزية صالحة؟ (فاضي أو رسالة فشل خدمة الترجمة = لا) */
 export const hasEnText = (t) => typeof t === "string" && !!t.trim() && !isTrFail(t);
 /* 6.8.0 — أي نص عربي ديناميكي آخر (إشعار، ملاحظة شهر، قيمة جديدة…) يُترجم من ذاكرة الترجمة (جدول i18n_memory)

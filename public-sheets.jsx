@@ -10,7 +10,7 @@ const PUBLIC_LOG = CHANGELOG
   .map((e) => ({ ...e, ar: (e.ar || []).filter((l) => !NEG_AR.test(l)), en: (e.en || []).filter((l) => !NEG_EN.test(l)) }))
   .filter((e) => e.ar.length > 0);
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
-import { DOC_BASE, DOC_COLORS, ZONES, hasEnText, hashPick, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
+import { DOC_BASE, DOC_COLORS, ZONES, hasEnText, hashPick, isDraftEn, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
@@ -18,16 +18,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
 import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, Users, X } from "lucide-react";
 
-/* 6.8.0 — شفافية الترجمة بالنسخة الإنجليزية: لو الترجمة لسه بالطريق يظهر النص العربي الأصلي مع تنبيه،
-   ولو كانت ترجمة آلية (قبل مراجعة Claude أو الأدمن) تنوسم بوضوح بدل ما تنعرض كأنها معتمدة */
+/* 6.8.0 — شفافية الترجمة بالنسخة الإنجليزية: لو ما فيه ترجمة معتمدة بعد يظهر النص العربي الأصلي مع تنبيه
+   (الترجمة الجديدة تنكتب «مسودة» بالمحرّك الداخلي وما تظهر إلا بعد اعتمادها من لوحة الإدارة) */
 function TrNotice({ lang, r, field, T }) {
   if (lang !== "en" || !r) return null;
   const ar = field === "note" ? r.note : r.reply;
   if (!ar || !String(ar).trim()) return null;
   const en = field === "note" ? r.note_en : r.reply_en;
-  const eng = r.trEng ? r.trEng[field] : null;
-  const msg = !hasEnText(en) ? "English translation in progress — showing the original Arabic text."
-    : eng === "machine" ? "Machine translation — pending professional review." : null;
+  const msg = !hasEnText(en) || isDraftEn(r, field) ? "English translation pending review — showing the original Arabic text." : null;
   if (!msg) return null;
   return <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, fontStyle: "italic", lineHeight: 1.6 }}>{msg}</div>;
 }

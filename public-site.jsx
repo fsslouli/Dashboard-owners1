@@ -272,7 +272,7 @@ export function PublicSite({ share = null } = {}) {
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
       meetings: Array.isArray(r.meetings) ? r.meetings : [],
       note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
-      /* مصدر الترجمة لكل حقل (claude | human | machine) — لتنبيه «ترجمة آلية قيد المراجعة» بالنسخة الإنجليزية */
+      /* مصدر الترجمة لكل حقل (reviewed | human = معتمدة · local = مسودة · stale = قديمة) — غير المعتمد ما يظهر بالإنجليزي: يظهر العربي مع تنبيه «قيد المراجعة» */
       trEng: r.i18n && typeof r.i18n === "object" ? { note: r.i18n.note?.e || null, reply: r.i18n.reply?.e || null } : null,
       last_modified: r.last_modified,
       urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,

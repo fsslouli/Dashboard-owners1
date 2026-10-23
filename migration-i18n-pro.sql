@@ -1,25 +1,30 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- migration-i18n-pro.sql — نظام الترجمة الاحترافي (6.8.0)
+-- migration-i18n-pro.sql — نظام الترجمة الداخلي (6.8.0)
 -- شغّله مرة وحدة من Supabase → SQL Editor (آمن لو انعاد تشغيله).
+-- معاملة وحدة: يا ينطبق كله يا ما ينطبق شي.
 --
--- الجزء ١ (معاملة وحدة: يا ينطبق كله يا ما ينطبق شي):
 --   • نسخة احتياطية كاملة للاستفسارات قبل أي تعديل.
---   • تتبع حداثة الترجمة لكل حقل: بصمة النص العربي + مصدر الترجمة (claude / human / machine).
---     أي تعديل بالعربي يخلي الترجمة «قديمة» فتُعاد تلقائيًا — من أي مكان جا التعديل (لوحة، إكسل، جدولة، SQL).
+--   • الترجمة داخلية بالكامل: المحرّك يشتغل داخل لوحة الإدارة على جهاز المشرف —
+--     ما فيه أي خدمة خارجية ولا مفتاح ولا جدولة على السيرفر. هالملف ما يضيف أي اتصال خارجي.
+--   • كل ترجمة جديدة تنحفظ «مسودة» (local) وما تظهر للزوار إلا بعد اعتمادها من تبويب «الترجمة».
+--   • تتبع حداثة الترجمة لكل حقل: بصمة النص العربي + المصدر (reviewed / human / local).
+--     أي تعديل بالعربي يخلي الترجمة «قديمة» ← تنخفي عن الزوار وتُعاد ترجمتها كمسودة — من أي مكان جا التعديل.
 --   • ذاكرة ترجمة للأسماء والمناصب وقيم الفلاتر والإشعارات وملاحظات الأشهر (جدول i18n_memory).
---   • كتابة محرّك الترجمة ما تحرّك «آخر تحديث» ولا «آخر من عدّل» ولا تنسجل كتعديل محتوى.
---   • تصحيح 55 ترجمة إنجليزية موجودة (مراجعة يدوية) + توحيد أسماء النماذج + عناوين الوسائط.
--- الجزء ٢: جدولة كل ٥ دقائق تستدعي محرّك الترجمة (يحتاج امتداد pg_net).
+--   • كتابة المحرّك والاعتماد ما تحرّك «آخر تحديث» ولا «آخر من عدّل» ولا تنسجل كتعديل محتوى.
+--   • الصلاحيات: تشغيل الترجمة لمن عنده edit_inquiry أو import_excel (والأسماء والقيم أيضًا manage_theme)،
+--     والاعتماد لمن عنده edit_inquiry.
+--   • تصحيح ترجمات 55 استفسار (مراجعة يدوية) + توحيد أسماء النماذج + عناوين الوسائط.
+--     الترجمات الحالية (بعد التصحيح) تبقى معروضة كما هي — مصدرها «مراجَعة سابقًا» (reviewed).
 -- ═══════════════════════════════════════════════════════════════════════
 
 begin;
 
 -- ١) نسخة احتياطية (تظهر بقائمة النسخ الاحتياطية بلوحة المزامنة)
 insert into public.data_backups (label, inquiries, progress)
-select 'قبل نظام الترجمة الاحترافي (6.8.0)',
+select 'قبل نظام الترجمة الداخلي (6.8.0)',
        coalesce((select jsonb_agg(to_jsonb(i)) from public.inquiries i), '[]'::jsonb),
        coalesce((select jsonb_agg(to_jsonb(p)) from public.progress p), '[]'::jsonb)
-where not exists (select 1 from public.data_backups where label = 'قبل نظام الترجمة الاحترافي (6.8.0)');
+where not exists (select 1 from public.data_backups where label = 'قبل نظام الترجمة الداخلي (6.8.0)');
 
 -- ٢) حالة الترجمة لكل استفسار (داخلية: بصمة العربي + المصدر + ملاحظات الجودة)
 alter table public.inquiries add column if not exists i18n jsonb not null default '{}'::jsonb;
@@ -30,12 +35,22 @@ language sql immutable set search_path = pg_catalog as $$
   select left(encode(sha256(convert_to(regexp_replace(btrim(coalesce(t, '')), '\s+', ' ', 'g'), 'UTF8')), 'hex'), 16)
 $$;
 
+-- من يقدر يشغّل الترجمة ويعتمدها (المحرّك يشتغل بحساب المشرف نفسه من لوحة الإدارة)
+create or replace function public.i18n_can(p_what text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce(case p_what
+    when 'inq' then public.has_perm('edit_inquiry') or public.has_perm('import_excel')
+    when 'term' then public.has_perm('edit_inquiry') or public.has_perm('import_excel') or public.has_perm('manage_theme')
+    when 'review' then public.has_perm('edit_inquiry')
+    else false end, false)
+$$;
+
 -- ٣) ذاكرة الترجمة: { عربي → إنجليزي } لكل نص قصير/ديناميكي يتكرر بالموقع
 create table if not exists public.i18n_memory (
   ar text primary key,
   en text not null default '',
   kind text not null default 'label',
-  engine text not null default 'claude',
+  engine text not null default 'pending',
   flags jsonb not null default '[]'::jsonb,
   fails int not null default 0,
   updated_at timestamptz not null default now()
@@ -57,7 +72,7 @@ begin
   new.en := btrim(coalesce(new.en, ''));
   new.updated_at := now();
   if coalesce(current_setting('app.i18n_write', true), '') <> 'on' then
-    -- تعديل يدوي من لوحة الإدارة: يُعتمد «مراجَع» ولا يكتب عليه المحرّك (والتفريغ = أعد الترجمة)
+    -- تعديل أو حفظ يدوي من لوحة الإدارة = اعتماد («مراجَع») وما يكتب عليه المحرّك (والتفريغ = أعد الترجمة)
     new.engine := case when new.en = '' then 'pending' else 'human' end;
     new.flags := '[]'::jsonb;
     new.fails := 0;
@@ -75,7 +90,7 @@ do $$ begin
   end if;
 end $$;
 
--- ٤) حالة المحرّك (قفل التشغيل + آخر نتيجة + التأجيل عند انتهاء الحصة) — قراءة للمشرفين فقط
+-- ٤) حالة المحرّك (قفل التشغيل + آخر نتيجة) — قراءة للمشرفين فقط، والكتابة عبر الدوال
 create table if not exists public.i18n_state (
   id smallint primary key default 1 check (id = 1),
   lock_until timestamptz,
@@ -96,7 +111,7 @@ revoke all on public.i18n_state from anon;
 grant select on public.i18n_state to authenticated;
 revoke insert, update, delete on public.i18n_state from authenticated;
 
--- ٥) التريقرات الحالية: كتابة المحرّك (app.i18n_write) ما تُعدّ تعديل محتوى
+-- ٥) التريقرات الحالية: كتابة المحرّك والاعتماد (app.i18n_write) ما تُعدّ تعديل محتوى
 create or replace function public.check_inquiry_update()
  returns trigger
  language plpgsql
@@ -108,7 +123,7 @@ declare
   skip_cols text[] := array['updated_at','updated_by'];
   col text;
 begin
-  -- 6.8.0: كتابة محرّك الترجمة (عبر i18n_apply / i18n_fail فقط) تمس الإنجليزي وحالة الترجمة لا غير
+  -- 6.8.0: كتابة الترجمة (عبر i18n_apply / i18n_fail / i18n_review فقط — وكلها تتحقق من الصلاحية) تمس الإنجليزي وحالة الترجمة لا غير
   if coalesce(current_setting('app.i18n_write', true), '') = 'on' then return new; end if;
   for col in select jsonb_object_keys(to_jsonb(new)) loop
     if col = any(skip_cols) then continue; end if;
@@ -132,7 +147,7 @@ create or replace function public.set_inquiry_updated_at()
  set search_path to 'public'
 as $function$
 begin
-  -- 6.8.0: الترجمة الآلية ما تخلّي البند يبان «محدّث»
+  -- 6.8.0: الترجمة واعتمادها ما يخلّون البند يبان «محدّث»
   if coalesce(current_setting('app.i18n_write', true), '') = 'on' then
     new.updated_at = old.updated_at;
     return new;
@@ -150,7 +165,7 @@ create or replace function public.stamp_inquiry_author()
 as $function$
 declare who text;
 begin
-  -- 6.8.0: الترجمة الآلية ما تغيّر «آخر من عدّل»
+  -- 6.8.0: الترجمة واعتمادها ما يغيّرون «آخر من عدّل»
   if tg_op = 'UPDATE' and coalesce(current_setting('app.i18n_write', true), '') = 'on' then
     new.updated_by := old.updated_by;
     new.created_by := old.created_by;
@@ -173,10 +188,10 @@ end $function$;
 -- ٦) تتبع حداثة الترجمة عند أي حفظ بشري (لوحة، إكسل، جدولة، SQL)
 --    • إنجليزي فاضي ← بلا حالة (المحرّك يترجمه)
 --    • إنجليزي كتبه/عدّله إنسان ← «مراجَع» ببصمة العربي الحالية (المحرّك ما يكتب عليه)
---    • عربي تغيّر والإنجليزي ما تغيّر ← البصمة ما تطابق ← «قديمة» (المحرّك يعيد ترجمتها)
+--    • عربي تغيّر والإنجليزي ما تغيّر ← «قديمة» (stale): تنخفي عن الزوار والمحرّك يعيد ترجمتها كمسودة
 create or replace function public.inquiry_i18n_track() returns trigger
 language plpgsql set search_path = public as $$
-declare f text; ar text; en text; old_en text; m jsonb; old_m jsonb;
+declare f text; ar text; en text; old_en text; m jsonb; old_m jsonb; hh text;
 begin
   if coalesce(current_setting('app.i18n_write', true), '') = 'on' then return new; end if;
   new.i18n := coalesce(new.i18n, '{}'::jsonb);
@@ -188,14 +203,15 @@ begin
       if f = 'note' then old_en := old.note_en; else old_en := old.reply_en; end if;
       old_m := coalesce(old.i18n, '{}'::jsonb) -> f;
     end if;
+    hh := public.i18n_hash(ar);
     if coalesce(btrim(en), '') = '' then
       new.i18n := new.i18n - f;
-    elsif tg_op = 'INSERT' then
-      if m is null or (m ->> 'h') is null then
-        new.i18n := jsonb_set(new.i18n, array[f], jsonb_build_object('h', public.i18n_hash(ar), 'e', 'human', 't', now()));
-      end if;
-    elsif en is distinct from old_en and m is not distinct from old_m then
-      new.i18n := jsonb_set(new.i18n, array[f], jsonb_build_object('h', public.i18n_hash(ar), 'e', 'human', 't', now()));
+    elsif tg_op = 'INSERT' and (m is null or (m ->> 'h') is null) then
+      new.i18n := jsonb_set(new.i18n, array[f], jsonb_build_object('h', hh, 'e', 'human', 't', now()));
+    elsif tg_op = 'UPDATE' and en is distinct from old_en and m is not distinct from old_m then
+      new.i18n := jsonb_set(new.i18n, array[f], jsonb_build_object('h', hh, 'e', 'human', 't', now()));
+    elsif (m ->> 'h') is distinct from hh and coalesce(m ->> 'e', '') <> 'stale' then
+      new.i18n := jsonb_set(new.i18n, array[f], coalesce(m, '{}'::jsonb) || jsonb_build_object('e', 'stale', 't', now()));
     end if;
   end loop;
   return new;
@@ -204,8 +220,8 @@ drop trigger if exists trg_i18n_track on public.inquiries;
 create trigger trg_i18n_track before insert or update on public.inquiries
   for each row execute function public.inquiry_i18n_track();
 
--- ٧) دوال المحرّك
--- ما ينتظر ترجمة من نصوص الاستفسارات: ناقص (missing) / قديم (stale) / آلي يُرقّى لـ Claude (upgrade)
+-- ٧) دوال المحرّك الداخلي (تُستدعى من لوحة الإدارة بحساب المشرف — وترجع فاضي/ترفض لغير المخوّلين)
+-- ما ينتظر ترجمة من نصوص الاستفسارات: ناقص (missing) / قديم (stale) / آلي قديم (upgrade)
 create or replace function public.i18n_pending(p_upgrade boolean default false, p_limit int default 80)
 returns table(id int, field text, ar text, h text, engine text, reason text)
 language sql stable security definer set search_path = public as $$
@@ -219,9 +235,12 @@ language sql stable security definer set search_path = public as $$
     from f where coalesce(btrim(f.ar), '') <> ''
   )
   select g.id, g.field, g.ar, g.hh, g.m ->> 'e',
-         case when g.missing then 'missing' when (g.m ->> 'h') is distinct from g.hh then 'stale' else 'upgrade' end
+         case when g.missing then 'missing'
+              when (g.m ->> 'h') is distinct from g.hh or g.m ->> 'e' = 'stale' then 'stale'
+              else 'upgrade' end
   from g
-  where (g.missing or (g.m ->> 'h') is distinct from g.hh or (p_upgrade and g.m ->> 'e' = 'machine'))
+  where (select public.i18n_can('inq'))
+    and (g.missing or (g.m ->> 'h') is distinct from g.hh or g.m ->> 'e' = 'stale' or (p_upgrade and g.m ->> 'e' = 'machine'))
     and not (coalesce((g.m ->> 'fails')::int, 0) >= 3 and (g.m ->> 'fh') = g.hh)
   order by 6, 1 desc
   limit greatest(1, least(coalesce(p_limit, 80), 500))
@@ -255,36 +274,45 @@ language sql stable security definer set search_path = public as $$
   )
   select d.v, d.k, case when t.ar is null or coalesce(btrim(t.en), '') = '' then 'missing' else 'upgrade' end
   from d left join public.i18n_memory t on t.ar = d.v
-  where t.ar is null
+  where (select public.i18n_can('term'))
+    and (t.ar is null
      or (coalesce(btrim(t.en), '') = '' and not (t.engine = 'failed' and t.fails >= 3))
-     or (p_upgrade and t.engine = 'machine')
+     or (p_upgrade and t.engine = 'machine'))
   order by 3, 1
   limit greatest(1, least(coalesce(p_limit, 150), 500))
 $$;
 
--- حفظ نتائج المحرّك (للاستفسارات: بس لو العربي ما تغيّر أثناء الترجمة — مطابقة البصمة)
+-- حفظ ترجمات المحرّك الداخلي — دائمًا «مسودة» (local) لين يعتمدها المشرف.
+-- للاستفسارات: بس لو العربي ما تغيّر أثناء الترجمة (مطابقة البصمة)، وما يكتب أبدًا على ترجمة معتمدة لنفس النص.
 create or replace function public.i18n_apply(p_items jsonb) returns int
 language plpgsql security definer set search_path = public as $$
-declare it jsonb; n int := 0; k int; f text; meta jsonb;
+declare it jsonb; n int := 0; k int; f text; meta jsonb; fl jsonb;
+  can_inq boolean := public.i18n_can('inq'); can_term boolean := public.i18n_can('term');
 begin
+  if not (can_inq or can_term) then raise exception 'لا توجد صلاحية لتشغيل الترجمة'; end if;
   perform set_config('app.i18n_write', 'on', true);
   for it in select * from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) loop
-    if it ->> 'type' = 'inq' and it ->> 'field' in ('note', 'reply') and coalesce(btrim(it ->> 'en'), '') <> '' then
+    fl := case when jsonb_typeof(it -> 'f') = 'array' then it -> 'f' else '[]'::jsonb end;
+    if can_inq and it ->> 'type' = 'inq' and it ->> 'field' in ('note', 'reply') and coalesce(btrim(it ->> 'en'), '') <> '' then
       f := it ->> 'field';
-      meta := jsonb_build_object('h', it ->> 'h', 'e', coalesce(it ->> 'e', 'machine'), 'f', coalesce(it -> 'f', '[]'::jsonb), 't', now());
+      meta := jsonb_build_object('h', it ->> 'h', 'e', 'local', 'f', fl, 't', now());
       if f = 'note' then
-        update public.inquiries set note_en = btrim(it ->> 'en'), i18n = jsonb_set(coalesce(i18n, '{}'::jsonb), '{note}', meta)
-         where id = (it ->> 'id')::int and public.i18n_hash(note) = it ->> 'h';
+        update public.inquiries i set note_en = btrim(it ->> 'en'), i18n = jsonb_set(coalesce(i.i18n, '{}'::jsonb), '{note}', meta)
+         where i.id = (it ->> 'id')::int and public.i18n_hash(i.note) = it ->> 'h'
+           and not (coalesce(i.i18n -> 'note' ->> 'e', '') in ('human', 'reviewed', 'claude')
+                    and (i.i18n -> 'note' ->> 'h') = it ->> 'h' and coalesce(btrim(i.note_en), '') <> '');
       else
-        update public.inquiries set reply_en = btrim(it ->> 'en'), i18n = jsonb_set(coalesce(i18n, '{}'::jsonb), '{reply}', meta)
-         where id = (it ->> 'id')::int and public.i18n_hash(reply) = it ->> 'h';
+        update public.inquiries i set reply_en = btrim(it ->> 'en'), i18n = jsonb_set(coalesce(i.i18n, '{}'::jsonb), '{reply}', meta)
+         where i.id = (it ->> 'id')::int and public.i18n_hash(i.reply) = it ->> 'h'
+           and not (coalesce(i.i18n -> 'reply' ->> 'e', '') in ('human', 'reviewed', 'claude')
+                    and (i.i18n -> 'reply' ->> 'h') = it ->> 'h' and coalesce(btrim(i.reply_en), '') <> '');
       end if;
       get diagnostics k = row_count; n := n + k;
-    elsif it ->> 'type' = 'term' and coalesce(btrim(it ->> 'ar'), '') <> '' and coalesce(btrim(it ->> 'en'), '') <> '' then
+    elsif can_term and it ->> 'type' = 'term' and coalesce(btrim(it ->> 'ar'), '') <> '' and coalesce(btrim(it ->> 'en'), '') <> '' then
       insert into public.i18n_memory as t (ar, en, kind, engine, flags, fails)
-      values (btrim(it ->> 'ar'), btrim(it ->> 'en'), coalesce(it ->> 'kind', 'label'), coalesce(it ->> 'e', 'machine'), coalesce(it -> 'f', '[]'::jsonb), 0)
+      values (btrim(it ->> 'ar'), btrim(it ->> 'en'), coalesce(nullif(it ->> 'kind', ''), 'label'), 'local', fl, 0)
       on conflict (ar) do update set en = excluded.en, kind = excluded.kind, engine = excluded.engine, flags = excluded.flags, fails = 0
-       where t.engine <> 'human' or coalesce(btrim(t.en), '') = '';
+       where t.engine not in ('human', 'reviewed', 'claude') or coalesce(btrim(t.en), '') = '';
       get diagnostics k = row_count; n := n + k;
     end if;
   end loop;
@@ -296,10 +324,12 @@ end $$;
 create or replace function public.i18n_fail(p_items jsonb) returns int
 language plpgsql security definer set search_path = public as $$
 declare it jsonb; n int := 0; k int; f text;
+  can_inq boolean := public.i18n_can('inq'); can_term boolean := public.i18n_can('term');
 begin
+  if not (can_inq or can_term) then raise exception 'لا توجد صلاحية لتشغيل الترجمة'; end if;
   perform set_config('app.i18n_write', 'on', true);
   for it in select * from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) loop
-    if it ->> 'type' = 'inq' and it ->> 'field' in ('note', 'reply') then
+    if can_inq and it ->> 'type' = 'inq' and it ->> 'field' in ('note', 'reply') then
       f := it ->> 'field';
       update public.inquiries
          set i18n = jsonb_set(coalesce(i18n, '{}'::jsonb), array[f],
@@ -308,9 +338,9 @@ begin
                                then coalesce((coalesce(i18n, '{}'::jsonb) -> f ->> 'fails')::int, 0) + 1 else 1 end))
        where id = (it ->> 'id')::int;
       get diagnostics k = row_count; n := n + k;
-    elsif it ->> 'type' = 'term' and coalesce(btrim(it ->> 'ar'), '') <> '' then
+    elsif can_term and it ->> 'type' = 'term' and coalesce(btrim(it ->> 'ar'), '') <> '' then
       insert into public.i18n_memory as t (ar, en, kind, engine, fails)
-      values (btrim(it ->> 'ar'), '', coalesce(it ->> 'kind', 'label'), 'failed', 1)
+      values (btrim(it ->> 'ar'), '', coalesce(nullif(it ->> 'kind', ''), 'label'), 'failed', 1)
       on conflict (ar) do update set fails = t.fails + 1,
         engine = case when coalesce(btrim(t.en), '') = '' then 'failed' else t.engine end;
       get diagnostics k = row_count; n := n + k;
@@ -320,12 +350,13 @@ begin
   return n;
 end $$;
 
--- قفل تشغيل واحد بنفس الوقت (ينفك تلقائيًا لو تعطّل التشغيل)
+-- قفل تشغيل واحد بنفس الوقت (لو المشرف فاتح اللوحة من جهازين) — ينفك تلقائيًا لو انقطع التشغيل
 create or replace function public.i18n_claim(p_seconds int default 150) returns boolean
 language plpgsql security definer set search_path = public as $$
 declare ok boolean;
 begin
-  update public.i18n_state set lock_until = now() + make_interval(secs => greatest(30, least(coalesce(p_seconds, 150), 600)))
+  if not public.i18n_can('term') then raise exception 'لا توجد صلاحية لتشغيل الترجمة'; end if;
+  update public.i18n_state set lock_until = now() + make_interval(secs => greatest(30, least(coalesce(p_seconds, 150), 900)))
    where id = 1 and (lock_until is null or lock_until < now())
   returning true into ok;
   return coalesce(ok, false);
@@ -333,29 +364,72 @@ end $$;
 
 create or replace function public.i18n_release(p_engine text, p_has_key boolean, p_model text, p_result jsonb, p_error text,
   p_machine_backoff_min int default 0, p_claude_backoff_min int default 0) returns void
-language sql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.i18n_can('term') then raise exception 'لا توجد صلاحية لتشغيل الترجمة'; end if;
   update public.i18n_state set
-    lock_until = null, last_run_at = now(), last_engine = p_engine, has_key = p_has_key, model = p_model,
-    last_result = p_result, last_error = left(p_error, 400),
-    machine_backoff_until = case when coalesce(p_machine_backoff_min, 0) > 0 then now() + make_interval(mins => p_machine_backoff_min) else machine_backoff_until end,
-    claude_backoff_until = case when coalesce(p_claude_backoff_min, 0) > 0 then now() + make_interval(mins => p_claude_backoff_min)
-                                when p_engine like 'claude%' and p_error is null then null else claude_backoff_until end
-  where id = 1
-$$;
+    lock_until = null, last_run_at = now(), last_engine = left(p_engine, 40), has_key = false, model = left(p_model, 80),
+    last_result = case when pg_column_size(p_result) < 4000 then p_result end, last_error = left(p_error, 400)
+  where id = 1;
+end $$;
 
--- الصلاحيات: الكتابة للمحرّك فقط (service_role)، والقراءة للمشرفين
-revoke all on function public.i18n_apply(jsonb) from public, anon, authenticated;
-revoke all on function public.i18n_fail(jsonb) from public, anon, authenticated;
-revoke all on function public.i18n_claim(int) from public, anon, authenticated;
-revoke all on function public.i18n_release(text, boolean, text, jsonb, text, int, int) from public, anon, authenticated;
-grant execute on function public.i18n_apply(jsonb) to service_role;
-grant execute on function public.i18n_fail(jsonb) to service_role;
-grant execute on function public.i18n_claim(int) to service_role;
-grant execute on function public.i18n_release(text, boolean, text, jsonb, text, int, int) to service_role;
+-- اعتماد ترجمة استفسار (كما هي أو بعد تعديلها) أو مسحها لإعادة الترجمة — من تبويب «الترجمة».
+-- ما يُعدّ تعديل محتوى (لا يحرّك «آخر تحديث» ولا «آخر من عدّل»)، والاعتماد ينطبق بس لو النص العربي
+-- ما تغيّر من لحظة ما انعرض بالشاشة (ar) — عشان ما تنعتمد ترجمة لنص تغيّر بعدها.
+create or replace function public.i18n_review(p_items jsonb) returns int
+language plpgsql security definer set search_path = public as $$
+declare it jsonb; n int := 0; k int; f text; en text; hh text; meta jsonb;
+begin
+  if not public.i18n_can('review') then raise exception 'لا توجد صلاحية لاعتماد الترجمة'; end if;
+  perform set_config('app.i18n_write', 'on', true);
+  for it in select * from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) loop
+    f := it ->> 'field';
+    k := 0;
+    if f in ('note', 'reply') and (it ->> 'id') ~ '^[0-9]+$' then
+      if it ->> 'action' = 'reset' then
+        if f = 'note' then
+          update public.inquiries set note_en = null, i18n = coalesce(i18n, '{}'::jsonb) - 'note' where id = (it ->> 'id')::int;
+        else
+          update public.inquiries set reply_en = null, i18n = coalesce(i18n, '{}'::jsonb) - 'reply' where id = (it ->> 'id')::int;
+        end if;
+        get diagnostics k = row_count;
+      elsif it ->> 'action' = 'approve' then
+        en := nullif(btrim(coalesce(it ->> 'en', '')), '');
+        hh := public.i18n_hash(coalesce(it ->> 'ar', ''));
+        meta := jsonb_build_object('h', hh, 'e', 'human', 'f', '[]'::jsonb, 't', now());
+        if f = 'note' then
+          update public.inquiries set note_en = coalesce(en, note_en), i18n = jsonb_set(coalesce(i18n, '{}'::jsonb), '{note}', meta)
+           where id = (it ->> 'id')::int and public.i18n_hash(note) = hh and coalesce(btrim(coalesce(en, note_en)), '') <> '';
+        else
+          update public.inquiries set reply_en = coalesce(en, reply_en), i18n = jsonb_set(coalesce(i18n, '{}'::jsonb), '{reply}', meta)
+           where id = (it ->> 'id')::int and public.i18n_hash(reply) = hh and coalesce(btrim(coalesce(en, reply_en)), '') <> '';
+        end if;
+        get diagnostics k = row_count;
+      end if;
+    end if;
+    n := n + k;
+  end loop;
+  perform set_config('app.i18n_write', 'off', true);
+  return n;
+end $$;
+
+-- الصلاحيات: كل الدوال لحسابات الدخول فقط (والتحقق من الصلاحية داخلها) — الزوار ما يقدرون يستدعونها
+revoke all on function public.i18n_can(text) from public, anon;
+revoke all on function public.i18n_apply(jsonb) from public, anon;
+revoke all on function public.i18n_fail(jsonb) from public, anon;
+revoke all on function public.i18n_claim(int) from public, anon;
+revoke all on function public.i18n_release(text, boolean, text, jsonb, text, int, int) from public, anon;
+revoke all on function public.i18n_review(jsonb) from public, anon;
 revoke all on function public.i18n_pending(boolean, int) from public, anon;
 revoke all on function public.i18n_pending_terms(boolean, int) from public, anon;
-grant execute on function public.i18n_pending(boolean, int) to authenticated, service_role;
-grant execute on function public.i18n_pending_terms(boolean, int) to authenticated, service_role;
+grant execute on function public.i18n_can(text) to authenticated;
+grant execute on function public.i18n_apply(jsonb) to authenticated;
+grant execute on function public.i18n_fail(jsonb) to authenticated;
+grant execute on function public.i18n_claim(int) to authenticated;
+grant execute on function public.i18n_release(text, boolean, text, jsonb, text, int, int) to authenticated;
+grant execute on function public.i18n_review(jsonb) to authenticated;
+grant execute on function public.i18n_pending(boolean, int) to authenticated;
+grant execute on function public.i18n_pending_terms(boolean, int) to authenticated;
 
 -- ٨) الاستبدال الكامل من إكسل يحفظ حالة الترجمة (كان يضيّعها)
 create or replace function public.replace_inquiries_full(p_rows jsonb)
@@ -498,69 +572,69 @@ update public.inquiries set note_en = replace(note_en, 'Restacks', 'Restatex') w
 update public.inquiries set reply_en = replace(replace(reply_en, 'two Clean Out openings', 'two clean-out openings'), 'in the back yard on the external drain line', 'in the yard on the external drain line') where id = 96;
 update public.inquiries set note_en = replace(note_en, 'two holes (Clean Out)', 'two clean-out openings') where id = 96;
 
--- ١٠) كل الترجمات الحالية (بعد التصحيح) تُعتمد كترجمة سليمة ببصمة نصها العربي — فما يعيد المحرّك ترجمتها
+-- ١٠) كل الترجمات الحالية (بعد التصحيح) تُعتمد «مراجَعة سابقًا» ببصمة نصها العربي — فتبقى ظاهرة وما يعيد المحرّك ترجمتها
 update public.inquiries set i18n = coalesce(i18n, '{}'::jsonb)
   || case when coalesce(btrim(note_en), '') <> '' and coalesce(btrim(note), '') <> '' and (coalesce(i18n, '{}'::jsonb) -> 'note') is null
           and note_en !~* '(MYMEMORY WARNING|QUERY LENGTH LIMIT)'
-          then jsonb_build_object('note', jsonb_build_object('h', public.i18n_hash(note), 'e', 'claude', 't', now())) else '{}'::jsonb end
+          then jsonb_build_object('note', jsonb_build_object('h', public.i18n_hash(note), 'e', 'reviewed', 't', now())) else '{}'::jsonb end
   || case when coalesce(btrim(reply_en), '') <> '' and coalesce(btrim(reply), '') <> '' and (coalesce(i18n, '{}'::jsonb) -> 'reply') is null
           and reply_en !~* '(MYMEMORY WARNING|QUERY LENGTH LIMIT)'
-          then jsonb_build_object('reply', jsonb_build_object('h', public.i18n_hash(reply), 'e', 'claude', 't', now())) else '{}'::jsonb end;
+          then jsonb_build_object('reply', jsonb_build_object('h', public.i18n_hash(reply), 'e', 'reviewed', 't', now())) else '{}'::jsonb end;
 
 -- ١١) ذاكرة الترجمة: القيم الحالية (مطابقة للترجمات الثابتة بالموقع) + ملاحظة شهر 2026-07
 
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$أبو سلطان$q$, $q$Abu Sultan$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$أبو علي$q$, $q$Abu Ali$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$غير محدد$q$, $q$Unspecified$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/أحمد ملحم$q$, $q$Eng. Ahmed Malham$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/إبراهيم$q$, $q$Eng. Ibrahim$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/رواحه$q$, $q$Eng. Rawaha$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/محمد عبدالمعطي$q$, $q$Eng. Mohammed Abdulmuti$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$وديان$q$, $q$Wedyan$q$, $q$person$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الرئيس التنفيذي$q$, $q$CEO$q$, $q$title$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$مالك$q$, $q$Owner$q$, $q$title$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$مدير العمليات$q$, $q$Operations Manager$q$, $q$title$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$مدير المبيعات السابق$q$, $q$Former Sales Manager$q$, $q$title$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$مدير المشروع$q$, $q$Project Manager$q$, $q$title$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$مديرة المبيعات الأولى$q$, $q$Senior Sales Manager$q$, $q$title$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الأرضي والأول$q$, $q$Ground + First Floor$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الحوش (الأرضي)$q$, $q$Yard (Ground Floor)$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الحوش الخلفي (الأرضي)$q$, $q$Backyard (Ground Floor)$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الدرج$q$, $q$Staircase$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الدور الأرضي$q$, $q$Ground Floor$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الدور الأول$q$, $q$First Floor$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$السطح$q$, $q$Roof$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الشارع$q$, $q$Street$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$المطبخ ودورات المياه$q$, $q$Kitchen & Bathrooms$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$جدار الفلل المتلاصقة$q$, $q$Party Wall Between Adjoining Villas$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$كامل الفيلا$q$, $q$Whole Villa$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$موقع الخزان$q$, $q$Tank Location$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$إداري/نظامي$q$, $q$Administrative / Regulatory$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$استفسار فني توضيحي$q$, $q$Technical Clarification$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$تجاري$q$, $q$Commercial$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$ترقية$q$, $q$Upgrade$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$تصحيح عيب تنفيذي$q$, $q$Execution Correction$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$تصميمي/جمالي$q$, $q$Design / Aesthetic$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$عادية$q$, $q$Low$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$عالية$q$, $q$High$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$عالية جدًا$q$, $q$Very High$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$متوسطة$q$, $q$Medium$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$تم التصويت$q$, $q$Voted$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$تم الرفض$q$, $q$Not approved$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$قيد الدراسة$q$, $q$Under Review$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$معتمدة$q$, $q$Approved$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$المبيعات وما بعد البيع$q$, $q$Sales & after-sales$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$فريق المشروع$q$, $q$Project team$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$أمانيثير وألبا$q$, $q$Amanecer & Alba$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$أورورا$q$, $q$Aurora$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$جميع النماذج$q$, $q$All models$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$جميع النماذج عدا أمانيثير$q$, $q$All models except Amanecer$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع الثالث$q$, $q$3rd Meeting$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع الخامس$q$, $q$5th Meeting$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع الرابع$q$, $q$4th Meeting$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع السابع$q$, $q$7th Meeting$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع السادس (ميداني)$q$, $q$6th Meeting (Site Visit)$q$, $q$label$q$, 'claude') on conflict (ar) do nothing;
-insert into public.i18n_memory (ar, en, kind, engine) values ($q$المطوّر لم يُصدر تقرير تقدّم لهذا الشهر — تم سحبه$q$, $q$The developer did not issue a progress report for this month — it was withdrawn.$q$, $q$text$q$, 'claude') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$أبو سلطان$q$, $q$Abu Sultan$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$أبو علي$q$, $q$Abu Ali$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$غير محدد$q$, $q$Unspecified$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/أحمد ملحم$q$, $q$Eng. Ahmed Malham$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/إبراهيم$q$, $q$Eng. Ibrahim$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/رواحه$q$, $q$Eng. Rawaha$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$م/محمد عبدالمعطي$q$, $q$Eng. Mohammed Abdulmuti$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$وديان$q$, $q$Wedyan$q$, $q$person$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الرئيس التنفيذي$q$, $q$CEO$q$, $q$title$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$مالك$q$, $q$Owner$q$, $q$title$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$مدير العمليات$q$, $q$Operations Manager$q$, $q$title$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$مدير المبيعات السابق$q$, $q$Former Sales Manager$q$, $q$title$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$مدير المشروع$q$, $q$Project Manager$q$, $q$title$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$مديرة المبيعات الأولى$q$, $q$Senior Sales Manager$q$, $q$title$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الأرضي والأول$q$, $q$Ground + First Floor$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الحوش (الأرضي)$q$, $q$Yard (Ground Floor)$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الحوش الخلفي (الأرضي)$q$, $q$Backyard (Ground Floor)$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الدرج$q$, $q$Staircase$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الدور الأرضي$q$, $q$Ground Floor$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الدور الأول$q$, $q$First Floor$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$السطح$q$, $q$Roof$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الشارع$q$, $q$Street$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$المطبخ ودورات المياه$q$, $q$Kitchen & Bathrooms$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$جدار الفلل المتلاصقة$q$, $q$Party Wall Between Adjoining Villas$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$كامل الفيلا$q$, $q$Whole Villa$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$موقع الخزان$q$, $q$Tank Location$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$إداري/نظامي$q$, $q$Administrative / Regulatory$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$استفسار فني توضيحي$q$, $q$Technical Clarification$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$تجاري$q$, $q$Commercial$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$ترقية$q$, $q$Upgrade$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$تصحيح عيب تنفيذي$q$, $q$Execution Correction$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$تصميمي/جمالي$q$, $q$Design / Aesthetic$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$عادية$q$, $q$Low$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$عالية$q$, $q$High$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$عالية جدًا$q$, $q$Very High$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$متوسطة$q$, $q$Medium$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$تم التصويت$q$, $q$Voted$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$تم الرفض$q$, $q$Not approved$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$قيد الدراسة$q$, $q$Under Review$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$معتمدة$q$, $q$Approved$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$المبيعات وما بعد البيع$q$, $q$Sales & after-sales$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$فريق المشروع$q$, $q$Project team$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$أمانيثير وألبا$q$, $q$Amanecer & Alba$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$أورورا$q$, $q$Aurora$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$جميع النماذج$q$, $q$All models$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$جميع النماذج عدا أمانيثير$q$, $q$All models except Amanecer$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع الثالث$q$, $q$3rd Meeting$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع الخامس$q$, $q$5th Meeting$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع الرابع$q$, $q$4th Meeting$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع السابع$q$, $q$7th Meeting$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$الاجتماع السادس (ميداني)$q$, $q$6th Meeting (Site Visit)$q$, $q$label$q$, 'reviewed') on conflict (ar) do nothing;
+insert into public.i18n_memory (ar, en, kind, engine) values ($q$المطوّر لم يُصدر تقرير تقدّم لهذا الشهر — تم سحبه$q$, $q$The developer did not issue a progress report for this month — it was withdrawn.$q$, $q$text$q$, 'reviewed') on conflict (ar) do nothing;
 
 -- ١٢) عناوين الوسائط: توحيد صيغة التاريخ وتصحيح ترجمات غير دقيقة (فقط لو ما تعدّلت يدويًا من بعد)
 update public.media_items set title_en = $q$09-2026$q$ where id = 15 and title_en = $q$09/2026$q$;
@@ -580,27 +654,7 @@ update public.media_topics set title_en = $q$Materials Used in Finishes$q$ where
 select set_config('app.i18n_write', 'off', true);
 commit;
 
--- ═══════════════════════════════════════════════════════════════════════
--- الجزء ٢: الجدولة التلقائية — كل ٥ دقائق، وتستدعي المحرّك فقط لو فيه شي ينتظر
--- (المفتاح المذكور هو المفتاح العام للموقع نفسه — موجود أصلًا بكود الموقع، مو سري)
--- (لو ظهر خطأ هنا: فعّل امتداد pg_net من Database → Extensions ثم شغّل هذا الجزء وحده.
---  الجزء ١ انحفظ بالفعل، والترجمة تشتغل أيضًا بعد كل حفظ من لوحة الإدارة)
--- ═══════════════════════════════════════════════════════════════════════
-create extension if not exists pg_net with schema extensions;
-select cron.unschedule(jobid) from cron.job where jobname = 'i18n-sweep';
-select cron.schedule('i18n-sweep', '*/5 * * * *', $cron$
-  select net.http_post(
-    url := 'https://codnqkeycfhznzbqlpds.supabase.co/functions/v1/i18n-translate',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu", "apikey": "sb_publishable_L1yElSU0fd6a6BNQS6Qgsw_0Ale7aNu"}'::jsonb,
-    body := '{"mode": "sweep", "source": "cron"}'::jsonb,
-    timeout_milliseconds := 120000)
-  where exists (select 1 from public.i18n_pending(coalesce((select has_key and coalesce(claude_backoff_until, 'epoch'::timestamptz) < now() from public.i18n_state where id = 1), false), 1))
-     or exists (select 1 from public.i18n_pending_terms(coalesce((select has_key and coalesce(claude_backoff_until, 'epoch'::timestamptz) < now() from public.i18n_state where id = 1), false), 1))
-     or coalesce((select last_run_at from public.i18n_state where id = 1), 'epoch'::timestamptz) < now() - interval '6 hours'
-$cron$);
-
 -- تحقق سريع بعد التشغيل (اختياري):
 -- select count(*) filter (where i18n ? 'note') as notes_tracked, count(*) filter (where i18n ? 'reply') as replies_tracked from public.inquiries;
--- select * from public.i18n_pending(false, 20);
--- select jobname, schedule, active from cron.job where jobname = 'i18n-sweep';
+-- select count(*) from public.i18n_memory;
 
