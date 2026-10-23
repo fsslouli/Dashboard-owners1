@@ -110,7 +110,7 @@ export const EXTRA_TERMS = [
   ["وديان الثميري", "Wedyan Althumairi"], ["وديان", "Wedyan"], ["أبو سلطان", "Abu Sultan"], ["أبو علي", "Abu Ali"], ["أدولفو", "Adolfo"],
   ["آمانيثير", "Amanecer"], ["امانيثير", "Amanecer"],
   ["سيتي سكيب", "Cityscape"], ["ملحق العقد", "contract addendum"], ["الملحق الخارجي", "external annex"], ["مدير التسليم", "handover manager"],
-  ["اللفائف البيتومينية", "bituminous membrane rolls"],
+  ["اللفائف البيتومينية", "bituminous membrane rolls"], ["غرفة التفتيش", "inspection chamber"], ["غرف التفتيش", "inspection chambers"],
 ];
 const nrm = (t) => t.replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
 const cls = (t) => nrm(t).replace(/[^\s]/g, (ch) => (ch === "ا" ? "[اأإآ]" : ch === "ه" ? "[ةه]" : ch === "ي" ? "[ىي]" : ch.replace(/[.*+?^${}()|[\]\\/'-]/g, "\\$&")));
