@@ -118,7 +118,8 @@ const TERMS = [...GLOSSARY.filter(([ar]) => !MODEL_OK.has(ar) && !NOT_TERMS.has(
   .sort((a, b) => b[0].length - a[0].length)
   .map(([ar, en]) => {
     const base = ar.replace(/^ال/, "");
-    const body = base.split(/\s+/).map((w, i) => (i === 0 ? cls(w) : "(?:ال)?" + cls(w))).join("\\s+");
+    /* الكلمات بعد الأولى: «ال» اختيارية (العزل المائي = عزل مائي، غرفة التفتيش = غرفة تفتيش) */
+    const body = base.split(/\s+/).map((w, i) => (i === 0 ? cls(w) : "(?:ال)?" + cls(w.replace(/^ال(?=[^\s]{2,})/, "")))).join("\\s+");
     return { re: new RegExp(`(?<![${AR}])([وف]?)(لل|[بلك]?(?:ال)?)(${body})(?![${AR}])`, "g"), en };
   });
 const PREP = { "ب": "في ", "ل": "إلى ", "لل": "إلى ", "ك": "مثل " };
