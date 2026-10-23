@@ -38,6 +38,8 @@ import { SchedBtn } from "./schedule-kit.jsx";
 import { CAT_ORDER, OWNER_TITLE_ORDER, PARTY_ORDER } from "./site-data.jsx";
 import { NAV_ORDER_KEY, dropLocalHistory, orderedKeys, patchNavLabels, readLocalHistory, useNavLabels } from "./nav-labels-kit.jsx";
 import { autoTranslateAr } from "./translate-kit.js";
+import { kickTranslations, syncLabelTranslations } from "./label-i18n.js";
+import { AI18nTab } from "./admin-i18n-tab.jsx";
 import { isNumericText, normText, originalTextOf } from "./text-overrides.js";
 
 const go = (hash) => { window.location.hash = hash; };
@@ -90,6 +92,27 @@ function EditProviderInner({ children }) {
     toastTimer.current = setTimeout(() => setToastMsg(""), 2800);
   }, []);
   const has = useCallback((p) => !!profile && (profile.perms || []).includes(p), [profile]);
+  /* 6.8.0 — عند دخول مشرف تحرير: المحرّك الداخلي (لو متحمّل بهالجهاز) يترجم أي نص أو قيمة جديدة كمسودة،
+     ولمن يعتمد الترجمة: تنبيه لو فيه مسودات بانتظار اعتماده */
+  useEffect(() => {
+    const perms = (profile && profile.perms) || [];
+    if (!perms.some((p) => p === "edit_inquiry" || p === "import_excel" || p === "manage_theme")) return undefined;
+    const t = setTimeout(async () => {
+      const r = await syncLabelTranslations(supabase);
+      if (r?.added) { toast(`انترجم ${r.added} نص كمسودة — راجعها واعتمدها من تبويب «الترجمة»`); return; }
+      if (r?.needsEngine && r.remaining) { toast(`فيه ${r.remaining} نص ينتظر الترجمة — جهّز المحرك من تبويب «الترجمة»`); return; }
+      if (!perms.includes("edit_inquiry")) return;
+      try {
+        const [a, b] = await Promise.all([
+          supabase.from("inquiries").select("id", { count: "exact", head: true }).or("i18n->note->>e.eq.local,i18n->reply->>e.eq.local"),
+          supabase.from("i18n_memory").select("ar", { count: "exact", head: true }).eq("engine", "local"),
+        ]);
+        const n = (a.error ? 0 : a.count || 0) + (b.error ? 0 : b.count || 0);
+        if (n) toast(`فيه ${n} مسودة ترجمة بانتظار اعتمادك — تبويب «الترجمة»`);
+      } catch (_) { /* تنبيه اختياري */ }
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
   const log = useCallback(async (action, details) => {
     try { await supabase.from("audit_log").insert({ user_name: profile?.name || session?.user?.email, action, details }); } catch (_) { /* السجل ما يوقف العمل */ }
   }, [profile, session]);
@@ -175,6 +198,7 @@ const MANAGE_SECTIONS = [
   { key: "media", label: "مقاطع النماذج", perm: "manage_media" },
   { key: "notices", label: "الإشعارات", perm: "manage_notices" },
   { key: "filters", label: "الفلاتر", perm: "manage_filters" },
+  { key: "i18n", label: "الترجمة", perm: "edit_inquiry" },
   { key: "theme", label: "المظهر", perm: "manage_theme" },
   { key: "labels", label: "أسماء الأقسام", perm: "manage_theme" },
   { key: "share", label: "روابط المشاركة", perm: "manage_share" },
@@ -205,6 +229,7 @@ function ManageDrawer({ onClose }) {
         {k === "media" && <AMediaTab flashToast={toast} log={log} canManage={has("manage_media")} canStats={has("view_analytics")} />}
         {k === "notices" && <ANoticesTab flashToast={toast} log={log} />}
         {k === "filters" && <AFiltersTab categories={cats} refreshCategories={refreshCats} flashToast={toast} log={log} />}
+        {k === "i18n" && <AI18nTab supabase={supabase} flashToast={toast} log={log} canEditInq={has("edit_inquiry")} canEditTerms={has("manage_theme") || has("edit_inquiry")} />}
         {k === "theme" && <AThemeTab flashToast={toast} log={log} canManage={has("manage_theme")} />}
         {k === "labels" && <ALabelsTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_theme")} />}
         {k === "share" && <AShareTab supabase={supabase} flashToast={toast} log={log} canManage={has("manage_share")} by={by} />}
@@ -309,6 +334,7 @@ function InquirySheet({ target, onClose }) {
   const { T, categories, hasCatCol, hasPartyCol, hasOwnerTitleCol } = ed;
   const isNew = target.mode === "new";
   const [form, setForm] = useState(isNew ? { ...ADMIN_BLANK_INQ } : null);
+  const [orig, setOrig] = useState(null); /* النسخة المحمّلة من القاعدة — لكشف الترجمة القديمة (6.8.0) */
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -318,6 +344,7 @@ function InquirySheet({ target, onClose }) {
     supabase.from("inquiries").select("*").eq("id", target.id).single().then(({ data, error }) => {
       if (!alive) return;
       if (error || !data) { setErr("تعذّر تحميل الاستفسار"); return; }
+      setOrig(data);
       setForm({ ...data, answered: toYesNo(data.answered) });
     });
     return () => { alive = false; };
@@ -336,10 +363,16 @@ function InquirySheet({ target, onClose }) {
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
   const canSave = isNew ? ed.has("add_inquiry") : ed.has("edit_inquiry");
 
+  /* 6.8.0 — الترجمة تصير بعد الحفظ بالمحرّك الداخلي (معجم المشروع، مسودة تنتظر الاعتماد)، فما نترجم هنا.
+     بس لو تغيّر النص العربي والإنجليزي ما لمسه أحد، الإنجليزي القديم يُفرَّغ عشان ما يظهر ترجمة لنص قديم
+     (والمحرّك يترجم الجديد كمسودة). إنجليزي مكتوب يدويًا يُحفظ كما هو ويُعتبر «معتمد». */
   const translateMissing = async (obj) => {
     const out = { ...obj };
-    if (out.note && !out.note_en) { const t = await autoTranslateAr(supabase, out.note); if (t) out.note_en = t; }
-    if (out.reply && !out.reply_en) { const t = await autoTranslateAr(supabase, out.reply); if (t) out.reply_en = t; }
+    if (orig) {
+      const same = (x, y) => (x || "") === (y || "");
+      if (!same(out.note, orig.note) && same(out.note_en, orig.note_en)) out.note_en = "";
+      if (!same(out.reply, orig.reply) && same(out.reply_en, orig.reply_en)) out.reply_en = "";
+    }
     return out;
   };
 
@@ -373,6 +406,7 @@ function InquirySheet({ target, onClose }) {
     }
     setBusy(false);
     if (error) { setErr("تعذّر الحفظ: " + (error.message || "تأكد من صلاحيتك")); return; }
+    kickTranslations(supabase, "inquiry-save"); /* نص أو اسم أو قيمة جديدة ← ترجمة داخلية كمسودة خلال ثواني */
     onClose();
   };
 
@@ -501,7 +535,7 @@ function TabsEditor({ navLabels, defs }) {
   };
   const commit = async (d, patch) => {
     let { ar, en } = patch;
-    if (ar && !en) { const t = await autoTranslateAr(supabase, ar); if (t) en = t; }
+    if (ar && !en) { const t = await autoTranslateAr(supabase, ar, { kind: "label" }); if (t) en = t; }
     if (d.custom) {
       if (!ar) { ed.toast("اسم التبويب المخصّص ما يكون فاضي"); return; }
       await persist((nl) => ({ ...nl, _tabs: (nl._tabs || []).map((t) => (t && t.key === d.key ? { ...t, ar: ar.slice(0, 60), en: (en || ar).slice(0, 60) } : t)) }), "تعديل اسم تبويب مخصّص");
@@ -539,7 +573,7 @@ function TabsEditor({ navLabels, defs }) {
   const add = async () => {
     const ar = nt.ar.trim(); if (!ar) return;
     let en = nt.en.trim();
-    if (!en) { const t = await autoTranslateAr(supabase, ar); if (t) en = t; }
+    if (!en) { const t = await autoTranslateAr(supabase, ar, { kind: "label" }); if (t) en = t; }
     const { error } = await addCustomTab(supabase, { ar, en: en || ar, icon: nt.icon });
     if (error) { ed.toast("تعذّر الإضافة: " + (error.message || "")); return; }
     ed.log("إضافة تبويب مخصّص", ar); ed.toast("انضاف التبويب — افتحه وأضف له كتل"); setNt({ ar: "", en: "", icon: "star" });

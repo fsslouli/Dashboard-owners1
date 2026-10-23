@@ -13,6 +13,33 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.8.0",
+    dateAr: "23 أكتوبر 2026",
+    dateEn: "October 23, 2026",
+    ar: [
+      "ترجمة إنجليزية داخلية بالكامل: موديل ترجمة يشتغل داخل لوحة الإدارة على جهاز المشرف — بدون أي خدمة خارجية ولا مفتاح ولا اشتراك. يتحمّل مرة وحدة لكل جهاز من الموقع نفسه، والزوار ما يحمّلون شي منه.",
+      "كل نص جديد أو معدّل (ملاحظة، رد، اسم، منصب، قيمة فلتر، إشعار، ملاحظة شهر) يُترجم تلقائيًا بعد الحفظ أو الاستيراد كمسودة — والمسودة ما تظهر للزوار إلا بعد اعتمادها.",
+      "تبويب «الترجمة» بلوحة الإدارة: كل مسودة مع نصها العربي — اعتمدها كما هي أو صحّحها واعتمدها أو أعد ترجمتها، واعتماد دفعة وحدة للمسودات اللي ما عليها ملاحظات. لين ما تُعتمد، الزائر بالنسخة الإنجليزية يشوف النص العربي مع تنبيه «الترجمة قيد المراجعة».",
+      "معجم مصطلحات المشروع داخل المحرّك: كل مصطلح معروف (الأفياش، الكسارات، المجلس، الحوش…) والأرقام العشرية والكبيرة والتواريخ تُحمى وترجع كما هي، مع فحص آلي يعلّم أي مسودة فيها رقم ناقص أو مصطلح يحتاج تأكيد.",
+      "حداثة الترجمة: لكل ترجمة بصمة للنص العربي — لو تغيّر العربي من أي مكان (الإكسل، نموذج التعديل، النشر المجدول) تنخفي الترجمة القديمة عن الزوار وتُعاد كمسودة، والترجمة المعتمدة ما يكتب عليها المحرّك.",
+      "النسخة الإنجليزية: الإشعارات وملاحظات أشهر التقدّم وتاريخ آخر تحديث وقيم النماذج المركّبة صارت بالإنجليزي.",
+      "مراجعة وتصحيح الترجمة الإنجليزية لـ 55 استفسارًا، وتوحيد أسماء النماذج وعناوين الوسائط — والترجمات الحالية تبقى معروضة كما هي.",
+      "الترجمة واعتمادها ما يخلّون البند يبان «محدّثًا» ولا يغيّرون «آخر من عدّل».",
+      "إصلاح: الاستبدال الكامل من الإكسل كان يمسح ترجمات الردود — صارت تبقى لو النص العربي ما تغيّر.",
+    ],
+    en: [
+      "Fully in-house English translation: a translation model runs inside the admin panel on the administrator's device — no external service, key or subscription. It is downloaded once per device from the site itself, and visitors never download any of it.",
+      "Every new or edited text (note, reply, name, title, filter value, notice, month note) is translated automatically after saving or importing as a draft — and a draft is not shown to visitors until it is approved.",
+      "A \"Translation\" tab in the admin panel: every draft next to its Arabic text — approve it as is, correct and approve it, or re-translate it, plus one-click approval of drafts with no warnings. Until approved, English visitors see the Arabic text with a \"translation pending review\" note.",
+      "The project glossary is built into the engine: every known term (outlets, sill flashings, majlis, yard…) and decimal numbers, large numbers and dates are protected and come back unchanged, with an automatic check that flags any draft with a missing number or a term to confirm.",
+      "Translation freshness: every translation keeps a fingerprint of its Arabic text — when the Arabic changes from anywhere (Excel, the edit form, scheduled publishing) the old translation is hidden from visitors and re-translated as a draft, and approved translations are never overwritten by the engine.",
+      "English version: notices, progress month notes, the last-updated date and combined model values now show in English.",
+      "Reviewed and corrected the English translation of 55 inquiries, and unified model names and media titles — existing translations stay visible as they are.",
+      "Translating or approving no longer marks an item as \"updated\" or changes \"last edited by\".",
+      "Fix: a full Excel replace used to wipe reply translations — they are now kept when the Arabic text is unchanged.",
+    ],
+  },
+  {
     version: "6.7.0",
     dateAr: "22 أكتوبر 2026",
     dateEn: "October 22, 2026",

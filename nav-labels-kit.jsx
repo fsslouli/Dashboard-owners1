@@ -89,7 +89,7 @@ export function dropLocalHistory(id) { writeLocalHistory(readLocalHistory().filt
 /* تعديل آمن للتخصيصات (٦.٠.٠): يقرأ آخر نسخة من القاعدة ثم يطبّق التعديل عليها —
    فما يمسح تعديل سوّاه مشرف ثاني (أو تبويب ثاني) بنفس اللحظة. mutate تستلم نسخة قابلة للتعديل. */
 export const NAV_LABELS_MAX_BYTES = 900000;
-export async function patchNavLabels(supabase, mutate, what = "") {
+export async function patchNavLabels(supabase, mutate, what = "", { silent = false } = {}) {
   const { data, error: e0 } = await supabase.from("site_settings").select("nav_labels").eq("id", 1).single();
   if (e0) return { error: e0 };
   const cur = data?.nav_labels && typeof data.nav_labels === "object" ? data.nav_labels : {};
@@ -99,7 +99,7 @@ export async function patchNavLabels(supabase, mutate, what = "") {
   if (JSON.stringify(next).length > NAV_LABELS_MAX_BYTES) return { error: { message: "حجم التخصيصات تجاوز الحد المسموح" } };
   const { error } = await supabase.from("site_settings").update({ nav_labels: next }).eq("id", 1);
   if (error) return { error };
-  pushLocalHistory(cur, what);
+  if (!silent) pushLocalHistory(cur, what);
   return { data: next };
 }
 /* استبدال كامل (استرجاع/استيراد) مع حفظ الحالية بالسجل قبلها */
@@ -198,7 +198,7 @@ export function ALabelsTab({ supabase, flashToast, log, canManage }) {
     };
     const onArBlur = async () => {
       if (!twoLang || en.trim() || !ar.trim()) return;
-      const t = await autoTranslateAr(supabase, ar);
+      const t = await autoTranslateAr(supabase, ar, { kind: "label" });
       if (t) setEn(t); /* يقترح الإنجليزي بس، ما يحفظ — لازم تضغط تأكيد */
     };
 

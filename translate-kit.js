@@ -1,33 +1,34 @@
 /* ═══════════════════════════════════════════════════════════
-   translate-kit.js — ترجمة تلقائية عربي → إنجليزي، بلا React.
+   translate-kit.js — ترجمة تلقائية عربي → إنجليزي لحقول لوحة الإدارة (عناوين، تسميات…)، بلا React.
 
-   الفكرة: تكتب عربي بأي حقل بلوحة الإدارة، وينحط الإنجليزي وحده بالخلفية
-   (Supabase Edge Function اسمها "translate")، بدون ما تلمس شي إنت.
-   لو فشلت الترجمة لأي سبب (مفتاح ناقص، الشبكة، إلخ) ترجع نص فاضي بصمت —
-   حفظ النص العربي نفسه أبدًا ما يتعطّل بسببها.
+   6.8.0: الترجمة صارت داخلية بالكامل — موديل يشتغل على جهاز المشرف (local-mt.js) بمعجم المشروع،
+   بدون أي خدمة خارجية ولا مفتاح. الناتج يتعبّى بالحقل الإنجليزي ويشوفه المشرف ويعدّله قبل الحفظ
+   (الحفظ نفسه = اعتماده). ما ينزّل المحرّك من نفسه: لو المحرّك مو متحمّل بهالجهاز يرجّع نص فاضي
+   (يُجهَّز مرة وحدة من تبويب «الترجمة»). أي فشل يرجّع نص فاضي بصمت — حفظ العربي أبدًا ما يتعطّل بسببها.
    ═══════════════════════════════════════════════════════════ */
+import { engineAvailable, translateLocal } from "./local-mt.js";
 
-/* استدعاء مباشر: await autoTranslateAr(supabase, "نص عربي") → "English text" أو "" */
-export async function autoTranslateAr(supabase, text, target = "en") {
+/* await autoTranslateAr(supabase, "نص عربي", { kind }) → "English text" أو ""
+   kind: text (فقرة، الافتراضي) · heading (عنوان وسائط/مستند) · label (تسمية قصيرة) · person (اسم) · title (منصب)
+   (المعامل supabase باقٍ للتوافق مع الاستدعاءات الموجودة) */
+export async function autoTranslateAr(_supabase, text, opts = {}) {
   const t = String(text || "").trim();
   if (!t) return "";
+  const kind = opts && typeof opts === "object" && opts.kind ? opts.kind : "text";
   try {
-    const { data, error } = await supabase.functions.invoke("translate-text", { body: { text: t } });
-    if (error || typeof data?.translated !== "string") return "";
-    return data.translated;
+    if (!(await engineAvailable())) return "";
+    const [r] = await translateLocal([{ ar: t, kind }]);
+    return String((r && r.en) || "").trim();
   } catch (_) {
     return "";
   }
 }
 
-/* هوك جاهز لحقل عربي واحد مربوط بحقل إنجليزي ثاني:
-   const { onArBlur, busy } = useAutoTranslate(supabase, setEnglishValue);
-   onArBlur يُستدعى بحدث onBlur لحقل العربي، ويملأ الإنجليزي تلقائيًا —
-   إلا لو كان المستخدم كتب إنجليزي يدوي أصلًا (skipIfFilled=true الافتراضي). */
-export function makeArBlurHandler(supabase, getEn, setEn, { skipIfFilled = true } = {}) {
+/* هوك جاهز لحقل عربي واحد مربوط بحقل إنجليزي ثاني (لا يمسح إنجليزي مكتوب يدويًا) */
+export function makeArBlurHandler(supabase, getEn, setEn, { skipIfFilled = true, kind = "text" } = {}) {
   return async (arText) => {
     if (skipIfFilled && String(getEn() || "").trim()) return;
-    const en = await autoTranslateAr(supabase, arText);
+    const en = await autoTranslateAr(supabase, arText, { kind });
     if (en) setEn(en);
     return en;
   };

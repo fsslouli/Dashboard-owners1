@@ -4,7 +4,8 @@ import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-
 import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
 import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
-import { AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
+import { setDynEn, trText, AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
+import { useI18nMemory } from "./i18n-memory.js";
 import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -64,7 +65,9 @@ export function passesFilters(r, f, nq, nqId) {
 /* أعمدة اختيارية بقاعدة البيانات (تضاف بهجرات لاحقة): party = الجهة المختصة (6.4.0)،
    owner_title = منصب صاحب الرد (6.7.0). لو الهجرة ما انطبّقت بعد، الطلب يفشل فنعيد بدون العمود
    الناقص ونتذكر — فيبقى الموقع حيًّا بكل بياناته بدل ما يرجع للنسخة الأساسية. */
-const OPT_COLS_OK = { party: true, owner_title: true };
+const OPT_COLS_OK = { party: true, owner_title: true, i18n: true };
+/* ترتيب الإسقاط لو عمود ناقص: الأحدث أولًا (i18n = حالة الترجمة 6.8.0) */
+const OPT_DROP_ORDER = ["i18n", "owner_title", "party"];
 
 /* ── معرّف جهاز ثابت — لمنع التصويت المتكرر على نفس الإشعار ── */
 function getDeviceId() {
@@ -128,8 +131,8 @@ function NoticesModal({ enabled, links = [], onLeave = () => {} }) {
               <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <Sparkles size={15} color={n.kind === "important" ? "#C0392B" : T.brass} style={{ flexShrink: 0, marginTop: 3 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: T.paper }}>{n.title}</div>
-                  <div style={{ fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.8 }}>{n.body}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: T.paper }}>{trText(lang, n.title)}</div>
+                  <div style={{ fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.8, whiteSpace: "pre-line" }}>{trText(lang, n.body)}</div>
                   {n.votes_enabled && (
                     <button onClick={() => vote(n)} disabled={voted[n.id]} style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 6, background: voted[n.id] ? T.brass + "18" : T.brass, color: voted[n.id] ? T.brass : "#fff", border: "none", borderRadius: 9, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: voted[n.id] ? "default" : "pointer" }}>
                       <ThumbsUp size={12} /> {voted[n.id] ? (lang === "ar" ? "تم التأييد، شكرًا" : "Voted, thanks") : (lang === "ar" ? "أؤيد" : "Support")}
@@ -162,6 +165,8 @@ export function PublicSite({ share = null } = {}) {
   /* الطقم والتصميم المعتمدان من لوحة الإدارة — يسريان على كل الزوّار لحظيًا */
   const { theme: themeKey, design: designKey, ready: cfgReady } = useSiteConfig();
   const navLabels = useNavLabels(supabase);
+  const i18nMem = useI18nMemory(supabase);
+  setDynEn(i18nMem); /* 6.8.0 — ذاكرة الترجمة: ترجمات القيم والنصوص الجديدة التلقائية (تُقرأ قبل رسم أي مكوّن) */
   const ed = useEdit();   /* null خارج وضع التحرير — ما يتغيّر شي بالموقع العام */
   /* تسمية النصوص (٦.٠.٠): خريطة {أصل: جديد} من لوحة/وضع التحرير تُطبَّق على كل الزوّار لحظيًا */
   const textMap = navLabels && navLabels._texts;
@@ -267,6 +272,8 @@ export function PublicSite({ share = null } = {}) {
       meeting: Array.isArray(r.meetings) && r.meetings.length ? r.meetings[0] : null,
       meetings: Array.isArray(r.meetings) ? r.meetings : [],
       note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
+      /* مصدر الترجمة لكل حقل (reviewed | human = معتمدة · local = مسودة · stale = قديمة) — غير المعتمد ما يظهر بالإنجليزي: يظهر العربي مع تنبيه «قيد المراجعة» */
+      trEng: r.i18n && typeof r.i18n === "object" ? { note: r.i18n.note?.e || null, reply: r.i18n.reply?.e || null } : null,
       last_modified: r.last_modified,
       urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
     });
@@ -281,13 +288,13 @@ export function PublicSite({ share = null } = {}) {
         const optCols = () => Object.keys(OPT_COLS_OK).filter((c) => OPT_COLS_OK[c]);
         const sel = (cols) => supabase.from("inquiries").select([PUBLIC_COLS, ...cols].join(",")).order("id");
         let { data: rows, error } = await sel(optCols());
-        if (error && OPT_COLS_OK.owner_title) {
-          const r2 = await sel(optCols().filter((c) => c !== "owner_title"));
-          if (!r2.error) { OPT_COLS_OK.owner_title = false; rows = r2.data; error = null; }
-        }
-        if (error && OPT_COLS_OK.party) {
-          const r3 = await sel([]);
-          if (!r3.error) { OPT_COLS_OK.party = false; OPT_COLS_OK.owner_title = false; rows = r3.data; error = null; }
+        const dropped = [];
+        for (const c of OPT_DROP_ORDER) {
+          if (!error) break;
+          if (!OPT_COLS_OK[c]) continue;
+          dropped.push(c);
+          const r2 = await sel(optCols().filter((x) => !dropped.includes(x)));
+          if (!r2.error) { dropped.forEach((x) => { OPT_COLS_OK[x] = false; }); rows = r2.data; error = null; }
         }
         if (!error && rows && rows.length) setData((d) => ({ ...d, records: rows.map(mapRow) }));
       } catch {}
@@ -1276,7 +1283,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               ) : data.updatedAt ? (
                 <span data-ek="updated" style={{ display: "inline-flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                   <RefreshCw size={13} />
-                  {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt)}</span>{data.label ? ` — ${data.label}` : ""}
+                  {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt, lang)}</span>{data.label ? ` — ${trText(lang, data.label)}` : ""}
                 </span>
               ) : null}
               {(urgentCount > 0 || importantCount > 0 || newCount > 0) && (

@@ -293,7 +293,7 @@ export function AMediaTab({ flashToast, log, canManage, canStats }) {
             onChange={(e) => setEdit((x) => ({ ...x, title_ar: e.target.value }))}
             onBlur={async (e) => {
               if (edit.title_en.trim()) return;
-              const en = await autoTranslateAr(supabase, e.target.value);
+              const en = await autoTranslateAr(supabase, e.target.value, { kind: "heading" });
               if (en) setEdit((x) => ({ ...x, title_en: en }));
             }}
             placeholder={(verdict && verdict.title) || `جولة مرئية — ${doc.nameAr}`} style={inp} />

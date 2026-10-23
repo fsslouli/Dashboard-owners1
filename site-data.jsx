@@ -168,6 +168,8 @@ const MODEL_EN = { "امانيثير": "Amanecer", "اورورا": "Aurora", "ا
 const SCOPE_EN = {
   "جميع النماذج": "All models", "جميع النماذج عدا امانيثير": "All models except Amanecer",
   "أورورا": "Aurora", "امانيثير و آلبا": "Amanecer & Alba", "البا و امانيثير": "Alba & Amanecer",
+  /* 6.8.0 — نفس القيم بدون مسافة بعد الواو (كذا تنكتب بالملف) كانت تطلع عربي بالنسخة الإنجليزية */
+  "امانيثير والبا": "Amanecer & Alba", "البا وامانيثير": "Alba & Amanecer",
   /* نطاق نموذج واحد — يرد بقاعدة البيانات بصيغ إملائية متفاوتة، والبحث المُوحَّد أدناه يلتقطها كلها */
   "امانيثير": "Amanecer", "البا": "Alba", "البادا": "Albada",
 };
@@ -188,6 +190,8 @@ const LOC_EN = {
   "الطابق الأرضي": "Ground Floor", "الطابق الأول": "First Floor", "الأرضي والأول": "Ground + First Floor",
   "الحوش الخلفي (الأرضي)": "Backyard (Ground Floor)", "الحوش الخلفي (الأرضي) والسطح": "Backyard (Ground Floor) & Roof",
   "الحوش الأمامي": "Front Yard", "الكهرباء": "Electrical",
+  /* 6.8.0 — قيم حيّة كانت بلا ترجمة */
+  "الحوش (الأرضي)": "Yard (Ground Floor)", "جدار الفلل المتلاصقة": "Party Wall Between Adjoining Villas",
 };
 const CAT_AR = { "تصحيح عيب تنفيذي": "تصحيح تنفيذي" };
 const CAT_EN = {
@@ -204,7 +208,7 @@ const OWN_EN = {
   "أبو علي": "Abu Ali", "م/إبراهيم": "Eng. Ibrahim", "وديان": "Wedyan",
 };
 export const MEETING_ORDER = ["الاجتماع السادس ميداني", "الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
-const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)" };
+const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)", "الاجتماع السادس (ميداني)": "6th Meeting (Site Visit)", "الاجتماع السابع": "7th Meeting" };
 export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /* ── بحث مُتسامح بالترجمة ──
@@ -213,8 +217,21 @@ export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "
    بالوضع الإنجليزي. نجرّب المطابقة الحرفية أولًا، وإلا نطابق بالنسخة المُوحَّدة عبر norm().
    ملاحظة: norm معرَّفة أدناه، والاستدعاء هنا يحصل وقت العرض لا وقت التحميل — فما فيه مشكلة. */
 const normMapCache = new WeakMap();
-function trLookup(map, v) {
-  if (v == null || v === "") return v;
+/* 6.8.0 — قاموس ترجمة ديناميكي (ذاكرة الترجمة i18n_memory): أي اسم/منصب/قيمة/إشعار جديد ما له ترجمة ثابتة بالكود
+   يترجمه المحرّك الداخلي كمسودة، ويقرأه الموقع هنا بعد اعتماده. الترجمة الثابتة بالكود تغلب دائمًا (تصحيح يدوي مضمون). */
+let DYN_EN = {}, DYN_REF = null, DYN_NORM = null;
+export function setDynEn(m) {
+  if (m === DYN_REF) return;
+  DYN_REF = m;
+  DYN_EN = m && typeof m === "object" && !Array.isArray(m) ? m : {};
+  DYN_NORM = null;
+}
+function dynLookup(v) {
+  if (DYN_EN[v] != null) return DYN_EN[v];
+  if (!DYN_NORM) { DYN_NORM = {}; for (const k of Object.keys(DYN_EN)) { const n = norm(k); if (DYN_NORM[n] == null) DYN_NORM[n] = DYN_EN[k]; } }
+  return DYN_NORM[norm(v)];
+}
+function staticLookup(map, v) {
   if (map[v] != null) return map[v];
   let nm = normMapCache.get(map);
   if (!nm) {
@@ -222,7 +239,19 @@ function trLookup(map, v) {
     for (const k of Object.keys(map)) { const n = norm(k); if (nm[n] == null) nm[n] = map[k]; }
     normMapCache.set(map, nm);
   }
-  return nm[norm(v)] ?? v;
+  return nm[norm(v)];
+}
+function trLookup(map, v) {
+  if (v == null || v === "") return v;
+  return staticLookup(map, v) ?? dynLookup(v) ?? v;
+}
+/* هل القيمة تحتاج ترجمة تلقائية؟ (فيها حروف عربية وما لها ترجمة ثابتة ولا ديناميكية) */
+const EN_MAPS = { owner: OWN_EN, owner_title: OWNER_TITLE_EN, loc: LOC_EN, cat: CAT_EN, pri: PRI_EN, status: STA_EN, party: PARTY_EN, meeting: MEETING_EN };
+export function needsEn(kind, v) {
+  if (typeof v !== "string" || !/[\u0621-\u064A]/.test(v)) return false;
+  const m = EN_MAPS[kind];
+  if (m && staticLookup(m, v) != null) return false;
+  return dynLookup(v) == null;
 }
 
 
@@ -248,7 +277,7 @@ export const trZone = (lang, k) => (lang === "en" ? ZONE_EN[k] || k : (ZONES.fin
 export const trLoc = (lang, v) => (lang === "en" ? trLookup(LOC_EN, v) : v);
 export const trOwn = (lang, v) => (lang === "en" ? trLookup(OWN_EN, v) : v);
 export const trCat = (lang, v) => (lang === "en" ? trLookup(CAT_EN, v) : (CAT_AR[v] || v));
-export const trParty = (lang, v) => (lang === "en" ? PARTY_EN[v] || v : v);
+export const trParty = (lang, v) => (lang === "en" ? trLookup(PARTY_EN, v) : v);
 export const trOwnTitle = (lang, v) => (lang === "en" ? trLookup(OWNER_TITLE_EN, v) : v);
 export const trMeeting = (lang, v) => (lang === "en" ? trLookup(MEETING_EN, v) : v);
 export const trMonth = (lang, m) => {
@@ -264,8 +293,29 @@ export const trMonth = (lang, m) => {
    بالضبط نفس تصرفها المعتاد مع أي ملاحظة ما وصلتها ترجمة بعد. */
 const TR_FAIL_RX = /MYMEMORY WARNING|QUERY LENGTH LIMIT|WORDS LIMIT EXCEEDED|INVALID (SOURCE|TARGET) LANGUAGE|IS AN INVALID (SOURCE|TARGET) LANGUAGE|PLEASE SELECT TWO DISTINCT LANGUAGES|INVALID EMAIL PROVIDED|NO TRANSLATIONS? (FOUND|AVAILABLE)/i;
 const isTrFail = (t) => typeof t === "string" && TR_FAIL_RX.test(t);
-export const trNote = (lang, r) => canonNames(lang, lang === "en" ? (r.note_en && !isTrFail(r.note_en) ? r.note_en : r.note) : r.note);
-export const trReply = (lang, r) => canonNames(lang, lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) ? r.reply_en : r.reply) : r.reply);
+/* 6.8.0 — الإنجليزي يظهر للزوار بس لو معتمد: مراجَع يدويًا (human) أو مراجَع سابقًا (reviewed).
+   المسودة (ترجمة المحرّك الداخلي قبل اعتمادها) أو الترجمة القديمة لنص عربي تغيّر (stale) ما تظهر:
+   يظهر النص العربي مع تنبيه «قيد المراجعة». بدون حالة (قبل تطبيق الهجرة) = السلوك السابق. */
+const APPROVED_EN = new Set(["human", "reviewed", "claude"]);
+export const isDraftEn = (r, field) => { const e = r && r.trEng && r.trEng[field]; return !!e && !APPROVED_EN.has(e); };
+export const trNote = (lang, r) => canonNames(lang, lang === "en" ? (r.note_en && !isTrFail(r.note_en) && !isDraftEn(r, "note") ? r.note_en : r.note) : r.note);
+export const trReply = (lang, r) => canonNames(lang, lang === "en" ? (r.reply_en && !isTrFail(r.reply_en) && !isDraftEn(r, "reply") ? r.reply_en : r.reply) : r.reply);
+/* هل للحقل ترجمة إنجليزية صالحة؟ (فاضي أو رسالة فشل خدمة الترجمة = لا) */
+export const hasEnText = (t) => typeof t === "string" && !!t.trim() && !isTrFail(t);
+/* 6.8.0 — أي نص عربي ديناميكي آخر (إشعار، ملاحظة شهر، قيمة جديدة…) يُترجم من ذاكرة الترجمة (جدول i18n_memory)
+   اللي يعبّيها محرّك الترجمة تلقائيًا؛ ولو ما وصلت ترجمته بعد يبقى النص الأصلي */
+export const trText = (lang, v) => {
+  if (lang !== "en" || typeof v !== "string" || !v.trim()) return v;
+  return dynLookup(v.trim()) ?? v;
+};
+/* الترجمة الثابتة بالكود لقيمة (لو موجودة) — تستخدمها لوحة الترجمة لتمييز القيم المغطاة أصلًا */
+export function staticEnFor(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  for (const m of [OWN_EN, OWNER_TITLE_EN, LOC_EN, CAT_EN, PRI_EN, STA_EN, PARTY_EN, MEETING_EN, SCOPE_EN, MODEL_EN]) {
+    const x = staticLookup(m, v.trim()); if (x != null) return x;
+  }
+  return null;
+}
 
 /* ═══════════════════════════════════════════════════════════
    ٤. نظام الألوان (Theme) — فاتح للنهار وداكن لليل.
@@ -663,8 +713,8 @@ export function zoneOf(loc) {
 
 /* ── التاريخ ── */
 export const MONTH_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-export const fmtDate = (iso) => {
-  try { const d = new Date(iso); return `${d.getDate()} ${MONTH_AR[d.getMonth()]} ${d.getFullYear()}`; }
+export const fmtDate = (iso, lang = "ar") => {
+  try { const d = new Date(iso); return `${d.getDate()} ${(lang === "en" ? MONTH_EN_LABEL : MONTH_AR)[d.getMonth()]} ${d.getFullYear()}`; }
   catch { return ""; }
 };
 

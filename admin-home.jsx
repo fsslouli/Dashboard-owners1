@@ -18,6 +18,7 @@ import { AGalleryTab } from "./gallery-kit.jsx";
 import { AShareTab } from "./admin-share-tab.jsx";
 import { AScheduledTab, ExitSummary, usePendingCount } from "./schedule-kit.jsx";
 import { ALinksTab } from "./admin-links-tab.jsx";
+import { AI18nTab } from "./admin-i18n-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
 import { AdminShell } from "./admin-shell.jsx";
 import { Check, Copy, Download, FileSpreadsheet } from "lucide-react";
@@ -120,6 +121,7 @@ const ADMIN_TABS = [
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
   { key: "insights", label: "التحليلات الشاملة", perms: ["view_insights"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
+  { key: "i18n", label: "الترجمة", perms: ["edit_inquiry", "manage_theme", "import_excel"] },
   { key: "notices", label: "الإشعارات", perms: ["manage_notices"] },
   { key: "media", label: "مقاطع النماذج", perms: ["manage_media"] },
   { key: "gallery", label: "معرض الموقع", perms: ["manage_gallery"] },
@@ -194,6 +196,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "insights" && <AInsightsTab flashToast={flashToast} canExport={has("export_data")} canPurge={has("purge_analytics")} log={log} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
+        {activeTab === "i18n" && <AI18nTab supabase={supabase} flashToast={flashToast} log={log} canEditInq={has("edit_inquiry")} canEditTerms={has("manage_theme") || has("edit_inquiry")} />}
         {activeTab === "notices" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <ANoticesTab flashToast={flashToast} log={log} />

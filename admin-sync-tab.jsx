@@ -2,6 +2,7 @@
 import { fmtAdminDate, useSystemTheme } from "./admin-core.jsx";
 import { aNoteStyle, downloadProgressTemplate, parseMonthCell, parsePctCell, parseProgressWorkbook } from "./admin-excel-utils.jsx";
 import { supabase } from "./app-bootstrap.jsx";
+import { kickTranslations } from "./label-i18n.js";
 import { MONTH_AR, monthKeyParts, nextMonthKey } from "./site-data.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
@@ -90,6 +91,7 @@ export function ProgressReadingsSync({ flashToast, canImport, log }) {
         );
         if (error) throw error;
         log("تحديث تقدّم التنفيذ (إدخال مباشر)", `${mk}: لا قراءة — ${skipNote.trim() || "بلا سبب مذكور"}`);
+        if (skipNote.trim()) kickTranslations(supabase, "month-note");
         flashToast("تم تسجيل الشهر كـ«لا قراءة» بالموقع");
       } else {
         const rows = [];
@@ -238,6 +240,7 @@ export function ProgressReadingsSync({ flashToast, canImport, log }) {
         const noteRows = parsed.skips.map((s) => ({ month: s.month, note: s.note, updated_at: new Date().toISOString() }));
         const { error } = await supabase.from("progress_month_notes").upsert(noteRows, { onConflict: "month" });
         if (error) throw error;
+        kickTranslations(supabase, "month-note");
       }
       if (parsed.phaseOverrides.length) {
         const phaseRows = parsed.phaseOverrides.map((o) => ({ phase: o.phase, month: o.month, pct: o.pct, updated_at: new Date().toISOString() }));
