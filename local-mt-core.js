@@ -107,7 +107,7 @@ const NOT_TERMS = new Set(["تم اعتماد", "تم الاعتماد", "تم �
 export const EXTRA_TERMS = [
   ["عدد الأفياش", "number of outlets"], ["الأدوار", "floors"], ["أدوار", "floors"],
   ["م/محمد عبدالمعطي", "Eng. Mohammed Abdulmuti"], ["م/أحمد ملحم", "Eng. Ahmed Malham"], ["م/رواحه", "Eng. Rawaha"], ["م/إبراهيم", "Eng. Ibrahim"],
-  ["وديان الثميري", "Wedyan Althumairi"], ["وديان", "Wedyan"], ["أبو سلطان", "Abu Sultan"], ["أبو علي", "Abu Ali"], ["أدولفو", "Adolfo"],
+  ["وديان الكثيري", "Wedyan Alkathiri"], ["وديان", "Wedyan"], ["أبو سلطان", "Abu Sultan"], ["أبو علي", "Abu Ali"], ["أدولفو", "Adolfo"],
   ["آمانيثير", "Amanecer"], ["امانيثير", "Amanecer"],
   ["سيتي سكيب", "Cityscape"], ["ملحق العقد", "contract addendum"], ["الملحق الخارجي", "external annex"], ["مدير التسليم", "handover manager"],
   ["اللفائف البيتومينية", "bituminous membrane rolls"], ["غرفة التفتيش", "inspection chamber"], ["غرف التفتيش", "inspection chambers"],

@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.8.1",
+    dateAr: "25 أكتوبر 2026",
+    dateEn: "October 25, 2026",
+    ar: [
+      "تصحيح اسم مديرة المبيعات إلى «وديان الكثيري» في الرد وفي قاموس أسماء محرّك الترجمة.",
+    ],
+    en: [
+      "Corrected the sales manager's name to \"Wedyan Alkathiri\" in the reply and in the translation engine's name list.",
+    ],
+  },
+  {
     version: "6.8.0",
     dateAr: "23 أكتوبر 2026",
     dateEn: "October 23, 2026",
