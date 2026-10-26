@@ -389,7 +389,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
         const old = oldById.get(String(key)); if (!old) return patch;
         const p = { ...patch };
         if (p.note !== undefined && !same(p.note, old.note) && (p.note_en === undefined || same(p.note_en, old.note_en))) p.note_en = null;
-        if (p.reply !== undefined && !same(p.reply, old.reply) && old.reply_en) p.reply_en = null;
+        if (p.reply !== undefined && !same(p.reply, old.reply) && old.reply_en && (p.reply_en === undefined || same(p.reply_en, old.reply_en))) p.reply_en = null;
         return p;
       };
       const needsTr = (r) => !!((r.note && !r.note_en) || (r.reply && !r.reply_en));
