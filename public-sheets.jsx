@@ -34,10 +34,10 @@ function TrNotice({ lang, r, field, T }) {
 export function LegalDisclaimer({ onAgree: onAgreeParent }) {
   const { T } = useT();
   const { lang } = useLang();
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(() => { try { return sessionStorage.getItem("alborada_legal_ok") === "1"; } catch { return false; } });
   if (agreed) return null;
   const c = LEGAL_COPY[lang];
-  const onAgree = () => { setAgreed(true); onAgreeParent?.(); };
+  const onAgree = () => { try { sessionStorage.setItem("alborada_legal_ok", "1"); } catch { /* تجاهل */ } setAgreed(true); onAgreeParent?.(); };
   return (
     <div className="ovl lgl-ovl" data-modal="legal" style={{ zIndex: 90 }}>
       <div className="sheet lgl" data-sheet="legal" style={{ maxWidth: 480 }} role="dialog" aria-modal="true">

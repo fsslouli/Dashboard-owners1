@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.9.1",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["إقرار الاطلاع لا يعود للظهور عند تحديث الصفحة داخل نفس جلسة التصفح (إصلاح 6.9.0)."],
+    en: ["The acknowledgement notice no longer reappears on refresh within the same browsing session (fix for 6.9.0)."],
+  },
+  {
     version: "6.9.0",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
