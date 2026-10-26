@@ -747,7 +747,7 @@ export function PublicSite({ share = null } = {}) {
   background:${T.bg};transition:background .25s ease,backdrop-filter .25s ease,box-shadow .25s ease;}
 .tabs.tabs-glass{background:${T.bg}F2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
 @media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}}
-@media(max-width:767px){.tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px;padding:8px 16px;margin:12px -16px 12px;-webkit-overflow-scrolling:touch;}.tabs::-webkit-scrollbar{display:none;}.tab{flex:none;padding:9px 13px;font-size:13px;white-space:nowrap;gap:6px;min-height:42px;}.tab-ic{width:22px;height:22px;}}
+@media(max-width:767px){.tabs{flex-direction:column;flex-wrap:nowrap;overflow:visible;gap:4px;padding:6px;margin:12px 0;}.tab{width:100%;justify-content:flex-start!important;flex:none;padding:10px 12px;font-size:14.5px;white-space:normal;gap:10px;min-height:48px;text-align:start;}.tab-ic{width:26px;height:26px;}.tab>:last-child:not(.tab-ic):not(svg){margin-inline-start:auto;}}
 .scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
 .tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
   background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;
