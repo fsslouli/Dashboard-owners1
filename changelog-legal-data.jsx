@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.10.2",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["في الجوال: زر العودة للأعلى صار فوق شريط التبويبات ولا يغطي أي تبويب."],
+    en: ["On phones: the back-to-top button now sits above the tab bar and no longer covers a tab."],
+  },
+  {
     version: "6.10.1",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
