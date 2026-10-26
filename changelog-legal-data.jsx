@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.10.3",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["في الجوال: نهاية الصفحة (التذييل) ما عادت تختفي خلف شريط التبويبات."],
+    en: ["On phones: the page footer no longer hides behind the tab bar."],
+  },
+  {
     version: "6.10.2",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
