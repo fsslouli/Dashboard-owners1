@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.10.4",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["في الجوال: شريط الفلاتر المصغّر يلتصق بأعلى الشاشة بدل أن يطفو وسط القائمة."],
+    en: ["On phones: the compact filter bar now sticks to the top of the screen instead of floating mid-list."],
+  },
+  {
     version: "6.10.3",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
