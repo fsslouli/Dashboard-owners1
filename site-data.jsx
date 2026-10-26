@@ -161,7 +161,7 @@ export const FLAG_META = {
 };
 
 /* ── ٣. ترجمة المفردات الثابتة (المنطق الداخلي يبقى بالعربي دائمًا) ── */
-const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Low" };
+const PRI_EN = { "عالية جدًا": "Very High", "عالية": "High", "متوسطة": "Medium", "عادية": "Normal" };
 const STA_AR = { "تم الرفض": "غير معتمدة" };
 const STA_EN = { "معتمدة": "Approved", "تم الرفض": "Not approved", "قيد الدراسة": "Under Review", "تم التصويت": "Voted" };
 const MODEL_EN = { "امانيثير": "Amanecer", "اورورا": "Aurora", "البادا": "Albada", "البا": "Alba" };

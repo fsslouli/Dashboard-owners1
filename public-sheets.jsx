@@ -7,7 +7,15 @@ import { CHANGELOG, LEGAL_COPY } from "./changelog-legal-data.jsx";
 const NEG_AR = /(إصلاح|اصلاح|تصحيح|عطل|خطأ|أخطاء|مشكل|تسرّب|تسريب|ثغر|مكشوف|يوقف|تعطّل|انهيار|تحذير|كان |كانت )/;
 const NEG_EN = /(\bfix|hotfix|crash|\bbug|broken|leak|vulnerab|escalation|locked down|\bwas\b|\bwere\b|silently|stopped|error)/i;
 const PUBLIC_LOG = CHANGELOG
-  .map((e) => ({ ...e, ar: (e.ar || []).filter((l) => !NEG_AR.test(l)), en: (e.en || []).filter((l) => !NEG_EN.test(l)) }))
+  .map((e) => {
+    const arr0 = e.ar || [], en0 = e.en || [];
+    /* القائمتان متوازيتان: نخفي نفس البند بالعربي والإنجليزي حسب فلتر العربي، فلا يفرغ الإنجليزي بسبب كلمة مثل fixed */
+    if (arr0.length === en0.length) {
+      const keep = arr0.map((l) => !NEG_AR.test(l));
+      return { ...e, ar: arr0.filter((_, i) => keep[i]), en: en0.filter((_, i) => keep[i]) };
+    }
+    return { ...e, ar: arr0.filter((l) => !NEG_AR.test(l)), en: en0.filter((l) => !NEG_EN.test(l)) };
+  })
   .filter((e) => e.ar.length > 0);
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
 import { DOC_BASE, DOC_COLORS, ZONES, hasEnText, hashPick, isDraftEn, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
@@ -78,6 +86,12 @@ export function ChangelogSheet({ open, onClose }) {
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
   useBackClose(open, onClose);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
   if (!open) return null;
   return (
     <div className="ovl" onClick={onClose}>

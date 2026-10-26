@@ -243,8 +243,10 @@ button { cursor: pointer; }
 @media (max-width: 520px) {
   .app { padding-top: 14px; gap: 12px; }
   .find label { display: none; }
+  .find { flex: 1 1 100%; max-width: 100%; }
+  .find button { padding: 0 12px; font-size: 14px; }
   .seg { width: 100%; }
-  .seg button { flex: 1; padding: 0 8px; }
+  .seg button { flex: 1; padding: 0 4px; font-size: 12.5px; line-height: 1.2; }
   .pin .pn { min-width: 22px; height: 22px; padding: 0 4px; font-size: 12px; }
   .pin .stl { width: 13px; height: 13px; top: -6px; inset-inline-end: -6px; }
   .pin .stl::before { left: 3.5px; top: 3px; height: 7px; } .pin .stl::after { left: 7.5px; top: 3px; height: 7px; }

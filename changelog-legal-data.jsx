@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.10.6",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["تحسينات بعد جولة فحص كاملة: علامة النسبة والأولوية «عادية» بالنسخة الإنجليزية، وسجل التحديثات الإنجليزي يعرض بنوده كاملة، وإغلاق نافذة سجل التحديثات بمفتاح Escape، وزر عرض موقع الفيلا بالخريطة على الجوال الصغير، وزر العودة للأعلى أصغر وأخف على الجوال."],
+    en: ["Polish after a full review pass: percent sign and the «Normal» priority label in English, complete English changelog entries, Escape closes the changelog, the villa locate button on small phones, and a smaller, lighter back-to-top button on mobile."],
+  },
+  {
     version: "6.10.5",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
