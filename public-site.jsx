@@ -748,7 +748,7 @@ export function PublicSite({ share = null } = {}) {
 .tabs.tabs-glass{background:${T.bg}F2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
 @media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}}
 .tl-short{display:none;}
-@media(max-width:767px){.tl-full{display:none;}.mini-bar{top:0!important;}.top-fab{bottom:calc(104px + env(safe-area-inset-bottom))!important;z-index:49;}.tl-short{display:inline;}.wrap{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important;}.tabs{position:fixed;inset-inline:0;top:auto;bottom:0;height:auto;margin:0;z-index:50;flex-direction:row;flex-wrap:nowrap;overflow:visible;gap:2px;padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-radius:0;border-width:1px 0 0;}.tab{position:relative;flex:1 1 0;min-width:0;flex-direction:column;justify-content:center!important;align-items:center;gap:3px;padding:5px 2px;font-size:11px;line-height:1.25;min-height:54px;white-space:normal;text-align:center;border-radius:12px;}.tab-ic{width:26px;height:26px;}.tab-n{position:absolute;top:1px;inset-inline-end:6px;font-size:9px!important;padding:0 5px!important;min-width:0;}}
+@media(max-width:767px){.tl-full{display:none;}.mini-bar{top:0!important;}.top-fab{bottom:calc(104px + env(safe-area-inset-bottom))!important;z-index:49;width:38px!important;height:38px!important;opacity:.72;}.tl-short{display:inline;}.wrap{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important;}.tabs{position:fixed;inset-inline:0;top:auto;bottom:0;height:auto;margin:0;z-index:50;flex-direction:row;flex-wrap:nowrap;overflow:visible;gap:2px;padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-radius:0;border-width:1px 0 0;}.tab{position:relative;flex:1 1 0;min-width:0;flex-direction:column;justify-content:center!important;align-items:center;gap:3px;padding:5px 2px;font-size:11px;line-height:1.25;min-height:54px;white-space:normal;text-align:center;border-radius:12px;}.tab-ic{width:26px;height:26px;}.tab-n{position:absolute;top:1px;inset-inline-end:6px;font-size:9px!important;padding:0 5px!important;min-width:0;}}
 .scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
 .tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
   background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;
@@ -1414,7 +1414,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                         <span className="lg-d" style={{ background: staC(s) }} />
                         <span className="lg-l">{trSta(lang, s)}</span>
                         <span className="lg-n mono"><CountUp value={n} onScroll dur={900} /></span>
-                        <span className="lg-p mono"><CountUp value={pct} onScroll dur={900} suffix="٪" /></span>
+                        <span className="lg-p mono"><CountUp value={pct} onScroll dur={900} suffix={L("٪", "%")} /></span>
                       </button>
                     );
                   })}
@@ -1427,7 +1427,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                   <span className="dot" />
                   <span className="ff-static"><CountUp value={overview.tot - openCount} onScroll dur={900} /> {L("مقفلة", "closed")}</span>
                   <span className="dot" />
-                  <span className="ff-static">{L("نسبة الاعتماد من المحسوم", "Approval rate of decided items")} <CountUp value={overview.rate} onScroll dur={900} suffix="٪" /></span>
+                  <span className="ff-static">{L("نسبة الاعتماد من المحسوم", "Approval rate of decided items")} <CountUp value={overview.rate} onScroll dur={900} suffix={L("٪", "%")} /></span>
                 </div>
               </section>
 
@@ -1485,7 +1485,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
                               <span style={{ width: 8, height: 8, borderRadius: 3, background: cc, flex: "none" }} />
                               {trCat(lang, c)}
                             </span>
-                            <span className="mono" style={{ fontSize: 12.5, color: T.muted }}>{n} · {pct}٪</span>
+                            <span className="mono" style={{ fontSize: 12.5, color: T.muted }}>{n} · {pct}{L("٪", "%")}</span>
                           </div>
                           <div className="zbar">
                             <div style={{ width: `${pct}%`, height: "100%", background: cc, opacity: .6, transition: "width .5s ease" }} />

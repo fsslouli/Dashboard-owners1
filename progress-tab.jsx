@@ -10,6 +10,7 @@ export function ProgressTab({ reduced, data, loading }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
+  const PCT = lang === "en" ? "%" : "٪";
   const D = useMemo(() => extendPlan(data, new Date()), [data]);
   const MONTHS = D.months, TARGET = D.target, PHASES = D.phases, BLOCKS = D.blocks, NOTE = D.note;
   const MONTH_KEYS = D.monthKeys || [], MONTH_NOTES = D.monthNotes || {};
@@ -104,14 +105,14 @@ export function ProgressTab({ reduced, data, loading }) {
             <div className="eyebrow" style={{ marginTop: 4 }}>{L("متوسط الإنجاز لكل البلوكات", "Average completion across all blocks")} · {mFull(mi)}</div>
           </div>
           <div className="hero">
-            <span className="hero-n mono">{hasCur ? `${cur.toFixed(2)}٪` : "—"}</span>
+            <span className="hero-n mono">{hasCur ? `${cur.toFixed(2)}${PCT}` : "—"}</span>
           </div>
         </div>
 
         <Bar val={cur} color={gapColor} target={tgt} />
 
         <div className="gmeta">
-          <span className="gm"><span className="gm-k">{L("الهدف", "Target")}</span> <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span></span>
+          <span className="gm"><span className="gm-k">{L("الهدف", "Target")}</span> <span className="mono">{tgt != null ? `${tgt.toFixed(2)}${PCT}` : "—"}</span></span>
           {hasCur ? (
             <>
               <span className="dot" />
@@ -134,11 +135,11 @@ export function ProgressTab({ reduced, data, loading }) {
         {ADDED > 0 && lastData >= 0 && TARGET[last] != null && (
           <div className="note-box plan-now" style={{ marginTop: 14 }}>
             <div style={{ color: T.paper }}>
-              {L("هدف هذا الشهر", "This month's target")} — {mFull(last)}: <span className="mono" style={{ color: T.brass }}>{TARGET[last].toFixed(2)}٪</span>
+              {L("هدف هذا الشهر", "This month's target")} — {mFull(last)}: <span className="mono" style={{ color: T.brass }}>{TARGET[last].toFixed(2)}{PCT}</span>
             </div>
             <div style={{ marginTop: 6 }}>
               {L("آخر قراءة وصلت من المطور:", "Latest reading received from the developer:")} {mFull(lastData)}{" "}
-              <span className="mono">{total.v[lastData].toFixed(2)}٪</span>
+              <span className="mono">{total.v[lastData].toFixed(2)}{PCT}</span>
               {nowGap != null && (
                 <> — {L("الفارق عن هدف هذا الشهر", "difference from this month's target")}{" "}
                   <span className="mono" style={{ color: nowGap >= 0 ? ahead : behind }}>
@@ -182,7 +183,7 @@ export function ProgressTab({ reduced, data, loading }) {
               <XAxis dataKey="m" reversed={lang === "ar"} tick={{ fill: T.muted, fontSize: 10 }} axisLine={false} tickLine={false}
                 interval={0} />
               <YAxis orientation="right" domain={[20, 60]} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} width={36}
-                tickFormatter={(v) => `${v}٪`} />
+                tickFormatter={(v) => `${v}${PCT}`} />
               <Tooltip content={<ChartTip />} cursor={{ fill: T.brass + "12" }} />
               <Line type="monotone" dataKey="الهدف" name={L("الهدف", "Target")} stroke={T.muted} strokeWidth={2} strokeDasharray="5 4"
                 dot={{ r: 2.5, fill: T.surface, stroke: T.muted, strokeWidth: 2 }} isAnimationActive={!reduced} />
@@ -205,7 +206,7 @@ export function ProgressTab({ reduced, data, loading }) {
       <section className="surf" data-ek="pg-phases" style={{ padding: "20px 18px", marginBottom: 14 }}>
         <div className="sec-t">{L("المراحل", "Phases")}</div>
         <div className="eyebrow" style={{ marginTop: 4, marginBottom: 6 }}>
-          {L("مقابل هدف", "Against")} {mFull(mi)} {L("", "target")} <span className="mono">{tgt != null ? `${tgt.toFixed(2)}٪` : "—"}</span> — {L("الخط الرأسي يمثّل الهدف", "the vertical line marks the target")}
+          {L("مقابل هدف", "Against")} {mFull(mi)} {L("", "target")} <span className="mono">{tgt != null ? `${tgt.toFixed(2)}${PCT}` : "—"}</span> — {L("الخط الرأسي يمثّل الهدف", "the vertical line marks the target")}
         </div>
         {PHASES.filter((p) => p.key !== "total").map((p) => {
           const v = p.v[mi];
@@ -217,7 +218,7 @@ export function ProgressTab({ reduced, data, loading }) {
               <div className="grow-top">
                 <span className="grow-l">{trPGLabel(lang, p.label)} <span className="grow-note">{trPGPNote(lang, p.note)}</span></span>
                 <span className="grow-r">
-                  <span className="mono grow-v">{v == null ? "—" : `${v.toFixed(2)}٪`}</span>
+                  <span className="mono grow-v">{v == null ? "—" : `${v.toFixed(2)}${PCT}`}</span>
                   <span className="mono grow-g" style={{ color: col }}>{g == null ? "—" : g >= 0 ? `+${g.toFixed(2)}` : g.toFixed(2)}</span>
                 </span>
               </div>
@@ -302,7 +303,7 @@ export function ProgressTab({ reduced, data, loading }) {
                   <div className="brow-bar">
                     <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} target={tgt} />
                   </div>
-                  <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}٪`}</span>
+                  <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}${PCT}`}</span>
                   <span className="brow-d mono" style={{ color: dColor(d) }}>{dText(d)}</span>
                 </div>
               );
@@ -327,8 +328,8 @@ export function ProgressTab({ reduced, data, loading }) {
               {NOTE && <div style={{ marginTop: 8 }}>{lang === "en" && NOTE === PG_NOTE ? PG_NOTE_EN : trText(lang, NOTE)}</div>}
               {drops.map((r) => (
                 <div key={r.b}>
-                  {L("بلوك", "Block")} {r.b} {L("تغيّرت قراءته من", "changed from")} <span className="mono">{r.from.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m0)}{" "}
-                  {L("إلى", "to")} <span className="mono">{r.to.toFixed(2)}٪</span> {L("في", "in")} {mFull(r.m1)} — {L("يُرجَّح أنه تحديث لقياس سابق.", "likely an update to an earlier reading.")}
+                  {L("بلوك", "Block")} {r.b} {L("تغيّرت قراءته من", "changed from")} <span className="mono">{r.from.toFixed(2)}{PCT}</span> {L("في", "in")} {mFull(r.m0)}{" "}
+                  {L("إلى", "to")} <span className="mono">{r.to.toFixed(2)}{PCT}</span> {L("في", "in")} {mFull(r.m1)} — {L("يُرجَّح أنه تحديث لقياس سابق.", "likely an update to an earlier reading.")}
                 </div>
               ))}
             </details>
