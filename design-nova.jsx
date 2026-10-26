@@ -192,7 +192,7 @@ ${D} header::after{content:"";position:absolute;top:0;inset-inline:12%;height:1p
   background:linear-gradient(90deg,transparent,${mix(A, 60)},transparent);}
 ${D} .head{position:relative;align-items:center;}
 ${D} .h1{background:var(--nv-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
-  font-size:clamp(26px,6vw,40px);letter-spacing:-.015em;filter:saturate(1.1);}
+  font-size:clamp(26px,6vw,40px);letter-spacing:0;filter:saturate(1.1);}
 ${D} .meta-line{margin-top:16px;}
 ${D} .stamp{position:relative;}
 
@@ -220,7 +220,7 @@ ${D} .surf,${D} .stats{background:${glassBg};
   border:1px solid var(--nv-hair);border-radius:24px;box-shadow:${lift};position:relative;}
 ${D} .surf::after{content:"";position:absolute;top:0;inset-inline:14%;height:1px;pointer-events:none;
   background:linear-gradient(90deg,transparent,${mix(A, 55)},transparent);}
-${D} .sec-t{font-size:17px;letter-spacing:-.005em;}
+${D} .sec-t{font-size:17px;letter-spacing:0;}
 
 /* ═══ ٥. الأزرار والرقاقات ═══
    ⚠ الأزرار المملوءة باللون (big-btn، icon-btn الأساسي) لها قاعدتها الخاصة
@@ -245,7 +245,7 @@ ${D} .sheet-nav-b:disabled,${D} .sheet-nav-b:disabled:hover{transform:none;box-s
 ${D} .big-btn,${D} .icon-btn[data-primary="1"],${D} .chip[data-on="1"]{
   background:var(--nv-grad);color:${T.onAccent};border:none;border-radius:15px;
   box-shadow:0 12px 28px -14px ${mix(A, 95)};}
-${D} .big-btn{padding:15px;font-weight:600;letter-spacing:.01em;}
+${D} .big-btn{padding:15px;font-weight:600;letter-spacing:0;}
 ${D} .join-btn{background:var(--nv-grad);border-radius:15px;box-shadow:0 12px 28px -14px ${mix(A, 95)};}
 ${D} .big-btn:hover,${D} .icon-btn[data-primary="1"]:hover{filter:brightness(1.06);
   transform:translateY(-2px);color:${T.onAccent};}

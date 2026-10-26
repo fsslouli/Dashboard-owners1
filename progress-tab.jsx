@@ -39,7 +39,7 @@ export function ProgressTab({ reduced, data, loading }) {
   const hasCur = cur != null && tgt != null;
   const gap = hasCur ? +(cur - tgt).toFixed(2) : null;
   const gapColor = gap == null ? T.muted : gap >= 0 ? ahead : behind;
-  const scale = 60; /* أقصى نسبة على مقياس الأشرطة — يمنح الأشرطة مدى مقروءًا */
+  const scale = 100; /* مقياس الأشرطة 0–100٪ كاملًا — لا يُقتطع حتى لا تبدو نسبة ٦٣٪ شبه مكتملة */
 
   /* هدف الشهر الحالي مقابل آخر قراءة وصلت */
   const nowGap = (ADDED > 0 && lastData >= 0 && TARGET[last] != null)
@@ -92,7 +92,7 @@ export function ProgressTab({ reduced, data, loading }) {
       ) : data.updatedAt ? (
         <div className="stamp" style={{ marginBottom: 14 }}>
           <RefreshCw size={13} />
-          {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt, lang)}</span>{data.label ? ` — ${trText(lang, data.label)}` : ""}
+          {L("آخر تحديث:", "Last updated:")} <span className={lang === "en" ? "mono" : undefined}>{fmtDate(data.updatedAt, lang)}</span>{data.label ? ` — ${trText(lang, data.label)}` : ""}
         </div>
       ) : null}
 

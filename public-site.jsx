@@ -227,7 +227,8 @@ export function PublicSite({ share = null } = {}) {
     d.style.colorScheme = resolved === "dark" ? "dark" : "light";
   }, [cfgReady, pageBg, T.muted, resolved]);
 
-  const [tab, setTabRaw] = useState(() => (shareScope ? (SHARE_ORDER.find(tabOk) || "overview") : "overview"));
+  const hashTab = () => { try { const k = (window.location.hash || "").replace(/^#\/?/, ""); return PUBLIC_TAB_KEYS.includes(k) ? k : null; } catch { return null; } };
+  const [tab, setTabRaw] = useState(() => (shareScope ? (SHARE_ORDER.find(tabOk) || "overview") : (hashTab() && tabOk(hashTab()) ? hashTab() : "overview")));
   /* في وضع المشاركة: أي محاولة للانتقال لقسم غير مسموح (مثل القفز من الرسوم لقسم الملاحظات) تُتجاهل */
   const setTab = (k) => setTabRaw((cur) => (tabOk(k) ? k : cur));
   /* التتبع (٤.٠): نخبر صفحة المشاركة بالقسم الحالي ليُسجَّل مع كل ضغطة */
@@ -238,6 +239,33 @@ export function PublicSite({ share = null } = {}) {
     const next = order.find((k) => !isHidden(navLabels, k) && tabOk(k));
     if (next) setTab(next);
   }, [navLabels, tab, allTabKeys]);
+  /* ٦.٩.٠ — القسم الحالي في الرابط (#/notes …): رجوع المتصفح يرجع للقسم السابق وتصير الأقسام قابلة للمشاركة */
+  const tabInit = useRef(false);
+  const tabNow = useRef(tab);
+  const fromNav = useRef(false);
+  tabNow.current = tab;
+  useEffect(() => {
+    if (shareScope) return;
+    if (fromNav.current) { fromNav.current = false; return; } /* التغيير جاء من رجوع/تقدم المتصفح — لا نضيف سجلًا جديدًا */
+    const want = `#/${tab}`;
+    if (window.location.hash === want) { tabInit.current = true; return; }
+    if (!tabInit.current) { tabInit.current = true; if (tab === "overview" && !window.location.hash) return; try { window.history.replaceState(window.history.state, "", want); } catch { /* تجاهل */ } return; }
+    try { window.history.pushState(window.history.state, "", want); } catch { /* تجاهل */ }
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (shareScope) return undefined;
+    const onNav = () => {
+      const h = window.location.hash || "";
+      if (h && !/^#\/?[a-z]+$/.test(h)) return; /* #admin و#edit و#/s/… ليست أقسامًا */
+      const k = hashTab() || "overview";
+      if (k === tabNow.current || !tabOk(k)) return;
+      fromNav.current = true;
+      setTabRaw(k);
+    };
+    window.addEventListener("popstate", onNav);
+    window.addEventListener("hashchange", onNav);
+    return () => { window.removeEventListener("popstate", onNav); window.removeEventListener("hashchange", onNav); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [docView, setDocView] = useState(null);
   const [docLink, setDocLink] = useState(null);
   const [docLinkIdx, setDocLinkIdx] = useState(0);
@@ -379,7 +407,7 @@ export function PublicSite({ share = null } = {}) {
   const [leaving, setLeaving] = useState(null);   /* رابط خارجي ينتظر تأكيد المغادرة */
   const extLinks = useExternalLinks(supabase, !shareScope);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [legalAgreed, setLegalAgreed] = useState(false);
+  const [legalAgreed, setLegalAgreed] = useState(() => { try { return sessionStorage.getItem("alborada_legal_ok") === "1"; } catch { return false; } });
   const [limit, setLimit] = useState(12);
   const tabsRef = useRef(null);
   const indicatorRef = useRef(null);
@@ -399,6 +427,7 @@ export function PublicSite({ share = null } = {}) {
       setTabsH(nav.offsetHeight);
       const active = nav.querySelector('.tab[data-on="1"]');
       if (!active) return;
+      try { active.scrollIntoView({ block: "nearest", inline: "nearest" }); } catch { /* تجاهل */ }
       ind.style.width = `${active.offsetWidth}px`;
       ind.style.left = `${active.offsetLeft}px`;
     };
@@ -685,7 +714,7 @@ export function PublicSite({ share = null } = {}) {
 .dash{font-family:'IBM Plex Sans Arabic',system-ui,'Segoe UI',Tahoma,sans-serif;-webkit-font-smoothing:antialiased;
   background:${T.bg};color:${T.paper};transition:background .3s ease,color .3s ease;}
 .dash ::selection{background:${T.brass}33;}
-.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;display:inline-block;}
+.mono{font-family:'IBM Plex Mono','IBM Plex Sans Arabic',system-ui,'Segoe UI',Tahoma,sans-serif;font-variant-numeric:tabular-nums;direction:ltr;display:inline-block;}
 .disp{font-family:'Cairo','IBM Plex Sans Arabic',sans-serif;font-weight:700;}
 .wrap{max-width:1120px;margin:0 auto;padding:18px 16px 40px;}
 @media(min-width:768px){.wrap{padding:30px 28px 56px;}}
@@ -710,12 +739,15 @@ export function PublicSite({ share = null } = {}) {
   background:transparent;color:${T.muted};cursor:pointer;transition:.18s;}
 .seg-b:hover{color:${T.paper};}
 .seg-b-txt{width:auto;padding:0 10px;font-size:11.5px;font-weight:600;font-family:inherit;}
+@media(pointer:coarse){.seg-b{width:38px;height:36px;}.seg-b-txt{width:auto;padding:0 14px;}.sheet-nav-b{min-width:42px;min-height:42px;}}
+.dash button:focus-visible,.dash a:focus-visible,.dash input:focus-visible,.dash select:focus-visible{outline:2px solid ${T.brass};outline-offset:2px;}
 
 /* خانات التنقّل */
 .tabs{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;margin:18px -16px 16px;
   background:${T.bg};transition:background .25s ease,backdrop-filter .25s ease,box-shadow .25s ease;}
-.tabs.tabs-glass{background:${T.bg}CC;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
-@media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;}}
+.tabs.tabs-glass{background:${T.bg}F2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
+@media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}}
+@media(max-width:767px){.tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px;padding:8px 16px;margin:12px -16px 12px;-webkit-overflow-scrolling:touch;}.tabs::-webkit-scrollbar{display:none;}.tab{flex:none;padding:9px 13px;font-size:13px;white-space:nowrap;gap:6px;min-height:42px;}.tab-ic{width:22px;height:22px;}}
 .scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
 .tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
   background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;
@@ -928,7 +960,7 @@ export function PublicSite({ share = null } = {}) {
    (موضع مطلق، بلا تفاعل، خلف محتوى البطاقة) لكن بشفافية أعلى بكثير عشان تكون لافتة،
    وبلون الأولوية "عالية جدًا" حتى تدل بصريًا على الاستعجال. تُفعَّل من لوحة الإدارة. */
 .card-wm-urgent{position:absolute;bottom:-8px;inset-inline-end:14px;max-width:62%;font-size:19px;font-weight:800;
-  line-height:1.15;text-align:end;letter-spacing:.2px;color:${T.pri["عالية جدًا"]};
+  line-height:1.15;text-align:end;letter-spacing:0;color:${T.pri["عالية جدًا"]};
   opacity:${resolved === "dark" ? 0.55 : 0.46};pointer-events:none;z-index:0;}
 .card-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;position:relative;z-index:1;}
 .card-id{font-size:11.5px;color:${T.faint};}
@@ -1024,7 +1056,7 @@ export function PublicSite({ share = null } = {}) {
 .sheet-note{font-size:15.5px;line-height:2.1;margin:0;color:${T.paper};}
 .reply-box{background:${T.sunken};border-radius:13px;border-right:3px solid transparent;padding:14px 16px;}
 .reply-sign{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:9px;border-top:1px dashed ${T.line};font-size:12.5px;color:${T.muted};}
-.sheet-reply{font-size:14.5px;line-height:2.1;margin:0;color:${T.paper};}
+.sheet-reply{font-size:14.5px;line-height:2.1;margin:0;color:${T.paper};white-space:pre-line;}
 .meta-list{margin-top:24px;}
 .meta-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;}
 .meta-row+.meta-row{border-top:1px solid ${T.lineSoft};}
@@ -1194,7 +1226,7 @@ export function PublicSite({ share = null } = {}) {
 
 /* ══ طبقة الهوية البصرية للطقم المعتمد — تُضاف فوق الأساس ولا تستبدله ══ */
 ${SKIN.body ? `.dash{font-family:${SKIN.body},system-ui,-apple-system,sans-serif;}` : ""}
-${SKIN.display ? `.dash h1,.dash h2,.dash .hero-t,.dash .sec-t{font-family:${SKIN.display},Georgia,serif;font-weight:400;letter-spacing:-.005em;}` : ""}
+${SKIN.display ? `.dash h1,.dash h2,.dash .hero-t,.dash .sec-t{font-family:${SKIN.display},Georgia,serif;font-weight:400;letter-spacing:0;}` : ""}
 ${SKIN.radius !== 16 ? `.dash .card,.dash .surf,.dash .stats,.dash .sheet,.dash .note-box{border-radius:${SKIN.radius}px;}` : ""}
 ${SKIN.glass ? `.dash .card,.dash .surf,.dash .stats{background:color-mix(in srgb,${T.surface} 74%,transparent);
   -webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);}
@@ -1234,7 +1266,7 @@ ${SKIN.draft ? `.skin-paper{position:fixed;inset:0;z-index:0;pointer-events:none
   opacity:0;transition:opacity .3s cubic-bezier(.2,.9,.3,1);pointer-events:none;}
 .dash .card:hover::after{opacity:.55;}
 .dash .tag,.dash .chip,.dash .cat-pill,.dash .icon-btn,.dash .big-btn{border-radius:0;}
-.dash .tag{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;}
+.dash .tag{font-family:'IBM Plex Mono','IBM Plex Sans Arabic',system-ui,sans-serif;font-size:11px;letter-spacing:0;}
 .dash .mono{font-variant-numeric:tabular-nums;}` : ""}
 ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
   background-image:linear-gradient(${T.lineSoft} 1px,transparent 1px),linear-gradient(90deg,${T.lineSoft} 1px,transparent 1px);
@@ -1255,7 +1287,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
 
-        <LegalDisclaimer onAgree={() => setLegalAgreed(true)} />
+        <LegalDisclaimer onAgree={() => { try { sessionStorage.setItem("alborada_legal_ok", "1"); } catch { /* تجاهل */ } setLegalAgreed(true); }} />
         <NoticesModal enabled={legalAgreed} links={shareScope ? [] : extLinks} onLeave={setLeaving} />
 
         <div className="wrap">
@@ -1283,7 +1315,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               ) : data.updatedAt ? (
                 <span data-ek="updated" style={{ display: "inline-flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                   <RefreshCw size={13} />
-                  {L("آخر تحديث:", "Last updated:")} <span className="mono">{fmtDate(data.updatedAt, lang)}</span>{data.label ? ` — ${trText(lang, data.label)}` : ""}
+                  {L("آخر تحديث:", "Last updated:")} <span className={lang === "en" ? "mono" : undefined}>{fmtDate(data.updatedAt, lang)}</span>{data.label ? ` — ${trText(lang, data.label)}` : ""}
                 </span>
               ) : null}
               {(urgentCount > 0 || importantCount > 0 || newCount > 0) && (
@@ -1522,7 +1554,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               <section ref={filtersRef} className="surf no-print" data-ek="notes-tools" style={{ padding: 18, marginBottom: 16 }}>
                 <div className="relative" style={{ marginBottom: 12 }}>
                   <Search size={17} style={{ position: "absolute", right: lang === "ar" ? 14 : "auto", left: lang === "ar" ? "auto" : 14, top: 14, color: T.faint }} />
-                  <input className="srch" value={f.q} placeholder={L("ابحث في نص الاستفسار أو الرد…", "Search inquiry or reply text…")}
+                  <input className="srch" aria-label={L("بحث في الاستفسارات", "Search inquiries")} value={f.q} placeholder={L("ابحث في نص الاستفسار أو الرد…", "Search inquiry or reply text…")}
                     onChange={(e) => { setF((p) => ({ ...p, q: e.target.value })); setLimit(12); }} />
                   {f.q && (
                     <button onClick={() => setF((p) => ({ ...p, q: "" }))} aria-label={L("مسح البحث", "Clear search")}

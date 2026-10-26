@@ -13,6 +13,35 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.9.0",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: [
+      "كل قسم له رابط في شريط العنوان (#/notes …): زر الرجوع يعيد للقسم السابق بدل الخروج من الموقع، ويمكن مشاركة رابط قسم بعينه.",
+      "على الجوال صار شريط الأقسام صفًّا واحدًا قابلًا للتمرير بدل ثلاثة صفوف تغطي نحو 40٪ من الشاشة.",
+      "إصلاح تفكّك الحروف العربية داخل الأرقام والوسوم («ثابت»، «استفسار 102»).",
+      "أشرطة التقدّم صارت على مقياس 0–100٪ كاملًا حتى لا تبدو نسبة 63٪ شبه مكتملة.",
+      "ردّ الاستفسار يعرض البنود المرقّمة كل بند في سطر.",
+      "إقرار الاطلاع يُحفظ طوال جلسة التصفح ولا يتكرر عند تحديث الصفحة.",
+      "أزرار اللغة والمظهر وتنقّل الاستفسارات أكبر على شاشات اللمس، وحدود تركيز واضحة للوحة المفاتيح، ووصف لحقل البحث.",
+      "تاريخ آخر تحديث يُعرض بترتيب عربي سليم («28 سبتمبر 2026»).",
+      "تبويبات الأقسام قابلة للتمرير على التابلت بدل أن تُقصّ، وأي رابط غير معروف يفتح الموقع بدل صفحة خطأ.",
+      "ملفات الموقع الثابتة تُحفظ في ذاكرة المتصفح لمدة طويلة، وأيقونة للموقع.",
+    ],
+    en: [
+      "Each section now has its own URL (#/notes …): the browser Back button returns to the previous section instead of leaving the site, and a section link can be shared.",
+      "On phones the section bar is a single scrollable row instead of three rows covering about 40% of the screen.",
+      "Fixed broken Arabic letter joining inside numbers and tags (\"Steady\", \"Inquiry 102\").",
+      "Progress bars now use the full 0–100% scale so 63% no longer looks nearly complete.",
+      "Inquiry replies show numbered items on separate lines.",
+      "The acknowledgement notice is remembered for the browsing session and no longer reappears on refresh.",
+      "Larger language/theme and inquiry-navigation buttons on touch screens, visible keyboard focus, and a label on the search field.",
+      "Last-updated date shown in correct Arabic order.",
+      "Section tabs scroll on tablets instead of being clipped, and unknown links open the site instead of an error page.",
+      "Static site files are cached long-term, and a site icon was added.",
+    ],
+  },
+  {
     version: "6.8.1",
     dateAr: "25 أكتوبر 2026",
     dateEn: "October 25, 2026",
