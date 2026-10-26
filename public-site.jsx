@@ -747,7 +747,8 @@ export function PublicSite({ share = null } = {}) {
   background:${T.bg};transition:background .25s ease,backdrop-filter .25s ease,box-shadow .25s ease;}
 .tabs.tabs-glass{background:${T.bg}F2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
 @media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}}
-@media(max-width:767px){.tabs{flex-direction:column;flex-wrap:nowrap;overflow:visible;gap:4px;padding:6px;margin:12px 0;}.tab{width:100%;justify-content:flex-start!important;flex:none;padding:10px 12px;font-size:14.5px;white-space:normal;gap:10px;min-height:48px;text-align:start;}.tab-ic{width:26px;height:26px;}.tab>:last-child:not(.tab-ic):not(svg){margin-inline-start:auto;}}
+.tl-short{display:none;}
+@media(max-width:767px){.tl-full{display:none;}.tl-short{display:inline;}body{padding-bottom:calc(76px + env(safe-area-inset-bottom));}.tabs{position:fixed;inset-inline:0;top:auto;bottom:0;height:auto;margin:0;z-index:50;flex-direction:row;flex-wrap:nowrap;overflow:visible;gap:2px;padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-radius:0;border-width:1px 0 0;}.tab{position:relative;flex:1 1 0;min-width:0;flex-direction:column;justify-content:center!important;align-items:center;gap:3px;padding:5px 2px;font-size:11px;line-height:1.25;min-height:54px;white-space:normal;text-align:center;border-radius:12px;}.tab-ic{width:26px;height:26px;}.tab-n{position:absolute;top:1px;inset-inline-end:6px;font-size:9px!important;padding:0 5px!important;min-width:0;}}
 .scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
 .tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
   background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;
@@ -1358,7 +1359,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
               return (
                 <button key={k} className="tab" role="tab" aria-selected={tab === k} data-on={tab === k ? "1" : "0"}
                   onClick={() => setTab(k)}>
-                  <span className="tab-ic"><Icon size={15} /></span>{NL(navLabels, k, ar, en, lang)}
+                  <span className="tab-ic"><Icon size={15} /></span><span className="tl-full">{NL(navLabels, k, ar, en, lang)}</span><span className="tl-short">{(lang === "en" ? { overview: "Overview", notes: "Inquiries", progress: "Progress", docs: "Plans", gallery: "Library" } : { overview: "عامة", notes: "الاستفسارات", progress: "التقدم", docs: "المخططات", gallery: "المكتبة" })[k] || NL(navLabels, k, ar, en, lang)}</span>
                   {k === "notes" && <span className="tab-n mono">{ALL.length}</span>}
                 </button>
               );
