@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.10.5",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["رفع الإكسل: صار الموقع يقرأ عمودَي الاستفسار والرد بالإنجليزي (P/Q) ويحفظهما كما هما بدل تجاهلهما أو إعادة ترجمتهما."],
+    en: ["Excel upload: the site now reads the English inquiry and reply columns (P/Q) and saves them as-is instead of ignoring or re-translating them."],
+  },
+  {
     version: "6.10.4",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
