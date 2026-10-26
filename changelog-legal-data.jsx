@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.9.2",
+    dateAr: "26 أكتوبر 2026",
+    dateEn: "October 26, 2026",
+    ar: ["توحيد اسم النموذج الرابع «البادا» في كل الموقع (كان يظهر «البدا»)."],
+    en: ["Unified the fourth model's Arabic name to «البادا» across the site (it previously showed «البدا»)."],
+  },
+  {
     version: "6.9.1",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
