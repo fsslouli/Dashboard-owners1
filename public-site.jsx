@@ -1071,7 +1071,11 @@ export function PublicSite({ share = null } = {}) {
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);opacity:0;}
 .gbar-f.in-view::after{animation:gbarShimmer 1.1s ease-in-out .35s 1;}
 @keyframes gbarShimmer{0%{left:-40%;opacity:1;}90%{opacity:1;}100%{left:110%;opacity:0;}}
-.gbar-t{position:absolute;top:-3px;width:2px;height:16px;border-radius:1px;opacity:.55;}
+.gkey{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:11.5px;color:${T.muted};}
+.gkey span{display:inline-flex;align-items:center;gap:6px;}
+.gkey b{color:${T.paper};}
+.k-f{width:14px;height:6px;border-radius:99px;display:inline-block;}
+.k-g{width:14px;height:4px;border-radius:99px;display:inline-block;background:${T.paper};opacity:.4;}
 .gmeta{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:12.5px;color:${T.muted};}
 .gm{display:inline-flex;align-items:baseline;gap:5px;}
 .gm-k{color:${T.faint};}
@@ -1094,12 +1098,13 @@ export function PublicSite({ share = null } = {}) {
 .brow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:9px 2px;}
 .gbar-ghost{height:4px;border-radius:99px;background:${T.sunken};margin-top:3px;position:relative;overflow:hidden;}
 .gbar-ghost i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:${T.paper};opacity:.4;}
-.brow-pay{flex:1 0 100%;display:flex;align-items:center;gap:8px;font-size:11px;color:${T.muted};padding-inline-start:38px;line-height:1.5;}
+.brow-pay{flex:1 0 100%;display:flex;align-items:center;gap:8px;font-size:11px;color:${T.muted};padding-inline-start:70px;line-height:1.5;}
 .brow-pay>span:last-child{flex:1;min-width:0;}
 .pay-dots{display:inline-flex;gap:3px;flex:none;}
 .pay-dots i{width:9px;height:9px;border-radius:50%;border:1.5px solid;display:block;box-sizing:border-box;}
 .brow+.brow{border-top:1px solid ${T.lineSoft};}
-.brow-b{width:26px;flex:none;text-align:center;font-size:12px;color:${T.muted};}
+.brow-b{width:58px;flex:none;text-align:start;font-size:12px;color:${T.muted};white-space:nowrap;}
+.brow-b b{font-size:14px;color:${T.paper};}
 .brow-bar{flex:1;min-width:60px;}
 .brow-v{width:58px;flex:none;text-align:left;font-size:13px;font-weight:600;color:${T.paper};}
 .brow-d{width:56px;flex:none;text-align:left;font-size:11.5px;}
