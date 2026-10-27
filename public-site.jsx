@@ -1094,7 +1094,7 @@ export function PublicSite({ share = null } = {}) {
   font-family:inherit;font-size:11.5px;cursor:pointer;transition:.18s;}
 .mseg-b:hover{color:${T.paper};}
 .gb-group{margin-top:18px;}
-.gb-gt{font-size:11.5px;color:${T.faint};margin-bottom:8px;}
+.gb-gt{font-size:17px;font-weight:700;color:${T.paper};text-align:center;margin:30px 0 4px;}
 .brow{background:${T.surface};border:1px solid ${T.lineSoft};border-radius:16px;padding:14px;margin-top:10px;}
 .brow-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
 .brow-r{display:inline-flex;align-items:baseline;gap:10px;}

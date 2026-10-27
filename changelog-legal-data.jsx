@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.4",
+    dateAr: "27 أكتوبر 2026",
+    dateEn: "October 27, 2026",
+    ar: ["تبويب التقدم: أسماء المراحل فوق البلوكات صارت أكبر وفي الوسط"],
+    en: ["Progress tab: phase names above the block cards are now larger and centered."],
+  },
+  {
     version: "6.11.3",
     dateAr: "27 أكتوبر 2026",
     dateEn: "October 27, 2026",
