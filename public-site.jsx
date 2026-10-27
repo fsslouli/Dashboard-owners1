@@ -1091,7 +1091,13 @@ export function PublicSite({ share = null } = {}) {
 .mseg-b:hover{color:${T.paper};}
 .gb-group{margin-top:18px;}
 .gb-gt{font-size:11.5px;color:${T.faint};margin-bottom:8px;}
-.brow{display:flex;align-items:center;gap:12px;padding:9px 2px;}
+.brow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:9px 2px;}
+.gbar-ghost{height:4px;border-radius:99px;background:${T.sunken};margin-top:3px;position:relative;overflow:hidden;}
+.gbar-ghost i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:${T.paper};opacity:.4;}
+.brow-pay{flex:1 0 100%;display:flex;align-items:center;gap:8px;font-size:11px;color:${T.muted};padding-inline-start:38px;line-height:1.5;}
+.brow-pay>span:last-child{flex:1;min-width:0;}
+.pay-dots{display:inline-flex;gap:3px;flex:none;}
+.pay-dots i{width:9px;height:9px;border-radius:50%;border:1.5px solid;display:block;box-sizing:border-box;}
 .brow+.brow{border-top:1px solid ${T.lineSoft};}
 .brow-b{width:26px;flex:none;text-align:center;font-size:12px;color:${T.muted};}
 .brow-bar{flex:1;min-width:60px;}

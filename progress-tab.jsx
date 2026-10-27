@@ -5,6 +5,7 @@ import { ChartTip } from "./ui-atoms.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { RefreshCw, ShieldAlert } from "lucide-react";
+import { payStates } from "./payments-data.jsx";
 
 export function ProgressTab({ reduced, data, loading }) {
   const { T } = useT();
@@ -59,6 +60,24 @@ export function ProgressTab({ reduced, data, loading }) {
   const delta = (v, i) => (i === 0 || v[i] == null || v[i - 1] == null ? null : +(v[i] - v[i - 1]).toFixed(2));
   const dColor = (d) => (d === null ? T.muted : d > 0.05 ? ahead : d < -0.05 ? behind : T.muted);
   const dText = (d) => (d === null ? "—" : d > 0.05 ? `+${d.toFixed(2)}` : d < -0.05 ? d.toFixed(2) : L("ثابت", "Steady"));
+
+  /* سطر الدفعات تحت كل بلوك — ثانوي: عملات صغيرة وجملة قصيرة، والنسبة تبقى هي البطل */
+  const PayLine = ({ p }) => {
+    const st = payStates(p), dd = st.filter((x) => x.s === "due"), nx = st.find((x) => x.s === "near" || x.s === "next");
+    const dotCol = { due: ahead, near: behind, next: T.brass, lock: T.line };
+    return (
+      <div className="brow-pay">
+        <span className="pay-dots" aria-hidden="true">
+          {st.map((x) => <i key={x.y.n} style={{ background: x.s === "due" || x.s === "near" ? dotCol[x.s] : "transparent", borderColor: dotCol[x.s], borderStyle: x.s === "next" ? "dashed" : "solid" }} />)}
+        </span>
+        <span>
+          {L(`استحقت ${dd.length}`, `${dd.length} ${dd.length === 1 ? "payment" : "payments"} due`)}
+          {dd.length > 0 && <> ({dd[dd.length - 1].y.cum}{PCT})</>}
+          {nx && nx.gap !== null && <> · {L(`القادمة ${nx.y.n} عند ${nx.y.thr}${PCT}`, `next: #${nx.y.n} at ${nx.y.thr}${PCT}`)}{nx.s === "near" && <b style={{ color: behind, whiteSpace: "nowrap" }}> · {L("باقي", "")} {nx.gap.toFixed(1)}{lang === "en" ? " pts left" : ""}</b>}</>}
+        </span>
+      </div>
+    );
+  };
 
   const blocks = useMemo(() =>
     [...BLOCKS].sort((a, b) => (b.v[mi] == null ? -1 : b.v[mi]) - (a.v[mi] == null ? -1 : a.v[mi])), [mi, BLOCKS]);
@@ -291,6 +310,13 @@ export function ProgressTab({ reduced, data, loading }) {
           );
         })()}
 
+        {tgt != null && (
+          <div className="eyebrow" style={{ marginTop: 10 }}>
+            {L(`الشريط الرمادي الرفيع: هدف ${mFull(mi)} (${tgt.toFixed(2)}${PCT}). العملات: دفعات جدول الدفعات (الملحق 3، خيار العملاء الممولين) المستحقة حسب نسبة إنجاز البلوك، وليست تأكيدًا للصرف.`,
+              `Thin grey bar: ${mFull(mi)} target (${tgt.toFixed(2)}${PCT}). Dots: payments from the payment schedule (Annex 3, financed-client option) that are due by block completion, not confirmation of disbursement.`)}
+          </div>
+        )}
+
         {grouped.map(({ k, rows }) => rows.length > 0 && (
           <div key={k} className="gb-group">
             <div className="gb-gt">{PHASE_NAME[k] || k}</div>
@@ -301,10 +327,12 @@ export function ProgressTab({ reduced, data, loading }) {
                 <div key={r.b} className="brow">
                   <span className="brow-b mono">{r.b}</span>
                   <div className="brow-bar">
-                    <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} target={tgt} />
+                    <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} />
+                    {tgt != null && <div className="gbar-ghost" title={L("الهدف", "Target") + " " + mFull(mi)}><i style={{ width: `${Math.min(100, (tgt / scale) * 100)}%` }} /></div>}
                   </div>
                   <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}${PCT}`}</span>
                   <span className="brow-d mono" style={{ color: dColor(d) }}>{dText(d)}</span>
+                  {v != null && <PayLine p={v} />}
                 </div>
               );
             })}

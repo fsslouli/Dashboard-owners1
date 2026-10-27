@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.0",
+    dateAr: "27 أكتوبر 2026",
+    dateEn: "October 27, 2026",
+    ar: ["تبويب التقدم: تحت كل بلوك سطر للدفعات (عملات صغيرة وجملة قصيرة) حسب جدول الدفعات، وشريط رمادي رفيع يمثل هدف الشهر المختار بدل العلامة العمودية. الدفعة «مستحقة» تعني بلوغ نسبة إنجاز البلوك، وليست تأكيدًا للصرف."],
+    en: ["Progress tab: each block now has a small payments line (dots plus a short sentence) from the payment schedule, and a thin grey bar showing the selected month's target in place of the vertical marker. A payment is «due» when the block reaches its completion %, not a confirmation of disbursement."],
+  },
+  {
     version: "6.10.6",
     dateAr: "26 أكتوبر 2026",
     dateEn: "October 26, 2026",
