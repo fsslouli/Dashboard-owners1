@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.1",
+    dateAr: "27 أكتوبر 2026",
+    dateEn: "October 27, 2026",
+    ar: ["الدفعات تتحدّث تلقائيًا مع كل قراءة شهرية جديدة للمطور، واستحقاق الدفعة لا يتراجع لو صُحّحت قراءة لاحقة للأسفل."],
+    en: ["Payments update automatically with each new monthly developer reading, and a payment that became due stays due even if a later reading is corrected downward."],
+  },
+  {
     version: "6.11.0",
     dateAr: "27 أكتوبر 2026",
     dateEn: "October 27, 2026",

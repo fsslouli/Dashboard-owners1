@@ -12,16 +12,19 @@ export const PAYMENTS = [
 ];
 export const PAY_NEAR = 8; /* «قريبة»: باقي هذا العدد من النقاط أو أقل */
 
-/* حالة كل دفعة لنسبة إنجاز واحدة: due | near | next | lock */
-export function payStates(p) {
+/* حالة كل دفعة: due | near | next | lock.
+   peak = أعلى قراءة وصلت للبلوك حتى الشهر المعروض: الاستحقاق ما يتراجع لو المطور صحّح قراءة لاحقة للأسفل.
+   cur = القراءة الحالية، منها تُحسب النقاط الباقية للدفعة القادمة. */
+export function payStates(peak, cur = peak) {
+  const p = peak;
   let nextSet = false;
   return PAYMENTS.map((y) => {
     if (y.thr !== null && p >= y.thr) return { y, s: "due", gap: 0 };
     if (!nextSet) {
       nextSet = true;
-      const gap = y.thr === null ? null : +(y.thr - p).toFixed(2);
+      const gap = y.thr === null ? null : +(y.thr - cur).toFixed(2);
       return { y, s: gap !== null && gap <= PAY_NEAR ? "near" : "next", gap };
     }
-    return { y, s: "lock", gap: y.thr === null ? null : +(y.thr - p).toFixed(2) };
+    return { y, s: "lock", gap: y.thr === null ? null : +(y.thr - cur).toFixed(2) };
   });
 }
