@@ -68,11 +68,11 @@ export function ProgressTab({ reduced, data, loading }) {
     return (
       <div className="brow-pay">
         <span className="pay-dots" aria-hidden="true">
-          {st.map((x) => <i key={x.y.n} style={{ background: x.s === "due" || x.s === "near" ? dotCol[x.s] : "transparent", borderColor: dotCol[x.s], borderStyle: x.s === "next" ? "dashed" : "solid" }} />)}
+          {st.map((x) => <i key={x.y.n} style={{ background: x.s === "due" ? dotCol[x.s] : "transparent", borderColor: dotCol[x.s], borderStyle: x.s === "next" ? "dashed" : "solid" }} />)}
         </span>
         <span>
-          {L(`استحقت ${dd.length}`, `${dd.length} ${dd.length === 1 ? "payment" : "payments"} due`)}
-          {dd.length > 0 && <> ({dd[dd.length - 1].y.cum}{PCT})</>}
+          {dd.length > 0 && <b style={{ color: T.paper }}>{L(`مستحق ${dd[dd.length - 1].y.cum}${PCT} من الثمن`, `${dd[dd.length - 1].y.cum}${PCT} of price due`)}</b>}
+          {dd.length > 0 && <> ({L(`${dd.length} دفعات`, `${dd.length} payments`)})</>}
           {nx && nx.gap !== null && <> · {L(`القادمة ${nx.y.n} عند ${nx.y.thr}${PCT}`, `next: #${nx.y.n} at ${nx.y.thr}${PCT}`)}{nx.s === "near" && <b style={{ color: behind, whiteSpace: "nowrap" }}> · {L("باقي", "")} {nx.gap.toFixed(1)}{lang === "en" ? " pts left" : ""}</b>}</>}
         </span>
       </div>
@@ -95,15 +95,16 @@ export function ProgressTab({ reduced, data, loading }) {
           <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
             style={{ width: show ? w : "0%", background: color }} />
         )}
-        {target != null && (
-          <span className="gbar-t" style={{
-            [lang === "en" ? "left" : "right"]: `${Math.min(100, (target / scale) * 100)}%`,
-            background: T.paper,
-          }} />
-        )}
       </div>
     );
   };
+
+  /* شريط الظل: الهدف لشهر التقرير المختار — نفس المعالجة في البطاقة العامة والمراحل والبلوكات */
+  const Ghost = ({ target }) => target == null ? null : (
+    <div className="gbar-ghost" title={`${L("هدف", "Target")} ${mFull(mi)}: ${target.toFixed(2)}${PCT}`}>
+      <i style={{ width: `${Math.min(100, (target / scale) * 100)}%` }} />
+    </div>
+  );
 
   return (
     <>
@@ -128,7 +129,9 @@ export function ProgressTab({ reduced, data, loading }) {
           </div>
         </div>
 
-        <Bar val={cur} color={gapColor} target={tgt} />
+        <Bar val={cur} color={gapColor} />
+        <Ghost target={tgt} />
+        <div className="gkey"><span><i className="k-f" style={{ background: gapColor }} />{L("الإنجاز الفعلي", "Actual")}</span><span><i className="k-g" />{L("هدف", "Target")} {mFull(mi)} · <b className="mono">{tgt != null ? `${tgt.toFixed(2)}${PCT}` : "—"}</b></span></div>
 
         <div className="gmeta">
           <span className="gm"><span className="gm-k">{L("الهدف", "Target")}</span> <span className="mono">{tgt != null ? `${tgt.toFixed(2)}${PCT}` : "—"}</span></span>
@@ -225,7 +228,7 @@ export function ProgressTab({ reduced, data, loading }) {
       <section className="surf" data-ek="pg-phases" style={{ padding: "20px 18px", marginBottom: 14 }}>
         <div className="sec-t">{L("المراحل", "Phases")}</div>
         <div className="eyebrow" style={{ marginTop: 4, marginBottom: 6 }}>
-          {L("مقابل هدف", "Against")} {mFull(mi)} {L("", "target")} <span className="mono">{tgt != null ? `${tgt.toFixed(2)}${PCT}` : "—"}</span> — {L("الخط الرأسي يمثّل الهدف", "the vertical line marks the target")}
+          {L("الشريط الرمادي الرفيع تحت كل مرحلة = هدف", "The thin grey bar under each phase = target for")} {mFull(mi)} (<span className="mono">{tgt != null ? `${tgt.toFixed(2)}${PCT}` : "—"}</span>)
         </div>
         {PHASES.filter((p) => p.key !== "total").map((p) => {
           const v = p.v[mi];
@@ -241,7 +244,8 @@ export function ProgressTab({ reduced, data, loading }) {
                   <span className="mono grow-g" style={{ color: col }}>{g == null ? "—" : g >= 0 ? `+${g.toFixed(2)}` : g.toFixed(2)}</span>
                 </span>
               </div>
-              <Bar val={v} color={col} target={tgt} />
+              <Bar val={v} color={col} />
+              <Ghost target={tgt} />
               <div className="grow-d">{L("التغيّر عن الشهر السابق", "Change vs. previous month")} <span className="mono" style={{ color: dColor(d) }}>{dText(d)}</span></div>
             </div>
           );
@@ -325,7 +329,7 @@ export function ProgressTab({ reduced, data, loading }) {
               const g = v == null || tgt == null ? null : v - tgt;
               return (
                 <div key={r.b} className="brow">
-                  <span className="brow-b mono">{r.b}</span>
+                  <span className="brow-b">{L("بلوك", "Block")} <b className="mono">{r.b}</b></span>
                   <div className="brow-bar">
                     <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} />
                     {tgt != null && <div className="gbar-ghost" title={L("الهدف", "Target") + " " + mFull(mi)}><i style={{ width: `${Math.min(100, (tgt / scale) * 100)}%` }} /></div>}

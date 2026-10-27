@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.2",
+    dateAr: "27 أكتوبر 2026",
+    dateEn: "October 27, 2026",
+    ar: ["تبويب التقدم: رقم البلوك صار مكتوبًا «بلوك N» وبخط أوضح، وسطر الدفعات يقول «مستحق 60٪ من الثمن (3 دفعات)» لتمييزه عن نسبة الإنجاز، والدفعة القريبة صارت حلقة فارغة بدل دائرة ممتلئة.", "توحيد عرض الهدف في تبويب التقدم: البطاقة العامة والمراحل والبلوكات كلها تستخدم نفس شريط الظل الرمادي مع كتابة شهر الهدف، وأُزيل الخط الرأسي القديم"],
+    en: ["Progress tab: block numbers now read «Block N» in a clearer type, the payments line reads «60% of price due (3 payments)» to separate it from completion %, and a near payment is now a hollow ring instead of a filled dot.", "Unified target display on the Progress tab: the overall card, phases and blocks now all use the same thin grey shadow bar labelled with the target month; the old vertical tick is gone"],
+  },
+  {
     version: "6.11.1",
     dateAr: "27 أكتوبر 2026",
     dateEn: "October 27, 2026",
