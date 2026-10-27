@@ -329,13 +329,17 @@ export function ProgressTab({ reduced, data, loading }) {
               const g = v == null || tgt == null ? null : v - tgt;
               return (
                 <div key={r.b} className="brow">
-                  <span className="brow-b">{L("بلوك", "Block")} <b className="mono">{r.b}</b></span>
+                  <div className="brow-top">
+                    <span className="brow-b">{L("بلوك", "Block")} <b className="mono">{r.b}</b></span>
+                    <span className="brow-r">
+                      <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}${PCT}`}</span>
+                      <span className="brow-d mono" style={{ color: dColor(d) }} title={L("التغيّر عن الشهر السابق", "Change vs. previous month")}>{dText(d)}</span>
+                    </span>
+                  </div>
                   <div className="brow-bar">
                     <Bar val={v} color={g == null ? T.muted : g >= 0 ? ahead : behind} />
                     {tgt != null && <div className="gbar-ghost" title={L("الهدف", "Target") + " " + mFull(mi)}><i style={{ width: `${Math.min(100, (tgt / scale) * 100)}%` }} /></div>}
                   </div>
-                  <span className="brow-v mono">{v == null ? "—" : `${v.toFixed(2)}${PCT}`}</span>
-                  <span className="brow-d mono" style={{ color: dColor(d) }}>{dText(d)}</span>
                   {v != null && <PayLine p={v} peak={Math.max(...r.v.slice(0, mi + 1).filter((x) => x != null))} />}
                 </div>
               );
