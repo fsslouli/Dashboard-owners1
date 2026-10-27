@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.3",
+    dateAr: "27 أكتوبر 2026",
+    dateEn: "October 27, 2026",
+    ar: ["تبويب التقدم: كل بلوك صار بطاقة مستقلة (الرقم والنسبة فوق، ثم الشريط، ثم الدفعات) لفصل البلوكات وراحة العين"],
+    en: ["Progress tab: each block is now its own card (number and percentage on top, then the bar, then payments) for clearer separation and easier reading."],
+  },
+  {
     version: "6.11.2",
     dateAr: "27 أكتوبر 2026",
     dateEn: "October 27, 2026",
