@@ -257,7 +257,7 @@ export function ProgressTab({ reduced, data, loading }) {
                     <text x={p.cx + 9} y={p.cy - 9} fill={T.paper} fontSize={11} fontWeight={700} style={{ direction: "ltr" }} textAnchor="start">{L("هدف", "Target")} {p.payload["الهدف"].toFixed(2)}{PCT}</text>
                   </g>) : <g key={`tg-${p.index}`} />)}
                 activeDot={{ r: 4, fill: T.surface, stroke: T.muted, strokeWidth: 2 }} />
-              <Line type="monotone" dataKey="est" name={L("تقدير", "Estimate")} stroke={EST} strokeWidth={2.6} strokeDasharray="2 6" strokeLinecap="round" isAnimationActive={false}
+              <Line type="monotone" dataKey="est" name={L("تقدير", "Estimate")} stroke={EST} strokeWidth={3} strokeLinecap="round" isAnimationActive={false}
                 dot={(p) => (p.payload.estDot ? <circle key={`est-${p.index}`} cx={p.cx} cy={p.cy} r={4.5} fill={T.surface} stroke={EST} strokeWidth={2.2} /> : <g key={`est-${p.index}`} />)}
                 activeDot={false} />
               <Line type="monotone" dataKey="الإنجاز" name={L("الفعلي", "Actual")} stroke={T.brass} strokeWidth={3} strokeLinecap="round" isAnimationActive={!reduced}
@@ -282,7 +282,7 @@ export function ProgressTab({ reduced, data, loading }) {
             <span style={{ width: 14, height: 8, background: T.muted + "29", display: "inline-block", borderRadius: 3 }} /> {L("ممر الهدف ±٢ نقطة", "Target band ±2 pts")}
           </span>
           {trendX.some((r) => r.estDot) && <span className="flex items-center" style={{ gap: 7, fontSize: 11.5, color: T.muted }}>
-            <span style={{ width: 14, height: 0, borderTop: "3px dotted #b39ddb", display: "inline-block" }} /> {L("شهر بلا تقرير من المطوّر (تقدير)", "No developer report (estimate)")}
+            <span style={{ width: 14, height: 0, borderTop: "3px solid #b39ddb", display: "inline-block" }} /> {L("شهر بلا تقرير من المطوّر (تقدير)", "No developer report (estimate)")}
           </span>}
         </div>
       </section>

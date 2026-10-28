@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.7",
+    dateAr: "28 أكتوبر 2026",
+    dateEn: "October 28, 2026",
+    ar: ["شارت المسار الزمني: الخط التقديري للشهر الذي لا يوجد فيه تقرير من المطوّر صار متصلًا (غير منقّط) وبلون مختلف"],
+    en: ["Timeline chart: the estimate line for a month with no developer report is now solid (not dotted) in a distinct colour."],
+  },
+  {
     version: "6.11.6",
     dateAr: "28 أكتوبر 2026",
     dateEn: "October 28, 2026",
