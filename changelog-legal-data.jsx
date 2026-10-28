@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.5",
+    dateAr: "28 أكتوبر 2026",
+    dateEn: "October 28, 2026",
+    ar: ["تقليل حجم كل نشرة من ~138MB إلى ~5MB بنقل ملفات محرّك الترجمة الداخلي خارج النشرات (نفس الرابط ونفس السلوك) لتفادي امتلاء تخزين النشرات"],
+    en: ["Each deployment shrinks from ~138MB to ~5MB by serving the internal translation engine files from outside the deployment (same URL, same behaviour), avoiding the deployment-storage limit."],
+  },
+  {
     version: "6.11.4",
     dateAr: "27 أكتوبر 2026",
     dateEn: "October 27, 2026",

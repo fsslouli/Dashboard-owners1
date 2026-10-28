@@ -46,9 +46,49 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/i18n-engine/(.*)\\.wasm",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/wasm"
+        }
+      ]
+    },
+    {
+      "source": "/i18n-engine/(.*)\\.mjs",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/javascript; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/i18n-engine/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/i18n-engine/(.*)\\.onnx",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/i18n-engine/:path*",
+      "destination": "https://raw.githubusercontent.com/fsslouli/dashboard-owners1/aafbae79d6a05e1fe382006dba7c2b4c18c7a3e7/engine-assets/i18n-engine/:path*"
+    },
     {
       "source": "/((?!assets/|3d/|map/|i18n-engine/|favicon\\.svg).*)",
       "destination": "/index.html"
