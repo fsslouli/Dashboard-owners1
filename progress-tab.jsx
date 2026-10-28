@@ -3,7 +3,7 @@ import { PG_NOTE, PG_NOTE_EN, PG_PHASE_NAME, PG_PHASE_NAME_EN, extendPlan, fmtDa
 import { useInView } from "./site-hooks.jsx";
 import { ChartTip } from "./ui-atoms.jsx";
 import { useEffect, useMemo, useState } from "react";
-import { CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { RefreshCw, ShieldAlert } from "lucide-react";
 import { payStates } from "./payments-data.jsx";
 
@@ -54,8 +54,42 @@ export function ProgressTab({ reduced, data, loading }) {
     return {
       m: mLabel(i), "الإنجاز": total.v[i], "الهدف": TARGET[i],
       "الفجوة": total.v[i] == null || TARGET[i] == null ? null : +(total.v[i] - TARGET[i]).toFixed(2),
+      /* ممر الهدف ±٢ نقطة: قاعدة شفافة + عرض مظلل (مكدّسان) */
+      lo: TARGET[i] == null ? null : +(TARGET[i] - 2).toFixed(2), band: TARGET[i] == null ? null : 4,
     };
   }), [total, MONTHS, TARGET, YEARS, lang, chartFrom]);
+  /* أشهر بلا تقرير من المطوّر: يُوصَل الخط بينها بمتوسط القراءتين المجاورتين، بلون مختلف */
+  const trendX = useMemo(() => trend.map((r, k) => {
+    if (r["الإنجاز"] != null) { /* نقطة حقيقية: تدخل في خط التقدير إن جاورت فجوة */
+      const nextGap = trend[k + 1] && trend[k + 1]["الإنجاز"] == null && trend.slice(k + 1).some((x) => x["الإنجاز"] != null);
+      const prevGap = trend[k - 1] && trend[k - 1]["الإنجاز"] == null && trend.slice(0, k).some((x) => x["الإنجاز"] != null);
+      return { ...r, est: nextGap || prevGap ? r["الإنجاز"] : null, estDot: false };
+    }
+    let i = k - 1, j = k + 1;
+    while (i >= 0 && trend[i]["الإنجاز"] == null) i--;
+    while (j < trend.length && trend[j]["الإنجاز"] == null) j++;
+    if (i < 0 || j >= trend.length) return { ...r, est: null, estDot: false };
+    const v = trend[i]["الإنجاز"] + (trend[j]["الإنجاز"] - trend[i]["الإنجاز"]) * (k - i) / (j - i);
+    return { ...r, est: +v.toFixed(2), estDot: true };
+  }), [trend]);
+  const lastActIdx = trend.reduce((a, r, k) => (r["الإنجاز"] != null ? k : a), -1);
+  const yVals = trend.flatMap((r) => [r["الإنجاز"], r["الهدف"]]).filter((v) => v != null);
+  const yLo = Math.max(0, Math.floor((Math.min(...yVals) - 3) / 10) * 10), yHi = Math.min(100, Math.ceil((Math.max(...yVals) + 2) / 10) * 10);
+  const EST = "#b39ddb";
+  const TrendTip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    const r = payload[0].payload, a = r["الإنجاز"], t = r["الهدف"], g = r["الفجوة"];
+    return (
+      <div className="tip">
+        <div className="tip-h">{label}</div>
+        <div className="tip-r"><span className="tip-d" style={{ background: T.muted }} /><span className="tip-l">{L("الهدف", "Target")}</span><span className="mono tip-v">{t != null ? t.toFixed(2) : "—"}</span></div>
+        {a != null
+          ? <div className="tip-r"><span className="tip-d" style={{ background: T.brass }} /><span className="tip-l">{L("الفعلي", "Actual")}</span><span className="mono tip-v">{a.toFixed(2)}</span></div>
+          : r.estDot ? <div className="tip-r"><span className="tip-d" style={{ background: EST }} /><span className="tip-l">{L("لا تقرير من المطوّر — تقدير", "No developer report — estimate")}</span><span className="mono tip-v">≈{r.est.toFixed(2)}</span></div> : null}
+        {g != null && <div className="tip-r"><span className="tip-l">{L("الفجوة", "Gap")}</span><span className="mono tip-v" style={{ color: g >= 0 ? ahead : behind }}>{g > 0 ? "+" : ""}{g.toFixed(2)}</span></div>}
+      </div>
+    );
+  };
 
   const delta = (v, i) => (i === 0 || v[i] == null || v[i - 1] == null ? null : +(v[i] - v[i - 1]).toFixed(2));
   const dColor = (d) => (d === null ? T.muted : d > 0.05 ? ahead : d < -0.05 ? behind : T.muted);
@@ -200,17 +234,40 @@ export function ProgressTab({ reduced, data, loading }) {
         </div>
         <div style={{ height: 230, width: "100%" }}>
           <ResponsiveContainer>
-            <ComposedChart data={trend} margin={{ top: 6, right: 4, left: 8, bottom: 4 }}>
+            <ComposedChart data={trendX} margin={{ top: 22, right: 4, left: 18, bottom: 4 }}>
+              <defs>
+                <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={T.brass} stopOpacity={0.45} />
+                  <stop offset="100%" stopColor={T.brass} stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid stroke={T.lineSoft} vertical={false} />
               <XAxis dataKey="m" reversed={lang === "ar"} tick={{ fill: T.muted, fontSize: 10 }} axisLine={false} tickLine={false}
                 interval={0} />
-              <YAxis orientation="right" domain={[20, 60]} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} width={36}
+              <YAxis orientation="right" domain={[yLo, yHi]} allowDataOverflow ticks={Array.from({ length: Math.round((yHi - yLo) / 10) + 1 }, (_, k) => yLo + k * 10)} tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} width={36}
                 tickFormatter={(v) => `${v}${PCT}`} />
-              <Tooltip content={<ChartTip />} cursor={{ fill: T.brass + "12" }} />
-              <Line type="monotone" dataKey="الهدف" name={L("الهدف", "Target")} stroke={T.muted} strokeWidth={2} strokeDasharray="5 4"
-                dot={{ r: 2.5, fill: T.surface, stroke: T.muted, strokeWidth: 2 }} isAnimationActive={!reduced} />
-              <Line type="monotone" dataKey="الإنجاز" name={L("الإنجاز", "Progress")} stroke={T.brass} strokeWidth={2.6}
-                dot={{ r: 3.5, fill: T.surface, stroke: T.brass, strokeWidth: 2 }} isAnimationActive={!reduced} />
+              <Tooltip content={<TrendTip />} cursor={{ stroke: T.muted, strokeDasharray: "3 3", strokeOpacity: 0.5 }} />
+              <Area type="monotone" dataKey="lo" stackId="corr" stroke="none" fill="none" legendType="none" isAnimationActive={false} activeDot={false} />
+              <Area type="monotone" dataKey="band" stackId="corr" stroke="none" fill={T.muted} fillOpacity={0.16} isAnimationActive={false} activeDot={false} />
+              <Area type="monotone" dataKey="الإنجاز" name={L("الفعلي", "Actual")} stroke="none" fill="url(#trendFill)" connectNulls isAnimationActive={!reduced} activeDot={false} />
+              <Line type="monotone" dataKey="الهدف" name={L("الهدف", "Target")} stroke={T.muted} strokeWidth={1.6} strokeDasharray="4 4" isAnimationActive={!reduced}
+                dot={(p) => (p.index === trend.length - 1 && p.payload["الهدف"] != null ? (
+                  <g key="tg-end">
+                    <circle cx={p.cx} cy={p.cy} r={4.5} fill={T.surface} stroke={T.muted} strokeWidth={2} />
+                    <text x={p.cx + 9} y={p.cy - 9} fill={T.paper} fontSize={11} fontWeight={700} style={{ direction: "ltr" }} textAnchor="start">{L("هدف", "Target")} {p.payload["الهدف"].toFixed(2)}{PCT}</text>
+                  </g>) : <g key={`tg-${p.index}`} />)}
+                activeDot={{ r: 4, fill: T.surface, stroke: T.muted, strokeWidth: 2 }} />
+              <Line type="monotone" dataKey="est" name={L("تقدير", "Estimate")} stroke={EST} strokeWidth={2.6} strokeDasharray="2 6" strokeLinecap="round" isAnimationActive={false}
+                dot={(p) => (p.payload.estDot ? <circle key={`est-${p.index}`} cx={p.cx} cy={p.cy} r={4.5} fill={T.surface} stroke={EST} strokeWidth={2.2} /> : <g key={`est-${p.index}`} />)}
+                activeDot={false} />
+              <Line type="monotone" dataKey="الإنجاز" name={L("الفعلي", "Actual")} stroke={T.brass} strokeWidth={3} strokeLinecap="round" isAnimationActive={!reduced}
+                dot={(p) => (p.index === lastActIdx ? (
+                  <g key="act-end">
+                    <circle cx={p.cx} cy={p.cy} r={11} fill={T.brass} fillOpacity={0.2} />
+                    <circle cx={p.cx} cy={p.cy} r={5.5} fill={T.brass} />
+                    <text x={p.cx} y={p.cy + 24} fill={T.brass} fontSize={12} fontWeight={700} textAnchor="middle">{p.payload["الإنجاز"].toFixed(2)}{PCT}</text>
+                  </g>) : <g key={`ac-${p.index}`} />)}
+                activeDot={{ r: 5, fill: T.brass, stroke: T.surface, strokeWidth: 2 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -221,6 +278,12 @@ export function ProgressTab({ reduced, data, loading }) {
           <span className="flex items-center" style={{ gap: 7, fontSize: 11.5, color: T.muted }}>
             <span style={{ width: 14, height: 0, borderTop: `2px dashed ${T.muted}`, display: "inline-block" }} /> {L("الهدف المخطَّط", "Planned target")}
           </span>
+          <span className="flex items-center" style={{ gap: 7, fontSize: 11.5, color: T.muted }}>
+            <span style={{ width: 14, height: 8, background: T.muted + "29", display: "inline-block", borderRadius: 3 }} /> {L("ممر الهدف ±٢ نقطة", "Target band ±2 pts")}
+          </span>
+          {trendX.some((r) => r.estDot) && <span className="flex items-center" style={{ gap: 7, fontSize: 11.5, color: T.muted }}>
+            <span style={{ width: 14, height: 0, borderTop: "3px dotted #b39ddb", display: "inline-block" }} /> {L("شهر بلا تقرير من المطوّر (تقدير)", "No developer report (estimate)")}
+          </span>}
         </div>
       </section>
 
