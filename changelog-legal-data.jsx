@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.11.6",
+    dateAr: "28 أكتوبر 2026",
+    dateEn: "October 28, 2026",
+    ar: ["تبويب التقدم: شارت «المسار الزمني» أُعيد تصميمه — منطقة متدرجة للإنجاز الفعلي، وممر رمادي حول الهدف (±٢ نقطة)، وخط الهدف بلا دوائر، مع كتابة قيمة آخر قراءة وهدف الشهر الحالي على الشارت، وتلميح يعرض الفجوة"],
+    en: ["Progress tab: the «Timeline» chart is redesigned — a gradient area for actual progress, a grey corridor (±2 pts) around the target, a clean target line without dots, labelled latest reading and current-month target, and a tooltip showing the gap."],
+  },
+  {
     version: "6.11.4",
     dateAr: "27 أكتوبر 2026",
     dateEn: "October 27, 2026",
