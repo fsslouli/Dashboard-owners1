@@ -18,10 +18,12 @@ export const CHANGELOG = [
     dateEn: "November 10, 2026",
     ar: [
       "طقم سادس: «نجد» — هوية تراثية بألوان الطين والذهب والنخيل، عناوين بالخط الكوفي، وإفريز الشُّرَف المثلثة أعلى الصفحة وعلى حواف البطاقات",
+      "طقم سابع: «أندلس» — روح أندلسية في قلب الرياض: أزرق الزليج وزعفران الفجر، رواق أقواس أعلى الصفحة، ونجمة ثمانية على البطاقات",
       "أمان: حساب الإدارة لازم يكون له ملف صلاحيات حتى يتجاوز قفل دخول الملاك — أي حساب مسجَّل بلا ملف يُعامل كزائر",
     ],
     en: [
       "A sixth look: Najd — a heritage identity in clay, gold and palm tones, Kufi headings, and a triangular Najdi frieze along the top of the page and card edges.",
+      "A seventh look: Andalus — an Andalusian spirit in the heart of Riyadh: zellige blue and dawn saffron, an arcade along the top of the page, and an eight-pointed star on the cards.",
       "Security: an admin account must have a permissions profile to pass the owner-login lock — any account without one is treated as a visitor.",
     ],
   },

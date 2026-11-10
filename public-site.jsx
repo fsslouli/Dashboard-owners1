@@ -1299,6 +1299,27 @@ ${SKIN.najd ? (() => {
 .dash .tag,.dash .chip,.dash .cat-pill{border-radius:4px;}
 .dash .mono{font-variant-numeric:tabular-nums;}`;
 })() : ""}
+${SKIN.andalus ? (() => {
+  /* رواق الأقواس: شريط علوي تتدلّى منه أقواس نصف دائرية (كأروقة قرطبة) — وشبكة النجمة الثمانية (الخاتم) خلف الصفحة */
+  const uri = (svg) => `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+  const arch = uri(`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="15"><path d="M0 0H26V15A13 13 0 0 0 0 15Z" fill="${T.brass}"/><circle cx="13" cy="4" r="1.6" fill="${T.accent2}"/></svg>`);
+  const star = (c, o, w) => `<g fill="none" stroke="${c}" stroke-opacity="${o}" stroke-width="${w}"><rect x="14" y="14" width="28" height="28"/><rect x="14" y="14" width="28" height="28" transform="rotate(45 28 28)"/></g>`;
+  const lattice = uri(`<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56">${star(T.brass, 0.55, 1)}<circle cx="28" cy="28" r="2.2" fill="${T.accent2}" fill-opacity=".8"/><path d="M0 28H8M48 28H56M28 0V8M28 48V56" stroke="${T.brass}" stroke-opacity=".4"/></svg>`);
+  const corner = uri(`<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56">${star(T.accent2, 1, 2.2)}<circle cx="28" cy="28" r="4" fill="${T.accent3}"/></svg>`);
+  return `.skin-andalus-top{position:fixed;top:0;inset-inline:0;height:15px;z-index:45;pointer-events:none;
+  background:${arch} repeat-x center top;border-top:3px solid ${T.accent2};}
+.skin-andalus-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:${resolved === "dark" ? ".5" : ".42"};background:${lattice} 0 0/56px 56px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.25) 46%,transparent 78%);mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.25) 46%,transparent 78%);}
+.dash > *:not(.skin-andalus-bg):not(.skin-andalus-top):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}
+.dash h1,.dash h2,.dash .hero-t,.dash .sec-t{font-weight:700;}
+.dash .card,.dash .surf,.dash .stats{position:relative;border:1px solid ${T.line};border-top:3px solid ${T.brass};}
+.dash .card::before{content:"";position:absolute;top:-14px;inset-inline-start:16px;width:26px;height:26px;pointer-events:none;
+  background:${corner} center/contain no-repeat;transform:rotate(0deg) scale(.86);opacity:.9;
+  transition:transform .6s cubic-bezier(.16,1,.3,1),opacity .3s;}
+.dash .card:hover::before{transform:rotate(90deg) scale(1);opacity:1;}
+.dash .tag,.dash .chip,.dash .cat-pill{border-radius:999px;}
+.dash .mono{font-variant-numeric:tabular-nums;}`;
+})() : ""}
 ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
   background-image:linear-gradient(${T.lineSoft} 1px,transparent 1px),linear-gradient(90deg,${T.lineSoft} 1px,transparent 1px);
   background-size:46px 46px;
@@ -1315,6 +1336,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
         {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
         {SKIN.najd && <div className="skin-najd no-print" aria-hidden="true" />}
+        {SKIN.andalus && <><div className="skin-andalus-bg no-print" aria-hidden="true" /><div className="skin-andalus-top no-print" aria-hidden="true" /></>}
         {SKIN.draft && <div className="skin-paper no-print" aria-hidden="true" />}
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />
