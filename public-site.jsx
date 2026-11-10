@@ -1285,6 +1285,20 @@ ${SKIN.draft ? `.skin-paper{position:fixed;inset:0;z-index:0;pointer-events:none
 .dash .tag,.dash .chip,.dash .cat-pill,.dash .icon-btn,.dash .big-btn{border-radius:0;}
 .dash .tag{font-family:'IBM Plex Mono','IBM Plex Sans Arabic',system-ui,sans-serif;font-size:11px;letter-spacing:0;}
 .dash .mono{font-variant-numeric:tabular-nums;}` : ""}
+${SKIN.najd ? (() => {
+  /* إفريز الشُّرَف: صف مثلثات متكرر (كحواف أسطح البيوت النجدية) — أعلى الصفحة، وخفيف على حافة كل بطاقة */
+  const tri = (h, o) => `url("data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${h * 2}" height="${h}"><path d="M0 0H${h * 2}L${h} ${h}Z" fill="${T.brass}" fill-opacity="${o}"/></svg>`)}")`;
+  return `.skin-najd{position:fixed;top:0;inset-inline:0;height:11px;z-index:45;pointer-events:none;
+  background:${tri(11, 0.9)} repeat-x center top;border-top:2px solid ${T.brass};}
+.dash{background-image:radial-gradient(${T.lineSoft} 1px,transparent 1.4px);background-size:22px 22px;}
+.dash h1,.dash h2,.dash .hero-t,.dash .sec-t{font-weight:600;}
+.dash .card,.dash .surf,.dash .stats{position:relative;border:1px solid ${T.line};}
+.dash .card::before{content:"";position:absolute;top:-1px;inset-inline:14px;height:6px;pointer-events:none;
+  background:${tri(6, 1)} repeat-x center top;opacity:.38;transition:opacity .35s cubic-bezier(.16,1,.3,1);}
+.dash .card:hover::before{opacity:1;}
+.dash .tag,.dash .chip,.dash .cat-pill{border-radius:4px;}
+.dash .mono{font-variant-numeric:tabular-nums;}`;
+})() : ""}
 ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
   background-image:linear-gradient(${T.lineSoft} 1px,transparent 1px),linear-gradient(90deg,${T.lineSoft} 1px,transparent 1px);
   background-size:46px 46px;
@@ -1300,6 +1314,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         {nova && <NovaLayers />}
         {SKIN.aurora && <div className="skin-aurora no-print" aria-hidden="true"><i /><i /><i /></div>}
         {SKIN.grid && <div className="skin-grid no-print" aria-hidden="true" />}
+        {SKIN.najd && <div className="skin-najd no-print" aria-hidden="true" />}
         {SKIN.draft && <div className="skin-paper no-print" aria-hidden="true" />}
 
         <div ref={progressRef} className="scroll-progress no-print" aria-hidden="true" />

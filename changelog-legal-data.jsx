@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.13.0",
+    dateAr: "10 نوفمبر 2026",
+    dateEn: "November 10, 2026",
+    ar: [
+      "طقم سادس: «نجد» — هوية تراثية بألوان الطين والذهب والنخيل، عناوين بالخط الكوفي، وإفريز الشُّرَف المثلثة أعلى الصفحة وعلى حواف البطاقات",
+      "أمان: حساب الإدارة لازم يكون له ملف صلاحيات حتى يتجاوز قفل دخول الملاك — أي حساب مسجَّل بلا ملف يُعامل كزائر",
+    ],
+    en: [
+      "A sixth look: Najd — a heritage identity in clay, gold and palm tones, Kufi headings, and a triangular Najdi frieze along the top of the page and card edges.",
+      "Security: an admin account must have a permissions profile to pass the owner-login lock — any account without one is treated as a visitor.",
+    ],
+  },
+  {
     version: "6.12.0",
     dateAr: "10 نوفمبر 2026",
     dateEn: "November 10, 2026",

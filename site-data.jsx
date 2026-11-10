@@ -368,6 +368,9 @@ const SKIN_MAHDAR  = { key: "mahdar",  display: "'Amiri'",               body: "
 const SKIN_MUKHATTAT = { key: "mukhattat", display: null, body: "'IBM Plex Sans Arabic'", radius: 0, glass: false, aurora: false, grid: false, rule: false, draft: true };
 const SKIN_MASAR   = { key: "masar", display: null, body: "'IBM Plex Sans Arabic'", radius: 12, glass: false, aurora: false, grid: false, rule: false, spine: true };
 
+/* نجد (6.13.0): هوية تراثية — خط كوفي للعناوين، وإفريز «الشُّرَف» المثلثة المأخوذ من العمارة النجدية الطينية */
+const SKIN_NAJD    = { key: "najd", display: "'Reem Kufi'", body: "'IBM Plex Sans Arabic'", radius: 6, glass: false, aurora: false, grid: false, rule: false, najd: true };
+
 export const THEME_SETS = {
   classic: {
     label: "الكلاسيكي", labelEn: "Classic",
@@ -526,13 +529,52 @@ export const THEME_SETS = {
       onAccent: "#FFFFFF",
     },
   },
+  najd: {
+    label: "نجد", labelEn: "Najd",
+    note: "تراث نجدي — طين وذهب ونخيل، عناوين بالخط الكوفي وإفريز الشُّرَف المثلثة أعلى الصفحة والبطاقات.",
+    swatch: ["#15100B", "#D9A441", "#6FAE7A"],
+    skin: SKIN_NAJD,
+    dark: {
+      bg: "#15100B", surface: "#1F1811", sunken: "#0E0A07",
+      paper: "#F2E8D5", muted: "#B7A68A", faint: "#806F57",
+      brass: "#D9A441", line: "rgba(242,232,213,.11)", lineSoft: "rgba(242,232,213,.055)",
+      shadow: "0 1px 2px rgba(0,0,0,.34), 0 12px 30px -24px rgba(0,0,0,.8)",
+      shadowUp: "0 3px 8px rgba(0,0,0,.42), 0 24px 52px -26px rgba(0,0,0,.9)",
+      zone: "#B7A68A", zoneOn: "#D9A441",
+      sta: { "معتمدة": "#6FAE7A", "تم الرفض": "#D4735C", "قيد الدراسة": "#D9A441", "تم التصويت": "#93A2AE" },
+      pri: { "عالية جدًا": "#D4735C", "عالية": "#D9A441", "متوسطة": "#93A2AE", "عادية": "#806F57" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#D4735C", "تصميمي/جمالي": "#B49AD0", "ترقية": "#6FAE7A",
+        "استفسار فني توضيحي": "#93A2AE", "تجاري": "#D9A441", "إداري/نظامي": "#B7A68A",
+      },
+      extra: ["#B49AD0", "#6FAE7A", "#C98F6B", "#93A2AE"],
+      onAccent: "#15100B",
+    },
+    light: {
+      bg: "#F3EAD8", surface: "#FFFAF0", sunken: "#E8DCC4",
+      paper: "#2A1E12", muted: "#6A5740", faint: "#9A886C",
+      brass: "#8F4E16", line: "rgba(42,30,18,.13)", lineSoft: "rgba(42,30,18,.065)",
+      shadow: "0 1px 2px rgba(42,30,18,.05), 0 10px 24px -20px rgba(42,30,18,.24)",
+      shadowUp: "0 2px 6px rgba(42,30,18,.08), 0 22px 46px -22px rgba(42,30,18,.3)",
+      zone: "#6A5740", zoneOn: "#8F4E16",
+      sta: { "معتمدة": "#2F6B43", "تم الرفض": "#A3402C", "قيد الدراسة": "#8A5E10", "تم التصويت": "#4F5F6B" },
+      pri: { "عالية جدًا": "#A3402C", "عالية": "#8A5E10", "متوسطة": "#4F5F6B", "عادية": "#9A886C" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#A3402C", "تصميمي/جمالي": "#5E4A8C", "ترقية": "#2F6B43",
+        "استفسار فني توضيحي": "#4F5F6B", "تجاري": "#8A5E10", "إداري/نظامي": "#6A5740",
+      },
+      extra: ["#5E4A8C", "#2F6B43", "#8A5140", "#4F5F6B"],
+      onAccent: "#FFFAF0",
+    },
+  },
 };
-export const THEME_KEYS = ["classic", "ufuq", "mahdar", "mukhattat", "masar"];
+export const THEME_KEYS = ["classic", "ufuq", "mahdar", "mukhattat", "masar", "najd"];
 export const DEFAULT_THEME_KEY = "classic";
 
 /* خطوط إضافية تُحمَّل فقط عند اعتماد طقم يحتاجها — ما نثقّل الزائر بلا داعٍ */
 const SKIN_FONTS = {
   mahdar: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap",
+  najd: "https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;600;700&display=swap",
 };
 export function useSkinFont(themeKey) {
   useEffect(() => {

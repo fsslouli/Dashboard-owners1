@@ -83,18 +83,19 @@ begin
 
   if v_uid is not null then
     if v_meta ? 'villa_login' then
-      return exists (
+      if exists (
         select 1 from public.villa_auth a join public.villa_accounts v on v.villa = a.villa
-        where a.auth_user_id = v_uid and v.enabled);
+        where a.auth_user_id = v_uid and v.enabled) then return true; end if;
     elsif v_meta ? 'share_link' then
-      return coalesce((v_meta ->> 'share_exp')::bigint, 0) > (extract(epoch from now()) * 1000)::bigint
+      if coalesce((v_meta ->> 'share_exp')::bigint, 0) > (extract(epoch from now()) * 1000)::bigint
         and exists (
           select 1 from public.share_links l
-          where l.id = (v_meta ->> 'share_link')::uuid and l.revoked_at is null and l.expires_at > now());
+          where l.id = (v_meta ->> 'share_link')::uuid and l.revoked_at is null and l.expires_at > now()) then return true; end if;
+    -- 6.13.0: حساب الإدارة لازم يكون له ملف بجدول profiles — حساب مسجَّل من برّا بلا ملف ما يتجاوز القفل
+    elsif exists (select 1 from public.profiles p where p.id = v_uid) then
+      return true;
     end if;
-    return true;   -- حساب إدارة عادي
   end if;
-
   if v_mode = 'partial' then
     return (p_tabs = array['*']::text[] and cardinality(v_tabs) > 0) or (v_tabs && p_tabs);
   end if;
