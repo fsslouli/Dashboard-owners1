@@ -18,14 +18,16 @@ export const CHANGELOG = [
     dateEn: "November 10, 2026",
     ar: [
       "دخول الملاك: خاصية جديدة لتسجيل الدخول للموقع برقم الفيلا ورقم سري من 6 أرقام، تُفعَّل وتُقفل من لوحة الإدارة (تبويب «دخول الملاك»)",
-      "ثلاثة أوضاع: الموقع مفتوح، قفل كامل، أو قفل مع أقسام تحددها الإدارة يشوفها الزائر بدون دخول",
+      "ثلاثة أوضاع: الموقع مفتوح، قفل كامل، أو قفل مع زر «دخول كزائر» يعرض أقسامًا محدودة تحددها الإدارة",
+      "علامة مائية برقم الفيلا فوق الموقع لكل مالك مسجّل دخول، وتتحكم الإدارة بحجمها ودرجتها وميلانها ولونها ومحتواها",
       "لوحة الإدارة: إنشاء حسابات كل الفلل دفعة واحدة، كشف الأرقام السرية، إعادة التعيين، إيقاف حساب، فك القفل، وتصدير الكشف إكسل",
       "الحماية من قاعدة البيانات نفسها، مع قفل مؤقت 15 دقيقة بعد 5 محاولات خاطئة؛ وروابط المشاركة الخاصة تبقى تشتغل",
       "نسخة الاستفسارات الاحتياطية ما عادت مطبوعة داخل ملف الموقع — الاحتياط صار آخر نسخة قرأها المتصفح نفسه",
     ],
     en: [
       "Owner login: a new sign-in for the site using the villa number and a 6-digit PIN, switched on and off from the admin panel («Owner login» tab).",
-      "Three modes: site open, full lock, or a lock with admin-selected sections visible to visitors without signing in.",
+      "Three modes: site open, full lock, or a lock with a «Enter as guest» button showing a limited set of admin-selected sections.",
+      "A watermark with the villa number over the site for every signed-in owner; the admin controls its size, darkness, angle, colour and content.",
       "Admin panel: create all villa accounts at once, view PINs, reset, disable an account, unlock, and export the list to Excel.",
       "Enforced by the database itself, with a 15-minute lockout after 5 wrong attempts; private share links keep working.",
       "The fallback copy of the inquiries is no longer bundled in the site file — the fallback is now the last copy the browser itself read.",

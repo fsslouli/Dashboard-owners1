@@ -6,7 +6,7 @@
 -- ولا يشتغل إلا لما تفعّله من لوحة الإدارة ← تبويب «دخول الملاك».
 --
 -- وش يسوي:
---   ١) عمودان بـ site_settings: gate_mode (off | full | partial) و gate_guest_tabs
+--   ١) أعمدة بـ site_settings: gate_mode (off | full | partial) و gate_guest_tabs و gate_wm (العلامة المائية)
 --   ٢) جدول villa_accounts: رقم الفيلا + الرقم السري + حالة القفل (يقرأه صاحب صلاحية manage_owner_login فقط)
 --   ٣) جدول villa_auth: ربط داخلي بحساب الدخول (لا يقرأه أحد غير دالة الخادم)
 --   ٤) دالة gate_ok() تُضاف لكل سياسات القراءة العامة — القفل من قاعدة البيانات نفسها، مو شاشة فقط
@@ -16,7 +16,8 @@
 -- ── ١) إعدادات القفل ──────────────────────────────────────────────
 alter table public.site_settings
   add column if not exists gate_mode text not null default 'off',
-  add column if not exists gate_guest_tabs text[] not null default '{}'::text[];
+  add column if not exists gate_guest_tabs text[] not null default '{}'::text[],
+  add column if not exists gate_wm jsonb;   -- العلامة المائية برقم الفيلا: { on, opacity, size, angle, gap, color, name, sid, time, custom }
 
 do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'site_settings_gate_mode_chk') then
@@ -158,7 +159,7 @@ begin
   for col in select jsonb_object_keys(to_jsonb(new)) loop
     if (to_jsonb(old) ->> col) is not distinct from (to_jsonb(new) ->> col) then continue; end if;
     if col in ('updated_at','updated_by') then continue; end if;
-    if col in ('gate_mode','gate_guest_tabs') then
+    if col in ('gate_mode','gate_guest_tabs','gate_wm') then
       if not public.has_perm('manage_owner_login') then raise exception 'لا توجد صلاحية لتعديل إعدادات دخول الملاك'; end if;
     elsif col in ('gallery_mode','gallery_layout') then
       if not public.has_perm('manage_gallery') then raise exception 'لا توجد صلاحية لتعديل إعدادات المعرض'; end if;

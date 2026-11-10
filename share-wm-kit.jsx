@@ -80,7 +80,8 @@ export function WmLayer({ wm, name, sid, minute, fixed }) {
 }
 
 /* لوحة التحكم بالنموذج (إدارة) + معاينة حيّة */
-export function WmControls({ T, value, onChange, name }) {
+/* title / fixedName (6.12.0): نفس اللوحة تُستعمل لعلامة دخول الملاك — الاسم هناك رقم الفيلا تلقائيًا فما يُعرض حقل الاسم */
+export function WmControls({ T, value, onChange, name, title, fixedName }) {
   const wm = sanitizeWm(value);
   const set = (p) => onChange({ ...value, ...p });
   const lab = { fontSize: 11.5, color: T.muted, display: "flex", justifyContent: "space-between", marginBottom: 4 };
@@ -98,11 +99,11 @@ export function WmControls({ T, value, onChange, name }) {
   const btn = (on) => ({ border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass + "14" : "none", color: T.paper, borderRadius: 9, padding: "6px 11px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" });
   return (
     <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, padding: "12px 13px", marginBottom: 14 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>العلامة المائية في صفحة المستلم</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>{title || "العلامة المائية في صفحة المستلم"}</div>
       <div style={{ position: "relative", overflow: "hidden", height: 150, borderRadius: 10, background: T.sunken, marginBottom: 12, padding: "11px 13px", fontSize: 12.5, lineHeight: 1.9, color: T.paper }}>
         <div style={{ color: T.muted, fontSize: 11.5 }}>معاينة — استفسار رقم 41 · عالية جدًا</div>
         تسرب مياه من سقف الدور الأول عند الحمام الرئيسي، والمطلوب معالجة العزل قبل التشطيب.
-        <WmLayer wm={wm} name={wm.who || name || "اسم المستلم"} sid="A3F9K2" />
+        <WmLayer wm={wm} name={fixedName || wm.who || name || "اسم المستلم"} sid="A3F9K2" />
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
         {WM_PRESETS.map((p) => <button key={p.l} type="button" onClick={() => set(p.p)} style={btn(false)}>{p.l}</button>)}
@@ -120,9 +121,9 @@ export function WmControls({ T, value, onChange, name }) {
       </div>
       <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 6 }}>ماذا تكتب العلامة</div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 10 }}>
-        {part("name", "الاسم")}{part("sid", "معرّف الجلسة")}{part("time", "التاريخ والوقت")}
+        {part("name", fixedName ? "رقم الفيلا" : "الاسم")}{part("sid", "معرّف الجلسة")}{part("time", "التاريخ والوقت")}
       </div>
-      {wm.name && (
+      {wm.name && !fixedName && (
         <div style={{ marginBottom: 8 }}>
           <label style={{ fontSize: 11.5, color: T.muted, display: "block", marginBottom: 4 }}>الاسم الظاهر على العلامة (اتركه فارغًا ليكون اسم الرابط)</label>
           <input value={wm.who} onChange={(e) => set({ who: e.target.value })} maxLength={22} placeholder={name || "اسم الرابط"}

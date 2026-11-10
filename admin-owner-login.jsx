@@ -10,6 +10,8 @@ import * as XLSX from "xlsx";
 import { Copy, Download, Eye, EyeOff, KeyRound, Lock, LockOpen, RefreshCw, Search, ShieldCheck, Unlock, Users } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
 import { GATE_TABS, VILLA_MAX, latinDigits } from "./gate-kit.jsx";
+import { THEMES } from "./site-data.jsx";
+import { WM_DEFAULTS, WmControls, sanitizeWm } from "./share-wm-kit.jsx";
 
 const S = {
   wrap: { maxWidth: 820, margin: "0 auto", padding: "4px 0", color: "#1F2C35" },
@@ -28,7 +30,7 @@ const S = {
 const MODES = [
   { key: "off", title: "مقفول (الموقع مفتوح)", desc: "أي أحد يفتح الموقع بدون دخول — الوضع الحالي.", color: "#5F7280", Icon: LockOpen },
   { key: "full", title: "قفل كامل", desc: "ما ينفتح الموقع إلا برقم الفيلا والرقم السري.", color: "#1B7F8E", Icon: Lock },
-  { key: "partial", title: "قفل مع أقسام للزائر", desc: "الزائر يشوف الأقسام اللي تحددها فقط، والباقي بعد الدخول.", color: "#B7791F", Icon: ShieldCheck },
+  { key: "partial", title: "قفل مع دخول زائر محدود", desc: "شاشة الدخول فيها زر «دخول كزائر»، والزائر يشوف الأقسام اللي تحددها فقط.", color: "#B7791F", Icon: ShieldCheck },
 ];
 const TAB_AR = { overview: "نظرة عامة", notes: "الاستفسارات", progress: "تقدّم التنفيذ", docs: "المستندات والنماذج", gallery: "المكتبة" };
 const fmt = (v) => (v ? new Date(v).toLocaleString("ar-SA-u-nu-latn", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
@@ -56,11 +58,15 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
   const [shown, setShown] = useState({});        // كشف رقم فيلا واحدة
   const [limit, setLimit] = useState(40);
   const [only, setOnly] = useState("all");       // all | never | locked | off
+  const [wm, setWm] = useState(null);            // إعدادات العلامة المائية (مسودة لحد ما تضغط حفظ)
+  const [wmSaved, setWmSaved] = useState("null");
 
   const loadCfg = async () => {
-    const { data, error } = await supabase.from("site_settings").select("gate_mode,gate_guest_tabs").eq("id", 1).single();
+    const { data, error } = await supabase.from("site_settings").select("gate_mode,gate_guest_tabs,gate_wm").eq("id", 1).single();
     if (error || !data) { setCfg("missing"); return; }
     setCfg({ mode: data.gate_mode || "off", tabs: data.gate_guest_tabs || [] });
+    setWm((cur) => cur ?? { on: false, ...WM_DEFAULTS, sid: false, ...(data.gate_wm || {}) });
+    setWmSaved(JSON.stringify(data.gate_wm || null));
   };
   const loadRows = async () => {
     const { data, error } = await supabase.from("villa_accounts").select("villa,pin,enabled,fails_total,locked_until,last_login_at,login_count,pin_set_at").order("villa");
@@ -122,6 +128,17 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
     const tabs = cfg.tabs.includes(k) ? cfg.tabs.filter((x) => x !== k) : GATE_TABS.filter((x) => x === k || cfg.tabs.includes(x));
     if (cfg.mode === "partial" && !tabs.length) { flashToast("لازم يبقى قسم واحد على الأقل، أو غيّر الوضع إلى «قفل كامل»"); return; }
     saveCfg({ ...cfg, tabs }, `أقسام الزائر بلا دخول: ${tabs.map((x) => TAB_AR[x]).join("، ") || "لا شيء"}`);
+  };
+
+  const wmClean = wm ? { on: !!wm.on, ...sanitizeWm(wm), who: "" } : null;
+  const wmDirty = !!wmClean && JSON.stringify(wmClean) !== wmSaved;
+  const saveWm = async () => {
+    setBusy("wm");
+    const { error } = await supabase.from("site_settings").update({ gate_wm: wmClean }).eq("id", 1);
+    setBusy("");
+    if (error) { flashToast(`تعذّر الحفظ: ${error.message}`); return; }
+    setWmSaved(JSON.stringify(wmClean)); flashToast("تم حفظ العلامة المائية — تسري على كل الملاك فورًا");
+    log("دخول الملاك", `العلامة المائية برقم الفيلا: ${wmClean.on ? `مفعّلة (سواد ${wmClean.opacity}% · خط ${wmClean.size})` : "مقفولة"}`);
   };
 
   const generate = async (resetAll) => {
@@ -200,7 +217,7 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
         </div>
 
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #E1E8EC" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>الأقسام المفتوحة للزائر بلا دخول (تُستخدم في وضع «قفل مع أقسام للزائر»)</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>وش يشوف الزائر (تُستخدم في وضع «قفل مع دخول زائر محدود»)</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {GATE_TABS.map((k) => {
               const on = cfg.tabs.includes(k);
@@ -214,6 +231,22 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
           <p style={S.hint}>«نظرة عامة» تعرض ملخص الاستفسارات والتقدّم، فلو فتحتها للزائر تنفتح له أرقام الملخص. ملفات المكتبة والمرفقات روابطها المباشرة تبقى تفتح للي عنده الرابط نفسه.</p>
         </div>
       </div>
+
+      {/* ── العلامة المائية برقم الفيلا ── */}
+      {wm && (
+        <div style={S.card}>
+          <h3 style={S.h}><ShieldCheck size={17} />العلامة المائية برقم الفيلا</h3>
+          <p style={S.sub}>تظهر فوق الموقع كله لكل مالك مسجّل دخول وفيها رقم فيلته، فأي لقطة شاشة تنعرف من أي فيلا طلعت. ما تظهر للإدارة ولا للزائر.</p>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, marginBottom: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={!!wm.on} onChange={(e) => setWm({ ...wm, on: e.target.checked })} />تفعيل العلامة المائية
+          </label>
+          {wm.on && <WmControls T={THEMES.light} value={wm} onChange={setWm} title="شكل العلامة (معاينة حيّة)" fixedName="فيلا 120" />}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button type="button" style={{ ...S.btn, ...S.pri, opacity: wmDirty ? 1 : 0.5 }} disabled={!wmDirty || busy === "wm"} onClick={saveWm}>{busy === "wm" ? "جارٍ الحفظ…" : "حفظ العلامة المائية"}</button>
+            {wmDirty && <span style={{ fontSize: 12, color: "#B7791F" }}>تغييرات غير محفوظة</span>}
+          </div>
+        </div>
+      )}
 
       {/* ── ٢) حسابات الفلل ── */}
       <div style={S.card}>

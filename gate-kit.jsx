@@ -3,7 +3,7 @@
    الفكرة: الإدارة تفعّل «تسجيل الدخول» من لوحة الإدارة ← تبويب «دخول الملاك»، وبثلاثة أوضاع:
      off      الموقع مفتوح للكل (الوضع الافتراضي — ما يتغيّر شي)
      full     ما ينفتح الموقع إلا بعد الدخول برقم الفيلا + الرقم السري
-     partial  الزائر بلا دخول يشوف فقط الأقسام اللي حددتها الإدارة، والباقي بعد الدخول
+     partial  شاشة الدخول فيها «دخول كزائر»: الزائر يشوف فقط الأقسام اللي حددتها الإدارة، والباقي بعد دخول المالك
    القفل الحقيقي بقاعدة البيانات (دالة gate_ok داخل سياسات القراءة — راجع migration-owner-login.sql)،
    وهذا الملف واجهته فقط: شاشة الدخول + شارة الحساب + توجيه الموقع العام.
    حساب الإدارة يفتح الموقع بدون رقم فيلا (جلسته نفسها تكفي). */
@@ -11,6 +11,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Eye, EyeOff, KeyRound, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from "./app-bootstrap.jsx";
 import { THEMES, clearInqCache, hideBoot } from "./site-data.jsx";
+import { WmLayer, sanitizeWm, wmStamp } from "./share-wm-kit.jsx";
 
 export const GATE_MODES = ["off", "full", "partial"];
 export const GATE_TABS = ["overview", "notes", "progress", "docs", "gallery"];
@@ -20,7 +21,7 @@ const CFG_KEY = "gate_cfg_v1";
 const readCfg = () => {
   try {
     const v = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
-    return v && GATE_MODES.includes(v.mode) ? { mode: v.mode, tabs: Array.isArray(v.tabs) ? v.tabs.filter((t) => GATE_TABS.includes(t)) : [] } : null;
+    return v && GATE_MODES.includes(v.mode) ? { mode: v.mode, tabs: Array.isArray(v.tabs) ? v.tabs.filter((t) => GATE_TABS.includes(t)) : [], wm: v.wm && typeof v.wm === "object" ? v.wm : null } : null;
   } catch { return null; }
 };
 const writeCfg = (c) => { try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch { /* */ } };
@@ -53,20 +54,20 @@ export async function callOwnerLogin(action, body) {
 /* وضع القفل من site_settings — يُقرأ من المخبّأ أولًا (شاشة الدخول تطلع فورًا بلا وميض) ثم يتحدّث لحظيًا */
 export function useGateConfig() {
   const [cached] = useState(readCfg);
-  const [cfg, setCfg] = useState(() => cached || { mode: "off", tabs: [] });
+  const [cfg, setCfg] = useState(() => cached || { mode: "off", tabs: [], wm: null });
   const [ready, setReady] = useState(!!cached);
   useEffect(() => {
     let alive = true;
     const guard = setTimeout(() => { if (alive) setReady(true); }, 2500);
     const pull = async () => {
       try {
-        const { data, error } = await supabase.from("site_settings").select("gate_mode,gate_guest_tabs").eq("id", 1).single();
+        let { data, error } = await supabase.from("site_settings").select("gate_mode,gate_guest_tabs,gate_wm").eq("id", 1).single();
         if (!alive) return;
         /* العمودان غير موجودين = الهجرة ما اشتغلت بعد → الموقع مفتوح كما كان */
         const next = error || !data
-          ? { mode: "off", tabs: [] }
-          : { mode: GATE_MODES.includes(data.gate_mode) ? data.gate_mode : "off", tabs: (data.gate_guest_tabs || []).filter((t) => GATE_TABS.includes(t)) };
-        setCfg((p) => (p.mode === next.mode && p.tabs.join() === next.tabs.join() ? p : next));
+          ? { mode: "off", tabs: [], wm: null }
+          : { mode: GATE_MODES.includes(data.gate_mode) ? data.gate_mode : "off", tabs: (data.gate_guest_tabs || []).filter((t) => GATE_TABS.includes(t)), wm: data.gate_wm && typeof data.gate_wm === "object" ? data.gate_wm : null };
+        setCfg((p) => (p.mode === next.mode && p.tabs.join() === next.tabs.join() && JSON.stringify(p.wm) === JSON.stringify(next.wm) ? p : next));
         writeCfg(next);
       } catch { /* يبقى المخبّأ */ }
       finally { if (alive) { clearTimeout(guard); setReady(true); } }
@@ -103,7 +104,7 @@ function useDark() {
 }
 
 /* ── شاشة الدخول ── */
-export function VillaLogin({ onDone, onCancel, notice }) {
+export function VillaLogin({ onDone, onGuest, notice }) {
   const T = useDark() ? THEMES.dark : THEMES.light;
   const [villa, setVilla] = useState("");
   const [pin, setPin] = useState("");
@@ -161,8 +162,11 @@ export function VillaLogin({ onDone, onCancel, notice }) {
         <button type="submit" disabled={busy} style={{ width: "100%", marginTop: 18, padding: "12px 0", borderRadius: 12, border: "none", background: T.brass, color: T.onAccent || "#fff", fontSize: 14.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: busy ? "wait" : "pointer", opacity: busy ? 0.7 : 1, fontFamily: "inherit" }}>
           <LogIn size={17} />{busy ? "جارٍ الدخول…" : "دخول"}
         </button>
-        {onCancel && (
-          <button type="button" onClick={onCancel} style={{ width: "100%", marginTop: 10, padding: "11px 0", borderRadius: 12, border: `1px solid ${T.line}`, background: "transparent", color: T.muted, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>رجوع للموقع</button>
+        {onGuest && (
+          <>
+            <button type="button" onClick={onGuest} style={{ width: "100%", marginTop: 10, padding: "11px 0", borderRadius: 12, border: `1px solid ${T.line}`, background: "transparent", color: T.paper, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontFamily: "inherit" }}><Eye size={16} />دخول كزائر</button>
+            <p style={{ textAlign: "center", fontSize: 11.5, color: T.faint || T.muted, margin: "6px 0 0" }}>الزائر يطّلع على أقسام محدودة فقط.</p>
+          </>
         )}
         <p style={{ textAlign: "center", fontSize: 11.5, lineHeight: 1.8, color: T.faint || T.muted, margin: "16px 0 0" }}>
           نسيت الرقم السري؟ تواصل مع فريق تمثيل الملاك لإعادة تعيينه.
@@ -195,12 +199,26 @@ function GateChip({ label, action, Icon, onClick }) {
   );
 }
 
+/* علامة مائية برقم الفيلا فوق الموقع كله (إعداداتها من لوحة الإدارة — نفس محرّك علامة روابط المشاركة) */
+function VillaWatermark({ wm, villa, uid }) {
+  const [minute, setMinute] = useState(wmStamp);
+  useEffect(() => { const t = setInterval(() => setMinute(wmStamp()), 30000); return () => clearInterval(t); }, []);
+  if (!wm || !wm.on) return null;
+  return <WmLayer fixed wm={sanitizeWm(wm)} name={`فيلا ${villa}`} sid={uid} minute={minute} />;
+}
+
+const GUEST_KEY = "gate_guest_v1";
+const readGuest = () => { try { return sessionStorage.getItem(GUEST_KEY) === "1"; } catch { return false; } };
+const writeGuest = (v) => { try { v ? sessionStorage.setItem(GUEST_KEY, "1") : sessionStorage.removeItem(GUEST_KEY); } catch { /* */ } };
+
 /* ── موجّه الموقع العام ──
    render(gateProp, key) يرسم <PublicSite/> — المفتاح يتغيّر مع تغيّر الهوية فيُعاد تحميل البيانات بالصلاحية الجديدة. */
 export function GateRoot({ render }) {
   const cfg = useGateConfig();
   const session = useSession();
-  const [wantLogin, setWantLogin] = useState(false);
+  /* الوضع الجزئي: شاشة الدخول أولًا وفيها زر «دخول كزائر» — اختيار الزائر يُحفظ لهذه الجلسة فقط */
+  const [asGuest, setAsGuestRaw] = useState(readGuest);
+  const setAsGuest = (v) => { writeGuest(v); setAsGuestRaw(v); };
   const [kicked, setKicked] = useState("");
   const { kind, villa } = sessionKind(session);
   const active = cfg.mode !== "off";
@@ -228,7 +246,7 @@ export function GateRoot({ render }) {
 
   /* زائر بلا دخول والقفل مفعّل: ما نبقي نسخة استفسارات محفوظة بالجهاز */
   useEffect(() => { if (cfg.ready && session !== undefined && active && !member) clearInqCache(); }, [cfg.ready, session, active, member]);
-  useEffect(() => { if (member) { setWantLogin(false); setKicked(""); } }, [member]);
+  useEffect(() => { if (member) { setAsGuest(false); setKicked(""); } }, [member]);
 
   const logout = async () => { clearInqCache(); await supabase.auth.signOut({ scope: "local" }); };
 
@@ -239,17 +257,18 @@ export function GateRoot({ render }) {
       <>
         {render(null, `m-${session.user.id}`)}
         {kind === "villa" && <GateChip label={`فيلا ${villa}`} action="خروج" Icon={LogOut} onClick={logout} />}
+        {kind === "villa" && <VillaWatermark wm={cfg.wm} villa={villa} uid={session.user.id} />}
       </>
     );
   }
   const guestTabs = cfg.mode === "partial" ? cfg.tabs : [];
-  if (cfg.mode === "full" || !guestTabs.length || wantLogin) {
-    return <VillaLogin notice={kicked || undefined} onCancel={cfg.mode === "partial" && guestTabs.length ? () => setWantLogin(false) : null} />;
+  if (cfg.mode === "full" || !guestTabs.length || !asGuest) {
+    return <VillaLogin notice={kicked || undefined} onGuest={cfg.mode === "partial" && guestTabs.length ? () => setAsGuest(true) : null} />;
   }
   return (
     <>
       {render({ tabs: guestTabs }, "guest")}
-      <GateChip label="بقية الأقسام للملاك" action="دخول الملاك" Icon={LogIn} onClick={() => setWantLogin(true)} />
+      <GateChip label="زائر · أقسام محدودة" action="دخول الملاك" Icon={LogIn} onClick={() => setAsGuest(false)} />
     </>
   );
 }
