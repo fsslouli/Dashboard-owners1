@@ -368,6 +368,12 @@ const SKIN_MAHDAR  = { key: "mahdar",  display: "'Amiri'",               body: "
 const SKIN_MUKHATTAT = { key: "mukhattat", display: null, body: "'IBM Plex Sans Arabic'", radius: 0, glass: false, aurora: false, grid: false, rule: false, draft: true };
 const SKIN_MASAR   = { key: "masar", display: null, body: "'IBM Plex Sans Arabic'", radius: 12, glass: false, aurora: false, grid: false, rule: false, spine: true };
 
+/* نجد (6.13.0): هوية تراثية — خط كوفي للعناوين، وإفريز «الشُّرَف» المثلثة المأخوذ من العمارة النجدية الطينية */
+const SKIN_NAJD    = { key: "najd", display: "'Reem Kufi'", body: "'IBM Plex Sans Arabic'", radius: 6, glass: false, aurora: false, grid: false, rule: false, najd: true };
+
+/* أندلس (6.13.0): لقاء الأندلس بالرياض — أزرق الزليج وزعفران الفجر، رواق أقواس أعلى الصفحة وشبكة النجمة الثمانية خلفها */
+const SKIN_ANDALUS = { key: "andalus", display: "'El Messiri'", body: "'IBM Plex Sans Arabic'", radius: 14, glass: false, aurora: false, grid: false, rule: false, andalus: true };
+
 export const THEME_SETS = {
   classic: {
     label: "الكلاسيكي", labelEn: "Classic",
@@ -526,13 +532,93 @@ export const THEME_SETS = {
       onAccent: "#FFFFFF",
     },
   },
+  najd: {
+    label: "نجد", labelEn: "Najd",
+    note: "تراث نجدي — طين وذهب ونخيل، عناوين بالخط الكوفي وإفريز الشُّرَف المثلثة أعلى الصفحة والبطاقات.",
+    swatch: ["#15100B", "#D9A441", "#6FAE7A"],
+    skin: SKIN_NAJD,
+    dark: {
+      bg: "#15100B", surface: "#1F1811", sunken: "#0E0A07",
+      paper: "#F2E8D5", muted: "#B7A68A", faint: "#806F57",
+      brass: "#D9A441", line: "rgba(242,232,213,.11)", lineSoft: "rgba(242,232,213,.055)",
+      shadow: "0 1px 2px rgba(0,0,0,.34), 0 12px 30px -24px rgba(0,0,0,.8)",
+      shadowUp: "0 3px 8px rgba(0,0,0,.42), 0 24px 52px -26px rgba(0,0,0,.9)",
+      zone: "#B7A68A", zoneOn: "#D9A441",
+      sta: { "معتمدة": "#6FAE7A", "تم الرفض": "#D4735C", "قيد الدراسة": "#D9A441", "تم التصويت": "#93A2AE" },
+      pri: { "عالية جدًا": "#D4735C", "عالية": "#D9A441", "متوسطة": "#93A2AE", "عادية": "#806F57" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#D4735C", "تصميمي/جمالي": "#B49AD0", "ترقية": "#6FAE7A",
+        "استفسار فني توضيحي": "#93A2AE", "تجاري": "#D9A441", "إداري/نظامي": "#B7A68A",
+      },
+      extra: ["#B49AD0", "#6FAE7A", "#C98F6B", "#93A2AE"],
+      onAccent: "#15100B",
+    },
+    light: {
+      bg: "#F3EAD8", surface: "#FFFAF0", sunken: "#E8DCC4",
+      paper: "#2A1E12", muted: "#6A5740", faint: "#9A886C",
+      brass: "#8F4E16", line: "rgba(42,30,18,.13)", lineSoft: "rgba(42,30,18,.065)",
+      shadow: "0 1px 2px rgba(42,30,18,.05), 0 10px 24px -20px rgba(42,30,18,.24)",
+      shadowUp: "0 2px 6px rgba(42,30,18,.08), 0 22px 46px -22px rgba(42,30,18,.3)",
+      zone: "#6A5740", zoneOn: "#8F4E16",
+      sta: { "معتمدة": "#2F6B43", "تم الرفض": "#A3402C", "قيد الدراسة": "#8A5E10", "تم التصويت": "#4F5F6B" },
+      pri: { "عالية جدًا": "#A3402C", "عالية": "#8A5E10", "متوسطة": "#4F5F6B", "عادية": "#9A886C" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#A3402C", "تصميمي/جمالي": "#5E4A8C", "ترقية": "#2F6B43",
+        "استفسار فني توضيحي": "#4F5F6B", "تجاري": "#8A5E10", "إداري/نظامي": "#6A5740",
+      },
+      extra: ["#5E4A8C", "#2F6B43", "#8A5140", "#4F5F6B"],
+      onAccent: "#FFFAF0",
+    },
+  },
+  andalus: {
+    label: "أندلس", labelEn: "Andalus",
+    note: "روح أندلسية في قلب الرياض — أزرق الزليج وزعفران الفجر، رواق أقواس أعلى الصفحة ونجمة ثمانية على البطاقات.",
+    swatch: ["#0A1326", "#7FA8F5", "#F0B24A"],
+    skin: SKIN_ANDALUS,
+    dark: {
+      bg: "#0A1326", surface: "#111D36", sunken: "#060C19",
+      paper: "#EEF2F9", muted: "#9DAAC2", faint: "#687793",
+      brass: "#7FA8F5", line: "rgba(238,242,249,.11)", lineSoft: "rgba(238,242,249,.055)",
+      shadow: "0 1px 2px rgba(0,0,0,.34), 0 12px 30px -24px rgba(0,0,0,.8)",
+      shadowUp: "0 3px 8px rgba(0,0,0,.42), 0 24px 52px -26px rgba(0,0,0,.9)",
+      zone: "#9DAAC2", zoneOn: "#7FA8F5",
+      sta: { "معتمدة": "#4FBF9A", "تم الرفض": "#EC7063", "قيد الدراسة": "#F0B24A", "تم التصويت": "#A9A2DC" },
+      pri: { "عالية جدًا": "#EC7063", "عالية": "#F0B24A", "متوسطة": "#7FA8F5", "عادية": "#687793" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#EC7063", "تصميمي/جمالي": "#A9A2DC", "ترقية": "#4FBF9A",
+        "استفسار فني توضيحي": "#7FA8F5", "تجاري": "#F0B24A", "إداري/نظامي": "#9DAAC2",
+      },
+      extra: ["#A9A2DC", "#4FBF9A", "#E58F6B", "#F0B24A"],
+      onAccent: "#0A1326",
+      accent2: "#F0B24A", accent3: "#E58F6B",
+    },
+    light: {
+      bg: "#F8F5EF", surface: "#FFFFFF", sunken: "#EEE9DE",
+      paper: "#13203B", muted: "#536079", faint: "#8B95A9",
+      brass: "#1D4FA8", line: "rgba(19,32,59,.12)", lineSoft: "rgba(19,32,59,.06)",
+      shadow: "0 1px 2px rgba(19,32,59,.05), 0 10px 24px -20px rgba(19,32,59,.24)",
+      shadowUp: "0 2px 6px rgba(19,32,59,.08), 0 22px 46px -22px rgba(19,32,59,.3)",
+      zone: "#536079", zoneOn: "#1D4FA8",
+      sta: { "معتمدة": "#17785C", "تم الرفض": "#B5382C", "قيد الدراسة": "#96660A", "تم التصويت": "#5A4FA0" },
+      pri: { "عالية جدًا": "#B5382C", "عالية": "#96660A", "متوسطة": "#1D4FA8", "عادية": "#8B95A9" },
+      cat: {
+        "تصحيح عيب تنفيذي": "#B5382C", "تصميمي/جمالي": "#5A4FA0", "ترقية": "#17785C",
+        "استفسار فني توضيحي": "#1D4FA8", "تجاري": "#96660A", "إداري/نظامي": "#536079",
+      },
+      extra: ["#5A4FA0", "#17785C", "#B4572F", "#96660A"],
+      onAccent: "#FFFFFF",
+      accent2: "#C98A12", accent3: "#B4572F",
+    },
+  },
 };
-export const THEME_KEYS = ["classic", "ufuq", "mahdar", "mukhattat", "masar"];
+export const THEME_KEYS = ["classic", "ufuq", "mahdar", "mukhattat", "masar", "najd", "andalus"];
 export const DEFAULT_THEME_KEY = "classic";
 
 /* خطوط إضافية تُحمَّل فقط عند اعتماد طقم يحتاجها — ما نثقّل الزائر بلا داعٍ */
 const SKIN_FONTS = {
   mahdar: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap",
+  najd: "https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;600;700&display=swap",
+  andalus: "https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;600;700&display=swap",
 };
 export function useSkinFont(themeKey) {
   useEffect(() => {

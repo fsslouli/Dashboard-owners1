@@ -13,6 +13,25 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.0.0",
+    dateAr: "10 نوفمبر 2026",
+    dateEn: "November 10, 2026",
+    ar: [
+      "تذاكر الملاك: زر «أرسل استفسارك» في الموقع — المالك يكتب استفساره أو مقترحه برقم فيلته ويستلم رقم تذكرة، ويتابع حالتها والرد عليها لاحقًا برقم التذكرة",
+      "لوحة الإدارة ← «تذاكر الملاك»: فرز ما لم يُراجع وما تمّ، رد للمالك، ربط التذكرة برقم الاستفسار، استخراج إكسل، وزر استقبال التذاكر (للجميع / للملاك المسجّلين / مقفول)",
+      "طقم سادس: «نجد» — هوية تراثية بألوان الطين والذهب والنخيل، عناوين بالخط الكوفي، وإفريز الشُّرَف المثلثة أعلى الصفحة وعلى حواف البطاقات",
+      "طقم سابع: «أندلس» — روح أندلسية في قلب الرياض: أزرق الزليج وزعفران الفجر، رواق أقواس أعلى الصفحة، ونجمة ثمانية على البطاقات",
+      "أمان: حساب الإدارة لازم يكون له ملف صلاحيات حتى يتجاوز قفل دخول الملاك — أي حساب مسجَّل بلا ملف يُعامل كزائر",
+    ],
+    en: [
+      "Owner tickets: a «Send your inquiry» button on the site — an owner writes an inquiry or suggestion with their villa number, receives a ticket number, and can later follow its status and reply.",
+      "Admin panel → «Owner tickets»: sort unreviewed and done, reply to the owner, link a ticket to an inquiry number, export to Excel, and an intake switch (everyone / signed-in owners / off).",
+      "A sixth look: Najd — a heritage identity in clay, gold and palm tones, Kufi headings, and a triangular Najdi frieze along the top of the page and card edges.",
+      "A seventh look: Andalus — an Andalusian spirit in the heart of Riyadh: zellige blue and dawn saffron, an arcade along the top of the page, and an eight-pointed star on the cards.",
+      "Security: an admin account must have a permissions profile to pass the owner-login lock — any account without one is treated as a visitor.",
+    ],
+  },
+  {
     version: "6.12.0",
     dateAr: "10 نوفمبر 2026",
     dateEn: "November 10, 2026",
