@@ -26,12 +26,15 @@
    admin-brief.js           الملخّص التنفيذي (منطق خالص)
    admin-meeting-sheet.js   ورقة إكسل للاجتماع القادم (كاتب xlsx صغير بلا مكتبات)
    admin-telegram.jsx       نشر تحديث في قروب الملاك على تليجرام (يحتاج إعداد البوت)
+   gate-kit.jsx             دخول الملاك: شاشة الدخول برقم الفيلا + توجيه الموقع حسب وضع القفل
+   admin-owner-login.jsx    تبويب «دخول الملاك» بلوحة الإدارة (التفعيل، حدود الزائر، الأرقام السرية)
    Dashboard.jsx (هذا الملف) نقطة الدخول النهائية فقط — ولوحة الإدارة تُحمَّل منه عند الطلب
    ═══════════════════════════════════════════════════════════ */
 import { PublicSite } from "./public-site.jsx";
 import { hideBoot } from "./site-data.jsx";
 import { SHARE_HOST, onShareHost, shareTokenFromHash } from "./share-kit.jsx";
 import { ShareApp } from "./share-viewer.jsx";
+import { GateRoot } from "./gate-kit.jsx";
 import { Component, Suspense, lazy, useEffect, useLayoutEffect, useState } from "react";
 
 /* ═══════════════════════════════════════════════════════════
@@ -153,7 +156,9 @@ function App() {
       </AdminBoundary>
     );
   }
-  return <PublicSite />;
+  /* 6.12.0 — دخول الملاك: GateRoot يقرر (حسب إعداد لوحة الإدارة) هل يُعرض الموقع، شاشة الدخول، أو الأقسام المسموحة للزائر فقط.
+     لما الخاصية مقفولة يرسم الموقع كما هو بالضبط. */
+  return <GateRoot render={(gate, key) => <PublicSite key={key} gate={gate} />} />;
 }
 
 export default App;

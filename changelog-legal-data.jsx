@@ -13,6 +13,25 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "6.12.0",
+    dateAr: "10 نوفمبر 2026",
+    dateEn: "November 10, 2026",
+    ar: [
+      "دخول الملاك: خاصية جديدة لتسجيل الدخول للموقع برقم الفيلا ورقم سري من 6 أرقام، تُفعَّل وتُقفل من لوحة الإدارة (تبويب «دخول الملاك»)",
+      "ثلاثة أوضاع: الموقع مفتوح، قفل كامل، أو قفل مع أقسام تحددها الإدارة يشوفها الزائر بدون دخول",
+      "لوحة الإدارة: إنشاء حسابات كل الفلل دفعة واحدة، كشف الأرقام السرية، إعادة التعيين، إيقاف حساب، فك القفل، وتصدير الكشف إكسل",
+      "الحماية من قاعدة البيانات نفسها، مع قفل مؤقت 15 دقيقة بعد 5 محاولات خاطئة؛ وروابط المشاركة الخاصة تبقى تشتغل",
+      "نسخة الاستفسارات الاحتياطية ما عادت مطبوعة داخل ملف الموقع — الاحتياط صار آخر نسخة قرأها المتصفح نفسه",
+    ],
+    en: [
+      "Owner login: a new sign-in for the site using the villa number and a 6-digit PIN, switched on and off from the admin panel («Owner login» tab).",
+      "Three modes: site open, full lock, or a lock with admin-selected sections visible to visitors without signing in.",
+      "Admin panel: create all villa accounts at once, view PINs, reset, disable an account, unlock, and export the list to Excel.",
+      "Enforced by the database itself, with a 15-minute lockout after 5 wrong attempts; private share links keep working.",
+      "The fallback copy of the inquiries is no longer bundled in the site file — the fallback is now the last copy the browser itself read.",
+    ],
+  },
+  {
     version: "6.11.7",
     dateAr: "28 أكتوبر 2026",
     dateEn: "October 28, 2026",

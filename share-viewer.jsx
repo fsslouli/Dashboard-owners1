@@ -7,6 +7,7 @@ import { THEMES, hideBoot } from "./site-data.jsx";
 import { PublicSite } from "./public-site.jsx";
 import { ShareGuard } from "./share-guard.jsx";
 import { SHARE_MESSAGES, callShare, createTracker, isValidToken, shareTokenFromHash } from "./share-kit.jsx";
+import { endShareSession, ensureShareSession } from "./gate-kit.jsx";
 
 const skey = (t) => `share_sid_${t.slice(0, 12)}`;
 const readSid = (t) => { try { return sessionStorage.getItem(skey(t)); } catch { return null; } };
@@ -78,8 +79,12 @@ export function ShareApp() {
         if (sid) {
           const r = await callShare("session", { sid });
           if (!live) return;
-          if (r.state === "ok") { setGrant({ scope: r.scope || {}, note: r.note || "", endsAt: r.sessionEnds }); setSt("ready"); return; }
-          writeSid(token, null);
+          if (r.state === "ok") {
+            await ensureShareSession(sid);   /* 6.12.0: لو دخول الملاك مفعّل، المستلم يأخذ جلسة قراءة مؤقتة */
+            if (!live) return;
+            setGrant({ scope: r.scope || {}, note: r.note || "", endsAt: r.sessionEnds }); setSt("ready"); return;
+          }
+          writeSid(token, null); endShareSession();
           if (r.state !== "session_ended") { setSt(r.state); return; }
           setSt("session_ended"); return;
         }
@@ -97,7 +102,7 @@ export function ShareApp() {
     try {
       const r = await callShare("open", { token, pin: needPin ? pin.trim() : undefined, client: clientInfo() });
       if (!alive.current) return;
-      if (r.state === "ok") { writeSid(token, r.sid); setGrant({ scope: r.scope || {}, note: r.note || "", endsAt: r.sessionEnds }); setSt("ready"); }
+      if (r.state === "ok") { writeSid(token, r.sid); await ensureShareSession(r.sid); if (!alive.current) return; setGrant({ scope: r.scope || {}, note: r.note || "", endsAt: r.sessionEnds }); setSt("ready"); }
       else if (r.state === "pin") { setNeedPin(true); setPinErr("هذا الرابط يتطلب رمز دخول"); }
       else if (r.state === "pin_wrong") { setPinErr(`رمز الدخول غير صحيح — تبقّى ${r.left} محاولات قبل القفل المؤقت`); setPin(""); }
       else setSt(r.state);
@@ -123,7 +128,7 @@ export function ShareApp() {
       try {
         const r = await callShare("session", { sid });
         if (!live) return;
-        if (r.state !== "ok") { writeSid(token, null); setGrant(null); setSt(r.state); }
+        if (r.state !== "ok") { writeSid(token, null); endShareSession(); setGrant(null); setSt(r.state); }
       } catch { /* انقطاع مؤقت — نكمل ونعيد المحاولة بالدورة التالية */ }
     };
     const iv = setInterval(check, 45000);
