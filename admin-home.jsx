@@ -2,6 +2,7 @@
 import { MfaGate, ASecurityTab, useIdleSignOut } from "./security-kit.jsx";
 import { SiteCustomPanel } from "./site-admin.jsx";
 import { AdminLogin, isoAdminDate, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
+import { AOwnerLoginTab } from "./admin-owner-login.jsx";
 import { ALocked, aNoteStyle } from "./admin-excel-utils.jsx";
 import { AMediaTab } from "./admin-media-tab.jsx";
 import { AInsightsTab } from "./admin-insights-tab.jsx";
@@ -133,6 +134,7 @@ const ADMIN_TABS = [
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_theme"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
+  { key: "ownerlogin", label: "دخول الملاك", perms: ["manage_owner_login"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
   { key: "security", label: "الأمان", perms: null },
 ];
@@ -169,6 +171,13 @@ function AdminHome({ session, onLogout }) {
   };
 
   if (profile === undefined) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", color: T.muted, fontFamily: "system-ui" }}>جارٍ التحميل...</div>;
+  /* 6.12.0 — حساب فيلا (أو جلسة مشاركة) فتح #admin: هذا مو حساب إدارة — نعرض دخول الإدارة بعد الخروج منه */
+  if (!profile && (session.user.app_metadata?.villa_login != null || session.user.app_metadata?.share_link)) return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", gap: 12, alignItems: "center", justifyContent: "center", padding: 20 }} dir="rtl">
+      <ALocked text="لوحة الإدارة مخصصة لفريق تمثيل الملاك. حساب الفيلا يفتح الموقع فقط." />
+      <button onClick={() => { window.location.hash = ""; }} style={{ border: `1px solid ${T.line}`, background: "transparent", color: T.muted, borderRadius: 10, padding: "9px 16px", fontSize: 13, fontFamily: "inherit", cursor: "pointer" }}>رجوع للموقع</button>
+    </div>
+  );
   if (!profile) return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} dir="rtl">
       <ALocked text={`حسابك (${session.user.email}) مسجّل دخول لكن ما له صلاحيات بعد. أضف صف له بجدول profiles من لوحة Supabase (راجع setup-supabase.sql).`} />
@@ -212,6 +221,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
+        {activeTab === "ownerlogin" && <AOwnerLoginTab flashToast={flashToast} log={log} canManage={has("manage_owner_login")} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "security" && <ASecurityTab flashToast={flashToast} log={log} email={session.user.email} />}
         {activeTab === "users" && <AUsersTab profile={profile} flashToast={flashToast} log={log} canCreate={has("create_users")} canEditPerms={has("edit_permissions")} />}

@@ -1,7 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: site-data */
 import { supabase } from "./app-bootstrap.jsx";
 import { createContext, useContext, useEffect, useState } from "react";
-import INQUIRIES_DATA from "./inquiries.json";
 import { BANNAA_FONT, bannaaGround } from "./design-bannaa.jsx";
 import { DEFAULT_DESIGN_KEY, DESIGN_KEYS } from "./design-nova.jsx";
 
@@ -138,7 +137,7 @@ export const DOC_COLORS = {
   dark: { red: "#D48D87", yellow: "#D8B274", green: "#74B698", blue: "#8AB0C2" },
 };
 
-/* البيانات مستوردة من inquiries.json — راجع README لمنطق التحديث الأسبوعي */
+/* البيانات تُقرأ حيّة من قاعدة البيانات (6.12.0: ما عاد فيه نسخة مطبوعة داخل الملف) */
 const CHANGE_WINDOW_DAYS = 7;
 export function isRecentlyChanged(d) {
   if (!d) return false;
@@ -718,16 +717,22 @@ export const fmtDate = (iso, lang = "ar") => {
   catch { return ""; }
 };
 
-/* ── النسخة الأساسية كسجلات نصية ── مستوردة من inquiries.json */
-export const BASE = INQUIRIES_DATA.map((r) => ({
-  id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
-  answered: !!r.answered, owner: r.owner, ownerTitle: r.owner_title || "", month: r.month, closed: !!r.closed,
-  meeting: r.meetings && r.meetings.length ? r.meetings[0] : null,
-  meetings: Array.isArray(r.meetings) ? r.meetings : [],
-  note: r.note, reply: r.reply, note_en: r.note_en, reply_en: r.reply_en,
-  last_modified: r.last_modified,
-  urgent: !!r.urgent, important: !!r.important, urgent_until: r.urgent_until || null, important_until: r.important_until || null,
-}));
+/* ── النسخة الاحتياطية للاستفسارات ──
+   6.12.0: كانت نسخة كاملة من الاستفسارات مطبوعة داخل ملف الموقع نفسه (inquiries.json)، فيقرأها أي أحد
+   حتى لو قاعدة البيانات مقفلة بتسجيل الدخول. الآن الاحتياط هو آخر نسخة حيّة نجح هذا المتصفح بقراءتها
+   (تُمسح عند تسجيل الخروج أو لما القاعدة ترفض القراءة)، فما ينزل للزائر شي ما يحق له. */
+export const BASE = [];
+const INQ_CACHE_KEY = "inq_cache_v1";
+export function readInqCache() {
+  try { const v = JSON.parse(localStorage.getItem(INQ_CACHE_KEY) || "null"); return Array.isArray(v) ? v : BASE; } catch { return BASE; }
+}
+export function writeInqCache(rows) {
+  try { localStorage.setItem(INQ_CACHE_KEY, JSON.stringify(rows || [])); } catch { /* تخزين ممتلئ أو ممنوع — نكمل بدونه */ }
+}
+export function clearInqCache() {
+  try { localStorage.removeItem(INQ_CACHE_KEY); } catch { /* */ }
+}
+
 
 /* ═══════════════════════════════════════════════════════════
    ٦. تقدم التنفيذ — من ورقة KPIs في ملف «تقدم الوحدة والمراحل»

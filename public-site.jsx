@@ -4,7 +4,7 @@ import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-
 import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
 import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
-import { setDynEn, trText, AR_DIGITS, BASE, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
+import { setDynEn, trText, readInqCache, writeInqCache, clearInqCache, AR_DIGITS, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useI18nMemory } from "./i18n-memory.js";
 import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
@@ -156,7 +156,7 @@ function NoticesModal({ enabled, links = [], onLeave = () => {} }) {
   );
 }
 
-export function PublicSite({ share = null } = {}) {
+export function PublicSite({ share = null, gate = null } = {}) {
   const reduced = usePrefersReduced();
   const { mode, setMode, resolved } = useThemeMode();
   const { lang, setLang } = useLangMode();
@@ -192,7 +192,9 @@ export function PublicSite({ share = null } = {}) {
   /* وضع المشاركة (3.3.0): رابط خاص يعرض الأقسام المحددة فقط — بدون إدارة ولا سجل تحديثات ولا رابط للموقع الرئيسي */
   const shareScope = share ? (share.scope || {}) : null;
   const SHARE_ORDER = ["overview", "notes", "progress", "docs", "gallery"];
-  const tabOk = (k) => !shareScope || (Array.isArray(shareScope.tabs) && shareScope.tabs.includes(k));
+  /* دخول الملاك (6.12.0): زائر بلا دخول في الوضع الجزئي يشوف فقط الأقسام اللي حددتها الإدارة (gate.tabs) */
+  const guestTabs = !share && gate && Array.isArray(gate.tabs) ? gate.tabs : null;
+  const tabOk = (k) => (guestTabs ? guestTabs.includes(k) : !shareScope || (Array.isArray(shareScope.tabs) && shareScope.tabs.includes(k)));
   const docsList = shareScope && Array.isArray(shareScope.docs) ? DOCS.filter((d) => shareScope.docs.includes(d.id)) : DOCS;
   useSkinFont(themeKey);
   const nova = designKey === "nova";
@@ -228,7 +230,7 @@ export function PublicSite({ share = null } = {}) {
   }, [cfgReady, pageBg, T.muted, resolved]);
 
   const hashTab = () => { try { const k = (window.location.hash || "").replace(/^#\/?/, ""); return PUBLIC_TAB_KEYS.includes(k) ? k : null; } catch { return null; } };
-  const [tab, setTabRaw] = useState(() => (shareScope ? (SHARE_ORDER.find(tabOk) || "overview") : (hashTab() && tabOk(hashTab()) ? hashTab() : "overview")));
+  const [tab, setTabRaw] = useState(() => (shareScope ? (SHARE_ORDER.find(tabOk) || "overview") : (hashTab() && tabOk(hashTab()) ? hashTab() : (guestTabs ? (SHARE_ORDER.find(tabOk) || "overview") : "overview"))));
   /* في وضع المشاركة: أي محاولة للانتقال لقسم غير مسموح (مثل القفز من الرسوم لقسم الملاحظات) تُتجاهل */
   const setTab = (k) => setTabRaw((cur) => (tabOk(k) ? k : cur));
   /* التتبع (٤.٠): نخبر صفحة المشاركة بالقسم الحالي ليُسجَّل مع كل ضغطة */
@@ -286,12 +288,12 @@ export function PublicSite({ share = null } = {}) {
     return () => window.removeEventListener("message", onMsg);
   }, [model3d]);
   const [built, setBuilt] = useState(false);
-  const [data, setData] = useState({ records: BASE, newKeys: [], updatedAt: null, label: "" });
+  const [data, setData] = useState(() => ({ records: readInqCache(), newKeys: [], updatedAt: null, label: "" }));
 
   /* تحديث لحظي: يجيب البيانات الحية من قاعدة البيانات، ويشترك بالتغييرات الفورية
      (Supabase Realtime) — أي تعديل يسويه الأدمن (مزامنة إكسل أو يدوي) ينعكس هنا
      تلقائيًا بدون ما يحتاج الزائر يحدّث الصفحة. لو فشل الاتصال أو الجدول فاضي،
-     يبقى الموقع شغّال بالنسخة الأساسية (BASE) بدون أي انقطاع. */
+     يبقى الموقع شغّال بآخر نسخة قرأها هذا المتصفح بدون أي انقطاع. */
   useEffect(() => {
     const mapRow = (r) => ({
       id: r.id, model: r.model, loc: r.loc, pri: r.pri, cat: r.cat || "", party: r.party || "", sta: r.status,
@@ -324,7 +326,9 @@ export function PublicSite({ share = null } = {}) {
           const r2 = await sel(optCols().filter((x) => !dropped.includes(x)));
           if (!r2.error) { dropped.forEach((x) => { OPT_COLS_OK[x] = false; }); rows = r2.data; error = null; }
         }
-        if (!error && rows && rows.length) setData((d) => ({ ...d, records: rows.map(mapRow) }));
+        if (!error && rows && rows.length) { const recs = rows.map(mapRow); setData((d) => ({ ...d, records: recs })); writeInqCache(recs); }
+        /* القاعدة ردّت بلا صفوف (مقفلة بتسجيل الدخول أو فاضية فعلًا) — ما نعرض نسخة قديمة محفوظة بالجهاز */
+        else if (!error && rows) { clearInqCache(); setData((d) => (d.records.length ? { ...d, records: [] } : d)); }
       } catch {}
       finally { setLoading(false); }
     };
