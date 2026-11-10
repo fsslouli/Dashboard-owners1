@@ -48,6 +48,7 @@ export const ADMIN_PERMISSIONS = [
   { group: "المحتوى والمظهر", key: "manage_share", label: "إنشاء وإدارة روابط المشاركة", icon: Link2 },
   { group: "المحتوى والمظهر", key: "manage_theme", label: "تغيير مظهر الموقع وتسمية الأقسام", icon: Palette },
   { group: "الإدارة", key: "view_audit_log", label: "عرض سجل نشاط الإدارة", icon: History },
+  { group: "الإدارة", key: "manage_tickets", label: "إدارة تذاكر الملاك (الاستفسارات والمقترحات الواردة من الموقع)", icon: Lock },
   { group: "الإدارة", key: "manage_owner_login", label: "إدارة دخول الملاك (التفعيل والأرقام السرية للفلل)", icon: Lock },
   { group: "الإدارة", key: "create_users", label: "إنشاء حسابات دخول جديدة", icon: UserPlus },
   { group: "الإدارة", key: "edit_permissions", label: "تعديل صلاحيات أعضاء موجودين", icon: ShieldCheck },

@@ -12,6 +12,7 @@ import { Eye, EyeOff, KeyRound, LogIn, LogOut, ShieldCheck } from "lucide-react"
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from "./app-bootstrap.jsx";
 import { THEMES, clearInqCache, hideBoot } from "./site-data.jsx";
 import { WmLayer, sanitizeWm, wmStamp } from "./share-wm-kit.jsx";
+import { TicketLauncher } from "./ticket-kit.jsx";
 
 export const GATE_MODES = ["off", "full", "partial"];
 export const GATE_TABS = ["overview", "notes", "progress", "docs", "gallery"];
@@ -21,7 +22,7 @@ const CFG_KEY = "gate_cfg_v1";
 const readCfg = () => {
   try {
     const v = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
-    return v && GATE_MODES.includes(v.mode) ? { mode: v.mode, tabs: Array.isArray(v.tabs) ? v.tabs.filter((t) => GATE_TABS.includes(t)) : [], wm: v.wm && typeof v.wm === "object" ? v.wm : null } : null;
+    return v && GATE_MODES.includes(v.mode) ? { mode: v.mode, tabs: Array.isArray(v.tabs) ? v.tabs.filter((t) => GATE_TABS.includes(t)) : [], wm: v.wm && typeof v.wm === "object" ? v.wm : null, tickets: ["off", "owners", "all"].includes(v.tickets) ? v.tickets : "off" } : null;
   } catch { return null; }
 };
 const writeCfg = (c) => { try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch { /* */ } };
@@ -54,20 +55,20 @@ export async function callOwnerLogin(action, body) {
 /* وضع القفل من site_settings — يُقرأ من المخبّأ أولًا (شاشة الدخول تطلع فورًا بلا وميض) ثم يتحدّث لحظيًا */
 export function useGateConfig() {
   const [cached] = useState(readCfg);
-  const [cfg, setCfg] = useState(() => cached || { mode: "off", tabs: [], wm: null });
+  const [cfg, setCfg] = useState(() => cached || { mode: "off", tabs: [], wm: null, tickets: "off" });
   const [ready, setReady] = useState(!!cached);
   useEffect(() => {
     let alive = true;
     const guard = setTimeout(() => { if (alive) setReady(true); }, 2500);
     const pull = async () => {
       try {
-        let { data, error } = await supabase.from("site_settings").select("gate_mode,gate_guest_tabs,gate_wm").eq("id", 1).single();
+        const { data, error } = await supabase.from("site_settings").select("*").eq("id", 1).single();
         if (!alive) return;
         /* العمودان غير موجودين = الهجرة ما اشتغلت بعد → الموقع مفتوح كما كان */
         const next = error || !data
-          ? { mode: "off", tabs: [], wm: null }
-          : { mode: GATE_MODES.includes(data.gate_mode) ? data.gate_mode : "off", tabs: (data.gate_guest_tabs || []).filter((t) => GATE_TABS.includes(t)), wm: data.gate_wm && typeof data.gate_wm === "object" ? data.gate_wm : null };
-        setCfg((p) => (p.mode === next.mode && p.tabs.join() === next.tabs.join() && JSON.stringify(p.wm) === JSON.stringify(next.wm) ? p : next));
+          ? { mode: "off", tabs: [], wm: null, tickets: "off" }
+          : { tickets: ["off", "owners", "all"].includes(data.tickets_mode) ? data.tickets_mode : "off", mode: GATE_MODES.includes(data.gate_mode) ? data.gate_mode : "off", tabs: (data.gate_guest_tabs || []).filter((t) => GATE_TABS.includes(t)), wm: data.gate_wm && typeof data.gate_wm === "object" ? data.gate_wm : null };
+        setCfg((p) => (p.mode === next.mode && p.tabs.join() === next.tabs.join() && JSON.stringify(p.wm) === JSON.stringify(next.wm) && p.tickets === next.tickets ? p : next));
         writeCfg(next);
       } catch { /* يبقى المخبّأ */ }
       finally { if (alive) { clearTimeout(guard); setReady(true); } }
@@ -251,13 +252,24 @@ export function GateRoot({ render }) {
   const logout = async () => { clearInqCache(); await supabase.auth.signOut({ scope: "local" }); };
 
   if (!cfg.ready || session === undefined) return null;   /* شاشة الإقلاع باقية لحد ما نعرف الوضع */
-  if (!active) return render(null, "open");
+  /* زر «أرسل استفسارك» (7.0.0): للجميع أو للملاك المسجّلين فقط حسب إعداد لوحة الإدارة */
+  const ticketsFor = (isVilla) => cfg.tickets === "all" || (cfg.tickets === "owners" && isVilla);
+  if (!active) {
+    return (
+      <>
+        {render(null, "open")}
+        {kind === "villa" && <GateChip label={`فيلا ${villa}`} action="خروج" Icon={LogOut} onClick={logout} />}
+        {ticketsFor(kind === "villa") && <TicketLauncher villa={kind === "villa" ? villa : null} raised={kind === "villa"} />}
+      </>
+    );
+  }
   if (member) {
     return (
       <>
         {render(null, `m-${session.user.id}`)}
         {kind === "villa" && <GateChip label={`فيلا ${villa}`} action="خروج" Icon={LogOut} onClick={logout} />}
         {kind === "villa" && <VillaWatermark wm={cfg.wm} villa={villa} uid={session.user.id} />}
+        {ticketsFor(kind === "villa") && <TicketLauncher villa={kind === "villa" ? villa : null} raised={kind === "villa"} />}
       </>
     );
   }
@@ -269,6 +281,7 @@ export function GateRoot({ render }) {
     <>
       {render({ tabs: guestTabs }, "guest")}
       <GateChip label="زائر · أقسام محدودة" action="دخول الملاك" Icon={LogIn} onClick={() => setAsGuest(false)} />
+      {ticketsFor(false) && <TicketLauncher raised />}
     </>
   );
 }

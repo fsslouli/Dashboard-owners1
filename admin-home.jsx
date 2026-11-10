@@ -3,6 +3,7 @@ import { MfaGate, ASecurityTab, useIdleSignOut } from "./security-kit.jsx";
 import { SiteCustomPanel } from "./site-admin.jsx";
 import { AdminLogin, isoAdminDate, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
 import { AOwnerLoginTab } from "./admin-owner-login.jsx";
+import { ATicketsTab } from "./admin-tickets-tab.jsx";
 import { ALocked, aNoteStyle } from "./admin-excel-utils.jsx";
 import { AMediaTab } from "./admin-media-tab.jsx";
 import { AInsightsTab } from "./admin-insights-tab.jsx";
@@ -134,6 +135,7 @@ const ADMIN_TABS = [
   { key: "brief", label: "الملخص التنفيذي", perms: ["view_dashboard"] },
   { key: "theme", label: "مظهر الموقع", perms: ["manage_theme"] },
   { key: "audit", label: "سجل النشاط", perms: ["view_audit_log"] },
+  { key: "tickets", label: "تذاكر الملاك", perms: ["manage_tickets"] },
   { key: "ownerlogin", label: "دخول الملاك", perms: ["manage_owner_login"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
   { key: "security", label: "الأمان", perms: null },
@@ -221,6 +223,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "labels" && <ALabelsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
+        {activeTab === "tickets" && <ATicketsTab flashToast={flashToast} log={log} canManage={has("manage_tickets")} />}
         {activeTab === "ownerlogin" && <AOwnerLoginTab flashToast={flashToast} log={log} canManage={has("manage_owner_login")} />}
         {activeTab === "audit" && <AAuditLogTab />}
         {activeTab === "security" && <ASecurityTab flashToast={flashToast} log={log} email={session.user.email} />}
