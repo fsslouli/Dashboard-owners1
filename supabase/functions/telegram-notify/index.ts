@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
 
     /* ٣) إعداد البوت: أسرار Supabase لها الأولوية، وإلا من جدول bot_config (يُضبط من لوحة الإدارة — ٧.١.٠).
           المفتاح ما يرجع للمتصفح أبدًا: يُكتب مرة واحدة ويُقرأ هنا فقط بمفتاح الخادم. */
-    const { data: cfg } = await adminClient.from("bot_config").select("tg_token,tg_chat_id,tg_chat_title").eq("id", 1).maybeSingle();
+    const { data: cfg } = await adminClient.from("bot_config").select("tg_token,tg_chat_id,tg_chat_title,tg_last_notice_at").eq("id", 1).maybeSingle();
     const envToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
     const envChat = Deno.env.get("TELEGRAM_CHAT_ID") || "";
     let token = envToken || cfg?.tg_token || "";
@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
     const save = (patch: Record<string, unknown>) =>
       adminClient.from("bot_config").upsert({ id: 1, ...patch, updated_at: new Date().toISOString(), updated_by: userData.user!.id });
 
-    let body: { action?: string; text?: unknown; token?: unknown; chat_id?: unknown } = {};
+    let body: { action?: string; text?: unknown; token?: unknown; chat_id?: unknown; mark?: unknown } = {};
     try { body = await req.json(); } catch { return json({ ok: false, error: "bad_json" }, 400); }
 
     /* حفظ مفتاح البوت من لوحة الإدارة (بعد التحقق منه عند تليجرام) */
@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
       if (!chatId) return json({ ok: false, state: "need_chat", bot });
       const chat = await tg("getChat", { chat_id: chatId });
       if (!chat.ok) return json({ ok: false, state: "chat_unreachable", bot });
-      return json({ ok: true, state: "ready", bot, chat: String(chat.result?.title || ""), managed: envToken ? "env" : "panel" });
+      return json({ ok: true, state: "ready", bot, chat: String(chat.result?.title || ""), managed: envToken ? "env" : "panel", last_notice_at: cfg?.tg_last_notice_at ?? null });
     }
     if (!chatId) return json({ ok: false, state: "need_chat" });
 
@@ -136,6 +136,8 @@ Deno.serve(async (req: Request) => {
       if (text.length > MAX_LEN) return json({ ok: false, error: "too_long", max: MAX_LEN }, 400);
       const sent = await tg("sendMessage", { chat_id: chatId, text, link_preview_options: { is_disabled: false } });
       if (!sent.ok) return json({ ok: false, error: "telegram_error", detail: sent.description || "" }, 502);
+      /* ٧.٢.٠: إشعار «تم تحديث الموقع» يسجّل وقت إرساله ليُحسب منه عدد البنود المحدّثة في الإشعار التالي */
+      if (body.mark === "site_update") await save({ tg_last_notice_at: new Date().toISOString() });
       return json({ ok: true, message_id: sent.result?.message_id ?? null });
     }
 
