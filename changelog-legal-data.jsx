@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.1.0",
+    dateAr: "11 نوفمبر 2026",
+    dateEn: "November 11, 2026",
+    ar: [
+      "وضع الاجتماع بلوحة الإدارة: تجهيز جدول الأعمال من البنود المفتوحة وطباعته، تسجيل ردود المطور بعد الاجتماع، ثم اعتمادها على الاستفسارات دفعة واحدة مع محضر جاهز للطباعة",
+      "فحص استلام الفيلا: قائمة فحص تفاعلية حسب نموذج الفيلا، بطريقة الفحص ومعيار القبول ومرجع كل بند، مع طباعة تقرير الملاحظات — تُنشر من لوحة الإدارة",
+      "بوت تليجرام: إعداد البوت واختيار قروب الملاك من لوحة الإدارة مباشرة، وإضافة سطر «الجديد خلال آخر 7 أيام» للتحديث المقترح",
+    ],
+    en: [
+      "Meeting mode in the admin panel: build the agenda from open items and print it, record the developer's replies after the meeting, then apply them to the inquiries in one step with printable minutes.",
+      "Villa handover inspection: an interactive checklist by villa model with the test method, acceptance criterion and reference for each item, plus a printable snag report — published from the admin panel.",
+      "Telegram bot: set up the bot and choose the owners' group directly from the admin panel, and a «new in the last 7 days» line in the suggested update.",
+    ],
+  },
+  {
     version: "7.0.0",
     dateAr: "10 نوفمبر 2026",
     dateEn: "November 10, 2026",
