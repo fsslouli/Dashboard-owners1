@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.2.0",
+    dateAr: "11 نوفمبر 2026",
+    dateEn: "November 11, 2026",
+    ar: [
+      "بوت تليجرام: قوالب رسائل جاهزة بلوحة الإشعارات (تقدم الشهر، تحديث الموقع بعدد البنود، جمع ملاحظات الملاك) تتعبّى من بيانات الموقع، مع فوتر ثابت يوضح أنها رسالة آلية من بوت. اختيار القالب يعبّي النص فقط، والنشر يبقى يدويًا بتأكيد.",
+    ],
+    en: [
+      "Telegram bot: ready-made message templates in the Notices tab (monthly progress, site-updated notice with item count, owners' notes call), filled from site data with a fixed footer marking them as automated bot messages. Picking a template only fills the text; publishing stays manual with confirmation.",
+    ],
+  },
+  {
     version: "7.1.0",
     dateAr: "11 نوفمبر 2026",
     dateEn: "November 11, 2026",
