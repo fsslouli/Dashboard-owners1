@@ -614,3 +614,9 @@ Authentication بلوحة Supabase — ما ينضبط بـ SQL.
 - **تذاكر الملاك:** زر «أرسل استفسارك» في الموقع (`ticket-kit.jsx`) — رقم الفيلا + استفسار/مقترح ← رقم تذكرة `T-123456`، ومتابعة برقم التذكرة + رقم الفيلا. الإدارة: تبويب «تذاكر الملاك» (`admin-tickets-tab.jsx`) بصلاحية `manage_tickets`. القاعدة: `migration-owner-tickets.sql`.
 - **طقمان جديدان:** «نجد» و«أندلس» (`migration-theme-najd.sql` يوسّع قيد `active_theme`).
 - **أمان:** `gate_ok` يشترط ملفًا بجدول `profiles` لحساب الإدارة.
+
+## الإصدار 7.1.0
+
+- **وضع الاجتماع** (`admin-meetings-tab.jsx` · `migration-meetings.sql`): تجهيز جدول الأعمال من البنود المفتوحة وطباعته، تسجيل ردود المطور، ثم `meeting_apply()` تنزّلها على الاستفسارات دفعة واحدة مع نسخة احتياطية.
+- **فحص الاستلام** (`handover-data.jsx` · `handover-kit.jsx` · `admin-handover-tab.jsx` · `migration-handover.sql`): قائمة فحص حسب النموذج، مخفية افتراضيًا (`site_settings.handover_mode`)، تُنشر من لوحة الإدارة. إجابات المالك على جهازه فقط.
+- **بوت تليجرام**: الإعداد من لوحة الإدارة (لصق مفتاح BotFather ← اختيار القروب). المفتاح يُحفظ بجدول `bot_config` (`migration-bot-config.sql`) ولا يرجع للمتصفح. أسرار Supabase `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` لها الأولوية لو وُجدت.

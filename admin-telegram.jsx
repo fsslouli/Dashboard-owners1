@@ -18,9 +18,10 @@ const FN = "telegram-notify";
 const MAX_LEN = 4000;
 const STATE_TEXT = {
   checking: "جارٍ فحص الربط…",
-  not_deployed: "غير مفعّل بعد — البوت جاهز برمجيًا وينتظر الإعداد (README ← «بوت تليجرام»).",
-  not_configured: "الدالة منشورة لكن ينقصها مفتاح البوت أو رقم القروب (أسرار Supabase).",
-  bad_token: "مفتاح البوت غير صحيح — راجع TELEGRAM_BOT_TOKEN.",
+  not_deployed: "دالة البوت غير منشورة على الخادم بعد.",
+  not_configured: "البوت غير مربوط بعد — اتبع خطوات الإعداد بالأسفل (دقيقتين).",
+  need_chat: "المفتاح صحيح — باقي تحديد قروب الملاك (الخطوة ٢ بالأسفل).",
+  bad_token: "مفتاح البوت غير صحيح — انسخه من جديد من BotFather.",
   chat_unreachable: "البوت ما يوصل للقروب — تأكد إنه مضاف للقروب وإن رقم القروب صحيح.",
   forbidden: "حسابك ما عنده صلاحية «الإشعارات» اللازمة للنشر.",
   error: "تعذّر فحص الربط الحين — جرّب «فحص الربط» بعد شوي.",
@@ -35,6 +36,13 @@ export function composeUpdate(inquiries, pgRow, siteUrl, now = new Date()) {
   const closed = all.filter(isClosed).length;
   const lines = [`تحديث لوحة متابعة الملاك — ${now.getDate()} ${MONTH_AR[now.getMonth()]} ${now.getFullYear()}`, ""];
   lines.push(`• الاستفسارات: ${all.length} — مقفلة ${closed} · قيد المتابعة ${all.length - closed}`);
+  /* ملخص الأسبوع: ما أُضيف أو تحدّث خلال آخر ٧ أيام */
+  const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+  const fresh = all.filter((r) => String(r.last_modified || r.lastModified || "").slice(0, 10) >= weekAgo);
+  if (fresh.length) {
+    const freshClosed = fresh.filter(isClosed).length;
+    lines.push(`• الجديد خلال آخر 7 أيام: ${fresh.length} استفسار مضاف أو محدّث${freshClosed ? ` (منها ${freshClosed} أُقفلت)` : ""}`);
+  }
   const ph = pgRow && pgRow.phases;
   const mk = /^(\d{4})-(\d{2})$/.exec(String((pgRow && pgRow.month) || ""));
   if (ph && mk) {
@@ -79,6 +87,46 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
   const draft = useMemo(() => composeUpdate(inquiries, pgRow, siteUrl), [inquiries, pgRow, siteUrl]);
   useEffect(() => { if (!touched) setText(draft); }, [draft, touched]);
 
+  /* إعداد البوت من اللوحة (٧.١.٠): لصق المفتاح ← اختيار القروب. المفتاح يُرسل للخادم مرة واحدة ولا يرجع. */
+  const [tok, setTok] = useState("");
+  const [chats, setChats] = useState(null);
+  const [busy, setBusy] = useState("");
+  const call = async (bodyArg) => {
+    const { data, error } = await supabase.functions.invoke(FN, { body: bodyArg });
+    if (error) throw error;
+    return data || {};
+  };
+  const saveToken = async () => {
+    setBusy("tok");
+    try {
+      const d = await call({ action: "setup_token", token: tok.trim() });
+      if (d.ok) { setTok(""); setSt(d); flashToast(`تم ربط البوت @${d.bot}`); if (log) log("إعداد بوت تليجرام", `ربط البوت @${d.bot}`); }
+      else flashToast("المفتاح غير صحيح — انسخه كاملًا من BotFather");
+    } catch (e) { flashToast("تعذّر حفظ المفتاح"); }
+    setBusy("");
+  };
+  const discover = async () => {
+    setBusy("disc");
+    try { const d = await call({ action: "discover" }); setChats(d.chats || []); if (d.bot) setSt((x) => ({ ...x, bot: d.bot })); }
+    catch (e) { flashToast("تعذّر البحث عن القروبات"); }
+    setBusy("");
+  };
+  const pickChat = async (c) => {
+    setBusy("chat");
+    try {
+      const d = await call({ action: "set_chat", chat_id: c.id });
+      if (d.ok) { flashToast(`تم اعتماد القروب: ${d.chat}`); if (log) log("إعداد بوت تليجرام", `اعتماد القروب: ${d.chat}`); setChats(null); await check(); }
+      else flashToast("البوت ما يوصل لهذا القروب");
+    } catch (e) { flashToast("تعذّر اعتماد القروب"); }
+    setBusy("");
+  };
+  const disconnect = async () => {
+    if (!window.confirm("فصل البوت؟ يُمسح المفتاح والقروب المحفوظان، وتقدر تربطه من جديد لاحقًا.")) return;
+    try { await call({ action: "disconnect" }); if (log) log("إعداد بوت تليجرام", "فصل البوت"); setChats(null); await check(); } catch (e) { flashToast("تعذّر الفصل"); }
+  };
+  const needToken = st.state === "not_configured" || st.state === "bad_token";
+  const needChat = st.state === "need_chat" || st.state === "chat_unreachable";
+
   const ready = st.state === "ready";
   const tooLong = text.length > MAX_LEN;
   const canSend = ready && !sending && !!text.trim() && !tooLong;
@@ -111,6 +159,35 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
       <div style={{ ...aNoteStyle(T, ready ? T.paper : undefined), marginBottom: 12 }}>
         {ready ? `جاهز للنشر — القروب: ${st.chat || "—"}${st.bot ? ` · البوت: @${st.bot}` : ""}` : (STATE_TEXT[st.state] || STATE_TEXT.error)}
       </div>
+      {(needToken || needChat) && (
+        <div style={{ border: `1px dashed ${T.line}`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, lineHeight: 1.9 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>إعداد البوت</div>
+          <div style={{ color: needToken ? T.paper : T.muted }}>
+            <b>١) أنشئ البوت والصق مفتاحه:</b> افتح تليجرام ← ابحث عن <span dir="ltr">@BotFather</span> ← أرسل <span dir="ltr">/newbot</span> ← اكتب اسمًا (مثل «تحديثات ملاك ألبورادا») ثم اسم مستخدم ينتهي بـ <span dir="ltr">bot</span> ← انسخ المفتاح اللي يعطيك والصقه هنا.
+          </div>
+          {needToken && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0 4px" }}>
+              <input value={tok} onChange={(e) => setTok(e.target.value)} type="password" dir="ltr" autoComplete="off" placeholder="123456789:AA…" aria-label="مفتاح البوت"
+                style={{ flex: "1 1 220px", boxSizing: "border-box", background: T.bg, color: T.paper, border: `1px solid ${T.line}`, borderRadius: 10, padding: "9px 11px", fontSize: 13, fontFamily: "ui-monospace, monospace" }} />
+              <button onClick={saveToken} disabled={!tok.trim() || busy === "tok"} style={btn(true, !!tok.trim() && busy !== "tok")}>{busy === "tok" ? "جارٍ التحقق…" : "حفظ المفتاح"}</button>
+            </div>
+          )}
+          <div style={{ color: needChat ? T.paper : T.muted, marginTop: 8 }}>
+            <b>٢) أضف البوت لقروب الملاك:</b> من القروب ← إضافة عضو ← اسم البوت{st.bot ? <> (<span dir="ltr">@{st.bot}</span>)</> : ""}، ثم اكتب أي رسالة بالقروب تبدأ بـ <span dir="ltr">/start</span>، وبعدها اضغط «ابحث عن القروب».
+          </div>
+          {needChat && (
+            <div style={{ marginTop: 8 }}>
+              <button onClick={discover} disabled={busy === "disc"} style={btn(true, busy !== "disc")}>{busy === "disc" ? "جارٍ البحث…" : "ابحث عن القروب"}</button>
+              {chats && !chats.length && <div style={{ color: T.muted, fontSize: 12.5, marginTop: 8 }}>ما ظهر أي قروب. تأكد إنك أضفت البوت للقروب وكتبت رسالة تبدأ بـ <span dir="ltr">/start</span> بعد إضافته، ثم أعد البحث.</div>}
+              {chats && chats.map((c) => (
+                <button key={c.id} onClick={() => pickChat(c)} disabled={busy === "chat"} style={{ ...btn(false), marginTop: 8, width: "100%", justifyContent: "space-between" }}>
+                  <span>{c.title || "بدون اسم"}</span><span style={{ color: T.muted, fontSize: 11.5 }}>اعتماد هذا القروب</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <textarea value={text} dir="rtl" rows={9} aria-label="نص التحديث"
         onChange={(e) => { setText(e.target.value); setTouched(true); setConfirm(false); }}
         style={{ width: "100%", boxSizing: "border-box", background: T.bg, color: T.paper, border: `1px solid ${tooLong ? "#C0392B" : T.line}`, borderRadius: 12, padding: "10px 12px", fontSize: 13, lineHeight: 1.8, fontFamily: "inherit", resize: "vertical" }} />
@@ -126,6 +203,7 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
           <RefreshCw size={14} /> تعبئة من البيانات الحالية
         </button>
         <button onClick={check} style={btn(false)}>فحص الربط</button>
+        {(ready || needChat) && st.managed !== "env" && <button onClick={disconnect} style={btn(false)}>فصل البوت</button>}
       </div>
     </div>
   );

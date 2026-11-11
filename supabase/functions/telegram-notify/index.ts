@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /* ═══════════════════════════════════════════════════════════
-   telegram-notify (٥.٣.٠) — نشر تحديث في قروب الملاك على تليجرام.
+   telegram-notify (٧.١.٠) — نشر تحديث في قروب الملاك على تليجرام + إعداد البوت من لوحة الإدارة.
 
    جاهزة وغير مفعّلة: ما تشتغل إلا بعد الإعداد (README ← «بوت تليجرام»).
    • تُستدعى من لوحة الإدارة فقط بحساب مسجّل — انشرها والتحقق من JWT مفعّل
@@ -52,32 +52,82 @@ Deno.serve(async (req: Request) => {
     const { data: profile } = await adminClient.from("profiles").select("perms").eq("id", userData.user.id).single();
     if (!profile || !(profile.perms || []).includes(PERM)) return json({ ok: false, error: "forbidden" }, 403);
 
-    /* ٣) البوت مضبوط؟ */
-    const token = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "";
-    if (!token || !chatId) return json({ ok: false, state: "not_configured" });
+    /* ٣) إعداد البوت: أسرار Supabase لها الأولوية، وإلا من جدول bot_config (يُضبط من لوحة الإدارة — ٧.١.٠).
+          المفتاح ما يرجع للمتصفح أبدًا: يُكتب مرة واحدة ويُقرأ هنا فقط بمفتاح الخادم. */
+    const { data: cfg } = await adminClient.from("bot_config").select("tg_token,tg_chat_id,tg_chat_title").eq("id", 1).maybeSingle();
+    const envToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
+    const envChat = Deno.env.get("TELEGRAM_CHAT_ID") || "";
+    let token = envToken || cfg?.tg_token || "";
+    let chatId = envChat || cfg?.tg_chat_id || "";
 
-    const tg = async (method: string, payload: Record<string, unknown>): Promise<TgResult> => {
-      const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    const tgWith = async (tk: string, method: string, payload: Record<string, unknown>): Promise<TgResult> => {
+      const r = await fetch(`https://api.telegram.org/bot${tk}/${method}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       return await r.json().catch(() => ({ ok: false }));
     };
+    const tg = (method: string, payload: Record<string, unknown>) => tgWith(token, method, payload);
+    const save = (patch: Record<string, unknown>) =>
+      adminClient.from("bot_config").upsert({ id: 1, ...patch, updated_at: new Date().toISOString(), updated_by: userData.user!.id });
 
-    let body: { action?: string; text?: unknown } = {};
+    let body: { action?: string; text?: unknown; token?: unknown; chat_id?: unknown } = {};
     try { body = await req.json(); } catch { return json({ ok: false, error: "bad_json" }, 400); }
+
+    /* حفظ مفتاح البوت من لوحة الإدارة (بعد التحقق منه عند تليجرام) */
+    if (body.action === "setup_token") {
+      const tk = String(body.token ?? "").trim();
+      if (!/^[0-9]{6,12}:[A-Za-z0-9_-]{30,60}$/.test(tk)) return json({ ok: false, state: "bad_token" });
+      const me = await tgWith(tk, "getMe", {});
+      if (!me.ok) return json({ ok: false, state: "bad_token" });
+      const { error } = await save({ tg_token: tk, tg_chat_id: null, tg_chat_title: null });
+      if (error) return json({ ok: false, error: "store_failed" }, 500);
+      return json({ ok: true, state: "need_chat", bot: String(me.result?.username || "") });
+    }
+
+    /* فصل البوت: يمسح المفتاح والقروب المحفوظين بالقاعدة */
+    if (body.action === "disconnect") {
+      await save({ tg_token: null, tg_chat_id: null, tg_chat_title: null });
+      return json({ ok: true, state: envToken ? "env_managed" : "not_configured" });
+    }
+
+    if (!token) return json({ ok: false, state: "not_configured" });
+
+    /* البحث عن القروبات اللي أُضيف لها البوت (من آخر التحديثات عنده) */
+    if (body.action === "discover") {
+      const me = await tg("getMe", {});
+      if (!me.ok) return json({ ok: false, state: "bad_token" });
+      const up = (await tg("getUpdates", { limit: 100, allowed_updates: ["message", "my_chat_member", "channel_post"] })) as unknown as { ok?: boolean; result?: Array<Record<string, any>> };
+      const seen = new Map<string, { id: string; title: string; type: string }>();
+      for (const u of up.result || []) {
+        const c = u.message?.chat || u.my_chat_member?.chat || u.channel_post?.chat;
+        if (c && ["group", "supergroup", "channel"].includes(c.type)) seen.set(String(c.id), { id: String(c.id), title: String(c.title || ""), type: String(c.type) });
+      }
+      return json({ ok: true, bot: String(me.result?.username || ""), chats: [...seen.values()] });
+    }
+
+    /* اعتماد القروب */
+    if (body.action === "set_chat") {
+      const cid = String(body.chat_id ?? "").trim();
+      if (!/^-?[0-9]{5,20}$/.test(cid)) return json({ ok: false, state: "chat_unreachable" });
+      const chat = await tg("getChat", { chat_id: cid });
+      if (!chat.ok) return json({ ok: false, state: "chat_unreachable" });
+      await save({ tg_chat_id: cid, tg_chat_title: String(chat.result?.title || "") });
+      return json({ ok: true, state: "ready", chat: String(chat.result?.title || "") });
+    }
 
     /* فحص الجاهزية: المفتاح صحيح + البوت يوصل للقروب */
     if (body.action === "status") {
       const me = await tg("getMe", {});
       if (!me.ok) return json({ ok: false, state: "bad_token" });
-      const chat = await tg("getChat", { chat_id: chatId });
       const bot = String(me.result?.username || "");
+      if (!chatId) return json({ ok: false, state: "need_chat", bot });
+      const chat = await tg("getChat", { chat_id: chatId });
       if (!chat.ok) return json({ ok: false, state: "chat_unreachable", bot });
-      return json({ ok: true, state: "ready", bot, chat: String(chat.result?.title || "") });
+      return json({ ok: true, state: "ready", bot, chat: String(chat.result?.title || ""), managed: envToken ? "env" : "panel" });
     }
+    if (!chatId) return json({ ok: false, state: "need_chat" });
 
     /* النشر */
     if (body.action === "send") {
