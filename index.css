@@ -3,5 +3,8 @@
 @tailwind utilities;
 
 html, body, #root {
-  height: 100%;
+  min-height: 100%;
 }
+/* iOS: لا نثبّت ارتفاع الصفحة على 100% (مع أشرطة المتصفح المتحركة يُقصّ الرأس ويتعذّر الرجوع للأعلى)، ولا نسمح بقفزات تثبيت التمرير */
+html { overflow-anchor: none; -webkit-text-size-adjust: 100%; }
+body { overflow-anchor: none; }
