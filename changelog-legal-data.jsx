@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.2.3",
+    dateAr: "12 نوفمبر 2026",
+    dateEn: "November 12, 2026",
+    ar: [
+      "إصلاح السبب الجذري لتعلّق الصفحة على الجوال: تغيّر حجم الشاشة عند إخفاء/إظهار شريط المتصفح أثناء التمرير كان يسحب الصفحة، فيتعذّر الصعود لأعلاها.",
+    ],
+    en: [
+      "Fixed the root cause of the page getting stuck on phones: the browser bar showing/hiding while scrolling resized the screen and yanked the page, so the top could not be reached.",
+    ],
+  },
+  {
     version: "7.2.2",
     dateAr: "12 نوفمبر 2026",
     dateEn: "November 12, 2026",
