@@ -8,3 +8,17 @@ html, body, #root {
 /* iOS: لا نثبّت ارتفاع الصفحة على 100% (مع أشرطة المتصفح المتحركة يُقصّ الرأس ويتعذّر الرجوع للأعلى)، ولا نسمح بقفزات تثبيت التمرير */
 html { overflow-anchor: none; -webkit-text-size-adjust: 100%; }
 body { overflow-anchor: none; }
+
+/* ══ 7.3.0 — «هيكل الجوال»: على الجوال الصفحة نفسها ما تتمرر؛ التمرير داخل #root.
+   السبب: شريط المتصفح (كروم/سفاري آيفون) يظهر ويختفي مع تمرير المستند، وكان يخلّف الصفحة
+   منزاحة بمقدار ارتفاعه ويتعذّر الصعود لأعلاها. مع مستند ثابت الشريط ما يتحرك أصلًا. ══ */
+@media screen and (max-width: 767px) {
+  html.pub-shell, html.pub-shell body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  html.pub-shell #root {
+    height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
+  }
+  /* قفل التمرير الذي تضعه المعاينات على body ينتقل للحاوية الجديدة */
+  html.pub-shell body[style*="overflow: hidden"] #root,
+  html.pub-shell body[style*="overflow:hidden"] #root { overflow: hidden; }
+}
