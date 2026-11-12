@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.2.1",
+    dateAr: "12 نوفمبر 2026",
+    dateEn: "November 12, 2026",
+    ar: [
+      "إضافة ترجمة «الاجتماع الثامن» للإنجليزية في الفلتر وبطاقات البنود.",
+    ],
+    en: [
+      "Added the English label for the 8th Meeting in the filter and inquiry cards.",
+    ],
+  },
+  {
     version: "7.2.0",
     dateAr: "11 نوفمبر 2026",
     dateEn: "November 11, 2026",
