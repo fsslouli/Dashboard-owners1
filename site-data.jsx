@@ -207,7 +207,7 @@ const OWN_EN = {
   "أبو علي": "Abu Ali", "م/إبراهيم": "Eng. Ibrahim", "وديان": "Wedyan",
 };
 export const MEETING_ORDER = ["الاجتماع السادس ميداني", "الاجتماع الخامس", "الاجتماع الرابع", "الاجتماع الثالث"];
-const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)", "الاجتماع السادس (ميداني)": "6th Meeting (Site Visit)", "الاجتماع السابع": "7th Meeting" };
+const MEETING_EN = { "الاجتماع الثالث": "3rd Meeting", "الاجتماع الرابع": "4th Meeting", "الاجتماع الخامس": "5th Meeting", "الاجتماع السادس ميداني": "6th Meeting (Site Visit)", "الاجتماع السادس (ميداني)": "6th Meeting (Site Visit)", "الاجتماع السابع": "7th Meeting", "الاجتماع الثامن": "8th Meeting" };
 export const MONTH_EN_LABEL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /* ── بحث مُتسامح بالترجمة ──
