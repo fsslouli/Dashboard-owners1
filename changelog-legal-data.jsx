@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.2.2",
+    dateAr: "12 نوفمبر 2026",
+    dateEn: "November 12, 2026",
+    ar: [
+      "إصلاح تعلّق التمرير على الجوال: لا يُقصّ رأس الصفحة بعد النزول ثم الصعود، وتُفكّ قفلة التمرير تلقائيًا إن بقيت بعد إغلاق نافذة.",
+      "زر «رجوع للأعلى» أكبر وأوضح ويظهر أبكر.",
+    ],
+    en: [
+      "Fixed phone scrolling getting stuck: the page header is no longer clipped after scrolling down and back up, and a leftover scroll lock after closing a window is released automatically.",
+      "The Back to top button is larger, clearer and appears sooner.",
+    ],
+  },
+  {
     version: "7.2.1",
     dateAr: "12 نوفمبر 2026",
     dateEn: "November 12, 2026",

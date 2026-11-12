@@ -459,7 +459,7 @@ export function PublicSite({ share = null, gate = null } = {}) {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         const y = window.scrollY;
-        setShowTop(y > 520);
+        setShowTop(y > 240);
         const max = document.documentElement.scrollHeight - window.innerHeight;
         if (progressRef.current) progressRef.current.style.width = `${max > 0 ? Math.min(100, (y / max) * 100) : 0}%`;
         if (tabsRef.current) tabsRef.current.classList.toggle("tabs-glass", y > 8);
@@ -471,6 +471,22 @@ export function PublicSite({ share = null, gate = null } = {}) {
   }, []);
 
   useEffect(() => { const t = setTimeout(() => setBuilt(true), reduced ? 0 : 100); return () => clearTimeout(t); }, [reduced]);
+
+  /* شبكة أمان للتمرير: أي معاين/نافذة تقفل تمرير الصفحة (body overflow:hidden) ثم لا يعيده (تداخل نافذتين أو إغلاق غير مكتمل) = تعلق الصفحة وتعذّر الرجوع للأعلى.
+     عند أول لمسة أو عجلة: إن كان التمرير مقفولًا وما في أي نافذة مفتوحة فعليًا نفكّ القفل. */
+  useEffect(() => {
+    const OVERLAYS = ".ovl,.dvw,.atkv,[role=dialog],[aria-modal=true],[data-edit-ui]";
+    const heal = () => {
+      try {
+        const b = document.body, h = document.documentElement;
+        const locked = b.style.overflow === "hidden" || h.style.overflow === "hidden" || b.style.position === "fixed";
+        if (locked && !document.querySelector(OVERLAYS)) { b.style.overflow = ""; h.style.overflow = ""; if (b.style.position === "fixed") { b.style.position = ""; b.style.top = ""; } }
+      } catch { /* تجاهل */ }
+    };
+    window.addEventListener("touchstart", heal, { passive: true });
+    window.addEventListener("wheel", heal, { passive: true });
+    return () => { window.removeEventListener("touchstart", heal); window.removeEventListener("wheel", heal); };
+  }, []);
 
   /* تتبع صامت: زيارة عند التحميل */
   useEffect(() => { logEvent("visit", null, null, null); }, []);
@@ -752,7 +768,7 @@ export function PublicSite({ share = null, gate = null } = {}) {
 .tabs.tabs-glass{background:${T.bg}F2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:${T.shadow};}
 @media(min-width:768px){.tabs{padding:10px 28px;margin:18px -28px 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}}
 .tl-short{display:none;}
-@media(max-width:767px){.tl-full{display:none;}.mini-bar{top:0!important;}.top-fab{bottom:calc(104px + env(safe-area-inset-bottom))!important;z-index:49;width:38px!important;height:38px!important;opacity:.72;}.tl-short{display:inline;}.wrap{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important;}.tabs{position:fixed;inset-inline:0;top:auto;bottom:0;height:auto;margin:0;z-index:50;flex-direction:row;flex-wrap:nowrap;overflow:visible;gap:2px;padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-radius:0;border-width:1px 0 0;}.tab{position:relative;flex:1 1 0;min-width:0;flex-direction:column;justify-content:center!important;align-items:center;gap:3px;padding:5px 2px;font-size:11px;line-height:1.25;min-height:54px;white-space:normal;text-align:center;border-radius:12px;}.tab-ic{width:26px;height:26px;}.tab-n{position:absolute;top:1px;inset-inline-end:6px;font-size:9px!important;padding:0 5px!important;min-width:0;}}
+@media(max-width:767px){.tl-full{display:none;}.mini-bar{top:0!important;}.top-fab{bottom:calc(104px + env(safe-area-inset-bottom))!important;z-index:49;width:44px!important;height:44px!important;opacity:.95;}.tl-short{display:inline;}.wrap{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important;}.tabs{position:fixed;inset-inline:0;top:auto;bottom:0;height:auto;margin:0;z-index:50;flex-direction:row;flex-wrap:nowrap;overflow:visible;gap:2px;padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-radius:0;border-width:1px 0 0;}.tab{position:relative;flex:1 1 0;min-width:0;flex-direction:column;justify-content:center!important;align-items:center;gap:3px;padding:5px 2px;font-size:11px;line-height:1.25;min-height:54px;white-space:normal;text-align:center;border-radius:12px;}.tab-ic{width:26px;height:26px;}.tab-n{position:absolute;top:1px;inset-inline-end:6px;font-size:9px!important;padding:0 5px!important;min-width:0;}}
 .scroll-progress{position:fixed;top:0;right:0;left:0;height:3px;width:0%;background:${T.brass};z-index:70;pointer-events:none;}
 .tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:13px;border:1px solid ${T.line};
   background:${T.surface};color:${T.muted};font-family:inherit;font-size:14px;cursor:pointer;transition:.18s;
