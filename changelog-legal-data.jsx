@@ -13,6 +13,17 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.3.0",
+    dateAr: "12 نوفمبر 2026",
+    dateEn: "November 12, 2026",
+    ar: [
+      "على الجوال: التمرير صار داخل الموقع نفسه وشريط المتصفح ثابت ما يختفي — لمنع تعلّق الصفحة وتعذّر الصعود لأعلاها بعد النزول.",
+    ],
+    en: [
+      "On phones: scrolling now happens inside the site and the browser bar stays put, preventing the page from getting stuck below its top after scrolling down.",
+    ],
+  },
+  {
     version: "7.2.3",
     dateAr: "12 نوفمبر 2026",
     dateEn: "November 12, 2026",

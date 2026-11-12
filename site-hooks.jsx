@@ -186,3 +186,23 @@ export function useDesktopView() {
 
   return { deskOn: on, toggleDesk: toggle, smallDevice };
 }
+
+
+/* ── هيكل الجوال (7.3.0): الحاوية التي تتمرر فعليًا — #root على الجوال، والمستند على غيره ── */
+export function pageScroller() {
+  try {
+    if (document.documentElement.classList.contains("pub-shell") && window.matchMedia("(max-width: 767px)").matches) {
+      const r = document.getElementById("root"); if (r) return r;
+    }
+  } catch { /* تجاهل */ }
+  return null;
+}
+export function pageScrollY() { const r = pageScroller(); return r ? r.scrollTop : window.scrollY; }
+export function pageScrollMax() {
+  const r = pageScroller();
+  return r ? r.scrollHeight - r.clientHeight : document.documentElement.scrollHeight - window.innerHeight;
+}
+export function pageScrollTo(top, smooth) {
+  const r = pageScroller(); const o = { top, behavior: smooth ? "smooth" : "auto" };
+  try { (r || window).scrollTo(o); } catch { if (r) r.scrollTop = top; else window.scrollTo(0, top); }
+}

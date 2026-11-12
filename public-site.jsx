@@ -6,7 +6,7 @@ import { ProgressTab } from "./progress-tab.jsx";
 import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
 import { setDynEn, trText, readInqCache, writeInqCache, clearInqCache, AR_DIGITS, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useI18nMemory } from "./i18n-memory.js";
-import { useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
+import { pageScrollMax, pageScrollTo, pageScrollY, useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
@@ -463,16 +463,24 @@ export function PublicSite({ share = null, gate = null } = {}) {
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
-        const y = window.scrollY;
+        const y = pageScrollY();
         setShowTop(y > 240);
-        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const max = pageScrollMax();
         if (progressRef.current) progressRef.current.style.width = `${max > 0 ? Math.min(100, (y / max) * 100) : 0}%`;
         if (tabsRef.current) tabsRef.current.classList.toggle("tabs-glass", y > 8);
         raf = null;
       });
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+    /* capture: تمرير #root (هيكل الجوال) ما يصعد لـ window، فنلتقطه في مرحلة الالتقاط */
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => { window.removeEventListener("scroll", onScroll, { capture: true }); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+
+  /* هيكل الجوال: نفعّله ما دام الموقع العام معروضًا، ونشيله عند الخروج (لوحة الإدارة تبقى كما هي) */
+  useLayoutEffect(() => {
+    const h = document.documentElement;
+    h.classList.add("pub-shell");
+    return () => h.classList.remove("pub-shell");
   }, []);
 
   useEffect(() => { const t = setTimeout(() => setBuilt(true), reduced ? 0 : 100); return () => clearTimeout(t); }, [reduced]);
@@ -1859,7 +1867,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
         {showTop && (
           <button
             className="top-fab no-print"
-            onClick={() => { logEvent("click", "back_to_top", null, null); window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); }}
+            onClick={() => { logEvent("click", "back_to_top", null, null); pageScrollTo(0, !reduced); }}
             aria-label={L("رجوع للأعلى", "Back to top")}
           >
             <ArrowUp size={18} />

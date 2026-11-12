@@ -75,8 +75,12 @@ function onClick(e) {
   siteTrack("click", { target: tag, label });
 }
 function onScroll() {
-  const d = document.documentElement; const h = d.scrollHeight - window.innerHeight;
-  if (h > 0) maxScroll = Math.max(maxScroll, Math.min(100, Math.round((window.scrollY / h) * 100)));
+  let y = window.scrollY, h = document.documentElement.scrollHeight - window.innerHeight;
+  try {
+    const r = document.documentElement.classList.contains("pub-shell") && window.matchMedia("(max-width: 767px)").matches ? document.getElementById("root") : null;
+    if (r) { y = r.scrollTop; h = r.scrollHeight - r.clientHeight; }
+  } catch { /* */ }
+  if (h > 0) maxScroll = Math.max(maxScroll, Math.min(100, Math.round((y / h) * 100)));
 }
 function onVis() {
   if (document.visibilityState === "hidden") { if (visSince) { activeMs += Date.now() - visSince; visSince = 0; } siteTrack("hide"); flush(true); }
@@ -102,7 +106,7 @@ export async function startSiteAnalytics(initialTheme = "") {
   document.addEventListener("click", onClick, true);
   document.addEventListener("visibilitychange", onVis);
   window.addEventListener("pagehide", onHide);
-  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true, capture: true });
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onError);
   setInterval(() => flush(false), 6000);
