@@ -425,19 +425,24 @@ export function PublicSite({ share = null, gate = null } = {}) {
 
   /* موضع مؤشر التبويب النشط المتحرك — يُحدَّث عند تبديل التبويب أو اللغة أو تغيّر حجم الشاشة */
   useLayoutEffect(() => {
-    const position = () => {
+    /* مهم: لا نستدعي scrollIntoView هنا أبدًا — على الجوال تتغيّر أبعاد النافذة (resize) مع كل إظهار/إخفاء لشريط المتصفح أثناء التمرير،
+       وكان الاستدعاء يسحب الصفحة نفسها فيتعذّر الرجوع لأعلى الصفحة. نحرّك شريط الخانات أفقيًا بنفسه فقط. */
+    const position = (reveal) => {
       const nav = tabsRef.current, ind = indicatorRef.current;
       if (!nav || !ind) return;
       setTabsH(nav.offsetHeight);
       const active = nav.querySelector('.tab[data-on="1"]');
       if (!active) return;
-      try { active.scrollIntoView({ block: "nearest", inline: "nearest" }); } catch { /* تجاهل */ }
+      if (reveal && nav.scrollWidth > nav.clientWidth + 1) {
+        try { nav.scrollLeft = active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2; } catch { /* تجاهل */ }
+      }
       ind.style.width = `${active.offsetWidth}px`;
       ind.style.left = `${active.offsetLeft}px`;
     };
-    position();
-    window.addEventListener("resize", position);
-    return () => window.removeEventListener("resize", position);
+    position(true);
+    const onResize = () => position(false);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [tab, lang]);
 
   /* شريط الفلاتر المصغّر: يظهر بعد تجاوز صندوق الفلاتر الكامل أثناء التمرير لأسفل في لوحة المتابعة */
