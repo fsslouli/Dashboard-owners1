@@ -272,6 +272,10 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
       <div style={{ fontSize: 11.5, color: tooLong ? "#C0392B" : T.muted, margin: "6px 2px 12px" }}>
         {text.length} / {MAX_LEN} حرف — راجع النص وعدّله قبل النشر، ما يُنشر شي تلقائيًا.
       </div>
+      <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>
+        <b>حدود الملفات:</b> {st.files_limit || 60} ملف في الشهر · الملف الواحد حتى 20 م.ب · بمعدل ملفين تقريبًا كل يوم.
+        {ready && st.files_used != null ? ` المتبقي هالشهر: ${Math.max(0, (st.files_limit || 60) - st.files_used)} من ${st.files_limit || 60}.` : ""}
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 12px" }}>
         <label style={{ ...btn(false), margin: 0 }}>
           <Paperclip size={14} /> إرفاق صورة أو ملف
@@ -285,7 +289,7 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
           </span>
         )}
       </div>
-      {file && <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>المرفق يمر لتليجرام مباشرة ولا يُحفظ في الموقع. الحد 20 م.ب للملف، وسقف {st.files_limit || 60} ملف شهريًا{st.files_used != null ? ` (انرسل هالشهر: ${st.files_used})` : ""}. {text.length > 1024 ? "النص أطول من 1024 حرف فيُرسل كرسالة مستقلة بعد الملف." : "النص يظهر كتعليق على الملف."}{st.can_send_files === false ? " ⚠️ البوت ما عنده صلاحية إرسال الملفات في القروب." : ""}</div>}
+      {file && <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>المرفق يمر لتليجرام مباشرة ولا يُحفظ في الموقع. {text.length > 1024 ? "النص أطول من 1024 حرف فيُرسل كرسالة مستقلة بعد الملف." : "النص يظهر كتعليق على الملف."}{st.can_send_files === false ? " ⚠️ البوت ما عنده صلاحية إرسال الملفات في القروب." : ""}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={send} disabled={!canSend} style={btn(true, canSend)}>
           <Send size={14} /> {sending ? "جارٍ النشر…" : confirm ? "تأكيد النشر الآن" : "نشر في القروب"}
