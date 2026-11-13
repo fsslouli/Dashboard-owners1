@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.5.1",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: ["الختم الخفي: صار أخفى افتراضيًا ويخفّ تلقائيًا على المظهر الداكن، مع شريط «وضوح الختم» بخمس درجات في لوحة الإدارة."],
+    en: ["Hidden stamp: fainter by default and automatically lighter on dark themes, with a five-step visibility slider in the admin panel."],
+  },
+  {
     version: "7.5.0",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
