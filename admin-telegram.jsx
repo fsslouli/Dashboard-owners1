@@ -105,6 +105,8 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
   const [confirm, setConfirm] = useState(false);
   const [sending, setSending] = useState(false);
   const [file, setFile] = useState(null);
+  const [when, setWhen] = useState(""); /* موعد الإرسال المجدول (توقيت الرياض) — فارغ = نشر فوري */
+  const [sched, setSched] = useState([]);
   const siteUrl = window.location.origin;
 
   const check = async () => {
@@ -119,7 +121,13 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
       setSt(data && data.state ? data : { state: "error" });
     } catch (e) { setSt({ state: "not_deployed" }); }
   };
-  useEffect(() => { check(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadSched = async () => {
+    try {
+      const { data } = await supabase.functions.invoke(FN, { body: { action: "list_scheduled" } });
+      if (data && data.ok) setSched(data.items || []);
+    } catch (_e) { /* ignore */ }
+  };
+  useEffect(() => { check(); loadSched(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.from("progress_matrix_v").select("month,phases,blocks").order("month", { ascending: false }).limit(2)
       .then(({ data }) => setPgRows(data || []));
@@ -183,11 +191,35 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
   const fileBig = !!file && file.size > MAX_FILE;
   const canSend = ready && !sending && (!!file || !!text.trim()) && !tooLong && !fileBig && (!!file || !noData);
 
+  const whenIso = when ? new Date(`${when}:00+03:00`) : null;
+  const whenBad = !!when && (isNaN(whenIso.getTime()) || whenIso.getTime() < Date.now() + 2 * 60e3);
+  const fmtRiyadh = (iso) => new Date(iso).toLocaleString("ar-SA-u-ca-gregory-nu-latn", { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
+
   const send = async () => {
-    if (!canSend) return;
+    if (!canSend || whenBad) return;
     if (!confirm) { setConfirm(true); return; }
     setSending(true);
     try {
+      if (when) {
+        /* جدولة: يُحفظ النص (والملف مؤقتًا في مخزن خاص) وتنفّذه دالة المجدول عند الموعد */
+        const fd = new FormData();
+        fd.append("action", "schedule"); fd.append("text", text.trim()); fd.append("send_at", whenIso.toISOString());
+        if (file) fd.append("file", file, file.name);
+        if (tpl === "site") fd.append("mark", "site_update");
+        const { data, error } = await supabase.functions.invoke(FN, { body: fd });
+        if (error || !data || !data.ok) {
+          let info = null;
+          try { info = await error?.context?.json?.(); } catch (_e) { /* ignore */ }
+          if (info?.error === "monthly_limit") { flashToast(`ما يكفي المتبقي من سقف الشهر (${Math.floor((info.remaining || 0) / 1048576)} م.ب)`); setSending(false); return; }
+          throw new Error("schedule failed");
+        }
+        flashToast(`تمت الجدولة: ${fmtRiyadh(data.send_at)} (الرياض)`);
+        if (log) log("جدولة رسالة تليجرام", `${fmtRiyadh(data.send_at)} — ${file ? `[${file.name}] ` : ""}${text.trim().split("\n")[0].slice(0, 100)}`);
+        setConfirm(false); setTouched(false); setTpl(null); setFile(null); setWhen("");
+        await loadSched();
+        setSending(false);
+        return;
+      }
       let body = { action: "send", text: text.trim(), ...(tpl === "site" ? { mark: "site_update" } : {}) };
       if (file) {
         /* الملف يُرسل مع الطلب ويمر للتليجرام مباشرة — ما يُخزَّن في الموقع ولا في قاعدة البيانات */
@@ -207,9 +239,20 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
       if (log) log(file ? "نشر ملف في قروب تليجرام" : "نشر تحديث في قروب تليجرام", `${file ? `[${file.name}] ` : ""}${text.trim().split("\n")[0].slice(0, 100)}`);
       setConfirm(false); setTouched(false); setTpl(null); setFile(null);
       if (tpl === "site") check();
-    } catch (e) { flashToast("تعذّر النشر — ما وصلت الرسالة للقروب"); }
+    } catch (e) { flashToast(when ? "تعذّرت الجدولة — ما انحفظت" : "تعذّر النشر — ما وصلت الرسالة للقروب"); }
     setSending(false);
   };
+  const cancelSched = async (id) => {
+    if (!window.confirm("إلغاء هذي الرسالة المجدولة؟ ما راح تُرسل.")) return;
+    try {
+      const { data, error } = await supabase.functions.invoke(FN, { body: { action: "cancel_scheduled", id } });
+      if (error || !data || !data.ok) throw new Error("x");
+      flashToast("أُلغيت الرسالة المجدولة");
+      if (log) log("إلغاء رسالة تليجرام مجدولة", `#${id}`);
+    } catch (_e) { flashToast("تعذّر الإلغاء — يمكن أنها أُرسلت أو أُلغيت"); }
+    loadSched();
+  };
+  const SCHED_LABEL = { pending: "بانتظار الموعد", sending: "جارٍ الإرسال", sent: "أُرسلت", failed: "فشلت", cancelled: "ملغاة" };
 
   const btn = (primary, on = true) => ({
     display: "flex", alignItems: "center", gap: 7, border: `1px solid ${primary ? "transparent" : T.line}`, borderRadius: 11,
@@ -292,9 +335,19 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
         )}
       </div>
       {file && <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>المرفق يمر لتليجرام مباشرة ولا يُحفظ في الموقع. {text.length > 1024 ? "النص أطول من 1024 حرف فيُرسل كرسالة مستقلة بعد الملف." : "النص يظهر كتعليق على الملف."}{st.can_send_files === false ? " ⚠️ البوت ما عنده صلاحية إرسال الملفات في القروب." : ""}</div>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 12px" }}>
+        <label style={{ fontSize: 12.5, color: T.muted }}>موعد الإرسال (توقيت الرياض، اتركه فارغًا للنشر الآن):</label>
+        <input type="datetime-local" value={when} onChange={(e) => { setWhen(e.target.value); setConfirm(false); }} dir="ltr" aria-label="موعد الإرسال المجدول"
+          style={{ background: T.bg, color: T.paper, border: `1px solid ${whenBad ? "#C0392B" : T.line}`, borderRadius: 10, padding: "7px 10px", fontSize: 13, fontFamily: "inherit" }} />
+        {when && <button onClick={() => { setWhen(""); setConfirm(false); }} style={{ ...btn(false), padding: "6px 10px", fontSize: 12 }}>مسح الموعد</button>}
+      </div>
+      {when && <div style={{ ...aNoteStyle(T, whenBad ? "#C0392B" : undefined), marginBottom: 10 }}>
+        {whenBad ? "الموعد لازم يكون بعد دقيقتين على الأقل من الآن."
+          : `راح تُرسل تلقائيًا ${fmtRiyadh(whenIso.toISOString())} (الرياض).${file ? " المرفق يُحفظ مؤقتًا في مخزن خاص ويُحذف فور الإرسال أو الإلغاء." : ""} تقدر تلغيها قبل الموعد من القائمة بالأسفل.`}
+      </div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={send} disabled={!canSend} style={btn(true, canSend)}>
-          <Send size={14} /> {sending ? "جارٍ النشر…" : confirm ? "تأكيد النشر الآن" : "نشر في القروب"}
+        <button onClick={send} disabled={!canSend || whenBad} style={btn(true, canSend && !whenBad)}>
+          <Send size={14} /> {sending ? (when ? "جارٍ الجدولة…" : "جارٍ النشر…") : when ? (confirm ? "تأكيد الجدولة" : "جدولة الإرسال") : confirm ? "تأكيد النشر الآن" : "نشر في القروب"}
         </button>
         {confirm && !sending && <button onClick={() => setConfirm(false)} style={btn(false)}>إلغاء</button>}
         <button onClick={() => { setTouched(false); setText(draft); setConfirm(false); }} style={btn(false, !!tpl)} disabled={!tpl}>
@@ -303,6 +356,21 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
         <button onClick={check} style={btn(false)}>فحص الربط</button>
         {(ready || needChat) && st.managed !== "env" && <button onClick={disconnect} style={btn(false)}>فصل البوت</button>}
       </div>
+      {sched.length > 0 && (
+        <div style={{ marginTop: 16, borderTop: `1px solid ${T.line}`, paddingTop: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>الرسائل المجدولة</div>
+          {sched.slice(0, 10).map((r) => (
+            <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 12.5, padding: "6px 0", borderBottom: `1px dashed ${T.line}` }}>
+              <span dir="ltr" style={{ color: T.muted }}>{fmtRiyadh(r.send_at)}</span>
+              <span style={{ fontWeight: 700, color: r.status === "failed" ? "#C0392B" : r.status === "pending" ? T.brass : T.muted }}>{SCHED_LABEL[r.status] || r.status}</span>
+              <span style={{ flex: "1 1 160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.file_name ? `📎 ${r.file_name} · ` : ""}{(r.text || "").split("\n")[0].slice(0, 60)}</span>
+              {r.status === "failed" && r.error && <span style={{ color: "#C0392B", fontSize: 11.5 }}>{r.error}</span>}
+              {r.status === "pending" && <button onClick={() => cancelSched(r.id)} style={{ ...btn(false), padding: "4px 10px", fontSize: 12 }}>إلغاء</button>}
+            </div>
+          ))}
+          <button onClick={loadSched} style={{ ...btn(false), marginTop: 8, padding: "5px 10px", fontSize: 12 }}>تحديث القائمة</button>
+        </div>
+      )}
     </div>
   );
 }
