@@ -12,6 +12,7 @@ import { supabase } from "./app-bootstrap.jsx";
 import { GATE_TABS, VILLA_MAX, latinDigits } from "./gate-kit.jsx";
 import { THEMES } from "./site-data.jsx";
 import { WM_DEFAULTS, WmControls, sanitizeWm } from "./share-wm-kit.jsx";
+import { StampReveal, sanitizeProtect } from "./protect-kit.jsx";
 
 const S = {
   wrap: { maxWidth: 820, margin: "0 auto", padding: "4px 0", color: "#1F2C35" },
@@ -60,6 +61,27 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
   const [only, setOnly] = useState("all");       // all | never | locked | off
   const [wm, setWm] = useState(null);            // إعدادات العلامة المائية (مسودة لحد ما تضغط حفظ)
   const [wmSaved, setWmSaved] = useState("null");
+
+  /* 7.5.0 — حماية المحتوى (site_settings.protect) */
+  const [prot, setProt] = useState(null);
+  const [protSaved, setProtSaved] = useState("");
+  const [protMissing, setProtMissing] = useState(false);
+  const loadProt = async () => {
+    const { data, error } = await supabase.from("site_settings").select("protect").eq("id", 1).single();
+    if (error) { setProtMissing(true); return; }
+    const v = sanitizeProtect(data && data.protect); setProt(v); setProtSaved(JSON.stringify(v));
+  };
+  useEffect(() => { loadProt(); }, []);
+  const protDirty = !!prot && JSON.stringify(prot) !== protSaved;
+  const saveProt = async () => {
+    setBusy("prot");
+    const { error } = await supabase.from("site_settings").update({ protect: prot }).eq("id", 1);
+    setBusy("");
+    if (error) { flashToast(`تعذّر الحفظ: ${error.message}`); return; }
+    setProtSaved(JSON.stringify(prot)); flashToast("تم حفظ حماية المحتوى — تسري على الجميع فورًا");
+    const AR = { copy: "قفل النسخ", blur: "التغبيش", guest: "علامة الزائر", stamp: "الختم الخفي" };
+    log("حماية المحتوى", Object.keys(AR).filter((k) => prot[k]).map((k) => AR[k]).join("، ") || "كلها مقفولة");
+  };
 
   const loadCfg = async () => {
     const { data, error } = await supabase.from("site_settings").select("gate_mode,gate_guest_tabs,gate_wm").eq("id", 1).single();
@@ -245,6 +267,35 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
             <button type="button" style={{ ...S.btn, ...S.pri, opacity: wmDirty ? 1 : 0.5 }} disabled={!wmDirty || busy === "wm"} onClick={saveWm}>{busy === "wm" ? "جارٍ الحفظ…" : "حفظ العلامة المائية"}</button>
             {wmDirty && <span style={{ fontSize: 12, color: "#B7791F" }}>تغييرات غير محفوظة</span>}
           </div>
+        </div>
+      )}
+
+      {/* ── حماية المحتوى (7.5.0) ── */}
+      {(prot || protMissing) && (
+        <div style={S.card}>
+          <h3 style={S.h}><ShieldCheck size={17} />حماية المحتوى من النسخ ولقطات الشاشة</h3>
+          {protMissing ? <p style={S.sub}>تحتاج تجهيز قاعدة البيانات (عمود protect) — لم يُطبَّق بعد.</p> : (
+            <>
+              <p style={S.sub}>لا يوجد موقع يستطيع منع لقطة الشاشة نفسها على الجوال. هذه الخيارات تصعّب النسخ وتجعل أي لقطة تدل على صاحبها. الإدارة مستثناة منها.</p>
+              {[
+                ["stamp", "الختم الخفي", "نقش شبه غير مرئي فوق الصفحة فيه رقم الفيلا (أو رمز جهاز الزائر) والتاريخ — يُكشف من «كاشف الختم» تحت."],
+                ["copy", "قفل النسخ", "يمنع تحديد النص والنسخ والقائمة اليمنى والطباعة والحفظ."],
+                ["guest", "علامة مائية للزائر بلا دخول", "علامة ظاهرة خفيفة فيها رمز جهاز الزائر والتاريخ (المالك المسجّل له علامته برقم الفيلا فوق)."],
+                ["blur", "تغبيش عند مغادرة الصفحة", "يغبّش المحتوى عند فقدان التركيز أو مفاتيح لقطة الشاشة — ينفع على الكمبيوتر، وأثره ضعيف على الجوال."],
+              ].map(([k, t, d]) => (
+                <label key={k} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 0", borderTop: "1px solid #EEF2F4", cursor: "pointer" }}>
+                  <input type="checkbox" checked={!!prot[k]} onChange={(e) => setProt({ ...prot, [k]: e.target.checked })} style={{ marginTop: 4 }} />
+                  <span><b style={{ fontSize: 13.5 }}>{t}</b><span style={{ display: "block", fontSize: 12, color: "#5F7280", lineHeight: 1.7 }}>{d}</span></span>
+                </label>
+              ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "10px 0 14px" }}>
+                <button type="button" style={{ ...S.btn, ...S.pri, opacity: protDirty ? 1 : 0.5 }} disabled={!protDirty || busy === "prot"} onClick={saveProt}>{busy === "prot" ? "جارٍ الحفظ…" : "حفظ الحماية"}</button>
+                {protDirty && <span style={{ fontSize: 12, color: "#B7791F" }}>تغييرات غير محفوظة</span>}
+              </div>
+              <h3 style={{ ...S.h, fontSize: 14 }}>كاشف الختم</h3>
+              <StampReveal S={S} />
+            </>
+          )}
         </div>
       )}
 
