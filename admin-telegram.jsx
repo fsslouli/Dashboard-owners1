@@ -107,6 +107,11 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
   const [file, setFile] = useState(null);
   const [when, setWhen] = useState(""); /* موعد الإرسال المجدول (توقيت الرياض) — فارغ = نشر فوري */
   const [sched, setSched] = useState([]);
+  const [openId, setOpenId] = useState(null); /* معاينة رسالة مجدولة */
+  const [editId, setEditId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [editWhen, setEditWhen] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
   const siteUrl = window.location.origin;
 
   const check = async () => {
@@ -252,6 +257,23 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
     } catch (_e) { flashToast("تعذّر الإلغاء — يمكن أنها أُرسلت أو أُلغيت"); }
     loadSched();
   };
+  const toLocalInput = (iso) => new Date(new Date(iso).getTime() + 3 * 3600e3).toISOString().slice(0, 16); /* توقيت الرياض */
+  const startEdit = (r) => { setOpenId(r.id); setEditId(r.id); setEditText(r.text || ""); setEditWhen(toLocalInput(r.send_at)); };
+  const saveEdit = async (r) => {
+    const w = new Date(`${editWhen}:00+03:00`);
+    if (isNaN(w.getTime()) || w.getTime() < Date.now() + 2 * 60e3) { flashToast("الموعد لازم يكون بعد دقيقتين على الأقل"); return; }
+    if (!editText.trim() && !r.file_name) { flashToast("الرسالة فاضية"); return; }
+    setEditBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("telegram-schedule-edit", { body: { id: r.id, text: editText, send_at: w.toISOString() } });
+      if (error || !data || !data.ok) throw new Error("x");
+      flashToast(`تم التعديل — الإرسال ${fmtRiyadh(data.send_at)} (الرياض)`);
+      if (log) log("تعديل رسالة تليجرام مجدولة", `#${r.id} — ${fmtRiyadh(data.send_at)}`);
+      setEditId(null);
+    } catch (_e) { flashToast("تعذّر التعديل — يمكن أنها أُرسلت أو أُلغيت"); }
+    setEditBusy(false);
+    loadSched();
+  };
   const SCHED_LABEL = { pending: "بانتظار الموعد", sending: "جارٍ الإرسال", sent: "أُرسلت", failed: "فشلت", cancelled: "ملغاة" };
 
   const btn = (primary, on = true) => ({
@@ -365,7 +387,29 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
               <span style={{ fontWeight: 700, color: r.status === "failed" ? "#C0392B" : r.status === "pending" ? T.brass : T.muted }}>{SCHED_LABEL[r.status] || r.status}</span>
               <span style={{ flex: "1 1 160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.file_name ? `📎 ${r.file_name} · ` : ""}{(r.text || "").split("\n")[0].slice(0, 60)}</span>
               {r.status === "failed" && r.error && <span style={{ color: "#C0392B", fontSize: 11.5 }}>{r.error}</span>}
+              <button onClick={() => { setOpenId(openId === r.id ? null : r.id); setEditId(null); }} style={{ ...btn(false), padding: "4px 10px", fontSize: 12 }}>{openId === r.id ? "إخفاء" : "معاينة"}</button>
+              {r.status === "pending" && <button onClick={() => startEdit(r)} style={{ ...btn(false), padding: "4px 10px", fontSize: 12 }}>تعديل</button>}
               {r.status === "pending" && <button onClick={() => cancelSched(r.id)} style={{ ...btn(false), padding: "4px 10px", fontSize: 12 }}>إلغاء</button>}
+              {openId === r.id && (
+                <div style={{ flex: "1 1 100%", background: T.bg, border: `1px solid ${T.line}`, borderRadius: 12, padding: 12, marginTop: 4 }}>
+                  <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 6 }}>الإرسال: {fmtRiyadh(r.send_at)} (الرياض){r.file_name ? <> · المرفق: <span dir="ltr">{r.file_name}</span>{r.file_size ? ` (${(r.file_size / 1048576).toFixed(1)} م.ب)` : ""}</> : " · بدون مرفق"}</div>
+                  {editId === r.id ? (
+                    <>
+                      <textarea value={editText} onChange={(e) => setEditText(e.target.value)} dir="rtl" rows={8} aria-label="نص الرسالة المجدولة"
+                        style={{ width: "100%", boxSizing: "border-box", background: T.surface, color: T.paper, border: `1px solid ${editText.length > MAX_LEN ? "#C0392B" : T.line}`, borderRadius: 10, padding: "8px 10px", fontSize: 13, lineHeight: 1.8, fontFamily: "inherit", resize: "vertical" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                        <input type="datetime-local" value={editWhen} onChange={(e) => setEditWhen(e.target.value)} dir="ltr" aria-label="موعد الإرسال"
+                          style={{ background: T.surface, color: T.paper, border: `1px solid ${T.line}`, borderRadius: 10, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }} />
+                        <button onClick={() => saveEdit(r)} disabled={editBusy || editText.length > MAX_LEN} style={{ ...btn(true, !editBusy), padding: "6px 12px", fontSize: 12.5 }}>{editBusy ? "جارٍ الحفظ…" : "حفظ التعديل"}</button>
+                        <button onClick={() => setEditId(null)} style={{ ...btn(false), padding: "6px 12px", fontSize: 12.5 }}>إلغاء التعديل</button>
+                        <span style={{ fontSize: 11.5, color: T.muted }}>{editText.length} / {MAX_LEN}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.8 }}>{r.text || "(بدون نص)"}</div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           <button onClick={loadSched} style={{ ...btn(false), marginTop: 8, padding: "5px 10px", fontSize: 12 }}>تحديث القائمة</button>
