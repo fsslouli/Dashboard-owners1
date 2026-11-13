@@ -30,15 +30,6 @@
       ]
     },
     {
-      "source": "/i18n-engine/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -50,7 +41,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|3d/|map/|i18n-engine/|favicon\\.svg).*)",
+      "source": "/((?!assets/|3d/|map/|favicon\\.svg).*)",
       "destination": "/index.html"
     }
   ]

@@ -92,7 +92,7 @@ function FieldCard({ it, canEdit, onSave, onRetranslate }) {
             onClick={async () => { setBusy(true); await onSave(it, en.trim()); setBusy(false); }}>
             <Check size={14} /> {dirty ? "حفظ واعتماد" : "اعتماد كما هي"}
           </button>
-          <button disabled={busy} style={S.btn} onClick={async () => { setBusy(true); await onRetranslate(it); setBusy(false); }}><RotateCcw size={14} /> أعد الترجمة</button>
+          {false && <button disabled={busy} style={S.btn} onClick={async () => { setBusy(true); await onRetranslate(it); setBusy(false); }}><RotateCcw size={14} /> أعد الترجمة</button>}
         </div>
       )}
     </div>
@@ -243,7 +243,7 @@ export function AI18nTab({ supabase, flashToast, log, canEditInq, canEditTerms }
   };
   const needEngineFirst = async () => {
     if (await engineAvailable()) return false;
-    flashToast(`جهّز المحرك أول من زر «تجهيز المحرك» فوق (حوالي ${ENGINE_SIZE_MB}MB مرة وحدة)`);
+    flashToast("الترجمة الآلية أُزيلت — اكتب الترجمة يدويًا واحفظها");
     return true;
   };
   const retranslate = async (it) => {
@@ -308,28 +308,9 @@ export function AI18nTab({ supabase, flashToast, log, canEditInq, canEditTerms }
           )}
         </div>
         <p style={S.hint}>
-          <span style={S.chip("#2E7D4F")}><ShieldCheck size={11} style={{ verticalAlign: -1 }} /> داخلي بالكامل</span>{" "}
-          الترجمة تشتغل على جهازك داخل المتصفح — بدون أي خدمة خارجية ولا مفتاح. كل ترجمة جديدة تنحفظ <b>مسودة</b> وما تظهر للزوار إلا بعد ما تعتمدها هنا؛ لين ذاك، الزائر بالنسخة الإنجليزية يشوف النص العربي مع تنبيه «الترجمة قيد المراجعة».
+          الترجمة <b>يدوية</b>: تُكتب في ملف الإكسل (عمودا الاستفسار والرد بالإنجليزي) أو من هذه الصفحة مباشرة. أي نص بدون ترجمة معتمدة يظهر لزائر النسخة الإنجليزية بالعربي.
+          محرّك الترجمة الآلي أُزيل من الموقع (كان يحمّل حوالي 140MB على كل جهاز).
         </p>
-
-        {!supported ? (
-          <div style={S.box("#A8443C")}><div style={{ ...S.row, fontWeight: 700, fontSize: 13 }}><AlertTriangle size={15} color="#A8443C" /> متصفحك ما يدعم المحرك الداخلي — افتح اللوحة من متصفح حديث (كروم، سفاري، إيدج).</div></div>
-        ) : (
-          <div style={S.box(eng.state === "error" ? "#A8443C" : ready ? "#2E7D4F" : "#8A6318")}>
-            <div style={{ ...S.row, fontWeight: 700, fontSize: 13 }}>
-              <Cpu size={15} color={eng.state === "error" ? "#A8443C" : ready ? "#2E7D4F" : "#8A6318"} />
-              {eng.state === "error" ? "تعذّر تشغيل المحرك بهالجهاز"
-                : loading ? (eng.total ? `يحمّل المحرك… ${mb(eng.loaded)} / ${mb(eng.total)}MB` : "يجهّز المحرك…")
-                  : ready ? "المحرك جاهز على هالجهاز" : cached === null ? "يتحقق من المحرك…" : "المحرك مو متحمّل على هالجهاز"}
-            </div>
-            {loading && eng.total > 0 && <div style={S.bar}><div style={{ width: pct + "%", height: "100%", background: "#8A6318" }} /></div>}
-            {eng.state === "error" && <p style={{ ...S.hint, color: "#A8443C" }} dir="ltr">{eng.error}</p>}
-            {!ready && !loading && eng.state !== "error" && cached === false && (
-              <p style={S.hint}>أول مرة بس: يتحمّل حوالي {ENGINE_SIZE_MB}MB من الموقع نفسه وينحفظ بالمتصفح (يُفضّل على Wi-Fi). بعدها يترجم تلقائيًا بعد أي حفظ أو استيراد وعند فتح اللوحة. كل جهاز تستخدمه للإدارة يحتاجه مرة وحدة.</p>
-            )}
-            {ready && <p style={S.hint}>يترجم تلقائيًا بعد أي حفظ أو استيراد وعند فتح اللوحة من هالجهاز.</p>}
-          </div>
-        )}
         {prog && prog.total > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12.5, fontWeight: 700 }}>يترجم {Math.min(prog.done, prog.total)} من {prog.total}…</div>
@@ -345,7 +326,7 @@ export function AI18nTab({ supabase, flashToast, log, canEditInq, canEditTerms }
         {st?.last_run_at && (
           <p style={S.hint}>آخر تشغيل: {fmt(st.last_run_at)}{lastRes ? ` — ${(lastRes.fields || 0) + (lastRes.terms || 0)} نص` : ""}.</p>
         )}
-        {st?.last_error && <p style={{ ...S.hint, color: "#A8443C" }}>آخر ملاحظة من المحرك: <span dir="ltr">{st.last_error}</span></p>}
+        {st?.last_error && <p style={{ ...S.hint, color: "#A8443C" }}>آخر ملاحظة: <span dir="ltr">{st.last_error}</span></p>}
       </div>
 
       <div style={{ ...S.row, margin: "6px 0 12px" }}>

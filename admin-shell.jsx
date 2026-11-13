@@ -11,15 +11,24 @@ import {
   Type, Users, X, Layers, Wand2, Languages, KeyRound, Inbox, CalendarDays, ClipboardCheck,
 } from "lucide-react";
 
-export const ADMIN_NAV_GROUPS = [
-  { title: "الرئيسية", keys: ["dashboard", "brief", "meetings"] },
-  { title: "البيانات", keys: ["sync", "filters", "i18n"] },
-  { title: "محتوى الموقع", keys: ["site", "notices", "media", "gallery", "links", "scheduled", "labels", "theme"] },
-  { title: "التحليلات", keys: ["analytics", "insights"] },
-  { title: "المشاركة", keys: ["share"] },
-  { title: "الملاك", keys: ["tickets", "ownerlogin", "handover"] },
-  { title: "النظام", keys: ["audit", "users", "security"] },
+/* 7.4.0 — هيكلة جديدة: القائمة الجانبية صارت 11 قسمًا بثلاث مجموعات حسب طريقة العمل (بدل 23 تبويبًا)،
+   وكل قسم يجمع التبويبات المتقاربة ويعرضها كشريط فرعي أعلى الصفحة. مفاتيح التبويبات نفسها لم تتغير،
+   فالروابط (#admin/<مفتاح>) والصلاحيات وتسمية/إخفاء الأقسام تشتغل كما هي. */
+export const ADMIN_SECTIONS = [
+  { group: "العمل اليومي", id: "home", title: "الرئيسية", keys: ["dashboard", "brief"] },
+  { group: "العمل اليومي", id: "inq", title: "الاستفسارات والبيانات", keys: ["sync", "filters", "i18n"] },
+  { group: "العمل اليومي", id: "meet", title: "الاجتماعات", keys: ["meetings"] },
+  { group: "العمل اليومي", id: "tix", title: "تذاكر الملاك", keys: ["tickets"] },
+  { group: "العمل اليومي", id: "pub", title: "النشر والإشعارات", keys: ["notices", "scheduled"] },
+  { group: "الموقع", id: "lib", title: "المكتبة والمحتوى", keys: ["gallery", "media", "links", "handover"] },
+  { group: "الموقع", id: "look", title: "شكل الموقع", keys: ["theme", "site", "labels"] },
+  { group: "الموقع", id: "access", title: "الوصول والمشاركة", keys: ["ownerlogin", "share"] },
+  { group: "المتابعة والنظام", id: "stats", title: "الإحصاءات", keys: ["analytics", "insights"] },
+  { group: "المتابعة والنظام", id: "sys", title: "المستخدمون والأمان", keys: ["users", "security", "audit"] },
 ];
+const SECTION_ICON = { home: "dashboard", inq: "sync", meet: "meetings", tix: "tickets", pub: "notices", lib: "gallery", look: "theme", access: "ownerlogin", stats: "analytics", sys: "security" };
+/* للتوافق مع أي استيراد قديم */
+export const ADMIN_NAV_GROUPS = ADMIN_SECTIONS.map((x) => ({ title: x.title, keys: x.keys }));
 const ICONS = {
   dashboard: LayoutDashboard, brief: FileText, sync: FileSpreadsheet, filters: Filter, notices: Bell,
   media: Clapperboard, gallery: Images, links: ExternalLink, scheduled: AlarmClock, labels: Type, theme: Palette,
@@ -27,19 +36,20 @@ const ICONS = {
 };
 const iconOf = (k) => ICONS[k] || Layers;
 
-/* يقسّم التبويبات الظاهرة على المجموعات، وأي تبويب خارجها يروح لـ«أخرى» */
-export function groupTabs(tabs) {
+/* يقسّم التبويبات الظاهرة على الأقسام؛ أي تبويب خارجها (تبويب جديد مستقبلًا) ينزل تحت «أخرى» فلا يضيع */
+export function sectionTabs(tabs) {
   const byKey = new Map(tabs.map((t) => [t.key, t]));
   const used = new Set();
-  const groups = ADMIN_NAV_GROUPS.map((g) => {
-    const items = g.keys.map((k) => byKey.get(k)).filter(Boolean);
+  const secs = ADMIN_SECTIONS.map((x) => {
+    const items = x.keys.map((k) => byKey.get(k)).filter(Boolean);
     items.forEach((t) => used.add(t.key));
-    return { title: g.title, items };
-  }).filter((g) => g.items.length);
+    return { ...x, items };
+  }).filter((x) => x.items.length);
   const rest = tabs.filter((t) => !used.has(t.key));
-  if (rest.length) groups.push({ title: "أخرى", items: rest });
-  return groups;
+  if (rest.length) secs.push({ group: "المتابعة والنظام", id: "other", title: "أخرى", keys: rest.map((t) => t.key), items: rest });
+  return secs;
 }
+export function groupTabs(tabs) { return sectionTabs(tabs).map((x) => ({ title: x.title, items: x.items })); }
 
 const CSS = `
 .ash{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100vh}
@@ -52,6 +62,10 @@ const CSS = `
 .ash-item:focus-visible,.ash-btn:focus-visible{outline:2px solid var(--ash-accent);outline-offset:2px}
 .ash-ttl{font-size:11px;font-weight:700;letter-spacing:.02em;padding:12px 11px 4px;opacity:.7}
 .ash-scrim{display:none}
+.ash-sub{display:flex;gap:6px;overflow-x:auto;margin:0 0 16px;padding-bottom:2px;scrollbar-width:none}
+.ash-sub::-webkit-scrollbar{display:none}
+.ash-sub button{flex:0 0 auto;display:flex;align-items:center;gap:7px;border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.ash-badge{margin-inline-start:auto;min-width:20px;height:20px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
 @media (max-width:959px){
   .ash{display:block}
   .ash-side{position:fixed;inset:0 0 0 auto;width:min(86vw,320px);height:100vh;height:100dvh;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));z-index:40;transform:translateX(105%);transition:transform .2s ease;box-shadow:-12px 0 40px rgba(0,0,0,.25)}
@@ -107,10 +121,16 @@ function QuickFind({ T, tabs, onPick, onClose }) {
   );
 }
 
-export function AdminShell({ T, tabs, activeKey, onSelect, stats, userLabel, onLogout, onEditSite, children }) {
+export function AdminShell({ T, tabs, activeKey, onSelect, stats, badges, userLabel, onLogout, onEditSite, children }) {
   const [open, setOpen] = useState(false);
   const [find, setFind] = useState(false);
-  const groups = useMemo(() => groupTabs(tabs), [tabs]);
+  const sections = useMemo(() => sectionTabs(tabs), [tabs]);
+  const groupNames = useMemo(() => [...new Set(sections.map((x) => x.group))], [sections]);
+  const activeSec = sections.find((x) => x.items.some((t) => t.key === activeKey)) || null;
+  /* آخر تبويب فرعي زرته بكل قسم — ترجع له لما تفتح القسم مرة ثانية */
+  const lastRef = useRef({});
+  if (activeSec) lastRef.current[activeSec.id] = activeKey;
+  const badgeOf = (keys) => keys.reduce((n, k) => n + ((badges && badges[k]) || 0), 0);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -149,15 +169,18 @@ export function AdminShell({ T, tabs, activeKey, onSelect, stats, userLabel, onL
       </button>
 
       <nav aria-label="أقسام لوحة الإدارة" style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
-        {groups.map((g) => (
-          <div key={g.title}>
-            <div className="ash-ttl" style={{ color: T.muted }}>{g.title}</div>
-            {g.items.map((t) => {
-              const on = t.key === activeKey; const Ic = iconOf(t.key);
+        {groupNames.map((gn) => (
+          <div key={gn}>
+            <div className="ash-ttl" style={{ color: T.muted }}>{gn}</div>
+            {sections.filter((x) => x.group === gn).map((x) => {
+              const on = activeSec && activeSec.id === x.id; const Ic = iconOf(SECTION_ICON[x.id] || x.items[0].key);
+              const target = x.items.find((t) => t.key === lastRef.current[x.id]) || x.items[0];
+              const n = badgeOf(x.items.map((t) => t.key));
               return (
-                <button key={t.key} className="ash-item" onClick={() => pick(t.key)} aria-current={on ? "page" : undefined}
+                <button key={x.id} className="ash-item" onClick={() => pick(target.key)} aria-current={on ? "page" : undefined}
                   style={{ background: on ? T.brass + "1f" : undefined, color: on ? T.brass : T.paper, fontWeight: on ? 700 : 500 }}>
-                  <Ic size={16} /> {t.label}
+                  <Ic size={16} /> {x.items.length === 1 ? x.items[0].label : x.title}
+                  {n > 0 && <span className="ash-badge" style={{ background: T.brass, color: T.onAccent }}>{n}</span>}
                 </button>
               );
             })}
@@ -183,13 +206,26 @@ export function AdminShell({ T, tabs, activeKey, onSelect, stats, userLabel, onL
         <div className="ash-main">
           <header className="ash-top" style={{ position: "sticky", top: 0, zIndex: 20, alignItems: "center", gap: 10, padding: "10px 14px", background: T.surface, borderBottom: `1px solid ${T.line}` }}>
             <button className="ash-btn" onClick={() => setOpen(true)} aria-label="فتح القائمة" style={iconBtn}><Menu size={18} /></button>
-            <div style={{ fontSize: 14, fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{active?.label || "لوحة الإدارة"}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(activeSec && activeSec.items.length > 1 ? activeSec.title : active?.label) || "لوحة الإدارة"}</div>
             <button className="ash-btn" onClick={() => setFind(true)} aria-label="بحث سريع" style={iconBtn}><Search size={16} /></button>
             <button className="ash-btn" onClick={onLogout} aria-label="خروج" style={iconBtn}><LogOut size={16} /></button>
             {onEditSite && <button className="ash-btn" onClick={onEditSite} aria-label="تحرير الموقع مباشرة" style={{ ...iconBtn, background: T.brass, color: T.onAccent, border: 0 }}><PenLine size={16} /></button>}
           </header>
           <main className="ash-body">
-            {active && <h1 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 16px" }} className="ash-h1">{active.label}</h1>}
+            {active && <h1 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 14px" }} className="ash-h1">{activeSec && activeSec.items.length > 1 ? activeSec.title : active.label}</h1>}
+            {activeSec && activeSec.items.length > 1 && (
+              <div className="ash-sub" role="tablist" aria-label={activeSec.title}>
+                {activeSec.items.map((t) => {
+                  const on = t.key === activeKey; const Ic = iconOf(t.key); const n = (badges && badges[t.key]) || 0;
+                  return (
+                    <button key={t.key} role="tab" aria-selected={on} onClick={() => pick(t.key)}
+                      style={{ border: `1px solid ${on ? T.brass : T.line}`, background: on ? T.brass : T.surface, color: on ? T.onAccent : T.paper, fontWeight: on ? 700 : 500 }}>
+                      <Ic size={14} /> {t.label}{n > 0 && <b style={{ fontSize: 11 }}>({n})</b>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {children}
           </main>
         </div>

@@ -171,6 +171,15 @@ function AdminHome({ session, onLogout }) {
   const [exitFor, setExitFor] = useState(null);
   const guardExit = (go) => () => { if (sessionLog.length || pendingCount) setExitFor(() => go); else go(); };
   const pendingCount = usePendingCount();
+  /* 7.4.0 — شارات القائمة: تذاكر لم تُراجع + تعديلات مجدولة بانتظار النشر */
+  const [newTickets, setNewTickets] = useState(0);
+  useEffect(() => {
+    let dead = false;
+    const load = () => supabase.from("owner_tickets").select("id", { count: "exact", head: true }).eq("status", "new")
+      .then(({ count, error }) => { if (!dead && !error) setNewTickets(count || 0); }, () => {});
+    load(); const t = setInterval(load, 120000);
+    return () => { dead = true; clearInterval(t); };
+  }, [session.user.id, tab]);
   const log = async (action, details) => {
     setSessionLog((l) => [...l, { action, details: details || "", at: new Date().toISOString() }]);
     await supabase.from("audit_log").insert({ user_name: profile?.name || session.user.email, action, details });
@@ -201,7 +210,7 @@ function AdminHome({ session, onLogout }) {
 
   return (
     <>
-      <AdminShell T={T} tabs={shellTabs} activeKey={activeTab} onSelect={setTab} stats={liveStats}
+      <AdminShell T={T} tabs={shellTabs} activeKey={activeTab} onSelect={setTab} stats={liveStats} badges={{ tickets: newTickets, scheduled: pendingCount || 0 }}
         userLabel={profile?.name || session.user.email}
         onLogout={guardExit(async () => { await supabase.auth.signOut(); window.location.hash = ""; window.location.reload(); })}
         onEditSite={canEditSite ? guardExit(() => { window.location.hash = "#edit"; }) : null}>
