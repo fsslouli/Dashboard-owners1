@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.6.1",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: ["بوت تليجرام: سقف شهري 60 ملفًا (بتوقيت الرياض) مع عدّاد يظهر عند الإرفاق. يُسجَّل العدد فقط ولا يُحفظ أي ملف."],
+    en: ["Telegram bot: monthly cap of 60 files (Riyadh time) with a counter shown when attaching. Only the count is logged; no file is stored."],
+  },
+  {
     version: "7.6.0",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
