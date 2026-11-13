@@ -194,7 +194,13 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
         if (tpl === "site") body.append("mark", "site_update");
       }
       const { data, error } = await supabase.functions.invoke(FN, { body });
-      if (error || !data || !data.ok) throw new Error("send failed");
+      if (error || !data || !data.ok) {
+        let info = null;
+        try { info = await error?.context?.json?.(); } catch (_e) { /* ignore */ }
+        if (info?.error === "monthly_limit") { flashToast(`وصلت سقف الملفات الشهري (${info.limit} ملف) — يتجدد أول الشهر`); setSending(false); return; }
+        throw new Error("send failed");
+      }
+      if (file && data.files_used != null) setSt((x) => ({ ...x, files_used: data.files_used }));
       flashToast(file ? "تم نشر الملف في قروب الملاك" : "تم النشر في قروب الملاك");
       if (log) log(file ? "نشر ملف في قروب تليجرام" : "نشر تحديث في قروب تليجرام", `${file ? `[${file.name}] ` : ""}${text.trim().split("\n")[0].slice(0, 100)}`);
       setConfirm(false); setTouched(false); setTpl(null); setFile(null);
@@ -279,7 +285,7 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
           </span>
         )}
       </div>
-      {file && <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>المرفق يمر لتليجرام مباشرة ولا يُحفظ في الموقع. الحد 20 م.ب. {text.length > 1024 ? "النص أطول من 1024 حرف فيُرسل كرسالة مستقلة بعد الملف." : "النص يظهر كتعليق على الملف."}{st.can_send_files === false ? " ⚠️ البوت ما عنده صلاحية إرسال الملفات في القروب." : ""}</div>}
+      {file && <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>المرفق يمر لتليجرام مباشرة ولا يُحفظ في الموقع. الحد 20 م.ب للملف، وسقف {st.files_limit || 60} ملف شهريًا{st.files_used != null ? ` (انرسل هالشهر: ${st.files_used})` : ""}. {text.length > 1024 ? "النص أطول من 1024 حرف فيُرسل كرسالة مستقلة بعد الملف." : "النص يظهر كتعليق على الملف."}{st.can_send_files === false ? " ⚠️ البوت ما عنده صلاحية إرسال الملفات في القروب." : ""}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={send} disabled={!canSend} style={btn(true, canSend)}>
           <Send size={14} /> {sending ? "جارٍ النشر…" : confirm ? "تأكيد النشر الآن" : "نشر في القروب"}
