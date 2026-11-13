@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.6.0",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: ["لوحة الإدارة ← بوت تليجرام: إرفاق صورة أو ملف (حتى 20 م.ب) مع النشر. الملف يمر لتليجرام مباشرة ولا يُحفظ في الموقع ولا في التخزين."],
+    en: ["Admin panel › Telegram bot: attach a photo or file (up to 20 MB) when publishing. The file is passed straight to Telegram and is not stored on the site or in storage."],
+  },
+  {
     version: "7.5.1",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
