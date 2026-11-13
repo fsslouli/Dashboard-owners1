@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.7.0",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: ["بوت تليجرام: جدولة الإرسال. تحدد التاريخ والوقت (بتوقيت الرياض) في صفحة النشر وتأكّد، فيُرسل البوت الرسالة تلقائيًا عند الموعد، مع إمكانية إرفاق ملف. الملف المرفق في الرسائل المجدولة يُحفظ مؤقتًا في مخزن خاص ويُحذف فور الإرسال أو الإلغاء. قائمة بالرسائل المجدولة وحالتها وزر إلغاء قبل الموعد. نفس سقف الملفات الشهري (1.25 جيجا)."],
+    en: ["Telegram bot: scheduled sending. Pick a date and time (Riyadh time) on the publish page and confirm; the bot sends the message automatically at that time, optionally with a file. A scheduled file is kept temporarily in a private store and deleted right after sending or cancelling. A list shows scheduled messages, their status, and a cancel button before the due time. Same monthly file cap (1.25 GB)."],
+  },
+  {
     version: "7.6.2",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
