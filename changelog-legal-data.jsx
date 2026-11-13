@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.8.2",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: ["بوت تليجرام: توقيع آخر الرسائل صار «🤖 رسالة آلية» (أقصر) في كل القوالب."],
+    en: ["Telegram bot: message footer is now “🤖 Automated message” (shorter) in all templates."],
+  },
+  {
     version: "7.8.1",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
