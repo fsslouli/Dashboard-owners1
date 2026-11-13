@@ -18,6 +18,8 @@ import { MONTH_AR } from "./site-data.jsx";
 
 const FN = "telegram-notify";
 const MAX_LEN = 4000;
+const LIMIT_B = 1280 * 1024 * 1024; /* سقف الشهر: 1.25 جيجا */
+const LIMIT_GB = "1.25";
 const MAX_FILE = 20 * 1024 * 1024; /* حد الإرفاق: يمر للتليجرام مباشرة ولا يُحفظ عندنا */
 const STATE_TEXT = {
   checking: "جارٍ فحص الربط…",
@@ -197,10 +199,10 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
       if (error || !data || !data.ok) {
         let info = null;
         try { info = await error?.context?.json?.(); } catch (_e) { /* ignore */ }
-        if (info?.error === "monthly_limit") { flashToast(`وصلت سقف الملفات الشهري (${info.limit} ملف) — يتجدد أول الشهر`); setSending(false); return; }
+        if (info?.error === "monthly_limit") { flashToast(`ما يكفي المتبقي من سقف الشهر (${Math.floor((info.remaining || 0) / 1048576)} م.ب) — يتجدد أول الشهر`); setSending(false); return; }
         throw new Error("send failed");
       }
-      if (file && data.files_used != null) setSt((x) => ({ ...x, files_used: data.files_used }));
+      if (file && data.bytes_used != null) setSt((x) => ({ ...x, bytes_used: data.bytes_used }));
       flashToast(file ? "تم نشر الملف في قروب الملاك" : "تم النشر في قروب الملاك");
       if (log) log(file ? "نشر ملف في قروب تليجرام" : "نشر تحديث في قروب تليجرام", `${file ? `[${file.name}] ` : ""}${text.trim().split("\n")[0].slice(0, 100)}`);
       setConfirm(false); setTouched(false); setTpl(null); setFile(null);
@@ -273,8 +275,8 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
         {text.length} / {MAX_LEN} حرف — راجع النص وعدّله قبل النشر، ما يُنشر شي تلقائيًا.
       </div>
       <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>
-        <b>حدود الملفات:</b> {st.files_limit || 60} ملف في الشهر · الملف الواحد حتى 20 م.ب · بمعدل ملفين تقريبًا كل يوم.
-        {ready && st.files_used != null ? ` المتبقي هالشهر: ${Math.max(0, (st.files_limit || 60) - st.files_used)} من ${st.files_limit || 60}.` : ""}
+        <b>حدود الملفات:</b> سقف الشهر {LIMIT_GB} جيجا إجمالًا · الملف الواحد حتى 20 م.ب · بتجدّد أول كل شهر.
+        {ready && st.bytes_used != null ? ` المتبقي هالشهر: ${Math.max(0, Math.round(((st.bytes_limit || LIMIT_B) - st.bytes_used) / 1048576))} م.ب من ${Math.round((st.bytes_limit || LIMIT_B) / 1048576)} م.ب.` : ""}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 12px" }}>
         <label style={{ ...btn(false), margin: 0 }}>
