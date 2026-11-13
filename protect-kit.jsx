@@ -10,10 +10,24 @@
    ═══════════════════════════════════════════════════════════ */
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export const PROTECT_DEFAULTS = { copy: false, blur: false, guest: false, stamp: false };
+export const PROTECT_DEFAULTS = { copy: false, blur: false, guest: false, stamp: false, level: 2 };
+/* 7.5.1 — درجة وضوح الختم (1 أخفى … 5 أوضح). الأخفى أصعب على العين وأصعب على الكاشف معًا. */
+export const STAMP_LEVELS = [0.01, 0.016, 0.024, 0.035, 0.05];
+export const STAMP_LEVEL_AR = ["مخفي جدًا", "مخفي", "خافت", "ظاهر قليلًا", "ظاهر"];
+/* الخلفية الداكنة تُظهر النقش أكثر، فنخففه عليها */
+function darkPage() {
+  try {
+    const el = document.querySelector(".dash") || document.body;
+    const m = getComputedStyle(el).backgroundColor.match(/\d+(\.\d+)?/g) || [];
+    const [r, g, b, a] = m.map(Number);
+    if (m.length >= 3 && (a === undefined || a > 0.5)) return r * 0.299 + g * 0.587 + b * 0.114 < 110;
+    return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  } catch { return false; }
+}
 export function sanitizeProtect(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
-  return { copy: !!r.copy, blur: !!r.blur, guest: !!r.guest, stamp: !!r.stamp };
+  const lv = Math.round(Number(r.level));
+  return { copy: !!r.copy, blur: !!r.blur, guest: !!r.guest, stamp: !!r.stamp, level: lv >= 1 && lv <= 5 ? lv : 2 };
 }
 export const protectOn = (p) => !!p && (p.copy || p.blur || p.guest || p.stamp);
 
@@ -56,6 +70,8 @@ export function ProtectLayer({ cfg, who }) {
   const [day, setDay] = useState(dayStamp);
   const blurT = useRef(0);
   useEffect(() => { const t = setInterval(() => setDay(dayStamp()), 600000); return () => clearInterval(t); }, []);
+  const [dark, setDark] = useState(false);
+  useEffect(() => { const chk = () => setDark(darkPage()); chk(); const t = setInterval(chk, 4000); return () => clearInterval(t); }, []);
 
   /* قفل النسخ */
   useEffect(() => {
@@ -104,7 +120,7 @@ export function ProtectLayer({ cfg, who }) {
     <>
       {(p.copy || p.blur) && <style>{COPY_CSS}</style>}
       {guestBg && <div aria-hidden="true" style={{ ...base, opacity: 0.16, backgroundImage: guestBg }} />}
-      {stampBg && <div aria-hidden="true" style={{ ...base, opacity: 0.035, backgroundImage: stampBg }} />}
+      {stampBg && <div aria-hidden="true" style={{ ...base, opacity: STAMP_LEVELS[p.level - 1] * (dark ? 0.6 : 1), backgroundImage: stampBg }} />}
     </>
   );
 }

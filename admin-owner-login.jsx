@@ -12,7 +12,7 @@ import { supabase } from "./app-bootstrap.jsx";
 import { GATE_TABS, VILLA_MAX, latinDigits } from "./gate-kit.jsx";
 import { THEMES } from "./site-data.jsx";
 import { WM_DEFAULTS, WmControls, sanitizeWm } from "./share-wm-kit.jsx";
-import { StampReveal, sanitizeProtect } from "./protect-kit.jsx";
+import { STAMP_LEVEL_AR, StampReveal, sanitizeProtect } from "./protect-kit.jsx";
 
 const S = {
   wrap: { maxWidth: 820, margin: "0 auto", padding: "4px 0", color: "#1F2C35" },
@@ -288,6 +288,16 @@ export function AOwnerLoginTab({ flashToast, log, canManage }) {
                   <span><b style={{ fontSize: 13.5 }}>{t}</b><span style={{ display: "block", fontSize: 12, color: "#5F7280", lineHeight: 1.7 }}>{d}</span></span>
                 </label>
               ))}
+              {prot.stamp && (
+                <div style={{ padding: "10px 0", borderTop: "1px solid #EEF2F4" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                    <b style={{ whiteSpace: "nowrap" }}>وضوح الختم</b>
+                    <input type="range" min="1" max="5" step="1" value={prot.level} onChange={(e) => setProt({ ...prot, level: Number(e.target.value) })} style={{ flex: 1 }} />
+                    <span style={{ minWidth: 76, textAlign: "center", fontWeight: 700, color: "#1B7F8E" }}>{STAMP_LEVEL_AR[prot.level - 1]}</span>
+                  </label>
+                  <p style={S.hint}>كل ما أخفيته أكثر صعب على العين وصعب على «كاشف الختم» معًا — خصوصًا مع لقطة مضغوطة (واتساب). «مخفي جدًا» قد لا يُكشف إلا من لقطة أصلية غير مضغوطة.</p>
+                </div>
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "10px 0 14px" }}>
                 <button type="button" style={{ ...S.btn, ...S.pri, opacity: protDirty ? 1 : 0.5 }} disabled={!protDirty || busy === "prot"} onClick={saveProt}>{busy === "prot" ? "جارٍ الحفظ…" : "حفظ الحماية"}</button>
                 {protDirty && <span style={{ fontSize: 12, color: "#B7791F" }}>تغييرات غير محفوظة</span>}
