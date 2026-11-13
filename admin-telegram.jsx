@@ -10,7 +10,7 @@
    الاتصال بتليجرام كله من الدالة telegram-notify (مفتاح البوت ما يوصل للمتصفح).
    ═══════════════════════════════════════════════════════════ */
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Send } from "lucide-react";
+import { Paperclip, RefreshCw, Send, X } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
 import { useSystemTheme } from "./admin-core.jsx";
 import { aNoteStyle } from "./admin-excel-utils.jsx";
@@ -18,6 +18,7 @@ import { MONTH_AR } from "./site-data.jsx";
 
 const FN = "telegram-notify";
 const MAX_LEN = 4000;
+const MAX_FILE = 20 * 1024 * 1024; /* حد الإرفاق: يمر للتليجرام مباشرة ولا يُحفظ عندنا */
 const STATE_TEXT = {
   checking: "جارٍ فحص الربط…",
   not_deployed: "دالة البوت غير منشورة على الخادم بعد.",
@@ -101,6 +102,7 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
   const [touched, setTouched] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [sending, setSending] = useState(false);
+  const [file, setFile] = useState(null);
   const siteUrl = window.location.origin;
 
   const check = async () => {
@@ -176,18 +178,26 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
 
   const ready = st.state === "ready";
   const tooLong = text.length > MAX_LEN;
-  const canSend = ready && !sending && !!text.trim() && !tooLong && !noData;
+  const fileBig = !!file && file.size > MAX_FILE;
+  const canSend = ready && !sending && (!!file || !!text.trim()) && !tooLong && !fileBig && (!!file || !noData);
 
   const send = async () => {
     if (!canSend) return;
     if (!confirm) { setConfirm(true); return; }
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke(FN, { body: { action: "send", text: text.trim(), ...(tpl === "site" ? { mark: "site_update" } : {}) } });
+      let body = { action: "send", text: text.trim(), ...(tpl === "site" ? { mark: "site_update" } : {}) };
+      if (file) {
+        /* الملف يُرسل مع الطلب ويمر للتليجرام مباشرة — ما يُخزَّن في الموقع ولا في قاعدة البيانات */
+        body = new FormData();
+        body.append("action", "send_file"); body.append("text", text.trim()); body.append("file", file, file.name);
+        if (tpl === "site") body.append("mark", "site_update");
+      }
+      const { data, error } = await supabase.functions.invoke(FN, { body });
       if (error || !data || !data.ok) throw new Error("send failed");
-      flashToast("تم النشر في قروب الملاك");
-      if (log) log("نشر تحديث في قروب تليجرام", text.trim().split("\n")[0].slice(0, 120));
-      setConfirm(false); setTouched(false); setTpl(null);
+      flashToast(file ? "تم نشر الملف في قروب الملاك" : "تم النشر في قروب الملاك");
+      if (log) log(file ? "نشر ملف في قروب تليجرام" : "نشر تحديث في قروب تليجرام", `${file ? `[${file.name}] ` : ""}${text.trim().split("\n")[0].slice(0, 100)}`);
+      setConfirm(false); setTouched(false); setTpl(null); setFile(null);
       if (tpl === "site") check();
     } catch (e) { flashToast("تعذّر النشر — ما وصلت الرسالة للقروب"); }
     setSending(false);
@@ -256,6 +266,20 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
       <div style={{ fontSize: 11.5, color: tooLong ? "#C0392B" : T.muted, margin: "6px 2px 12px" }}>
         {text.length} / {MAX_LEN} حرف — راجع النص وعدّله قبل النشر، ما يُنشر شي تلقائيًا.
       </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 12px" }}>
+        <label style={{ ...btn(false), margin: 0 }}>
+          <Paperclip size={14} /> إرفاق صورة أو ملف
+          <input type="file" hidden onChange={(e) => { setFile(e.target.files?.[0] || null); setConfirm(false); e.target.value = ""; }} />
+        </label>
+        {file && (
+          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: fileBig ? "#C0392B" : T.muted }}>
+            <span dir="ltr" style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+            ({(file.size / 1048576).toFixed(1)} م.ب){fileBig ? " — أكبر من 20 م.ب" : ""}
+            <button onClick={() => { setFile(null); setConfirm(false); }} aria-label="إزالة المرفق" style={{ background: "none", border: 0, color: T.muted, cursor: "pointer", padding: 2 }}><X size={14} /></button>
+          </span>
+        )}
+      </div>
+      {file && <div style={{ ...aNoteStyle(T), marginBottom: 10 }}>المرفق يمر لتليجرام مباشرة ولا يُحفظ في الموقع. الحد 20 م.ب. {text.length > 1024 ? "النص أطول من 1024 حرف فيُرسل كرسالة مستقلة بعد الملف." : "النص يظهر كتعليق على الملف."}{st.can_send_files === false ? " ⚠️ البوت ما عنده صلاحية إرسال الملفات في القروب." : ""}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={send} disabled={!canSend} style={btn(true, canSend)}>
           <Send size={14} /> {sending ? "جارٍ النشر…" : confirm ? "تأكيد النشر الآن" : "نشر في القروب"}
