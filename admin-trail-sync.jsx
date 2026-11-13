@@ -349,7 +349,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
     if (r?.ok && !r.busy) {
       const n = (r.fields || 0) + (r.terms || 0);
       if (n > 0) log("ترجمة تلقائية بعد المزامنة", `${r.fields || 0} نص + ${r.terms || 0} اسم/قيمة — مسودات بانتظار الاعتماد${r.remaining ? ` — باقي ${r.remaining}` : ""}`);
-      else if (r.needsEngine && r.remaining) flashToast(`${r.remaining} نص ينتظر الترجمة — جهّز المحرك من تبويب «الترجمة»`);
+      
     }
     refreshInquiries();
   };

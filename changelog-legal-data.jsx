@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.4.0",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: [
+      "لوحة الإدارة: إعادة هيكلة القائمة — 10 أقسام بثلاث مجموعات حسب طريقة العمل بدل 23 تبويبًا، وكل قسم يعرض تبويباته المتقاربة كشريط فرعي أعلى الصفحة.",
+      "لوحة الإدارة: شارة بعدد التذاكر التي لم تُراجع وعدد التعديلات المجدولة بجانب أقسامها.",
+      "إزالة محرّك الترجمة الآلي من الموقع (حوالي 133MB): الترجمة الإنجليزية تُكتب يدويًا من الإكسل أو من تبويب «الترجمة».",
+    ],
+    en: [
+      "Admin panel: restructured navigation — 10 sections in three workflow groups instead of 23 tabs, each showing its related tabs as a sub-bar.",
+      "Admin panel: badges for unreviewed owner tickets and pending scheduled changes.",
+      "Removed the built-in machine-translation engine (about 133MB): English is now written manually via Excel or the Translation tab.",
+    ],
+  },
+  {
     version: "7.3.0",
     dateAr: "12 نوفمبر 2026",
     dateEn: "November 12, 2026",

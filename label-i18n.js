@@ -37,7 +37,8 @@ export function runTranslationSweep(supabase, source = "admin", { allowDownload 
   }
   runningDl = allowDownload;
   running = (async () => {
-    if (!localSupported()) return { ok: false, error: "المتصفح ما يدعم المحرك الداخلي" };
+    /* 7.4.0 — المحرّك أُزيل: لا ترجمة تلقائية، والنتيجة «لا شيء» بهدوء */
+    if (!localSupported()) return { ok: true, engine: "none", fields: 0, terms: 0, failed: 0, remaining: 0 };
     const { data: fields, error: e1 } = await supabase.rpc("i18n_pending", { p_upgrade: false, p_limit: 40 });
     if (e1) return { ok: false, error: "db_not_ready: " + e1.message };
     const { data: terms, error: e2 } = await supabase.rpc("i18n_pending_terms", { p_upgrade: false, p_limit: 80 });
