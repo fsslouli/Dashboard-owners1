@@ -36,7 +36,7 @@ const isClosed = (r) => r && (r.closed === true || ["نعم", "مقفل", "مغ�
 const fmtPct = (v) => (v == null || v === "" || !Number.isFinite(+v) ? null : `${(+v).toFixed(2)}٪`);
 
 /* ═══ ٧.٢.٠ — الفوتر الثابت والقوالب. صوت البوت: رسالة آلية وليست بيانًا رسميًا. ═══ */
-export const tgFooter = (siteUrl) => `🔗 التفاصيل في الموقع:\n${siteUrl}\n\n🤖 رسالة آلية من البوت`;
+export const tgFooter = (siteUrl) => `🔗 التفاصيل في الموقع:\n${siteUrl}\n\n🤖 رسالة آلية`;
 const pct = (v) => (v == null || v === "" || !Number.isFinite(+v) ? null : `${(+v).toFixed(2)}%`);
 const riyadhDate = (d) => new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" });
 
