@@ -13,6 +13,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from "./app-bootstrap.jsx";
 import { THEMES, clearInqCache, hideBoot } from "./site-data.jsx";
 import { WmLayer, sanitizeWm, wmStamp } from "./share-wm-kit.jsx";
 import { TicketLauncher } from "./ticket-kit.jsx";
+import { ProtectLayer, protectOn, sanitizeProtect } from "./protect-kit.jsx";
 
 /* صفحة فحص الاستلام تُحمَّل عند الحاجة فقط (7.1.0) */
 const HandoverLauncher = lazy(() => import("./handover-kit.jsx").then((m) => ({ default: m.HandoverLauncher })));
@@ -25,7 +26,7 @@ const CFG_KEY = "gate_cfg_v1";
 const readCfg = () => {
   try {
     const v = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
-    return v && GATE_MODES.includes(v.mode) ? { mode: v.mode, tabs: Array.isArray(v.tabs) ? v.tabs.filter((t) => GATE_TABS.includes(t)) : [], wm: v.wm && typeof v.wm === "object" ? v.wm : null, tickets: ["off", "owners", "all"].includes(v.tickets) ? v.tickets : "off", handover: ["owners", "all"].includes(v.handover) ? v.handover : "hidden" } : null;
+    return v && GATE_MODES.includes(v.mode) ? { mode: v.mode, tabs: Array.isArray(v.tabs) ? v.tabs.filter((t) => GATE_TABS.includes(t)) : [], wm: v.wm && typeof v.wm === "object" ? v.wm : null, tickets: ["off", "owners", "all"].includes(v.tickets) ? v.tickets : "off", handover: ["owners", "all"].includes(v.handover) ? v.handover : "hidden", protect: sanitizeProtect(v.protect) } : null;
   } catch { return null; }
 };
 const writeCfg = (c) => { try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch { /* */ } };
@@ -58,7 +59,7 @@ export async function callOwnerLogin(action, body) {
 /* وضع القفل من site_settings — يُقرأ من المخبّأ أولًا (شاشة الدخول تطلع فورًا بلا وميض) ثم يتحدّث لحظيًا */
 export function useGateConfig() {
   const [cached] = useState(readCfg);
-  const [cfg, setCfg] = useState(() => cached || { mode: "off", tabs: [], wm: null, tickets: "off", handover: "hidden" });
+  const [cfg, setCfg] = useState(() => cached || { mode: "off", tabs: [], wm: null, tickets: "off", handover: "hidden", protect: sanitizeProtect(null) });
   const [ready, setReady] = useState(!!cached);
   useEffect(() => {
     let alive = true;
@@ -69,9 +70,9 @@ export function useGateConfig() {
         if (!alive) return;
         /* العمودان غير موجودين = الهجرة ما اشتغلت بعد → الموقع مفتوح كما كان */
         const next = error || !data
-          ? { mode: "off", tabs: [], wm: null, tickets: "off", handover: "hidden" }
-          : { handover: ["owners", "all"].includes(data.handover_mode) ? data.handover_mode : "hidden", tickets: ["off", "owners", "all"].includes(data.tickets_mode) ? data.tickets_mode : "off", mode: GATE_MODES.includes(data.gate_mode) ? data.gate_mode : "off", tabs: (data.gate_guest_tabs || []).filter((t) => GATE_TABS.includes(t)), wm: data.gate_wm && typeof data.gate_wm === "object" ? data.gate_wm : null };
-        setCfg((p) => (p.mode === next.mode && p.tabs.join() === next.tabs.join() && JSON.stringify(p.wm) === JSON.stringify(next.wm) && p.tickets === next.tickets && p.handover === next.handover ? p : next));
+          ? { mode: "off", tabs: [], wm: null, tickets: "off", handover: "hidden", protect: sanitizeProtect(null) }
+          : { handover: ["owners", "all"].includes(data.handover_mode) ? data.handover_mode : "hidden", tickets: ["off", "owners", "all"].includes(data.tickets_mode) ? data.tickets_mode : "off", mode: GATE_MODES.includes(data.gate_mode) ? data.gate_mode : "off", tabs: (data.gate_guest_tabs || []).filter((t) => GATE_TABS.includes(t)), wm: data.gate_wm && typeof data.gate_wm === "object" ? data.gate_wm : null, protect: sanitizeProtect(data.protect) };
+        setCfg((p) => (p.mode === next.mode && p.tabs.join() === next.tabs.join() && JSON.stringify(p.wm) === JSON.stringify(next.wm) && p.tickets === next.tickets && p.handover === next.handover && JSON.stringify(p.protect) === JSON.stringify(next.protect) ? p : next));
         writeCfg(next);
       } catch { /* يبقى المخبّأ */ }
       finally { if (alive) { clearTimeout(guard); setReady(true); } }
@@ -268,10 +269,14 @@ export function GateRoot({ render }) {
       </>
     );
   };
+  /* 7.5.0 — حماية المحتوى: تسري على المالك والزائر، والإدارة مستثناة */
+  const guard = kind !== "admin" && protectOn(cfg.protect)
+    ? <ProtectLayer cfg={cfg.protect} who={kind === "villa" ? { kind: "villa", villa } : { kind: "guest" }} /> : null;
   if (!active) {
     return (
       <>
         {render(null, "open")}
+        {guard}
         {kind === "villa" && <GateChip label={`فيلا ${villa}`} action="خروج" Icon={LogOut} onClick={logout} />}
         {floats(kind === "villa", kind === "villa")}
       </>
@@ -281,6 +286,7 @@ export function GateRoot({ render }) {
     return (
       <>
         {render(null, `m-${session.user.id}`)}
+        {guard}
         {kind === "villa" && <GateChip label={`فيلا ${villa}`} action="خروج" Icon={LogOut} onClick={logout} />}
         {kind === "villa" && <VillaWatermark wm={cfg.wm} villa={villa} uid={session.user.id} />}
         {floats(kind === "villa", kind === "villa")}
@@ -294,6 +300,7 @@ export function GateRoot({ render }) {
   return (
     <>
       {render({ tabs: guestTabs }, "guest")}
+      {guard}
       <GateChip label="زائر · أقسام محدودة" action="دخول الملاك" Icon={LogIn} onClick={() => setAsGuest(false)} />
       {floats(false, true)}
     </>

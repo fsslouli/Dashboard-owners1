@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.5.0",
+    dateAr: "13 نوفمبر 2026",
+    dateEn: "November 13, 2026",
+    ar: [
+      "حماية المحتوى (تُفعَّل من لوحة الإدارة ← دخول الملاك): ختم خفي برقم الفيلا أو رمز جهاز الزائر يُكشف من أي لقطة شاشة، قفل النسخ والطباعة، علامة مائية للزائر، وتغبيش عند مغادرة الصفحة.",
+      "لوحة الإدارة: «كاشف الختم» — ترفع لقطة مسرّبة فيظهر صاحبها وتاريخها.",
+    ],
+    en: [
+      "Content protection (enabled from Admin → Owner login): a hidden stamp carrying the villa number or guest device code that can be recovered from any screenshot, copy/print lock, guest watermark, and blur on leaving the page.",
+      "Admin: Stamp revealer — upload a leaked screenshot to see whose it is and its date.",
+    ],
+  },
+  {
     version: "7.4.0",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
