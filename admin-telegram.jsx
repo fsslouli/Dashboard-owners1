@@ -69,6 +69,26 @@ export const tplSiteUpdate = (count, siteUrl) => `🔄 تم تحديث المو�
 /* ٣) جمع الملاحظات — نص ثابت بلا تواريخ ولا متغيرات */
 export const tplCollect = (siteUrl) => `📝 جمع ملاحظات الملاك\n\nيجري تجهيز جدول اجتماع قريب مع المطور. لإضافة ملاحظة أو استفسار أو اقتراح، أرسلها هنا في القروب أو خاص لأحد الممثلين قبل موعد الاجتماع.\n\nكل ما يصل يتم مراجعته وإدراجه في جدول الاجتماع.\n\n${tgFooter(siteUrl)}`;
 
+/* ٤) استفسارات جديدة (٧.٩.٠) — السؤال والجواب كاملين للاستفسارات اللي يختارها الأدمن.
+   الترقيم يُعرض كمدى لو الأرقام متتالية، وإلا كقائمة. المفتوح يُوسم «(مفتوح)»، واللي بلا رد «بانتظار الرد». */
+const oneLine = (v) => String(v || "").replace(/\s*\n+\s*/g, " ").trim();
+export function tplInquiries(rows, siteUrl) {
+  const list = [...(rows || [])].sort((a, b) => a.id - b.id);
+  if (!list.length) return "";
+  const ids = list.map((r) => r.id);
+  const run = ids.every((v, i) => i === 0 || v === ids[i - 1] + 1);
+  const head = ids.length === 1 ? `استفسار جديد (${ids[0]})` : `استفسارات جديدة (${run ? `${ids[0]} إلى ${ids[ids.length - 1]}` : ids.join("، ")})`;
+  const L = [`📌 ${head}`, ""];
+  list.forEach((r) => {
+    L.push(`${r.id} | ${oneLine(r.loc) || "—"}${isClosed(r) ? "" : " (مفتوح)"}`);
+    L.push(`❓ ${oneLine(r.note)}`);
+    L.push(oneLine(r.reply) ? `✅ ${oneLine(r.reply)}` : "⏳ بانتظار الرد");
+    L.push("");
+  });
+  L.push(tgFooter(siteUrl));
+  return L.join("\n");
+}
+
 /* نص مقترح هادئ من البيانات الحالية — يُعدَّل بحرية قبل النشر */
 export function composeUpdate(inquiries, pgRow, siteUrl, now = new Date()) {
   const all = inquiries || [];
@@ -105,6 +125,7 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
   const [confirm, setConfirm] = useState(false);
   const [sending, setSending] = useState(false);
   const [file, setFile] = useState(null);
+  const [picked, setPicked] = useState(null); /* قالب «استفسارات جديدة»: أرقام البنود المختارة (null = الافتراضي) */
   const [when, setWhen] = useState(""); /* موعد الإرسال المجدول (توقيت الرياض) — فارغ = نشر فوري */
   const [sched, setSched] = useState([]);
   const [openId, setOpenId] = useState(null); /* معاينة رسالة مجدولة */
@@ -140,16 +161,25 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
 
   const lastNotice = st.last_notice_at || null;
   const updCount = useMemo(() => countUpdates(inquiries, lastNotice), [inquiries, lastNotice]);
+  /* المرشّحة للقالب: أحدث ٣٠ استفسارًا؛ والافتراضي المختار = المُضاف خلال آخر ٧ أيام */
+  const recentInq = useMemo(() => [...(inquiries || [])].sort((a, b) => b.id - a.id).slice(0, 30), [inquiries]);
+  const defaultPick = useMemo(() => {
+    const since = Date.now() - 7 * 86400000;
+    return recentInq.filter((r) => r.created_at && +new Date(r.created_at) >= since).map((r) => r.id);
+  }, [recentInq]);
+  const pickedIds = picked || defaultPick;
+  const togglePick = (id) => { setPicked(pickedIds.includes(id) ? pickedIds.filter((x) => x !== id) : [...pickedIds, id]); setTouched(false); setConfirm(false); };
   const draft = useMemo(() => {
     if (tpl === "progress") return tplProgress(pgRows, siteUrl) || "";
     if (tpl === "site") return tplSiteUpdate(updCount, siteUrl);
     if (tpl === "collect") return tplCollect(siteUrl);
+    if (tpl === "inq") return tplInquiries(recentInq.filter((r) => pickedIds.includes(r.id)), siteUrl);
     if (tpl === "general") return composeUpdate(inquiries, pgRows[0] || null, siteUrl);
     return "";
-  }, [tpl, pgRows, inquiries, updCount, siteUrl]);
+  }, [tpl, pgRows, inquiries, updCount, siteUrl, recentInq, pickedIds]);
   useEffect(() => { if (!touched) setText(draft); }, [draft, touched]);
   const pickTpl = (k) => { setTpl(k); setTouched(false); setConfirm(false); };
-  const noData = (tpl === "progress" && !draft) || (tpl === "site" && updCount === 0);
+  const noData = (tpl === "progress" && !draft) || (tpl === "site" && updCount === 0) || (tpl === "inq" && !pickedIds.length);
 
   /* إعداد البوت من اللوحة (٧.١.٠): لصق المفتاح ← اختيار القروب. المفتاح يُرسل للخادم مرة واحدة ولا يرجع. */
   const [tok, setTok] = useState("");
@@ -320,7 +350,7 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
         </div>
       )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }} role="group" aria-label="قوالب الرسائل">
-        {[["progress", "📊 تقدم الشهر"], ["site", "🔄 تحديث الموقع"], ["collect", "📝 جمع الملاحظات"], ["general", "ملخص عام"]].map(([k, label]) => (
+        {[["progress", "📊 تقدم الشهر"], ["site", "🔄 تحديث الموقع"], ["inq", "📌 استفسارات جديدة"], ["collect", "📝 جمع الملاحظات"], ["general", "ملخص عام"]].map(([k, label]) => (
           <button key={k} onClick={() => pickTpl(k)} aria-pressed={tpl === k}
             style={{ ...btn(tpl === k), padding: "7px 12px", fontSize: 12.5 }}>{label}</button>
         ))}
@@ -329,6 +359,26 @@ export function ATelegramCard({ inquiries, flashToast, log }) {
         <div style={{ ...aNoteStyle(T, updCount === 0 ? "#C0392B" : undefined), marginBottom: 10 }}>
           {updCount === 0 ? "ما فيه بنود جديدة أو محدّثة منذ آخر إشعار — ما يُرسل شي."
             : `${updCount} بند منذ ${lastNotice ? "آخر إشعار (محسوبة بالأيام، تشمل تحديثات يوم آخر إشعار)" : "آخر 7 أيام (ما أُرسل إشعار قبل)"}.`}
+        </div>
+      )}
+      {tpl === "inq" && (
+        <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, padding: 10, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700 }}>اختر الاستفسارات ({pickedIds.length} مختار)</span>
+            <span style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => { setPicked(null); setTouched(false); }} style={{ ...btn(false), padding: "4px 9px", fontSize: 11.5 }}>آخر 7 أيام</button>
+              <button onClick={() => { setPicked([]); setTouched(false); }} style={{ ...btn(false), padding: "4px 9px", fontSize: 11.5 }}>مسح الاختيار</button>
+            </span>
+          </div>
+          <div style={{ maxHeight: 220, overflowY: "auto" }}>
+            {recentInq.map((r) => (
+              <label key={r.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 4px", fontSize: 12.5, cursor: "pointer", borderBottom: `1px dashed ${T.line}` }}>
+                <input type="checkbox" checked={pickedIds.includes(r.id)} onChange={() => togglePick(r.id)} style={{ marginTop: 4 }} />
+                <span style={{ flex: 1, minWidth: 0 }}><b style={{ color: T.brass }}>{r.id}</b> · {oneLine(r.note).slice(0, 90)}{oneLine(r.note).length > 90 ? "…" : ""}{!isClosed(r) && <span style={{ color: T.muted }}> (مفتوح)</span>}</span>
+              </label>
+            ))}
+          </div>
+          {!pickedIds.length && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6 }}>اختر استفسارًا واحدًا على الأقل.</div>}
         </div>
       )}
       {tpl === "progress" && !draft && <div style={{ ...aNoteStyle(T, "#C0392B"), marginBottom: 10 }}>ما فيه بيانات تقدم كافية لتعبئة هذا القالب.</div>}

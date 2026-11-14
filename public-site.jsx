@@ -12,6 +12,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
 import { AttachmentViewer, toView, useAttachments } from "./attach-kit.jsx";
+import { MaterialsSection } from "./materials-kit.jsx";
 import { GallerySection } from "./gallery-kit.jsx";
 import { LinkLeaveSheet, LinksFolders, LinksHeaderChips, LinksInNotices, LinksOverviewCards, linksAt, useExternalLinks } from "./links-kit.jsx";
 import { isHidden, NL, orderedKeys, useNavLabels } from "./nav-labels-kit.jsx";
@@ -1804,6 +1805,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
           {tab === "gallery" && (
             <div className="tab-panel">
+              {!shareScope && <MaterialsSection supabase={supabase} T={T} L={L} lang={lang} />}
               <GallerySection supabase={supabase} T={T} L={L} lang={lang} onlyTopics={shareScope && Array.isArray(shareScope.topics) ? shareScope.topics : null}
                 extra={!shareScope && linksAt(extLinks, "gallery").length ? <LinksFolders links={extLinks} lang={lang} onLeave={setLeaving} /> : null} />
             </div>

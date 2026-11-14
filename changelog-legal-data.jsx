@@ -13,6 +13,21 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.9.0",
+    dateAr: "14 نوفمبر 2026",
+    dateEn: "November 14, 2026",
+    ar: [
+      "سجل المواد: جدول بسيط أعلى المكتبة (المادة · مواصفاتها بسطر واحد · الحالة) مع تنزيل الجدول PDF. مخفي افتراضيًا ويُفعَّل من لوحة الإدارة ← المكتبة والمحتوى ← سجل المواد.",
+      "بوت تليجرام: قالب «استفسارات جديدة» — تختار الاستفسارات فتتعبّى الرسالة بالسؤال والجواب تلقائيًا.",
+      "المزامنة: زر «فحص المطابقة» يقارن ملف الإكسل بالموقع ويعرض الفروقات فقط بدون أي تعديل.",
+    ],
+    en: [
+      "Materials register: a simple table above the library (material · one-line spec · status) with PDF download. Hidden by default; enabled from Admin → Library & content → Materials register.",
+      "Telegram bot: “New inquiries” template — pick inquiries and the message fills with question and answer automatically.",
+      "Sync: a “Match check” button compares the Excel file with the site and only lists differences, changing nothing.",
+    ],
+  },
+  {
     version: "7.8.2",
     dateAr: "13 نوفمبر 2026",
     dateEn: "November 13, 2026",
