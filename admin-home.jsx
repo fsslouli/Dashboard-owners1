@@ -6,6 +6,7 @@ import { AOwnerLoginTab } from "./admin-owner-login.jsx";
 import { ATicketsTab } from "./admin-tickets-tab.jsx";
 import { AMeetingsTab } from "./admin-meetings-tab.jsx";
 import { AHandoverTab } from "./admin-handover-tab.jsx";
+import { AMaterialsTab } from "./materials-kit.jsx";
 import { ALocked, aNoteStyle } from "./admin-excel-utils.jsx";
 import { AMediaTab } from "./admin-media-tab.jsx";
 import { AInsightsTab } from "./admin-insights-tab.jsx";
@@ -140,6 +141,7 @@ const ADMIN_TABS = [
   { key: "meetings", label: "الاجتماعات", perms: ["edit_inquiry"] },
   { key: "tickets", label: "تذاكر الملاك", perms: ["manage_tickets"] },
   { key: "handover", label: "فحص الاستلام", perms: ["manage_theme"] },
+  { key: "materials", label: "سجل المواد", perms: ["manage_gallery"] },
   { key: "ownerlogin", label: "دخول الملاك", perms: ["manage_owner_login"] },
   { key: "users", label: "المستخدمون", perms: ["edit_permissions", "create_users"] },
   { key: "security", label: "الأمان", perms: null },
@@ -237,6 +239,7 @@ function AdminHome({ session, onLogout }) {
         {activeTab === "brief" && <ABriefTab inquiries={inquiries} flashToast={flashToast} />}
         {activeTab === "theme" && <AThemeTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "meetings" && <AMeetingsTab inquiries={inquiries} refreshInquiries={refreshInquiries} flashToast={flashToast} log={log} canEdit={has("edit_inquiry")} />}
+        {activeTab === "materials" && <AMaterialsTab supabase={supabase} flashToast={flashToast} log={log} canManage={has("manage_gallery")} />}
         {activeTab === "handover" && <AHandoverTab flashToast={flashToast} log={log} canManage={has("manage_theme")} />}
         {activeTab === "tickets" && <ATicketsTab flashToast={flashToast} log={log} canManage={has("manage_tickets")} />}
         {activeTab === "ownerlogin" && <AOwnerLoginTab flashToast={flashToast} log={log} canManage={has("manage_owner_login")} />}

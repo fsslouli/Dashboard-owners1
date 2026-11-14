@@ -1,5 +1,6 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: admin-trail-sync */
 import { AImportAudit } from "./admin-audit-tab.jsx";
+import { AMatchCheck } from "./admin-match-check.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
 import { kickTranslations, runAllTranslations } from "./label-i18n.js";
 import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
@@ -550,6 +551,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
           <button onClick={downloadTemplate} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", color: T.brass, border: `1px solid ${T.brass}55`, borderRadius: 11, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}><Download size={15} /> تنزيل قالب</button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: "none" }} />
         </div>
+        <AMatchCheck inquiries={inquiries} categories={categories} flashToast={flashToast} />
       </div>
       )}
 
