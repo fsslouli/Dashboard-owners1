@@ -72,21 +72,22 @@ const CSS = `
 const Pill = ({ s, lang }) => <span className="mtl-st" style={{ background: (ST_COLOR[s] || "#888") + "1F", color: ST_COLOR[s] || "#888" }}>{lang === "en" ? ST_EN[s] || s : s}</span>;
 
 /* الجدول نفسه — يُستخدم في الموقع العام وفي معاينة الإدارة */
-export function MaterialsTable({ rows, T, L, lang = "ar" }) {
+export const matLink = (r) => (r.media_url || r.ref_url || null);
+export function MaterialsTable({ rows, T, L, lang = "ar", pdf = true }) {
   const vars = { "--m-surface": T.surface, "--m-line": T.line, "--m-muted": T.muted, "--m-accent": T.brass };
   return (
     <section className="mtl" style={vars} dir={lang === "en" ? "ltr" : "rtl"}>
       <style>{CSS}</style>
       <div className="mtl-h">
         <div><b>{L("سجل المواد", "Materials register")}</b> <span>· {rows.length} {L("مادة", "items")}{lastUpdate(rows) ? ` · ${L("آخر تحديث", "updated")} ${lastUpdate(rows)}` : ""}</span></div>
-        <button type="button" className="mtl-pdf" onClick={() => printMaterials(rows)}><FileDown size={14} /> {L("تنزيل PDF", "Download PDF")}</button>
+        {pdf && <button type="button" className="mtl-pdf" onClick={() => printMaterials(rows)}><FileDown size={14} /> {L("تنزيل PDF", "Download PDF")}</button>}
       </div>
       <table className="mtl-t">
         <thead><tr><th>{L("المادة", "Material")}</th><th>{L("المواصفات", "Specification")}</th><th>{L("الحالة", "Status")}</th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td className="m"><span>{r.ref_url ? <a href={r.ref_url} target="_blank" rel="noopener noreferrer">{r.name}</a> : r.name}</span><Pill s={r.status} lang={lang} /></td>
+              <td className="m"><span>{matLink(r) ? <a href={matLink(r)} target="_blank" rel="noopener noreferrer">{r.name}</a> : r.name}</span><Pill s={r.status} lang={lang} /></td>
               <td>{r.spec}</td>
               <td className="s"><Pill s={r.status} lang={lang} /></td>
             </tr>
@@ -98,25 +99,38 @@ export function MaterialsTable({ rows, T, L, lang = "ar" }) {
   );
 }
 
+/* يربط كل مادة بملفها في المكتبة (media_id) — الرابط يُقرأ من الملف نفسه فيتحدّث معه. فشل القراءة = بلا روابط فقط. */
+async function withMedia(supabase, rows) {
+  const ids = [...new Set(rows.map((r) => r.media_id).filter(Boolean))];
+  if (!ids.length) return rows;
+  const { data } = await supabase.from("media_items").select("id,external_url").in("id", ids);
+  const m = new Map((data || []).map((x) => [x.id, x.external_url]));
+  return rows.map((r) => ({ ...r, media_url: (r.media_id && m.get(r.media_id)) || null }));
+}
+
 /* الموقع العام: يظهر أعلى المكتبة فقط لما الإدارة تفعّله. أي خطأ (الهجرة ما اشتغلت) = لا شيء. */
 export function MaterialsSection({ supabase, T, L, lang }) {
   const [rows, setRows] = useState(null);
+  const [pdf, setPdf] = useState(true);
   useEffect(() => {
     let live = true;
     (async () => {
-      const { data: s, error: e1 } = await supabase.from("site_settings").select("materials_on").eq("id", 1).single();
+      const { data: s, error: e1 } = await supabase.from("site_settings").select("materials_on,materials_pdf").eq("id", 1).single();
       if (!live || e1 || !s || !s.materials_on) return;
-      const { data, error } = await supabase.from("materials").select("id,name,spec,status,ref_url,sort_order,updated_at").order("sort_order").order("id");
-      if (live && !error) setRows(data || []);
+      setPdf(s.materials_pdf !== false);
+      const { data, error } = await supabase.from("materials").select("id,name,spec,status,ref_url,media_id,sort_order,updated_at").order("sort_order").order("id");
+      if (!live || error) return;
+      const full = await withMedia(supabase, data || []);
+      if (live) setRows(full);
     })();
     return () => { live = false; };
   }, [supabase]);
   if (!rows || !rows.length) return null;
-  return <MaterialsTable rows={rows} T={T} L={L} lang={lang} />;
+  return <MaterialsTable rows={rows} T={T} L={L} lang={lang} pdf={pdf} />;
 }
 
 /* ═══ لوحة الإدارة — تبويب «سجل المواد» ═══ */
-const BLANK = { name: "", spec: "", status: "مرصودة", ref_url: "" };
+const BLANK = { name: "", spec: "", status: "مرصودة", ref_url: "", media_id: "" };
 export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
   const T = useSystemTheme();
   const [on, setOn] = useState(null); /* null = جارٍ التحميل · "missing" = الهجرة ما اشتغلت */
@@ -124,12 +138,24 @@ export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
   const [form, setForm] = useState(null); /* {id?, name, spec, status, ref_url} */
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [pdfOn, setPdfOn] = useState(true);
+  const [lib, setLib] = useState([]); /* ملفات المكتبة للربط */
   const load = async () => {
-    const { data: s, error: e1 } = await supabase.from("site_settings").select("materials_on").eq("id", 1).single();
+    const { data: s, error: e1 } = await supabase.from("site_settings").select("materials_on,materials_pdf").eq("id", 1).single();
     if (e1 || !s) { setOn("missing"); return; }
-    setOn(!!s.materials_on);
+    setOn(!!s.materials_on); setPdfOn(s.materials_pdf !== false);
     const { data } = await supabase.from("materials").select("*").order("sort_order").order("id");
-    setRows(data || []);
+    setRows(await withMedia(supabase, data || []));
+    const { data: m } = await supabase.from("media_items").select("id,title_ar,kind,topic_id").order("topic_id").order("sort_order");
+    setLib(m || []);
+  };
+  const togglePdf = async () => {
+    if (!canManage) return;
+    const next = !pdfOn;
+    const { error } = await supabase.from("site_settings").update({ materials_pdf: next }).eq("id", 1);
+    if (error) { flashToast("تعذّر الحفظ"); return; }
+    setPdfOn(next); flashToast(next ? "زر PDF ظاهر للزوار" : "زر PDF مخفي عن الزوار");
+    if (log) log("سجل المواد", next ? "إظهار زر PDF" : "إخفاء زر PDF");
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -146,7 +172,7 @@ export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
     const name = form.name.trim(), spec = form.spec.replace(/\s*\n+\s*/g, " ").trim();
     if (!name || !spec) { flashToast("اكتب اسم المادة ومواصفاتها"); return; }
     setBusy(true);
-    const rec = { name, spec, status: form.status, ref_url: form.ref_url.trim() || null, updated_at: new Date().toISOString() };
+    const rec = { name, spec, status: form.status, ref_url: form.ref_url.trim() || null, media_id: form.media_id ? Number(form.media_id) : null, updated_at: new Date().toISOString() };
     const q = form.id ? supabase.from("materials").update(rec).eq("id", form.id)
       : supabase.from("materials").insert({ ...rec, sort_order: (Math.max(0, ...rows.map((r) => r.sort_order || 0)) + 1) });
     const { error } = await q;
@@ -194,6 +220,10 @@ export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
           <button onClick={() => setPreview((v) => !v)} style={btn(false)} disabled={!rows.length}><Eye size={14} /> {preview ? "إخفاء المعاينة" : "معاينة كما يراه الزائر"}</button>
           <button onClick={() => { if (!printMaterials(rows)) flashToast("اسمح بالنوافذ المنبثقة لتنزيل الملف"); }} style={btn(false)} disabled={!rows.length}><FileDown size={14} /> تنزيل PDF</button>
         </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 14, borderTop: `1px dashed ${T.line}`, paddingTop: 12 }}>
+          <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.7 }}><b style={{ color: T.paper }}>زر «تنزيل PDF» للزوار</b> — مفتاح مستقل عن ظهور السجل.</div>
+          <button onClick={togglePdf} disabled={!canManage} aria-pressed={pdfOn} style={btn(pdfOn)}>{pdfOn ? <Eye size={14} /> : <EyeOff size={14} />} {pdfOn ? "الزر ظاهر" : "الزر مخفي"}</button>
+        </div>
       </div>
 
       {form && (
@@ -206,7 +236,13 @@ export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
               <span style={{ fontSize: 12, color: T.muted }}>الحالة:</span>
               {MAT_STATUSES.map((s) => <button key={s} onClick={() => setForm({ ...form, status: s })} aria-pressed={form.status === s} style={{ ...btn(form.status === s), padding: "6px 11px" }}>{s}</button>)}
             </div>
-            <label style={{ fontSize: 12, color: T.muted }}>رابط الملف المرجعي (اختياري)<input value={form.ref_url} onChange={(e) => setForm({ ...form, ref_url: e.target.value })} dir="ltr" placeholder="https://…" style={{ ...inp, marginTop: 4 }} /></label>
+            <label style={{ fontSize: 12, color: T.muted }}>ربط بملف من المكتبة (اختياري)
+              <select value={form.media_id || ""} onChange={(e) => setForm({ ...form, media_id: e.target.value })} style={{ ...inp, marginTop: 4 }}>
+                <option value="">بدون ربط</option>
+                {lib.map((m) => <option key={m.id} value={m.id}>{m.title_ar || `ملف ${m.id}`}</option>)}
+              </select>
+            </label>
+            <label style={{ fontSize: 12, color: T.muted }}>أو رابط خارجي (اختياري)<input value={form.ref_url} onChange={(e) => setForm({ ...form, ref_url: e.target.value })} dir="ltr" placeholder="https://…" style={{ ...inp, marginTop: 4 }} /></label>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button onClick={save} disabled={busy} style={btn(true)}>{busy ? "جارٍ الحفظ…" : "حفظ"}</button>
@@ -222,13 +258,14 @@ export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700 }}>{r.name} <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: (ST_COLOR[r.status] || "#888") + "1F", color: ST_COLOR[r.status] || "#888", marginInlineStart: 4 }}>{r.status}</span></div>
               <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.7, marginTop: 2 }}>{r.spec}</div>
-              {r.ref_url && <div dir="ltr" style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>{r.ref_url}</div>}
+              {r.media_id ? <div style={{ fontSize: 11, color: T.faint }}>🔗 مرتبط بملف المكتبة: {(lib.find((m) => m.id === r.media_id) || {}).title_ar || `#${r.media_id}`}</div>
+                : r.ref_url && <div dir="ltr" style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>{r.ref_url}</div>}
             </div>
             {canManage && (
               <div style={{ display: "flex", flexShrink: 0 }}>
                 <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="تحريك لأعلى" style={{ ...ib, opacity: i === 0 ? 0.3 : 1 }}><ArrowUp size={15} /></button>
                 <button onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="تحريك لأسفل" style={{ ...ib, opacity: i === rows.length - 1 ? 0.3 : 1 }}><ArrowDown size={15} /></button>
-                <button onClick={() => setForm({ id: r.id, name: r.name, spec: r.spec, status: r.status, ref_url: r.ref_url || "" })} aria-label="تعديل" style={ib}><Pencil size={15} /></button>
+                <button onClick={() => setForm({ id: r.id, name: r.name, spec: r.spec, status: r.status, ref_url: r.ref_url || "", media_id: r.media_id || "" })} aria-label="تعديل" style={ib}><Pencil size={15} /></button>
                 <button onClick={() => remove(r)} aria-label="حذف" style={{ ...ib, color: "#C0392B" }}><Trash2 size={15} /></button>
               </div>
             )}
@@ -239,7 +276,7 @@ export function AMaterialsTab({ supabase, flashToast, log, canManage }) {
       {preview && rows.length > 0 && (
         <div>
           <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>المعاينة (كما يظهر في الموقع):</div>
-          <MaterialsTable rows={rows} T={T} L={(a) => a} lang="ar" />
+          <MaterialsTable rows={rows} T={T} L={(a) => a} lang="ar" pdf={pdfOn} />
         </div>
       )}
     </div>
