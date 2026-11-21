@@ -23,6 +23,7 @@ export const DEFAULT_PUBLIC_LABELS = [
 export const DEFAULT_ADMIN_LABELS = [
   { key: "dashboard", ar: "لوحة القرار" },
   { key: "sync", ar: "المزامنة والبيانات" },
+  { key: "workbook", ar: "ملف الإكسل" },
   { key: "analytics", ar: "الزيارات والتحليلات" },
   { key: "filters", ar: "الفلاتر المخصصة" },
   { key: "notices", ar: "الإشعارات" },
