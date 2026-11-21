@@ -255,12 +255,14 @@ ${D} .tab[data-on="1"] .tab-n{background:var(--fj-dawn);color:#fff;}
 ${D} .tab-indicator{display:none!important;}
 /* الجوال: شريط ثابت أسفل الشاشة (نفس سلوك بقية التصاميم) بشكل «فجر» */
 @media(max-width:767.98px){
-  ${D} .tabs{position:fixed;overflow:visible;margin:0;border-radius:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
-    background:${mix(T.surface, 94)};box-shadow:0 -1px 0 var(--fj-rule),0 -14px 30px -18px ${mix(glow, 40)};}
-  ${D} .tabs::after{display:none;}
+  ${D} .tabs{position:fixed;overflow:visible;margin:0;border-radius:0;padding:6px 4px calc(14px + env(safe-area-inset-bottom));
+    background:${T.surface};box-shadow:0 -1px 0 var(--fj-rule),0 -14px 30px -18px ${mix(glow, 40)};}
+  ${D} .tabs::after{inset-inline:10px;bottom:calc(3px + env(safe-area-inset-bottom));height:6px;opacity:1;
+    background:repeating-linear-gradient(90deg,${mix(ink, dark ? 42 : 38)} 0 1px,transparent 1px 12px),linear-gradient(${mix(ink, dark ? 30 : 26)},${mix(ink, dark ? 30 : 26)}) bottom/100% 1px no-repeat;}
   ${D} .stamp{padding-bottom:14px;}
   ${D} .tab{flex:1 1 0;min-width:0;min-height:54px;padding:5px 2px;font-size:11px;border-radius:12px;}
   ${D} .tab[data-on="1"]{box-shadow:inset 0 -3px 0 var(--fj-dawn);}
+  ${D} .wrap{padding-bottom:calc(120px + env(safe-area-inset-bottom))!important;}
 }
 }
 ${D} .scroll-progress{background:linear-gradient(90deg,var(--fj-dawn),var(--fj-sun));height:3px;}
