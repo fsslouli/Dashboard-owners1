@@ -240,7 +240,8 @@ ${D} .fj-dim{animation:fjFade 1.4s 1.6s ease-out both;}
 
 /* ═══ ٢. التبويبات: مسطرة مقياس ═══ */
 ${D} .tabs{gap:2px;margin-top:20px;margin-bottom:14px;padding:5px;border-radius:14px;background:${T.surface};
-  box-shadow:inset 0 0 0 1px var(--fj-rule);flex-wrap:nowrap;position:relative;}
+  box-shadow:inset 0 0 0 1px var(--fj-rule);flex-wrap:nowrap;}
+@media(min-width:768px){${D} .tabs{position:relative;}}
 ${D} .tabs.tabs-glass{background:${mix(T.surface, 88)};-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);}
 ${D} .tabs::after{content:"";position:absolute;inset-inline:14px;bottom:2px;height:4px;pointer-events:none;opacity:.5;
   background:repeating-linear-gradient(90deg,var(--fj-rule) 0 1px,transparent 1px 12px);}
@@ -252,10 +253,15 @@ ${D} .tab[data-on="1"] .tab-ic{color:var(--fj-dawn);}
 ${D} .tab-n{border-radius:999px;background:${mix(ink, 8)};color:${T.muted};font-family:${B};}
 ${D} .tab[data-on="1"] .tab-n{background:var(--fj-dawn);color:#fff;}
 ${D} .tab-indicator{display:none!important;}
+/* الجوال: شريط ثابت أسفل الشاشة (نفس سلوك بقية التصاميم) بشكل «فجر» */
 @media(max-width:767.98px){
-  ${D} .tabs{overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity;}
-  ${D} .tabs::-webkit-scrollbar{display:none;}
-  ${D} .tab{flex:none;min-height:44px;padding:9px 15px;scroll-snap-align:start;font-size:14px;}
+  ${D} .tabs{position:fixed;overflow:visible;margin:0;border-radius:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    background:${mix(T.surface, 94)};box-shadow:0 -1px 0 var(--fj-rule),0 -14px 30px -18px ${mix(glow, 40)};}
+  ${D} .tabs::after{display:none;}
+  ${D} .stamp{padding-bottom:14px;}
+  ${D} .tab{flex:1 1 0;min-width:0;min-height:54px;padding:5px 2px;font-size:11px;border-radius:12px;}
+  ${D} .tab[data-on="1"]{box-shadow:inset 0 -3px 0 var(--fj-dawn);}
+}
 }
 ${D} .scroll-progress{background:linear-gradient(90deg,var(--fj-dawn),var(--fj-sun));height:3px;}
 ${D} .mini-bar{background:${mix(T.bg, 92)};-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--fj-rule);}
