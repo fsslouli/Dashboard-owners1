@@ -1,4 +1,4 @@
-/* admin-match-check.jsx — «فحص المطابقة» (7.9.0)
+/* admin-match-check.jsx — «فحص المطابقة» (7.9.0؛ 7.10.0: القراءة والنتيجة صارت مشتركة مع تبويب «ملف الإكسل»)
    يقرأ شيت «الاستفسارات» من ملف الإكسل ويقارنه بالموقع بنفس محرك المزامنة (نفس التنظيف ونفس قواعد المقارنة)،
    ويعرض النتيجة فقط: مطابق، أو قائمة الفروقات بندًا بندًا. قراءة فقط — ما يكتب أي شي بقاعدة البيانات. */
 import { useRef, useState } from "react";
@@ -31,6 +31,22 @@ export function matchCheck(fileRows, siteRows, fields = INQ_FIELDS_ADMIN) {
   return { total: seen.size, diffs, onlyFile, onlySite, blanks, ok: !diffs.length && !onlyFile.length && !onlySite.length };
 }
 
+/* 7.10.0 — قراءة شيت «الاستفسارات» من ملف إكسل (ArrayBuffer) وتنظيفه بنفس محرك المزامنة.
+   مشتركة بين «فحص المطابقة» هنا وتبويب «ملف الإكسل» (admin-workbook-tab.jsx). */
+export function readInquiriesSheet(buffer, categories) {
+  const wb = XLSX.read(buffer, { type: "array", cellDates: true });
+  const name = wb.SheetNames.find((n) => n.trim() === "الاستفسارات") || wb.SheetNames.find((n) => !/اجتماع|طلبات|ملاحظات|تقدم|progress/i.test(n));
+  if (!name) return { sheetNames: wb.SheetNames, sheet: null, rows: [] };
+  const approved = {};
+  (categories || []).forEach((c) => {
+    const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner", owner_title: "owner_title" }[c.key];
+    if (f && Array.isArray(c.values) && c.values.length) approved[f] = c.values;
+  });
+  const { rows } = readSheetWithMeta(wb.Sheets[name], categories);
+  const clean = rows.map((raw) => Brain.canonicalizeToApproved(Brain.autoFixRow(raw).row, approved).row);
+  return { sheetNames: wb.SheetNames, sheet: name, rows: clean };
+}
+
 export function AMatchCheck({ inquiries, categories, flashToast }) {
   const T = useSystemTheme();
   const ref = useRef(null);
@@ -40,22 +56,13 @@ export function AMatchCheck({ inquiries, categories, flashToast }) {
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
-        const name = wb.SheetNames.find((n) => n.trim() === "الاستفسارات") || wb.SheetNames.find((n) => !/اجتماع|طلبات|ملاحظات|تقدم|progress/i.test(n));
-        if (!name) { flashToast("ما لقيت شيت «الاستفسارات» بالملف"); return; }
-        const approved = {};
-        (categories || []).forEach((c) => {
-          const f = { status: "status", pri: "pri", cat: "cat", model: "model", loc: "loc", owner: "owner", owner_title: "owner_title" }[c.key];
-          if (f && Array.isArray(c.values) && c.values.length) approved[f] = c.values;
-        });
-        const { rows } = readSheetWithMeta(wb.Sheets[name], categories);
-        const clean = rows.map((raw) => Brain.canonicalizeToApproved(Brain.autoFixRow(raw).row, approved).row);
-        setRes({ file: file.name, sheet: name, at: new Date(), ...matchCheck(clean, inquiries) });
+        const p = readInquiriesSheet(evt.target.result, categories);
+        if (!p.sheet) { flashToast("ما لقيت شيت «الاستفسارات» بالملف"); return; }
+        setRes({ file: file.name, sheet: p.sheet, at: new Date(), ...matchCheck(p.rows, inquiries) });
       } catch { flashToast("تعذّرت قراءة الملف"); }
     };
     reader.readAsArrayBuffer(file); e.target.value = "";
   };
-  const good = "#1E8E5A", bad = "#C0392B";
   return (
     <div style={{ marginTop: 14, borderTop: `1px dashed ${T.line}`, paddingTop: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -63,35 +70,42 @@ export function AMatchCheck({ inquiries, categories, flashToast }) {
         <span style={{ fontSize: 12, color: T.muted, flex: "1 1 200px", lineHeight: 1.7 }}>يقارن ملف الإكسل بالموقع ويعرض النتيجة فقط — ما يغيّر أي شي.</span>
         <input ref={ref} type="file" accept=".xlsx,.xls" onChange={onFile} style={{ display: "none" }} />
       </div>
-      {res && (
-        <div style={{ marginTop: 12, border: `1px solid ${res.ok ? good : bad}55`, background: (res.ok ? good : bad) + "10", borderRadius: 12, padding: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: res.ok ? good : bad }}>
-              {res.ok ? <Check size={17} /> : <X size={17} />}
-              {res.ok ? `مطابق — ${res.total} استفسار بلا أي فرق` : `غير مطابق — ${res.diffs.length} بند مختلف${res.onlyFile.length ? ` · ${res.onlyFile.length} بالملف فقط` : ""}${res.onlySite.length ? ` · ${res.onlySite.length} بالموقع فقط` : ""}`}
-            </div>
-            <button onClick={() => setRes(null)} aria-label="إغلاق النتيجة" style={{ background: "none", border: 0, color: T.muted, cursor: "pointer", padding: 2 }}><X size={15} /></button>
-          </div>
-          <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}><span dir="ltr">{res.file}</span> · شيت «{res.sheet}» · {res.total} صف بالملف مقابل {inquiries.length} بالموقع</div>
-          {res.onlyFile.length > 0 && <div style={{ fontSize: 12.5, marginTop: 8 }}><b>بالملف وليست بالموقع:</b> {res.onlyFile.join("، ")}</div>}
-          {res.onlySite.length > 0 && <div style={{ fontSize: 12.5, marginTop: 8 }}><b>بالموقع وليست بالملف:</b> {res.onlySite.join("، ")}</div>}
-          {res.diffs.slice(0, 40).map((d) => (
-            <div key={d.id} style={{ marginTop: 10, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10, padding: "8px 10px" }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.brass }}>استفسار {d.id}</div>
-              {d.fields.map((x) => (
-                <div key={x.f} style={{ fontSize: 12, lineHeight: 1.8, marginTop: 4 }}>
-                  <b>{ADMIN_FIELD_LABEL[x.f] || x.f}</b>
-                  <div style={{ color: T.muted }}>الإكسل: <span style={{ color: T.paper }}>{short(x.file)}</span></div>
-                  <div style={{ color: T.muted }}>الموقع: <span style={{ color: T.paper }}>{short(x.site)}</span></div>
-                </div>
-              ))}
+      {res && <MatchResult res={res} inquiries={inquiries} onClose={() => setRes(null)} />}
+    </div>
+  );
+}
+
+/* 7.10.0 — صندوق نتيجة الفحص (نفسه بالمزامنة وبتبويب «ملف الإكسل») */
+export function MatchResult({ res, inquiries, onClose }) {
+  const T = useSystemTheme();
+  const good = "#1E8E5A", bad = "#C0392B";
+  return (
+    <div style={{ marginTop: 12, border: `1px solid ${res.ok ? good : bad}55`, background: (res.ok ? good : bad) + "10", borderRadius: 12, padding: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: res.ok ? good : bad }}>
+          {res.ok ? <Check size={17} /> : <X size={17} />}
+          {res.ok ? `مطابق — ${res.total} استفسار بلا أي فرق` : `غير مطابق — ${res.diffs.length} بند مختلف${res.onlyFile.length ? ` · ${res.onlyFile.length} بالملف فقط` : ""}${res.onlySite.length ? ` · ${res.onlySite.length} بالموقع فقط` : ""}`}
+        </div>
+        {onClose && <button onClick={onClose} aria-label="إغلاق النتيجة" style={{ background: "none", border: 0, color: T.muted, cursor: "pointer", padding: 2 }}><X size={15} /></button>}
+      </div>
+      <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}><span dir="ltr">{res.file}</span> · شيت «{res.sheet}» · {res.total} صف بالملف مقابل {inquiries.length} بالموقع</div>
+      {res.onlyFile.length > 0 && <div style={{ fontSize: 12.5, marginTop: 8 }}><b>بالملف وليست بالموقع:</b> {res.onlyFile.join("، ")}</div>}
+      {res.onlySite.length > 0 && <div style={{ fontSize: 12.5, marginTop: 8 }}><b>بالموقع وليست بالملف:</b> {res.onlySite.join("، ")}</div>}
+      {res.diffs.slice(0, 40).map((d) => (
+        <div key={d.id} style={{ marginTop: 10, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10, padding: "8px 10px" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: T.brass }}>استفسار {d.id}</div>
+          {d.fields.map((x) => (
+            <div key={x.f} style={{ fontSize: 12, lineHeight: 1.8, marginTop: 4 }}>
+              <b>{ADMIN_FIELD_LABEL[x.f] || x.f}</b>
+              <div style={{ color: T.muted }}>الإكسل: <span style={{ color: T.paper }}>{short(x.file)}</span></div>
+              <div style={{ color: T.muted }}>الموقع: <span style={{ color: T.paper }}>{short(x.site)}</span></div>
             </div>
           ))}
-          {res.diffs.length > 40 && <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>+{res.diffs.length - 40} بند آخر مختلف</div>}
-          {res.ok && res.blanks > 0 && <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6 }}>ملاحظة: {res.blanks} خلية فاضية بالملف ولها قيمة بالموقع — الرفع ما يمسحها.</div>}
-          {!res.ok && <div style={{ fontSize: 11.5, color: T.muted, marginTop: 10 }}>هذا فحص فقط. للتعديل استخدم «رفع ملف إكسل» وراجع الفروقات هناك.</div>}
         </div>
-      )}
+      ))}
+      {res.diffs.length > 40 && <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>+{res.diffs.length - 40} بند آخر مختلف</div>}
+      {res.ok && res.blanks > 0 && <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6 }}>ملاحظة: {res.blanks} خلية فاضية بالملف ولها قيمة بالموقع — الرفع ما يمسحها.</div>}
+      {!res.ok && <div style={{ fontSize: 11.5, color: T.muted, marginTop: 10 }}>هذا فحص فقط. للتعديل استخدم «رفع ملف إكسل» بتبويب «المزامنة والبيانات» وراجع الفروقات هناك.</div>}
     </div>
   );
 }

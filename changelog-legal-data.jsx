@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.10.0",
+    dateAr: "21 نوفمبر 2026",
+    dateEn: "November 21, 2026",
+    ar: [
+      "لوحة الإدارة ← الاستفسارات والبيانات ← «ملف الإكسل»: ملف الاستفسارات الكامل (كل الشيتات كما هي) محفوظ بخزنة خاصة بنسخ مرقّمة — تنزيل آخر نسخة أو أي نسخة سابقة، ورفع نسخة جديدة، وفحص مطابقة تلقائي مع الموقع.",
+      "المساعد يرفع النسخة الجديدة بعد اعتمادك فقط، ويقرأ آخر نسخة من هنا قبل أي تعديل. خاص بالإدارة: ما يظهر للملاك ولا الزوار ولا روابط المشاركة، وما فيه حذف لأي نسخة.",
+    ],
+    en: [
+      "Admin → Inquiries & data → “Excel file”: the full inquiries workbook (all sheets, as is) kept in private storage with numbered versions — download the latest or any earlier version, upload a new one, and an automatic match check against the site.",
+      "The assistant uploads a new version only after your approval, and reads the latest from here before editing. Admin-only: never shown to owners, visitors or share links, and no version is ever deleted.",
+    ],
+  },
+  {
     version: "7.9.0",
     dateAr: "14 نوفمبر 2026",
     dateEn: "November 14, 2026",

@@ -9,7 +9,7 @@ import {
   Activity, AlarmClock, BarChart3, Bell, Clapperboard, ExternalLink, FileSpreadsheet, FileText, Filter, History,
   Images, LayoutDashboard, Link2, LogOut, Menu, MousePointerClick, Palette, PenLine, Search, ShieldCheck,
   Type, Users, X, Layers, Wand2, Languages, KeyRound, Inbox, CalendarDays, ClipboardCheck,
-  Boxes,
+  Boxes, FileStack,
 } from "lucide-react";
 
 /* 7.4.0 — هيكلة جديدة: القائمة الجانبية صارت 11 قسمًا بثلاث مجموعات حسب طريقة العمل (بدل 23 تبويبًا)،
@@ -17,7 +17,7 @@ import {
    فالروابط (#admin/<مفتاح>) والصلاحيات وتسمية/إخفاء الأقسام تشتغل كما هي. */
 export const ADMIN_SECTIONS = [
   { group: "العمل اليومي", id: "home", title: "الرئيسية", keys: ["dashboard", "brief"] },
-  { group: "العمل اليومي", id: "inq", title: "الاستفسارات والبيانات", keys: ["sync", "filters", "i18n"] },
+  { group: "العمل اليومي", id: "inq", title: "الاستفسارات والبيانات", keys: ["sync", "workbook", "filters", "i18n"] },
   { group: "العمل اليومي", id: "meet", title: "الاجتماعات", keys: ["meetings"] },
   { group: "العمل اليومي", id: "tix", title: "تذاكر الملاك", keys: ["tickets"] },
   { group: "العمل اليومي", id: "pub", title: "النشر والإشعارات", keys: ["notices", "scheduled"] },
@@ -33,7 +33,7 @@ export const ADMIN_NAV_GROUPS = ADMIN_SECTIONS.map((x) => ({ title: x.title, key
 const ICONS = {
   dashboard: LayoutDashboard, brief: FileText, sync: FileSpreadsheet, filters: Filter, notices: Bell,
   media: Clapperboard, gallery: Images, links: ExternalLink, scheduled: AlarmClock, labels: Type, theme: Palette,
-  analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users, security: ShieldCheck, site: Wand2, i18n: Languages, ownerlogin: KeyRound, tickets: Inbox, meetings: CalendarDays, handover: ClipboardCheck, materials: Boxes,
+  analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users, security: ShieldCheck, site: Wand2, i18n: Languages, ownerlogin: KeyRound, tickets: Inbox, meetings: CalendarDays, handover: ClipboardCheck, materials: Boxes, workbook: FileStack,
 };
 const iconOf = (k) => ICONS[k] || Layers;
 

@@ -26,6 +26,7 @@ import { ALinksTab } from "./admin-links-tab.jsx";
 import { AI18nTab } from "./admin-i18n-tab.jsx";
 import { ALabelsTab, isHidden, NLA, useNavLabels } from "./nav-labels-kit.jsx";
 import { AdminShell } from "./admin-shell.jsx";
+import { AWorkbookTab } from "./admin-workbook-tab.jsx";
 import { Check, Copy, Download, FileSpreadsheet } from "lucide-react";
 
 /* ═══ ورقة الاجتماع القادم (٥.٣.٠) — ملف إكسل بنفس شكل أوراق الاجتماعات بملف الاستفسارات ═══ */
@@ -123,6 +124,7 @@ function ABriefTab({ inquiries, flashToast }) {
 const ADMIN_TABS = [
   { key: "dashboard", label: "لوحة القرار", perms: ["view_dashboard"] },
   { key: "sync", label: "المزامنة والبيانات", perms: ["import_excel", "add_inquiry", "edit_inquiry", "delete_inquiry", "flag_urgent"] },
+  { key: "workbook", label: "ملف الإكسل", perms: ["import_excel"] }, /* 7.10.0 — ملف الاستفسارات الكامل بنسخه */
   { key: "analytics", label: "الزيارات والتحليلات", perms: ["view_analytics"] },
   { key: "insights", label: "التحليلات الشاملة", perms: ["view_insights"] },
   { key: "filters", label: "الفلاتر المخصصة", perms: ["manage_filters"] },
@@ -219,6 +221,7 @@ function AdminHome({ session, onLogout }) {
         {!activeTab && <ALocked text="حسابك ما عنده صلاحية وصول لأي قسم." />}
         {activeTab === "dashboard" && <ADashboardTab inquiries={inquiries} />}
         {activeTab === "sync" && <ASyncTab inquiries={inquiries} refreshInquiries={refreshInquiries} progress={progress} refreshProgress={refreshProgress} categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} canFlag={has("flag_urgent")} canImport={has("import_excel")} canRestore={has("restore_backup")} canAdd={has("add_inquiry")} canEdit={has("edit_inquiry")} canDelete={has("delete_inquiry")} log={log} />}
+        {activeTab === "workbook" && <AWorkbookTab supabase={supabase} inquiries={inquiries} categories={categories} flashToast={flashToast} log={log} canUpload={has("import_excel")} />}
         {activeTab === "analytics" && <AAnalyticsTab flashToast={flashToast} canExport={has("export_data")} />}
         {activeTab === "insights" && <AInsightsTab flashToast={flashToast} canExport={has("export_data")} canPurge={has("purge_analytics")} log={log} />}
         {activeTab === "filters" && <AFiltersTab categories={categories} refreshCategories={refreshCategories} flashToast={flashToast} log={log} />}
