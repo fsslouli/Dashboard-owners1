@@ -1,6 +1,5 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: progress-tab */
 import { PG_NOTE, PG_NOTE_EN, PG_PHASE_NAME, PG_PHASE_NAME_EN, extendPlan, fmtDate, trPGLabel, trPGMonth, trPGPNote, trText, trYear, useLang, useT } from "./site-data.jsx";
-import { useInView } from "./site-hooks.jsx";
 import { ChartTip } from "./ui-atoms.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -120,15 +119,11 @@ export function ProgressTab({ reduced, data, loading }) {
   const grouped = ["p1", "p2", "p3", "p4", "p_unassigned"].map((k) => ({ k, rows: blocks.filter((r) => r.ph === k) }));
 
   const Bar = ({ val, color, target }) => {
-    const [ref, inView] = useInView(0.35);
-    const show = reduced || inView; /* بدون حركة النظام: يظهر مباشرة بدون انتظار السكرول */
+    /* 7.11.2 — بدون أي حركة: البار يظهر بنسبته مباشرة */
     const w = val != null ? `${Math.min(100, (val / scale) * 100)}%` : "0%";
     return (
-      <div className="gbar" ref={ref}>
-        {val != null && (
-          <div className={`gbar-f${!reduced && inView ? " in-view" : ""}`}
-            style={{ width: show ? w : "0%", background: color }} />
-        )}
+      <div className="gbar">
+        {val != null && <div className="gbar-f" style={{ width: w, background: color }} />}
       </div>
     );
   };
