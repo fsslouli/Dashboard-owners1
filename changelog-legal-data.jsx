@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.12.0",
+    dateAr: "21 نوفمبر 2026",
+    dateEn: "November 21, 2026",
+    ar: ["ترويسة «فجر» صارت أحلى: غيوم تمرّ ببطء، طيور، غبار ذهبي خفيف، كثبان رمل خلف الفلل، وأعمدة إنارة بين الفلل تضيء بعد الشروق. اضغط على أي فيلا يطلع اسم نموذجها، وتتحرك الطبقات بعمق خفيف مع حركة الماوس. كلها تتوقف تلقائيًا لمن يفضّل تقليل الحركة."],
+    en: ["The Fajr header is richer: slowly drifting clouds, birds, light golden dust, sand dunes behind the villas, and street lamps between them that light up after sunrise. Tap any villa to see its model name; layers shift with a gentle depth effect as the pointer moves. All motion is disabled automatically for users who prefer reduced motion."],
+  },
+  {
     version: "7.11.2",
     dateAr: "21 نوفمبر 2026",
     dateEn: "November 21, 2026",
