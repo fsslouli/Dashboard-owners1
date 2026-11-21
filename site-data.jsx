@@ -2,6 +2,7 @@
 import { supabase } from "./app-bootstrap.jsx";
 import { createContext, useContext, useEffect, useState } from "react";
 import { BANNAA_FONT, bannaaGround } from "./design-bannaa.jsx";
+import { FAJR_FONT } from "./design-fajr.jsx";
 import { DEFAULT_DESIGN_KEY, DESIGN_KEYS } from "./design-nova.jsx";
 
 /* ═══════════════════════════════════════════════════════════
@@ -664,7 +665,7 @@ function writeCachedCfg(theme, design) {
         : { light: lt.bg, dark: dk.bg },
       fg: { light: lt.muted, dark: dk.muted },
       font: SKIN_FONTS[theme] || null,
-      dfont: design === "bannaa" ? BANNAA_FONT : null,
+      dfont: design === "bannaa" ? BANNAA_FONT : design === "fajr" ? FAJR_FONT : null,
     }));
   } catch { /* تصفح خاص أو تخزين ممنوع — نتجاهل بهدوء */ }
 }

@@ -14,7 +14,7 @@ import React, { useEffect } from "react";
    من لوحة الإدارة (عمود active_design بجدول site_settings).
    ═══════════════════════════════════════════════════════════ */
 
-export const DESIGN_KEYS = ["classic", "nova", "bannaa"];
+export const DESIGN_KEYS = ["classic", "nova", "bannaa", "fajr"];
 export const DEFAULT_DESIGN_KEY = "classic";
 
 export const DESIGNS = {
@@ -33,6 +33,12 @@ export const DESIGNS = {
     label: "بنّاء",
     labelEn: "Bannaa",
     note: "كل استفسار لبنة في جدار بلون قراره والأحدث في أعلاه، تضغطها فتنفتح. أسطح مصمتة بلا زجاج ولا تدرّج، وعناوين بخط كوفي ثقيل.",
+  },
+  /* 7.11.0 — طبقته بملف مستقل: design-fajr.jsx */
+  fajr: {
+    label: "فجر",
+    labelEn: "Fajr",
+    note: "«ألبورادا» يعني الفجر: ترويسة سماء فجر تطلع منها الشمس خلف صف فلل النماذج الأربعة، وكل قسم لوحة مخطط برقمها، وخط ريم كوفي.",
   },
 };
 

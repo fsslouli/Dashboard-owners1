@@ -10,6 +10,7 @@ import { pageScrollMax, pageScrollTo, pageScrollY, useBackClose, useDesktopView,
 import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickNum, ViewToggle, VillaPlan } from "./ui-atoms.jsx";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
+import { FAJR_FONT, fajrCss, FajrHorizon } from "./design-fajr.jsx";
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
 import { AttachmentViewer, toView, useAttachments } from "./attach-kit.jsx";
 import { MaterialsSection } from "./materials-kit.jsx";
@@ -202,6 +203,8 @@ export function PublicSite({ share = null, gate = null } = {}) {
   useNovaRuntime(nova, reduced);
   const bannaa = designKey === "bannaa";
   useDesignFont(bannaa ? BANNAA_FONT : null, "bannaa");
+  const fajr = designKey === "fajr";
+  useDesignFont(fajr ? FAJR_FONT : null, "fajr");
 
   /* رفع شاشة الإقلاع: الموقع يشتغل ويجيب بياناته من أول لحظة تحت الغطاء، والغطاء
      ما يُرفع إلا والتصميم المعتمد جاهز. النتيجة: الزائر يشوف تصميمًا واحدًا فقط.
@@ -1358,6 +1361,7 @@ ${SKIN.grid ? `.skin-grid{position:fixed;inset:0;z-index:0;pointer-events:none;o
 ${(SKIN.aurora || SKIN.grid || SKIN.draft) ? `.dash > *:not(.skin-aurora):not(.skin-grid):not(.skin-paper):not(.ovl):not(.top-fab):not(.dvw):not(.scroll-progress){position:relative;z-index:1;}` : ""}
 ${nova ? novaCss(T, resolved, reduced) : ""}
 ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
+${fajr ? fajrCss(T, resolved, reduced) : ""}
         `}</style>
         {(hiddenSecs.length > 0 || siteStyle.width !== "normal") && (
           <style>{hiddenSecsCss(hiddenSecs, !!ed) + (siteStyle.width !== "normal" ? `.dash .wrap{max-width:${siteStyle.width === "full" ? "none" : PAGE_WIDTHS[siteStyle.width] + "px"} !important;}` : "")}</style>
@@ -1376,6 +1380,7 @@ ${bannaa ? bannaaCss(T, resolved, reduced) : ""}
 
         <div className="wrap">
           <header>
+            {fajr && <FajrHorizon lang={lang} />}
             <div className="head">
               <div className="min-w-0">
                 <h1 className="disp h1" data-ek="title">{siteTitle(lang)}</h1>

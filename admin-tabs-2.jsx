@@ -220,7 +220,7 @@ export function AThemeTab({ flashToast, log, canManage }) {
     if (error) {
       /* v2.10.0: قيد عمود التصميم بقاعدة البيانات ما انوسّع بعد لـ«بنّاء» — نقول وش الحل بدل رسالة عامة */
       const needsDb = error.code === "23514" || /active_design_chk/.test(error.message || "");
-      flashToast(needsDb ? "قاعدة البيانات ما تعرف هذا التصميم بعد — شغّل migration-design-bannaa.sql مرة وحدة" : "تعذّر الاعتماد — تأكد من صلاحيتك");
+      flashToast(needsDb ? "قاعدة البيانات ما تعرف هذا التصميم بعد — شغّل migration-design-fajr.sql مرة وحدة" : "تعذّر الاعتماد — تأكد من صلاحيتك");
       return;
     }
     const parts = [];
@@ -265,6 +265,12 @@ export function AThemeTab({ flashToast, log, canManage }) {
 .dsn-prev.bn em:nth-child(3){bottom:30px;}
 .dsn-prev.bn em:nth-child(4){bottom:39px;inset-inline-end:30px;background-position:7px 0;}
 .dsn-prev.bn i{position:absolute;inset-inline:8px;bottom:8px;height:2px;background:${T.paper};}
+.dsn-prev.fj{background:linear-gradient(180deg,#1C2150 0%,#4A3363 45%,#E0855A 80%,#F4B26C 100%);}
+.dsn-prev.fj i{position:absolute;width:22px;height:22px;border-radius:50%;bottom:6px;inset-inline-start:26px;background:#FFC98A;box-shadow:0 0 14px 4px rgba(255,143,87,.6);}
+.dsn-prev.fj em{position:absolute;bottom:0;width:18px;background:#090C1C;}
+.dsn-prev.fj em:nth-child(2){inset-inline-start:4px;height:16px;}
+.dsn-prev.fj em:nth-child(3){inset-inline-start:24px;height:22px;}
+.dsn-prev.fj em:nth-child(4){inset-inline-start:46px;height:14px;width:24px;}
 @media(prefers-reduced-motion:reduce){.dsn-prev.nv i{animation:none;}}
       `}</style>
       <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, marginBottom: 9 }}>التصميم</div>
@@ -280,9 +286,9 @@ export function AThemeTab({ flashToast, log, canManage }) {
               border: `${on ? 2 : 1}px solid ${on ? T.brass : T.line}`,
               boxShadow: on ? T.shadow : "none", display: "flex", alignItems: "center", gap: 13,
             }}>
-              <span className={`dsn-prev${k === "nova" ? " nv" : ""}${k === "bannaa" ? " bn" : ""}`} aria-hidden="true">
+              <span className={`dsn-prev${k === "nova" ? " nv" : ""}${k === "bannaa" ? " bn" : ""}${k === "fajr" ? " fj" : ""}`} aria-hidden="true">
                 {k === "nova" && <><i /><i /></>}
-                {k === "bannaa" ? <><em /><em /><em /><em /><i /></> : <><b /><b /><b /><b /></>}
+                {k === "fajr" ? <><i /><em /><em /><em /></> : k === "bannaa" ? <><em /><em /><em /><em /><i /></> : <><b /><b /><b /><b /></>}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
