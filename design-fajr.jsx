@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 
 /* ═══════════════════════════════════════════════════════════
    طبقة التصميم «فجر» — التصميم الرابع للموقع العام (7.11.0).
@@ -34,6 +34,7 @@ const VILLA = {
 const ROW = ["A1", "palm", "A2", "B", "palm", "C", "A1", "A2", "palm", "B", "C"];
 const VH = 440;                 /* ارتفاع اللوحة — نسبة قريبة من الترويسة على الكمبيوتر فالفلل ما تتضخم */
 const GROUND = 404;
+const NAMES = { A1: ["أمانيثير", "Amanecer"], A2: ["ألبا", "Alba"], B: ["أورورا", "Aurora"], C: ["البادا", "Albada"] };
 
 function layout() {
   const out = []; let x = 18;
@@ -84,11 +85,53 @@ function stars(n) {
 export function FajrHorizon({ lang }) {
   const { items, width } = useMemo(layout, []);
   const st = useMemo(() => stars(34), []);
+  const dust = useMemo(() => {
+    let q = 11; const r = () => ((q = (q * 9301 + 49297) % 233280) / 233280);
+    return Array.from({ length: 20 }, () => ({ x: r() * 1200, y: GROUND - 10 - r() * 120, r: 0.8 + r() * 1.3, d: -r() * 12, t: 8 + r() * 8 }));
+  }, []);
   const vw = width + 10;
+  const rootRef = useRef(null);
+  const [tip, setTip] = useState(null);
   /* محاور المخطط: محور فوق منتصف كل فيلا */
   const axes = items.filter((it) => it.k !== "palm").map((it) => it.x + VILLA[it.k].w / 2);
+  /* أعمدة إنارة: في الفراغ بين فيلتين متجاورتين (بدون نخلة بينهما) */
+  const lamps = [];
+  for (let i = 0; i < items.length - 1; i++) {
+    const a = items[i], b = items[i + 1];
+    if (a.k !== "palm" && b.k !== "palm") lamps.push((a.x + VILLA[a.k].w + b.x) / 2);
+  }
+
+  /* بارالاكس (حركة الماوس/اللمس فوق الترويسة) + اسم النموذج عند الضغط على الفيلا */
+  useEffect(() => {
+    const el = rootRef.current; const host = el && el.parentElement;
+    if (!host) return undefined;
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let timer = 0;
+    const onMove = (e) => {
+      if (reduced) return;
+      const r = host.getBoundingClientRect();
+      const dx = (e.clientX - r.left) / Math.max(1, r.width) - 0.5;
+      el.querySelectorAll("[data-par]").forEach((g) => { g.style.transform = `translateX(${(-dx * Number(g.dataset.par) * 8).toFixed(1)}px)`; });
+    };
+    const onDown = (e) => {
+      if (e.target.closest && e.target.closest("button,a,input,select,textarea,[role=button]")) return;
+      const svg = el.querySelector("svg"); const m = svg && svg.getScreenCTM();
+      if (!m) return;
+      const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+      const hit = items.find((it) => it.k !== "palm" && p.x >= it.x && p.x <= it.x + VILLA[it.k].w && p.y >= GROUND - VILLA[it.k].g - VILLA[it.k].u.h - VILLA[it.k].r.h && p.y <= GROUND);
+      clearTimeout(timer);
+      if (!hit) { setTip(null); return; }
+      const box = el.getBoundingClientRect();
+      setTip({ k: hit.k, x: e.clientX - box.left, y: e.clientY - box.top });
+      timer = setTimeout(() => setTip(null), 2600);
+    };
+    host.addEventListener("pointermove", onMove);
+    host.addEventListener("pointerdown", onDown);
+    return () => { host.removeEventListener("pointermove", onMove); host.removeEventListener("pointerdown", onDown); clearTimeout(timer); };
+  }, [items]);
+
   return (
-    <div className="fj-sky no-print" aria-hidden="true">
+    <div className="fj-sky no-print" aria-hidden="true" ref={rootRef}>
       <svg viewBox={`0 0 ${vw} ${VH}`} preserveAspectRatio="xMidYMax slice" width="100%" height="100%">
         <defs>
           <radialGradient id="fjSun" cx="50%" cy="50%" r="50%">
@@ -101,12 +144,33 @@ export function FajrHorizon({ lang }) {
             <stop offset="0%" stopColor="var(--fj-glow)" stopOpacity="0" />
             <stop offset="100%" stopColor="var(--fj-glow)" stopOpacity=".45" />
           </linearGradient>
+          <radialGradient id="fjLampG">
+            <stop offset="0%" stopColor="var(--fj-sun)" stopOpacity=".85" />
+            <stop offset="100%" stopColor="var(--fj-sun)" stopOpacity="0" />
+          </radialGradient>
         </defs>
         <g className="fj-stars">
           {st.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={p.r} style={{ "--d": `${p.d}s` }} />)}
         </g>
         <rect x="0" y={GROUND - 150} width={vw} height="150" fill="url(#fjHaze)" />
         <g className="fj-sun"><circle cx={vw * 0.56} cy={GROUND - 6} r="190" fill="url(#fjSun)" /></g>
+        <g className="fj-clouds" data-par="3">
+          {[[44, 60, 52], [112, 84, 40], [188, 52, 58]].map(([y, w, dur], i) => (
+            <g key={i} className="fj-cloud" style={{ animationDuration: `${dur * 1.6}s`, animationDelay: `${-i * 36}s` }}>
+              <ellipse cx="0" cy={y} rx={w} ry="12" /><ellipse cx={w * 0.5} cy={y - 7} rx={w * 0.6} ry="11" /><ellipse cx={-w * 0.5} cy={y - 4} rx={w * 0.5} ry="9" />
+            </g>
+          ))}
+        </g>
+        <g className="fj-birds">
+          {[[60, 0, 26], [80, 5, 26], [50, 8, 32], [94, 12, 38]].map(([y, dl, du], i) => (
+            <g key={i} className="fj-bird" style={{ animationDuration: `${du}s`, animationDelay: `${-dl}s` }}>
+              <path d={`M0 ${y}q5 -6 10 0q5 -6 10 0`}>
+                <animate attributeName="d" dur={`${0.7 + i * 0.1}s`} repeatCount="indefinite"
+                  values={`M0 ${y}q5 -6 10 0q5 -6 10 0;M0 ${y - 2}q5 4 10 2q5 -4 10 -2;M0 ${y}q5 -6 10 0q5 -6 10 0`} />
+              </path>
+            </g>
+          ))}
+        </g>
         <g className="fj-axes">
           {axes.map((ax, i) => (
             <g key={i}>
@@ -116,9 +180,26 @@ export function FajrHorizon({ lang }) {
             </g>
           ))}
         </g>
-        <g className="fj-sil">
+        <g className="fj-dunes" data-par="6">
+          <path d={`M-40 ${GROUND - 30}C${vw * 0.1} ${GROUND - 80},${vw * 0.2} ${GROUND - 20},${vw * 0.34} ${GROUND - 52}S${vw * 0.55} ${GROUND - 90},${vw * 0.7} ${GROUND - 40}S${vw * 0.9} ${GROUND - 70},${vw + 40} ${GROUND - 36}V${GROUND}H-40z`} className="fj-dune1" />
+          <path d={`M-40 ${GROUND - 14}C${vw * 0.15} ${GROUND - 48},${vw * 0.3} ${GROUND - 8},${vw * 0.5} ${GROUND - 34}S${vw * 0.8} ${GROUND - 50},${vw + 40} ${GROUND - 18}V${GROUND}H-40z`} className="fj-dune2" />
+        </g>
+        <g className="fj-sil" data-par="2">
           {items.map((it, i) => (it.k === "palm" ? <Palm key={i} x={it.x} /> : <Villa key={i} k={it.k} x={it.x} i={i} />))}
-          <rect x="0" y={GROUND} width={vw} height={VH - GROUND} />
+          <rect x="-60" y={GROUND} width={vw + 120} height={VH - GROUND} />
+        </g>
+        <g className="fj-lamps">
+          {lamps.map((x, i) => (
+            <g key={i} className="fj-lamp" style={{ "--d": `${(i * 0.2).toFixed(1)}s` }}>
+              <circle className="fj-lglow" cx={x} cy={GROUND - 46} r="34" fill="url(#fjLampG)" />
+              <line x1={x} y1={GROUND} x2={x} y2={GROUND - 44} />
+              <path d={`M${x} ${GROUND - 44}h7`} />
+              <circle className="fj-lbulb" cx={x + 7} cy={GROUND - 42} r="3" />
+            </g>
+          ))}
+        </g>
+        <g className="fj-dust">
+          {dust.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={p.r} style={{ animationDuration: `${p.t}s`, animationDelay: `${p.d}s` }} />)}
         </g>
         <g className="fj-dim">
           <line x1="18" y1={GROUND + 20} x2={width - 8} y2={GROUND + 20} />
@@ -134,6 +215,7 @@ export function FajrHorizon({ lang }) {
       <div className="fj-kicker" dir={lang === "en" ? "ltr" : "rtl"}>
         {lang === "en" ? "ALBORADA · DAHOM — AL-FURSAN" : "ألبورادا داهوم · حي الفرسان"}
       </div>
+      {tip && <div className="fj-tip" style={{ left: tip.x, top: tip.y }}>{lang === "en" ? `${NAMES[tip.k][1]} · Model ${tip.k}` : `${NAMES[tip.k][0]} · نموذج ${tip.k}`}</div>}
     </div>
   );
 }
@@ -198,6 +280,16 @@ ${D} .fj-sil .fj-win{fill:${dark ? "#FFD08C" : "#FFE9CF"};opacity:${dark ? ".9" 
 ${D} .fj-sil .fj-off{fill:${dark ? "#262B4A" : "#6A5562"};opacity:1;}
 ${D} .fj-pool{fill:${dark ? "#F4B26C" : "#FFF1DE"}!important;opacity:.8;}
 ${D} .fj-stars circle{fill:#fff;opacity:${dark ? ".75" : "0"};}
+${D} .fj-dune1{fill:var(--fj-sil);opacity:${dark ? ".42" : ".16"};}
+${D} .fj-dune2{fill:var(--fj-sil);opacity:${dark ? ".7" : ".3"};}
+${D} .fj-cloud{fill:${dark ? "rgba(255,200,170,.13)" : "rgba(255,255,255,.55)"};}
+${D} .fj-bird path{fill:none;stroke:var(--fj-sil);stroke-width:1.6;stroke-linecap:round;}
+${D} .fj-dust circle{fill:var(--fj-sun);opacity:0;}
+${D} .fj-lamp line,${D} .fj-lamp path{stroke:var(--fj-sil);fill:none;stroke-width:2;}
+${D} .fj-lbulb{fill:${dark ? "#FFE3A8" : "#FFF3D6"};}
+${D} .fj-lglow{opacity:${dark ? "1" : ".6"};}
+${D} .fj-tip{position:absolute;z-index:6;transform:translate(-50%,-130%);pointer-events:none;white-space:nowrap;padding:6px 11px;border-radius:9px;
+  font:600 12.5px ${B};color:#fff;background:rgba(10,12,28,.88);box-shadow:0 0 0 1px rgba(255,255,255,.2);}
 ${D} .fj-axes line{stroke:${dark ? "rgba(255,255,255,.22)" : mix(ink, 22)};stroke-width:1;stroke-dasharray:2 5;}
 ${D} .fj-axes circle{fill:none;stroke:${dark ? "rgba(255,255,255,.42)" : mix(ink, 38)};stroke-width:1.2;}
 ${D} .fj-axes text{fill:${dark ? "rgba(255,255,255,.7)" : mix(ink, 60)};font:600 12px ${B};}
@@ -231,12 +323,20 @@ ${D} .fj-sky{animation:fjSky 2.6s ease-out both;}
 ${D} .fj-win{animation:fjLight .9s ease-out both;animation-delay:calc(1.1s + var(--d));}
 ${D} .fj-stars circle{animation:fjTw 4s ease-in-out infinite;animation-delay:var(--d);}
 ${D} .fj-axes{animation:fjFade 1.4s .9s ease-out both;}
+${D} .fj-cloud{animation:fjDrift linear infinite;}
+${D} .fj-bird{animation:fjFly linear infinite;transform:translateX(-120px);}
+${D} .fj-dust circle{animation:fjDust linear infinite;}
+${D} .fj-lglow,${D} .fj-lbulb{animation:fjFade 1.6s ease-out both;animation-delay:calc(1.6s + var(--d));}
 ${D} .fj-dim{animation:fjFade 1.4s 1.6s ease-out both;}
 @keyframes fjRise{from{transform:translateY(70px);opacity:.3;}to{transform:none;opacity:1;}}
 @keyframes fjSky{from{filter:brightness(.62) saturate(.8);}to{filter:none;}}
 @keyframes fjLight{from{opacity:0;}}
 @keyframes fjTw{0%,100%{opacity:${dark ? ".75" : "0"};}50%{opacity:${dark ? ".25" : "0"};}}
-@keyframes fjFade{from{opacity:0;}to{opacity:1;}}` : ""}
+@keyframes fjFade{from{opacity:0;}to{opacity:1;}}
+@keyframes fjDrift{from{transform:translateX(-200px);}to{transform:translateX(2200px);}}
+@keyframes fjFly{from{transform:translateX(-120px);}to{transform:translateX(2300px);}}
+@keyframes fjDust{0%{opacity:0;transform:translate(0,0);}15%{opacity:.5;}100%{opacity:0;transform:translate(120px,-70px);}}` : `
+${D} .fj-bird,${D} .fj-dust,${D} .fj-clouds{display:none;}`}
 
 /* ═══ ٢. التبويبات: مسطرة مقياس ═══ */
 ${D} .tabs{gap:2px;margin-top:20px;margin-bottom:14px;padding:5px;border-radius:14px;background:${T.surface};
