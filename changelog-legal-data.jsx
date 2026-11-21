@@ -13,6 +13,19 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.11.0",
+    dateAr: "21 نوفمبر 2026",
+    dateEn: "November 21, 2026",
+    ar: [
+      "تصميم جديد «فجر» وصار هو المعتمد: ترويسة سماء فجر تطلع منها الشمس خلف صف فلل النماذج الأربعة (A1 · A2 · B · C) بنوافذ تنوّر تدريجيًا، ومحاور وخط أبعاد مثل المخططات المعمارية.",
+      "كل قسم صار لوحة مخطط بإطار وعلامات زوايا ورقم لوحة، وتبويبات بشكل مسطرة قياس، وخلفية شبكة مخطط باهتة، وخط «ريم كوفي» للعناوين. يشتغل مع كل أطقم الألوان بالوضعين الفاتح والداكن، والتصاميم السابقة (الكلاسيكي، نوفا، بنّاء) تبقى متاحة من لوحة الإدارة.",
+    ],
+    en: [
+      "New “Fajr” design, now the active one: a dawn-sky header with the sun rising behind a row of the four villa models (A1 · A2 · B · C), windows lighting up one by one, with axes and a dimension line like architectural drawings.",
+      "Every section is now a drawing sheet with a frame, corner marks and a sheet number; tabs look like a measuring ruler; a faint blueprint-grid background; Reem Kufi headings. Works with every color set in light and dark, and the earlier designs (Classic, Nova, Bannaa) remain available in the admin panel.",
+    ],
+  },
+  {
     version: "7.10.0",
     dateAr: "21 نوفمبر 2026",
     dateEn: "November 21, 2026",
