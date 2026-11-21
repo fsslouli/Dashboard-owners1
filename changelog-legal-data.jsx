@@ -16,8 +16,8 @@ export const CHANGELOG = [
     version: "7.11.2",
     dateAr: "21 نوفمبر 2026",
     dateEn: "November 21, 2026",
-    ar: ["بارات تقدّم التنفيذ صارت بلا أي حركة: تظهر بنسبتها مباشرة بدون تعبئة تدريجية ولا لمعة."],
-    en: ["Progress bars no longer animate: they show their value immediately, with no gradual fill or shimmer."],
+    ar: ["بارات تقدّم التنفيذ تظهر بنسبتها مباشرة بدون تعبئة تدريجية، وتبقى اللمعة الخفيفة الحالية فقط."],
+    en: ["Progress bars show their value immediately with no gradual fill; only the existing light shimmer remains."],
   },
   {
     version: "7.11.0",

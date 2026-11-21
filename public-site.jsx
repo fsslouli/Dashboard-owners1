@@ -1103,7 +1103,11 @@ export function PublicSite({ share = null, gate = null } = {}) {
 
 /* تقدم التنفيذ */
 .gbar{position:relative;height:10px;border-radius:999px;background:${T.sunken};overflow:hidden;}
-.gbar-f{height:100%;border-radius:999px;position:relative;}
+.gbar-f{height:100%;border-radius:999px;position:relative;overflow:hidden;}
+.gbar-f::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:40%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);opacity:0;}
+.gbar-f.in-view::after{animation:gbarShimmer 1.1s ease-in-out .35s 1;}
+@keyframes gbarShimmer{0%{left:-40%;opacity:1;}90%{opacity:1;}100%{left:110%;opacity:0;}}
 .gkey{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:11.5px;color:${T.muted};}
 .gkey span{display:inline-flex;align-items:center;gap:6px;}
 .gkey b{color:${T.paper};}
