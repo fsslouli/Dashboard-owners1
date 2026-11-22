@@ -9,6 +9,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, CalendarDays, Check, FileText, Plus, Printer, Trash2, X } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
+import { useNavLabels } from "./nav-labels-kit.jsx";
+import { AMeetingChipCard } from "./meeting-chip-kit.jsx";
 
 const S = {
   wrap: { maxWidth: 900, margin: "0 auto", padding: "4px 0", color: "#1F2C35" },
@@ -216,6 +218,7 @@ export function AMeetingsTab({ inquiries, refreshInquiries, flashToast, log, can
   const [rows, setRows] = useState(null);     // null = تحميل · "missing" = الهجرة ما اشتغلت
   const [openId, setOpenId] = useState(null);
   const [title, setTitle] = useState("");
+  const navLabels = useNavLabels(supabase);
 
   const load = async () => {
     const { data, error } = await supabase.from("meetings").select("*").order("created_at", { ascending: false });
@@ -269,6 +272,7 @@ export function AMeetingsTab({ inquiries, refreshInquiries, flashToast, log, can
           <button type="button" style={{ ...S.btn, ...S.pri }} onClick={create}><Plus size={15} />اجتماع جديد</button>
         </div>}
       </div>
+      <AMeetingChipCard key={JSON.stringify(navLabels._meetingChip || {})} supabase={supabase} navLabels={navLabels} inquiries={inquiries} flashToast={flashToast} log={log} canEdit={canEdit} />
       {!rows.length ? <div style={{ ...S.card, textAlign: "center", color: "#5F7280", fontSize: 13.5 }}>ما في اجتماعات بعد.</div> : rows.map((r) => {
         const st = STAGE[r.status] || STAGE.draft; const n = (r.sections || []).reduce((a, s) => a + (s.ids || []).length, 0);
         return (

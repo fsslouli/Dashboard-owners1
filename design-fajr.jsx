@@ -1,3 +1,4 @@
+import { hqCss } from "./meeting-chip-kit.jsx";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 
 /* ═══════════════════════════════════════════════════════════
@@ -316,6 +317,7 @@ ${D} .stamp{background:none;border-radius:0;padding:16px 4px 0;margin-top:14px;f
 ${D} .join-btn{border-radius:10px;background:linear-gradient(135deg,var(--fj-dawn),${mix(T.brass, 70, dawn)});color:#fff;
   box-shadow:0 8px 22px -12px ${mix(glow, 80)};}
 ${D} .dot{background:${T.faint};}
+${hqCss(D, T, dark, reduced)}
 
 ${motion ? `
 ${D} .fj-sun{animation:fjRise 2.6s cubic-bezier(.2,.7,.2,1) both;transform-box:fill-box;}

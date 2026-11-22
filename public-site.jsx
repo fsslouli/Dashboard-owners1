@@ -11,6 +11,7 @@ import { Card, ChartTip, CountUp, LangToggle, Row, StatusBar, ThemeToggle, TickN
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BANNAA_FONT, bannaaCss, bannaaGround, BrickWall, useDesignFont } from "./design-bannaa.jsx";
 import { FAJR_FONT, fajrCss, FajrHorizon } from "./design-fajr.jsx";
+import { HeaderQuickRow, chipActive, chipCfg, chipMatch } from "./meeting-chip-kit.jsx";
 import { novaCss, NovaLayers, useNovaRuntime } from "./design-nova.jsx";
 import { AttachmentViewer, toView, useAttachments } from "./attach-kit.jsx";
 import { MaterialsSection } from "./materials-kit.jsx";
@@ -36,7 +37,7 @@ const PUBLIC_TAB_META = {
 };
 
 /* ── ١٤. المكوّن الرئيسي (Dashboard) — التجميع والعرض النهائي ── */
-export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, party: null, sta: null, model: null, own: null, ot: null, mon: null, meeting: null, open: false, fresh: false, important: false, urgent: false, att: false };
+export const EMPTY_F = { q: "", zone: null, pri: null, cat: null, party: null, sta: null, model: null, own: null, ot: null, mon: null, meeting: null, chipIds: null, open: false, fresh: false, important: false, urgent: false, att: false };
 
 /* ═══ v2.8.4 — منطق التصفية مستقل عن حالة اللوحة ═══
    استُخرج من useMemo الخاص بـ match() عشان تقدر لوحة "الفلاتر" تحسب عدد نتائج
@@ -55,6 +56,7 @@ export function passesFilters(r, f, nq, nqId) {
   if (!pick(f.ot, (a) => a.includes(r.ownerTitle))) return false;
   if (!pick(f.mon, (a) => a.includes(r.month))) return false;
   if (!pick(f.meeting, (a) => { const rm = r.meetings && r.meetings.length ? r.meetings : [r.meeting]; return a.some((m) => rm.includes(m)); })) return false;
+  if (f.chipIds && !f.chipIds.includes(r.id)) return false;
   if (f.open && r.closed) return false;
   if (f.fresh && !r.isNew) return false;
   if (f.important && !r.isImportantActive) return false;
@@ -639,6 +641,9 @@ export function PublicSite({ share = null, gate = null } = {}) {
   }), [ALL, priOrder, catOrder, staOrder, liveCats.owner, liveCats.owner_title, liveCats.meeting, meetingOrder]);
 
   const newCount = ALL.filter((r) => r.isNew).length;
+  /* زر الاجتماع (7.13.0): الإعدادات من لوحة الإدارة، والبنود المطابقة تُحسب هنا */
+  const mcfg = useMemo(() => chipCfg(navLabels), [navLabels]);
+  const meetingIds = useMemo(() => (chipActive(mcfg) ? ALL.filter((r) => chipMatch(r, mcfg)).map((r) => r.id) : []), [ALL, mcfg]);
   const openCount = ALL.filter((r) => !r.closed).length;
   const importantCount = ALL.filter((r) => r.isImportantActive).length;
   const urgentCount = ALL.filter((r) => r.isUrgentActive).length;
@@ -729,13 +734,14 @@ export function PublicSite({ share = null, gate = null } = {}) {
     arr(f.ot).forEach((x) => out.push({ k: "ot", l: trOwnTitle(lang, x) }));
     arr(f.mon).forEach((x) => out.push({ k: "mon", l: trMonth(lang, x) }));
     arr(f.meeting).forEach((x) => out.push({ k: "meeting", l: trMeeting(lang, x) }));
+    if (f.chipIds) out.push({ k: "chipIds", l: lang === "en" ? (mcfg.en || "Meeting") : (mcfg.ar || "الاجتماع") });
     if (f.open) out.push({ k: "open", l: L("مفتوحة فقط", "Open only") });
     if (f.fresh) out.push({ k: "fresh", l: L("الجديد فقط", "New only") });
     if (f.important) out.push({ k: "important", l: L("مهم فقط", "Important only") });
     if (f.urgent) out.push({ k: "urgent", l: L("يجب الاطلاع فقط", "Needs review only") });
     if (f.att) out.push({ k: "att", l: L("فيها مرفقات فقط", "With attachments only") });
     return out;
-  }, [f, lang]);
+  }, [f, lang, mcfg]);
   /* عدد الفلاتر النشطة بدون نص البحث — يُعرض كشارة على زر "الفلاتر" نفسه،
      منفصل عن نص البحث لأن مربع البحث ظاهر دائمًا وله مؤشره الخاص أصلًا */
   const filterOnlyCount = activeChips.filter((c) => c.k !== "q").length;
@@ -1393,6 +1399,13 @@ ${fajr ? fajrCss(T, resolved, reduced) : ""}
 
 
             <div className="stamp">
+              {fajr && (
+                <HeaderQuickRow cfg={mcfg} lang={lang} dark={resolved === "dark"} meetingN={meetingIds.length} newN={newCount} tgUrl={tgUrl}
+                  showCommunity={!(shareScope && shareScope.hideCommunity)}
+                  onMeeting={() => openBoard({ chipIds: meetingIds })}
+                  onNew={() => openBoard({ fresh: true, __sort: "new" })}
+                  onJoin={() => logEvent("click", "telegram", null, null)} />
+              )}
               {!(shareScope && shareScope.hideCommunity) && (
                 <a href={tgUrl} target="_blank" rel="noopener noreferrer" className="join-btn" data-ek="telegram" onClick={() => logEvent("click", "telegram", null, null)}>
                   <span className="jb-ic"><TelegramIcon size={20} /></span><span className="jb-tx">{L("انضم لمجتمع الملاك", "Join the Owners Community")}</span>
@@ -1420,7 +1433,7 @@ ${fajr ? fajrCss(T, resolved, reduced) : ""}
                     </button>
                   )}
                   {newCount > 0 && (
-                    <button className="chip chip-glow" onClick={() => openBoard({ fresh: true, __sort: "new" })}>
+                    <button className="chip chip-glow chip-new" onClick={() => openBoard({ fresh: true, __sort: "new" })}>
                       <Sparkles size={11} /> {L("الجديد", "New")} <span className="mono chip-n">{newCount}</span>
                     </button>
                   )}
