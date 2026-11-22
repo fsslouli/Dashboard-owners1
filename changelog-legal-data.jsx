@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.13.1",
+    dateAr: "22 نوفمبر 2026",
+    dateEn: "November 22, 2026",
+    ar: ["مجلدات المكتبة صارت كبسولات مضغوطة وأخف: أيقونة دائرية، واسم المجلد بسطر واحد، وعدد العناصر كرقم صغير، فتظهر المجلدات الست بشاشة وحدة. تنفتح المجلدات كالسابق، وتتحول الكبسولة لبطاقة عند الفتح."],
+    en: ["Library folders are now compact, lighter capsules: a round icon, a one-line folder name and the item count as a small number, so all six fit on one screen. Folders open as before, and the capsule becomes a card when open."],
+  },
+  {
     version: "7.13.0",
     dateAr: "22 نوفمبر 2026",
     dateEn: "November 22, 2026",

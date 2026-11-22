@@ -464,14 +464,16 @@ const GLX_CSS = `
 .glx-vid-c{display:flex;flex-direction:column;gap:3px;padding:12px 14px 14px;}
 .glx-vid-t{font-size:14.5px;font-weight:600;line-height:1.45;}
 .glx-vid-s{font-size:11.5px;color:var(--gx-muted);}
-.glx-fold{margin-bottom:10px;overflow:hidden;border-radius:22px;background:var(--gx-surface);border:1px solid var(--gx-line);}
-.glx-fh{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:14px;border:0;background:transparent;text-align:start;
+.glx-fold{margin-bottom:8px;overflow:hidden;border-radius:999px;background:color-mix(in srgb,var(--gx-paper) 4%,var(--gx-surface));border:1px solid color-mix(in srgb,var(--gx-accent) 30%,var(--gx-line));transition:border-radius .25s ease;}
+.glx-fold.open{border-radius:22px;}
+.glx-fh{display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:6px 14px 6px 7px;border:0;background:transparent;text-align:start;
   color:var(--gx-paper);cursor:pointer;font:inherit;}
-.glx-fi{width:46px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:14px;
+.glx-fi{width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:50%;
   background:color-mix(in srgb,var(--gx-accent) 14%,transparent);color:var(--gx-accent);}
-.glx-ft{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
-.glx-ft b{font-size:15px;font-weight:600;line-height:1.45;}
-.glx-ft span{font-size:12px;color:var(--gx-muted);}
+.glx-ft{flex:1;min-width:0;display:flex;flex-direction:column;gap:0;}
+.glx-ft b{font-size:13.5px;font-weight:600;line-height:1.5;}
+.glx-ft span{display:none;}
+.glx-n{flex:none;font:700 12px ui-monospace,Menlo,monospace;color:var(--gx-accent);}
 .glx-chev{flex:none;display:flex;color:var(--gx-muted);transition:transform .2s ease;}
 .glx-fold.open .glx-chev{transform:rotate(180deg);}
 .glx-fb{padding:0 10px 10px;}
@@ -645,9 +647,10 @@ export function GallerySection({ supabase, T, L, lang, onlyTopics = null, extra 
           return (
             <section key={sec.id} className={`glx-fold${isOpen ? " open" : ""}`}>
               <button type="button" className="glx-fh" aria-expanded={isOpen} onClick={() => setOpenFold((o) => ({ ...o, [sec.id]: !isOpen }))}>
-                <span className="glx-fi"><Folder size={22} /></span>
+                <span className="glx-fi"><Folder size={18} /></span>
                 <span className="glx-ft"><b>{title}</b><span>{countText(views.length, lang)}</span></span>
-                <span className="glx-chev"><ChevronDown size={18} /></span>
+                <span className="glx-n" aria-label={countText(views.length, lang)}>{views.length}</span>
+                <span className="glx-chev"><ChevronDown size={16} /></span>
               </button>
               {isOpen && <div className="glx-fb"><FolderRows views={views} lang={lang} open={open} /></div>}
             </section>
