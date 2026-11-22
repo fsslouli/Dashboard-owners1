@@ -114,12 +114,13 @@ export function LinksFolders({ links, lang, onLeave }) {
     return (
       <section key={g.k} className={`glx-fold${isOpen ? " open" : ""}`}>
         <button type="button" className="glx-fh" aria-expanded={isOpen} onClick={() => { if (!isOpen) logEvent("folder_open", "gallery", g.k || g.title, null); setOpen((o) => ({ ...o, [g.k]: !isOpen })); }}>
-          <span className="glx-fi"><Folder size={22} /></span>
+          <span className="glx-fi"><Folder size={18} /></span>
           <span className="glx-ft">
             <b>{g.title}</b>
             <span>{en ? (g.rows.length === 1 ? "1 link" : `${g.rows.length} links`) : (g.rows.length === 1 ? "رابط واحد" : `${g.rows.length} روابط`)}</span>
           </span>
-          <span className="glx-chev"><ChevronDown size={18} /></span>
+          <span className="glx-n">{g.rows.length}</span>
+          <span className="glx-chev"><ChevronDown size={16} /></span>
         </button>
         {isOpen && (
           <div className="glx-fb">
