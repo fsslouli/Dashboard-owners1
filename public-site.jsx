@@ -1080,6 +1080,12 @@ export function PublicSite({ share = null, gate = null } = {}) {
 .sheet{background:${T.surface};border-radius:22px 22px 0 0;width:100%;max-width:680px;max-height:88vh;max-height:min(88vh,calc(100% - 24px));
   display:flex;flex-direction:column;box-shadow:${T.shadowUp};animation:up .3s cubic-bezier(.2,.7,.3,1);}
 @media(min-width:640px){.sheet{border-radius:20px;max-height:min(88vh,100%);}}
+.sheet-grip{display:none;}
+@media(max-width:639.98px){
+  .sheet-grip{display:grid;place-items:center;padding:9px 0 0;touch-action:none;cursor:grab;flex:none;}
+  .sheet-grip i{width:40px;height:5px;border-radius:9px;background:${T.line};opacity:.9;}
+  .sheet-detail .sheet-top{touch-action:none;padding-top:11px;}
+}
 .sheet-top{display:flex;align-items:center;justify-content:space-between;padding:17px 19px 15px;
   flex:none;position:relative;z-index:1;transition:box-shadow .2s ease;}
 /* ═══ v2.8.2 — رأس لوحة تفاصيل الاستفسار ثابت على الجوال ═══
