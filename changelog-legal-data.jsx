@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.14.1",
+    dateAr: "22 نوفمبر 2026",
+    dateEn: "November 22, 2026",
+    ar: ["لوحة الاستفسار على الجوال صار لها مقبض بأعلاها: اسحبه (أو رأس اللوحة) لتحت فتتبع إصبعك وتقفل إذا سحبت بما يكفي أو بسرعة، وإلا ترجع مكانها بحركة ناعمة. أزرار اللوحة والتمرير داخلها بدون تغيير."],
+    en: ["On mobile, the inquiry sheet now has a grab handle at the top: drag it (or the sheet header) down and the sheet follows your finger, closing if you drag far or fast enough, otherwise springing back. Buttons and in-sheet scrolling are unchanged."],
+  },
+  {
     version: "7.14.0",
     dateAr: "22 نوفمبر 2026",
     dateEn: "November 22, 2026",

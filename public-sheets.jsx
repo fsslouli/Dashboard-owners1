@@ -725,6 +725,51 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
     if (dx < 0) goNext(); else goPrev();
   };
 
+  /* سحب اللوحة لتحت للإغلاق (جوال فقط): من المقبض أو رأس اللوحة. تتبع الإصبع، وتقفل إذا سحبت أكثر من ٢٨٪ أو بسرعة، وإلا ترجع مكانها */
+  const sheetRef = useRef(null);
+  const ovlRef = useRef(null);
+  const dragRef = useRef(null);
+  const onDragStart = (e) => {
+    if (window.innerWidth >= 640 || (e.button !== undefined && e.button !== 0)) return;
+    if (e.target.closest && e.target.closest("button,a,input,select,textarea")) return;
+    const el = sheetRef.current;
+    if (!el) return;
+    dragRef.current = { y0: e.clientY, last: e.clientY, lt: performance.now(), v: 0, dy: 0, h: el.offsetHeight || 1 };
+    el.style.animation = "none";
+    el.style.transition = "none";
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* غير مدعوم */ }
+  };
+  const onDragMove = (e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const now = performance.now();
+    d.v = (e.clientY - d.last) / Math.max(1, now - d.lt);
+    d.last = e.clientY;
+    d.lt = now;
+    const raw = e.clientY - d.y0;
+    d.dy = raw < 0 ? -Math.pow(-raw, 0.7) * 0.6 : raw; /* مقاومة مطاطية لو سحب لفوق */
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${d.dy}px)`;
+    if (ovlRef.current) ovlRef.current.style.opacity = String(1 - 0.75 * Math.max(0, Math.min(1, d.dy / d.h)));
+  };
+  const onDragEnd = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    const el = sheetRef.current;
+    const ov = ovlRef.current;
+    if (!d || !el) return;
+    const ease = "transform .3s cubic-bezier(.2,.9,.25,1)";
+    if (d.dy > d.h * 0.28 || (d.v > 0.55 && d.dy > 24)) {
+      el.style.transition = ease;
+      el.style.transform = "translateY(105%)";
+      if (ov) { ov.style.transition = "opacity .28s"; ov.style.opacity = "0"; }
+      setTimeout(onClose, 260);
+    } else {
+      el.style.transition = ease;
+      el.style.transform = "translateY(0)";
+      if (ov) { ov.style.transition = "opacity .25s"; ov.style.opacity = "1"; }
+    }
+  };
+
   if (!r) return null;
   const sc = T.sta[r.sta] || hashPick(r.sta, T.extra);
   /* توقيع الرد (6.7.0): «— الاسم [المنصب]» أسفل صندوق الرد بدل سطر «صاحب الرد» بقائمة البيانات.
@@ -766,9 +811,10 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
   };
 
   return (
-    <div className="ovl" onClick={onClose}>
-      <div className="sheet sheet-detail" onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} role="dialog" aria-modal="true">
-        <div className="sheet-top" data-scrolled={scrolled ? "1" : "0"}>
+    <div className="ovl" ref={ovlRef} onClick={onClose}>
+      <div className="sheet sheet-detail" ref={sheetRef} onClick={(e) => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} role="dialog" aria-modal="true">
+        <div className="sheet-grip" aria-hidden="true" onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}><i /></div>
+        <div className="sheet-top" data-scrolled={scrolled ? "1" : "0"} onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}>
           <div className="sheet-tags">
             <span className="mono sheet-id">{L("استفسار", "Inquiry")} {String(r.id).padStart(2, "0")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
