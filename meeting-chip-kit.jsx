@@ -20,7 +20,20 @@ export const MODES = [
   ["meeting", "حسب الاجتماع", "البنود المربوطة بالاجتماع في حقل «الاجتماع»"],
   ["manual", "اختيار يدوي", "أنت تختار البنود واحد واحد"],
 ];
-export const DEFAULT_CHIP = { on: false, ar: "الاجتماع الثامن", en: "8th Meeting", mode: "week", days: 7, from: "", to: "", meeting: "", ids: [], include: [], exclude: [], until: "" };
+export const COLORS = [
+  ["gold", "ذهبي", "255,215,140", "#F2C078", "#8A5A12"],
+  ["orange", "برتقالي", "255,170,100", "#F0903E", "#A8501A"],
+  ["pink", "وردي", "255,150,190", "#F07FA8", "#A8325F"],
+  ["coral", "أحمر وردي", "255,140,120", "#E8745F", "#A8392A"],
+  ["purple", "بنفسجي", "190,150,255", "#A47CF0", "#5B3AA8"],
+  ["indigo", "نيلي", "140,150,255", "#7E88F0", "#3B44A8"],
+  ["blue", "أزرق", "120,200,255", "#4FB0F0", "#1F6EA8"],
+  ["teal", "تركوازي", "110,230,215", "#3ED8C3", "#16796D"],
+  ["green", "أخضر", "150,235,190", "#5FD09A", "#1F7A52"],
+  ["lime", "ليموني", "220,240,120", "#C8E055", "#6B7A12"],
+];
+export const colorOf = (key, fb) => COLORS.find((c) => c[0] === key) || COLORS.find((c) => c[0] === fb);
+export const DEFAULT_CHIP = { on: false, color: "teal", gcolor: "blue", gar: "مجتمع الملاك", gen: "Owners Community", ar: "الاجتماع الثامن", en: "8th Meeting", mode: "week", days: 7, from: "", to: "", meeting: "", ids: [], include: [], exclude: [], until: "" };
 
 export function chipCfg(navLabels) {
   const c = navLabels && navLabels._meetingChip;
@@ -64,6 +77,19 @@ const S = {
   pri: { background: "#1B7F8E", borderColor: "#1B7F8E", color: "#fff" },
   lab: { fontSize: 12, fontWeight: 700, color: "#5F7280", margin: "12px 0 6px" },
 };
+
+function Swatches({ value, onPick, dis }) {
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {COLORS.map(([k, l, , hex]) => (
+        <button key={k} type="button" disabled={dis} title={l} onClick={() => onPick(k)} style={{ border: 0, background: "none", cursor: dis ? "default" : "pointer", display: "grid", justifyItems: "center", gap: 3, font: "inherit", fontSize: 10.5, color: "#5F7280", fontWeight: value === k ? 700 : 400 }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: hex, display: "grid", placeItems: "center", boxShadow: value === k ? `0 0 0 2px #fff, 0 0 0 4px ${hex}` : "0 0 0 1px rgba(0,0,0,.1)" }}>{value === k && <Check size={15} color="#0b0c1e" strokeWidth={3} />}</span>
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function AMeetingChipCard({ supabase, navLabels, inquiries, flashToast, log, canEdit }) {
   const saved = useMemo(() => chipCfg(navLabels), [navLabels]);
@@ -122,6 +148,15 @@ export function AMeetingChipCard({ supabase, navLabels, inquiries, flashToast, l
       </div>}
       {c.mode === "manual" && <div style={{ marginTop: 10 }}><button type="button" disabled={dis} style={S.btn} onClick={markWeek}><Plus size={14} />علّم كل ما تعدّل آخر ٧ أيام</button></div>}
 
+      <div style={S.lab}>لون زر الاجتماع</div>
+      <Swatches value={c.color} onPick={(k) => up({ color: k })} dis={dis} />
+      <div style={S.lab}>زر «{c.gar || "مجتمع الملاك"}» (تيليجرام)</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+        <input disabled={dis} value={c.gar} onChange={(e) => up({ gar: e.target.value })} placeholder="الاسم بالعربي" style={{ ...S.inp, flex: "1 1 150px" }} />
+        <input disabled={dis} value={c.gen} onChange={(e) => up({ gen: e.target.value })} placeholder="English name" dir="ltr" style={{ ...S.inp, flex: "1 1 130px" }} />
+      </div>
+      <Swatches value={c.gcolor} onPick={(k) => up({ gcolor: k })} dis={dis} />
+
       <div style={S.lab}>تاريخ انتهاء الزر (اختياري)</div>
       <input disabled={dis} type="date" value={c.until} onChange={(e) => up({ until: e.target.value })} style={S.inp} />
 
@@ -160,4 +195,65 @@ export function AMeetingChipCard({ supabase, navLabels, inquiries, flashToast, l
       </div>
     </div>
   );
+}
+
+
+/* ═══ صف الأزرار السريعة بالهيدر (فجر): الاجتماع · جديد الحي · مجتمع الملاك — كلها بصف واحد ═══ */
+export function HeaderQuickRow({ cfg, meetingN, newN, tgUrl, showCommunity, lang, dark, onMeeting, onNew, onJoin }) {
+  const L = (a, e) => (lang === "en" ? e : a);
+  const mc = colorOf(cfg.color, "teal"), gc = colorOf(cfg.gcolor, "blue");
+  const tint = (c) => (dark ? c[3] : c[4]);
+  const showMeet = chipActive(cfg);
+  const ink = dark ? "#0b0c1e" : "#fff";
+  return (
+    <div className="hq" data-ek="quick-chips">
+      {showMeet && (
+        <button type="button" className="hq-c" style={{ "--c": mc[2], "--t": tint(mc) }} onClick={onMeeting}>
+          <span className="hq-g">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15 14.5c3 0 6 2 6 5.5" /></svg>
+          </span>
+          <span className="hq-t">{lang === "en" ? (cfg.en || "Meeting") : (cfg.ar || "الاجتماع")}</span>
+          <span className="hq-n">{meetingN}</span>
+        </button>
+      )}
+      {newN > 0 && (
+        <button type="button" className="hq-c" style={{ "--c": "255,215,140", "--t": dark ? "#F2C078" : "#8A5A12" }} onClick={onNew}>
+          <span className="hq-g">
+            <svg width="10" height="15" viewBox="0 0 10 16" aria-hidden="true"><rect x="4" y="5" width="2" height="11" fill="var(--t)" /><path d="M1 5h8l-1-4H2z" fill="var(--t)" /></svg>
+          </span>
+          <span className="hq-t">{L("جديد الحي", "Neighbourhood news")}</span>
+          <span className="hq-n">{newN}</span>
+        </button>
+      )}
+      {showCommunity && (
+        <a className="hq-c" href={tgUrl} target="_blank" rel="noopener noreferrer" style={{ "--c": gc[2], "--t": tint(gc) }} onClick={onJoin}>
+          <span className="hq-g">
+            <svg width="20" height="16" viewBox="0 0 30 20" aria-hidden="true"><rect x="1" y="8" width="8" height="11" fill="var(--t)" /><rect x="11" y="3" width="9" height="16" fill="var(--t)" /><rect x="22" y="9" width="7" height="10" fill="var(--t)" /><g fill={ink}><rect x="13" y="6" width="2" height="2" /><rect x="16" y="6" width="2" height="2" /><rect x="13" y="11" width="2" height="2" /><rect x="16" y="11" width="2" height="2" /></g></svg>
+          </span>
+          <span className="hq-t">{lang === "en" ? (cfg.gen || "Owners Community") : (cfg.gar || "مجتمع الملاك")}</span>
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function hqCss(D, T, dark, reduced) {
+  return `
+${D} .hq{display:flex;flex-wrap:nowrap;gap:5px;width:100%;margin-bottom:10px;justify-content:space-between;}
+${D} .hq-c{display:inline-flex;align-items:center;gap:4px;padding:3px 8px 3px 5px;border-radius:999px;flex:0 1 auto;min-width:0;
+  background:${dark ? "rgba(10,12,28,.74)" : "rgba(255,255,255,.82)"};border:1px solid rgba(var(--c),${dark ? ".38" : ".7"});
+  color:${dark ? "#F4EBDD" : T.paper};font:inherit;font-size:clamp(10.5px,3.15vw,12.5px);font-weight:600;white-space:nowrap;text-decoration:none;cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+${D} .hq-c:active{transform:scale(.97);}
+${D} .hq-t{overflow:hidden;text-overflow:ellipsis;}
+${D} .hq-n{font:700 11.5px ui-monospace,monospace;}
+${D} .hq-g{position:relative;width:18px;height:18px;display:grid;place-items:center;flex:none;}
+${D} .hq-g::before{content:"";position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(var(--c),${dark ? ".85" : ".55"}),rgba(var(--c),${dark ? ".3" : ".2"}) 45%,transparent 70%);
+  ${reduced ? "" : "animation:hqGlow 3s infinite;"}}
+${D} .hq-g svg{position:relative;}
+@keyframes hqGlow{0%,100%{transform:scale(.85);opacity:.7}40%{transform:scale(1.2);opacity:1}46%{opacity:.45}52%{opacity:1}}
+${D} .stamp .join-btn{display:none;}
+${D} .hq ~ [data-ek="header-chips"] .chip-new{display:none;}
+`;
 }

@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.13.0",
+    dateAr: "22 نوفمبر 2026",
+    dateEn: "November 22, 2026",
+    ar: ["صف أزرار سريعة بترويسة «فجر»: «الاجتماع الثامن» و«جديد الحي» (بفانوس متوهج) و«مجتمع الملاك»، كلها بصف واحد على الجوال. زر الاجتماع يفلتر الاستفسارات المرتبطة باجتماع تحدده الإدارة: آخر أيام، أو فترة، أو حسب الاجتماع، أو اختيار يدوي، مع إضافة واستثناء بند بند وتاريخ انتهاء، وكل هذا مع تغيير الاسم والألوان من تبويب الاجتماعات بلوحة الإدارة."],
+    en: ["A quick-button row in the Fajr header: the meeting button, Neighbourhood News (with a glowing street lamp) and the Owners Community link, all on one line on mobile. The meeting button filters inquiries tied to a meeting you define in admin: last N days, a date range, by meeting, or hand-picked, with per-item add/exclude and an expiry date. Name and colours are editable from the Meetings tab."],
+  },
+  {
     version: "7.12.0",
     dateAr: "21 نوفمبر 2026",
     dateEn: "November 21, 2026",
