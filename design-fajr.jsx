@@ -215,9 +215,63 @@ export function FajrHorizon({ lang }) {
       </svg>
       <div className="fj-kicker" dir={lang === "en" ? "ltr" : "rtl"}>
         {lang === "en" ? "ALBORADA · DAHOM — AL-FURSAN" : "ألبورادا داهوم · حي الفرسان"}
+        <WxCapsule lang={lang} />
       </div>
       {tip && <div className="fj-tip" style={{ left: tip.x, top: tip.y }}>{lang === "en" ? `${NAMES[tip.k][1]} · Model ${tip.k}` : `${NAMES[tip.k][0]} · نموذج ${tip.k}`}</div>}
     </div>
+  );
+}
+
+/* ── حرارة الحي ووقته (توقيت الرياض) — Open-Meteo بلا مفتاح، كاش ١٥ دقيقة ── */
+const WX_LAT = 24.9891848, WX_LON = 46.8516469, WX_TTL = 15 * 60 * 1000;
+let wxMem = null;
+function useRiyadhWeather() {
+  const [now, setNow] = useState(() => Date.now());
+  const [wx, setWx] = useState(wxMem);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    let dead = false;
+    const load = async () => {
+      try {
+        if (wxMem && Date.now() - wxMem.at < WX_TTL) { setWx(wxMem); return; }
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code,is_day&timezone=Asia%2FRiyadh`);
+        if (!r.ok) return;
+        const j = await r.json();
+        const c = j && j.current;
+        if (!c || typeof c.temperature_2m !== "number") return;
+        wxMem = { at: Date.now(), t: Math.round(c.temperature_2m), code: c.weather_code, day: c.is_day === 1 };
+        if (!dead) setWx(wxMem);
+      } catch (e) { /* بدون إنترنت: نعرض الوقت فقط */ }
+    };
+    load();
+    const t = setInterval(load, WX_TTL);
+    return () => { dead = true; clearInterval(t); };
+  }, []);
+  return { now, wx };
+}
+function WxGlyph({ code, day }) {
+  const cloud = code >= 2 && code !== undefined;
+  const rain = code >= 51;
+  const st = { fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round" };
+  if (rain) return <svg width="14" height="14" viewBox="0 0 24 24" {...st}><path d="M7 15a4 4 0 1 1 1-7.9A5 5 0 0 1 18 9a3.5 3.5 0 0 1-.5 7H7z" transform="translate(0 -2)" /><path d="M9 19l-1 2M13 19l-1 2M17 19l-1 2" /></svg>;
+  if (!day) return <svg width="14" height="14" viewBox="0 0 24 24" {...st}><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" /></svg>;
+  if (cloud) return <svg width="14" height="14" viewBox="0 0 24 24" {...st}><circle cx="8" cy="8" r="3" /><path d="M8 2v1.5M2 8h1.5M3.8 3.8l1 1M12.2 3.8l-1 1" /><path d="M8 20a4 4 0 1 1 1-7.9A5 5 0 0 1 19 14a3 3 0 0 1-.5 6H8z" /></svg>;
+  return <svg width="14" height="14" viewBox="0 0 24 24" {...st}><circle cx="12" cy="12" r="4" /><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" /></svg>;
+}
+function WxCapsule({ lang }) {
+  const { now, wx } = useRiyadhWeather();
+  const ar = lang !== "en";
+  const time = new Date(now).toLocaleTimeString(ar ? "ar-SA-u-nu-arab" : "en-US", { timeZone: "Asia/Riyadh", hour: "numeric", minute: "2-digit", hour12: true });
+  const deg = wx ? (ar ? Number(wx.t).toLocaleString("ar-SA-u-nu-arab") : String(wx.t)) + "°" : null;
+  return (
+    <span className="fj-wx" dir={ar ? "rtl" : "ltr"} title={ar ? "الرياض — حي الفرسان" : "Riyadh — Al-Fursan"}>
+      {wx && <span className="fj-wx-g"><WxGlyph code={wx.code} day={wx.day} /></span>}
+      {deg && <b>{deg}</b>}
+      <i>{time}</i>
+    </span>
   );
 }
 
@@ -298,6 +352,11 @@ ${D} .fj-dim line{stroke:${dark ? "rgba(255,210,160,.55)" : "rgba(255,240,225,.7
 ${D} .fj-dim text{fill:${dark ? "rgba(255,214,170,.8)" : "rgba(255,244,232,.92)"};font:600 12px ${B};letter-spacing:.08em;}
 ${D} .fj-kicker{position:absolute;top:22px;inset-inline-start:24px;font:600 11.5px/1 ${B};letter-spacing:.06em;
   color:${dark ? "rgba(255,255,255,.72)" : mix(ink, 62)};display:flex;align-items:center;gap:9px;}
+${D} .fj-wx{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 7px;border-radius:999px;letter-spacing:0;white-space:nowrap;
+  color:${dark ? "#F4EBDD" : "#2a1a12"};background:${dark ? "rgba(10,12,28,.55)" : "rgba(255,255,255,.55)"};border:1px solid ${dark ? "rgba(255,200,120,.45)" : "rgba(180,110,50,.4)"};backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+${D} .fj-wx b{font:700 12px ui-monospace,Menlo,monospace;}
+${D} .fj-wx i{font-style:normal;font-size:11px;opacity:.75;}
+${D} .fj-wx-g{display:grid;place-items:center;color:${dark ? "#FFC878" : "#b8661e"};}
 ${D} .fj-kicker::before{content:"";width:22px;height:1.5px;background:var(--fj-dawn);}
 ${D} .head{position:relative;z-index:1;min-height:var(--fj-h);padding:50px 24px 24px;align-items:flex-start;gap:14px 20px;}
 @media(max-width:767.98px){

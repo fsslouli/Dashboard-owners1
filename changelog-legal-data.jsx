@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.14.0",
+    dateAr: "22 نوفمبر 2026",
+    dateEn: "November 22, 2026",
+    ar: ["كبسولة بترويسة «فجر» بجانب «حي الفرسان» تعرض درجة حرارة الحي ووقت الرياض لحظيًا (من موقع الحي نفسه، وتتحدث كل ١٥ دقيقة تقريبًا). لو تعذر الاتصال يظهر الوقت فقط."],
+    en: ["A small capsule in the Fajr header beside the neighbourhood name shows the live temperature at the neighbourhood and Riyadh time (refreshed about every 15 minutes). If offline, only the time is shown."],
+  },
+  {
     version: "7.13.1",
     dateAr: "22 نوفمبر 2026",
     dateEn: "November 22, 2026",
