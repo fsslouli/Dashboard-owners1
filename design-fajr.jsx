@@ -1,5 +1,5 @@
 import { hqCss } from "./meeting-chip-kit.jsx";
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect, useLayoutEffect } from "react";
 
 /* ═══════════════════════════════════════════════════════════
    طبقة التصميم «فجر» — التصميم الرابع للموقع العام (7.11.0).
@@ -83,7 +83,7 @@ function stars(n) {
   return Array.from({ length: n }, () => ({ x: r() * 1200, y: 8 + r() * 250, r: 0.6 + r() * 1.1, d: r() * 4 }));
 }
 
-export function FajrHorizon({ lang }) {
+export function FajrHorizon({ lang, lit = true }) {
   const { items, width } = useMemo(layout, []);
   const st = useMemo(() => stars(34), []);
   const dust = useMemo(() => {
@@ -101,6 +101,38 @@ export function FajrHorizon({ lang }) {
     const a = items[i], b = items[i + 1];
     if (a.k !== "palm" && b.k !== "palm") lamps.push((a.x + VILLA[a.k].w + b.x) / 2);
   }
+
+  /* إضاءة الدرايش: تبدأ بعد الإقرار، عشوائية هادئة (أرقام فهد 23-11-2026) */
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || !lit) return undefined;
+    const LIT_PCT = 71, START = 3, FADE = 1.5, LAMPS = 4, LAMP_DELAY = 1, LAMP_STEP = 0.3;
+    const LIVE_PCT = 70, ON = [6, 26], OFF = [3, 9], TRANS = 1.3;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const wins = [...root.querySelectorAll(".fj-win")];
+    const lampEls = [...root.querySelectorAll(".fj-lamp")];
+    const order = wins.map((w, i) => [Math.random(), i]).sort((a, b) => a[0] - b[0]).map((a) => a[1]);
+    const onSet = new Set(order.slice(0, Math.round((wins.length * LIT_PCT) / 100)));
+    wins.forEach((w, i) => {
+      w.style.setProperty("--d", rnd(0, START).toFixed(2) + "s");
+      w.style.setProperty("--fd", FADE + "s");
+      w.style.transition = `fill ${TRANS}s ease, opacity ${TRANS}s ease`;
+      w.classList.toggle("fj-off", !onSet.has(i));
+    });
+    lampEls.forEach((l, i) => {
+      l.style.display = i >= LAMPS ? "none" : "";
+      l.style.setProperty("--d", (LAMP_DELAY + START + i * LAMP_STEP - 1.2).toFixed(2) + "s");
+    });
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let dead = false; const tm = new Set();
+    const wait = (f, ms) => { const t = setTimeout(() => { tm.delete(t); if (!dead) f(); }, ms); tm.add(t); };
+    const life = (w) => {
+      const off = w.classList.contains("fj-off");
+      wait(() => { w.classList.toggle("fj-off"); life(w); }, 1000 * (off ? rnd(OFF[0], OFF[1]) : rnd(ON[0], ON[1])));
+    };
+    wait(() => wins.filter(() => Math.random() < LIVE_PCT / 100).forEach((w) => wait(() => life(w), rnd(0, 6000))), (START + FADE + 1.5) * 1000);
+    return () => { dead = true; tm.forEach(clearTimeout); };
+  }, [lit]);
 
   /* بارالاكس (حركة الماوس/اللمس فوق الترويسة) + اسم النموذج عند الضغط على الفيلا */
   useEffect(() => {
@@ -132,7 +164,7 @@ export function FajrHorizon({ lang }) {
   }, [items]);
 
   return (
-    <div className="fj-sky no-print" aria-hidden="true" ref={rootRef}>
+    <div className={"fj-sky no-print" + (lit ? " fj-lit" : " fj-pre")} aria-hidden="true" ref={rootRef}>
       <svg viewBox={`0 0 ${vw} ${VH}`} preserveAspectRatio="xMidYMax slice" width="100%" height="100%">
         <defs>
           <radialGradient id="fjSun" cx="50%" cy="50%" r="50%">
@@ -505,6 +537,10 @@ ${D} .doc-card:hover{border-color:${mix(dawn, 70)};}
 ${D} .doc-name{font-family:${K};font-weight:700;}
 ${D} .top-fab{border-radius:12px;background:var(--fj-dawn);color:#fff;border:0;}
 
+${D} .fj-pre .fj-win{animation:none!important;fill:${dark ? "#262B4A" : "#6A5562"}!important;opacity:1!important;}
+${D} .fj-pre .fj-lglow,${D} .fj-pre .fj-lbulb{animation:none!important;opacity:0!important;}
+${D} .fj-lit .fj-win{animation-delay:calc(.25s + var(--d))!important;animation-duration:var(--fd,.9s)!important;}
+${D} .fj-lit .fj-lglow,${D} .fj-lit .fj-lbulb{animation-delay:calc(1.2s + var(--d))!important;}
 @media(prefers-reduced-motion:reduce){${D} .fj-sun,${D} .fj-sky,${D} .fj-win,${D} .fj-stars circle,${D} .fj-axes,${D} .fj-dim{animation:none!important;}}
 @media print{${D}::before{display:none;}${D} .head{min-height:0;padding:0;}${D} .h1{color:#000;text-shadow:none;}}
 `;

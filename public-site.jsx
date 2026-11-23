@@ -1392,7 +1392,7 @@ ${fajr ? fajrCss(T, resolved, reduced) : ""}
 
         <div className="wrap">
           <header>
-            {fajr && <FajrHorizon lang={lang} />}
+            {fajr && <FajrHorizon lang={lang} lit={legalAgreed} />}
             <div className="head">
               <div className="min-w-0">
                 <h1 className="disp h1" data-ek="title">{siteTitle(lang)}</h1>
