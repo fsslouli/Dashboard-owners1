@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.14.2",
+    dateAr: "23 نوفمبر 2026",
+    dateEn: "November 23, 2026",
+    ar: ["درايش ترويسة «فجر» ما تبدأ تنوّر إلا بعد الموافقة على الإقرار مباشرة: تشتغل بشكل عشوائي هادئ (مو موجة)، وبعدها تطفي وتشتغل لحالها بأوقات مختلفة لكل نافذة. أعمدة الإنارة 4 وتشتغل بعد الدرايش. مع تقليل الحركة تظهر ثابتة بدون حركة."],
+    en: ["The Fajr header windows now start lighting only right after the legal acknowledgment is accepted: a calm random start (no wave), then each window turns on and off on its own timing. Four lamp posts light up after the windows. With reduced motion the lights stay static."],
+  },
+  {
     version: "7.14.1",
     dateAr: "22 نوفمبر 2026",
     dateEn: "November 22, 2026",
