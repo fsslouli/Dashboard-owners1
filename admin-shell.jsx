@@ -22,7 +22,7 @@ export const ADMIN_SECTIONS = [
   { group: "العمل اليومي", id: "tix", title: "تذاكر الملاك", keys: ["tickets"] },
   { group: "العمل اليومي", id: "pub", title: "النشر والإشعارات", keys: ["notices", "scheduled"] },
   { group: "الموقع", id: "lib", title: "المكتبة والمحتوى", keys: ["gallery", "materials", "media", "links", "handover"] },
-  { group: "الموقع", id: "look", title: "شكل الموقع", keys: ["theme", "site", "labels"] },
+  { group: "الموقع", id: "look", title: "شكل الموقع", keys: ["theme", "site", "labels", "changelog"] },
   { group: "الموقع", id: "access", title: "الوصول والمشاركة", keys: ["ownerlogin", "share"] },
   { group: "المتابعة والنظام", id: "stats", title: "الإحصاءات", keys: ["analytics", "insights"] },
   { group: "المتابعة والنظام", id: "sys", title: "المستخدمون والأمان", keys: ["users", "security", "audit"] },
@@ -33,7 +33,7 @@ export const ADMIN_NAV_GROUPS = ADMIN_SECTIONS.map((x) => ({ title: x.title, key
 const ICONS = {
   dashboard: LayoutDashboard, brief: FileText, sync: FileSpreadsheet, filters: Filter, notices: Bell,
   media: Clapperboard, gallery: Images, links: ExternalLink, scheduled: AlarmClock, labels: Type, theme: Palette,
-  analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users, security: ShieldCheck, site: Wand2, i18n: Languages, ownerlogin: KeyRound, tickets: Inbox, meetings: CalendarDays, handover: ClipboardCheck, materials: Boxes, workbook: FileStack,
+  analytics: BarChart3, insights: Activity, share: Link2, audit: History, users: Users, security: ShieldCheck, site: Wand2, i18n: Languages, ownerlogin: KeyRound, tickets: Inbox, meetings: CalendarDays, handover: ClipboardCheck, changelog: History, materials: Boxes, workbook: FileStack,
 };
 const iconOf = (k) => ICONS[k] || Layers;
 

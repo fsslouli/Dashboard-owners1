@@ -1,12 +1,15 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: public-sheets */
 import { logEvent } from "./app-bootstrap.jsx";
 import { AttachmentsBlock } from "./attach-kit.jsx";
-import { CHANGELOG, LEGAL_COPY } from "./changelog-legal-data.jsx";
+import { LEGAL_COPY } from "./legal-copy.jsx";
+import { RELEASES } from "virtual:releases";
+import { supabase } from "./app-bootstrap.jsx";
 
 /* السجل العلني يعرض ما أُضيف وتحسّن فقط — بنود الإصلاحات والأعطال الداخلية تبقى بالمصدر ولا تظهر للزائر */
 const NEG_AR = /(إصلاح|اصلاح|تصحيح|عطل|خطأ|أخطاء|مشكل|تسرّب|تسريب|ثغر|مكشوف|يوقف|تعطّل|انهيار|تحذير|كان |كانت )/;
 const NEG_EN = /(\bfix|hotfix|crash|\bbug|broken|leak|vulnerab|escalation|locked down|\bwas\b|\bwere\b|silently|stopped|error)/i;
-const PUBLIC_LOG = CHANGELOG
+/* فلتر السجل العلني (يُطبَّق على التفاصيل لما تكون مفتوحة للجميع) */
+const toPublicLog = (CHANGELOG) => CHANGELOG
   .map((e) => {
     const arr0 = e.ar || [], en0 = e.en || [];
     /* القائمتان متوازيتان: نخفي نفس البند بالعربي والإنجليزي حسب فلتر العربي، فلا يفرغ الإنجليزي بسبب كلمة مثل fixed */
@@ -17,6 +20,27 @@ const PUBLIC_LOG = CHANGELOG
     return { ...e, ar: arr0.filter((l) => !NEG_AR.test(l)), en: en0.filter((l) => !NEG_EN.test(l)) };
   })
   .filter((e) => e.ar.length > 0);
+
+/* 7.16.0 — ظهور سجل التحديثات (site_settings.changelog_mode): hidden = الرقم فقط بدون زر · versions (الافتراضي) = قائمة أرقام وتواريخ بدون تفاصيل · all = التفاصيل للجميع */
+export function useChangelogMode() {
+  const [mode, setMode] = useState("versions");
+  useEffect(() => {
+    let alive = true;
+    const pull = async () => {
+      try {
+        const { data, error } = await supabase.from("site_settings").select("changelog_mode").eq("id", 1).single();
+        if (!alive || error || !data) return;
+        setMode(["hidden", "all"].includes(data.changelog_mode) ? data.changelog_mode : "versions");
+      } catch { /* يبقى الافتراضي */ }
+    };
+    pull();
+    const ch = supabase.channel("changelog-mode-live")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "site_settings" }, pull)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+  }, []);
+  return mode;
+}
 import { EMPTY_F, arr, passesFilters } from "./public-site.jsx";
 import { DOC_BASE, DOC_COLORS, ZONES, hasEnText, hashPick, isDraftEn, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trPGLabel, trParty, trPri, trReply, trScope, trSta, trZone, useLang, useT } from "./site-data.jsx";
 
@@ -82,11 +106,19 @@ export function LegalDisclaimer({ onAgree: onAgreeParent }) {
   );
 }
 
-export function ChangelogSheet({ open, onClose }) {
+export function ChangelogSheet({ open, onClose, mode = "versions" }) {
   const { T } = useT();
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
   useBackClose(open, onClose);
+  /* التفاصيل تُحمَّل عند الطلب فقط وفقط لو الإدارة فتحتها للجميع — بوضع «الأرقام فقط» ما تنحمّل أصلاً */
+  const [full, setFull] = useState(null);
+  useEffect(() => {
+    if (!open || mode !== "all" || full) return;
+    let alive = true;
+    import("./changelog-legal-data.jsx").then((m) => { if (alive) setFull(toPublicLog(m.CHANGELOG)); }).catch(() => {});
+    return () => { alive = false; };
+  }, [open, mode, full]);
   useEffect(() => {
     if (!open) return;
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -110,19 +142,20 @@ export function ChangelogSheet({ open, onClose }) {
           <button onClick={onClose} className="icon-btn" aria-label={L("إغلاق", "Close")}><X size={16} /></button>
         </div>
         <div className="sheet-body">
-          {PUBLIC_LOG.map((entry, i) => (
-            <div key={i} style={{ marginBottom: i < PUBLIC_LOG.length - 1 ? 22 : 0 }}>
+          {(mode === "all" ? full || RELEASES.map((r) => ({ ...r, ar: [], en: [] })) : RELEASES.map((r) => ({ ...r, ar: [], en: [] }))).map((entry, i, arr) => (
+            <div key={i} style={{ marginBottom: i < arr.length - 1 ? (mode === "all" ? 22 : 10) : 0 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
                 <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: T.brass }}>v{entry.version}</span>
                 <span className="mono" style={{ fontSize: 12, color: T.muted }}>
                   {lang === "en" ? entry.dateEn : entry.dateAr}
                 </span>
               </div>
+              {mode === "all" && (
               <ul style={{
                 margin: 0, paddingInlineStart: 18, fontSize: 13, lineHeight: 1.9, color: T.paper,
               }}>
                 {(lang === "en" ? entry.en : entry.ar).map((line, j) => (<li key={j}>{line}</li>))}
-              </ul>
+              </ul>)}
             </div>
           ))}
         </div>

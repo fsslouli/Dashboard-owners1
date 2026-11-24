@@ -1,9 +1,9 @@
 /* ملف مُستخرج تلقائيًا من Dashboard.jsx — قسم: public-site */
 import { TELEGRAM_URL, TelegramIcon, debounceLive, logEvent, supabase } from "./app-bootstrap.jsx";
 import { siteSetTab, siteSetTheme, siteTrack, startSiteAnalytics } from "./site-analytics.js";
-import { CURRENT_VERSION } from "./changelog-legal-data.jsx";
+import { CURRENT_VERSION } from "virtual:releases";
 import { ProgressTab } from "./progress-tab.jsx";
-import { ChangelogSheet, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
+import { ChangelogSheet, useChangelogMode, DocViewerSheet, FiltersSheet, LegalDisclaimer, Sheet } from "./public-sheets.jsx";
 import { setDynEn, trText, readInqCache, writeInqCache, clearInqCache, AR_DIGITS, CAT_ORDER, DEFAULT_THEME_KEY, DOCS, DOC_BASE, DOC_COLORS, LangCtx, MEETING_ORDER, MODEL_LIST, OWNER_TITLE_ORDER, PARTY_ORDER, PG_BASE, PRI_ORDER, STA_ORDER, THEME_SETS, ThemeCtx, ZONES, buildPgFromRows, catColor, fmtDate, hashPick, hideBoot, isFlagLive, isRecentlyChanged, modelsOf, norm, rank, trCat, trLoc, trMeeting, trModel, trMonth, trNote, trOwn, trOwnTitle, trParty, trPri, trSta, trZone, uniqSorted, useLang, useSiteConfig, useSkinFont, useT, zoneOf } from "./site-data.jsx";
 import { useI18nMemory } from "./i18n-memory.js";
 import { pageScrollMax, pageScrollTo, pageScrollY, useBackClose, useDesktopView, useLangMode, usePrefersReduced, useThemeMode, useViewMode } from "./site-hooks.jsx";
@@ -415,6 +415,7 @@ export function PublicSite({ share = null, gate = null } = {}) {
   const [navList, setNavList] = useState(null);
   const openRecord = (r, list) => { setSel(r); setNavList(list || null); };
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const changelogMode = useChangelogMode();
   const [leaving, setLeaving] = useState(null);   /* رابط خارجي ينتظر تأكيد المغادرة */
   const extLinks = useExternalLinks(supabase, !shareScope);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1902,12 +1903,15 @@ ${fajr ? fajrCss(T, resolved, reduced) : ""}
           <div className="no-print" data-ek="footer-links" style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
             {!shareScope && (<>
             {/* سجل التحديثات: انتقل من الترويسة إلى هنا (٣.٠.١) — مكانه جنب دخول الإدارة */}
+            {changelogMode === "hidden" ? (
+              <span className="mono" style={{ fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4 }}><History size={12} /> v{CURRENT_VERSION}</span>
+            ) : (
             <button className="mono" onClick={() => { logEvent("click", "changelog", null, null); setChangelogOpen(true); }}
               aria-label={L(`سجل التحديثات — الإصدار ${CURRENT_VERSION}`, `Update log — version ${CURRENT_VERSION}`)} style={{
               background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4,
             }}>
               <History size={12} /> v{CURRENT_VERSION}
-            </button>
+            </button>)}
             <button className="mono" onClick={() => { logEvent("click", "admin_login", null, null); window.location.hash = "admin"; }} style={{
               background: "none", border: "none", cursor: "pointer", fontSize: 11.5, color: T.faint, padding: 4, display: "flex", alignItems: "center", gap: 4,
             }}>
@@ -1919,7 +1923,7 @@ ${fajr ? fajrCss(T, resolved, reduced) : ""}
 
         <Sheet noShare={!!shareScope} r={sel} navList={navList} onJump={setSel} onClose={() => { setSel(null); setNavList(null); }} attachments={sel ? attMap[sel.id] || [] : []} />
         {!shareScope && <LinkLeaveSheet link={leaving} T={T} lang={lang} onClose={() => setLeaving(null)} />}
-        {!shareScope && <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />}
+        {!shareScope && <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} mode={changelogMode} />}
         <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} f={f} sort={sort} cats={cats} ALL={ALL}
           nq={nq} nqId={nqId} urgentCount={urgentCount} importantCount={importantCount} newCount={newCount} openCount={openCount} attCount={attNotesCount}
           onApply={(draft, newSort) => { setF((p) => ({ ...draft, q: p.q })); setSort(newSort); setLimit(12); }} />
