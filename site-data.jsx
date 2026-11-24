@@ -680,7 +680,7 @@ export function hideBoot(instant) {
   if (!b) return;
   if (instant) { b.remove(); return; }
   b.classList.add("boot-gone");
-  setTimeout(() => b.remove(), 420);
+  setTimeout(() => b.remove(), 180);
 }
 
 export function useSiteConfig() {

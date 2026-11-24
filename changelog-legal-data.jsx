@@ -18,6 +18,11 @@ export const CHANGELOG = [
     dateEn: "November 24, 2026",
     ar: ["سجل التحديثات بالموقع العام صار يعرض أرقام الإصدارات وتواريخها فقط بدون تفاصيل، وتفاصيل التحديثات صارت داخل لوحة الإدارة (تبويب «سجل التحديثات»). وفي نفس التبويب خيار تتحكم به بما يشوفه الزائر: أرقام فقط (الافتراضي)، أو رقم الإصدار بدون زر، أو التفاصيل للجميع. وتفاصيل التحديثات ما تُحمَّل مع الموقع العام إلا لو اخترت «للجميع»."],
     en: ["The public update log now shows only version numbers and dates, without details; the update details now live in the admin panel (\"Update log\" tab). The same tab lets you choose what visitors see: numbers only (default), the version number without a button, or full details for everyone. The details are not even loaded with the public site unless you choose \"for everyone\"."],
+    version: "7.15.3",
+    dateAr: "24 نوفمبر 2026",
+    dateEn: "November 24, 2026",
+    ar: ["مؤشر التحميل بتصميم «فجر» صار بيت ينبني قطعة قطعة (أرضية ← جدران ← سقف ← باب ← نوافذ تضيء ← عمود إنارة) بدون اسم المشروع، بألوان الطقم المعتمد. وشاشة الانتظار تنفتح فور اكتمال التحميل بدون تأخير (تلاشٍ أسرع)، وجُرّبت بالنهاري والليلي."],
+    en: ["The Fajr first-load indicator is now a house that builds piece by piece (ground → walls → roof → door → windows light up → lamp post), without the project name, in the approved theme colors. The loading screen now opens the moment loading completes, with no delay (faster fade), checked in both day and night modes."],
   },
   {
     version: "7.15.2",
