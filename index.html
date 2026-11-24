@@ -63,23 +63,21 @@
       html[data-boot-design="nova"] #boot i { display: none; }
       @keyframes boot-spin { to { transform: rotate(360deg); } }
       @media (prefers-reduced-motion: reduce) { #boot i { animation: none; opacity: .55; } html[data-boot-design="nova"] #boot .bt::after { animation: none; } }
-      /* فجر: شروق فوق صف فلل — نوافذ تضيء عشوائياً ثم أعمدة الإنارة، واسم الحي تحتها */
-      #boot .sc { position: relative; width: min(420px, 92vw); height: 220px; overflow: hidden; border-radius: 18px; }
-      #boot .sc .sky { position: absolute; inset: 0; background: linear-gradient(to top, color-mix(in srgb, var(--boot-ac, #D9A441) 70%, var(--boot-bg, #141C22)) 0%, color-mix(in srgb, var(--boot-ac, #D9A441) 22%, var(--boot-bg, #141C22)) 40%, var(--boot-bg, #141C22) 100%); }
-      #boot .sc .sun { position: absolute; left: 50%; bottom: 58px; margin-left: -24px; width: 48px; height: 48px; border-radius: 50%; background: var(--boot-ac, #D9A441); box-shadow: 0 0 34px var(--boot-ac, #D9A441); animation: boot-sun 3.2s ease-out infinite; }
-      #boot .sc svg { position: absolute; left: 0; bottom: 34px; width: 100%; height: 64px; }
-      #boot .sc .vl { fill: color-mix(in srgb, var(--boot-bg, #141C22) 78%, #000); }
-      #boot .sc .wn { fill: var(--boot-ac, #D9A441); opacity: .12; animation: boot-on 2.6s ease-in-out infinite; }
-      #boot .sc .lp { fill: var(--boot-ac, #D9A441); opacity: .1; animation: boot-lamp 3.2s ease-in-out infinite; }
-      #boot .sc .gd { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: color-mix(in srgb, var(--boot-bg, #141C22) 78%, #000); }
-      #boot .sc .nm { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; color: var(--boot-fg, #8FA0AB); font: 600 13px/1.2 system-ui, "Noto Kufi Arabic", sans-serif; letter-spacing: .3px; }
-      @keyframes boot-sun { 0% { transform: translateY(46px); } 70%, 100% { transform: none; } }
-      @keyframes boot-on { 0%, 100% { opacity: .12; } 40%, 70% { opacity: 1; } }
-      @keyframes boot-lamp { 0%, 45% { opacity: .1; } 60%, 100% { opacity: 1; } }
+      /* مخطط يُرسم: واجهة فيلا ترتسم خطاً خطاً على ورقة هندسية ثم تضيء نوافذها، واسم الحي تحتها */
+      #boot .sc { position: relative; width: min(420px, 92vw); height: 230px; overflow: hidden; border-radius: 18px; background: color-mix(in srgb, var(--boot-ac, #D9A441) 7%, var(--boot-bg, #141C22)); border: 1px solid color-mix(in srgb, var(--boot-fg, #8FA0AB) 22%, transparent); }
+      #boot .sc .gr { position: absolute; inset: 0; background-image: linear-gradient(color-mix(in srgb, var(--boot-fg, #8FA0AB) 16%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--boot-fg, #8FA0AB) 16%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
+      #boot .sc svg { position: absolute; left: 50%; top: 22px; margin-left: -110px; width: 220px; height: 150px; }
+      #boot .sc .ln { fill: none; stroke: var(--boot-ac, #D9A441); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 320; animation: boot-draw 3.2s ease-in-out infinite; }
+      #boot .sc .ln2 { stroke-width: 1; opacity: .7; animation-delay: .25s; }
+      #boot .sc .wn { fill: var(--boot-ac, #D9A441); opacity: 0; animation: boot-fill 3.2s ease-in-out infinite; }
+      #boot .sc .nm { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: var(--boot-fg, #8FA0AB); font: 600 13px/1.3 system-ui, "Noto Kufi Arabic", sans-serif; letter-spacing: .3px; }
+      #boot .sc .nm b { display: block; font-size: 19px; color: var(--boot-ac, #D9A441); margin-bottom: 2px; }
+      @keyframes boot-draw { 0% { stroke-dashoffset: 320; } 62%, 100% { stroke-dashoffset: 0; } }
+      @keyframes boot-fill { 0%, 55% { opacity: 0; } 75%, 100% { opacity: 1; } }
       html[data-boot-design="bannaa"] #boot .sc, html[data-boot-design="nova"] #boot .sc { display: none; }
       #boot .bt { display: none; }
       html[data-boot-design="bannaa"] #boot .bt, html[data-boot-design="nova"] #boot .bt { display: flex; }
-      @media (prefers-reduced-motion: reduce) { #boot .sc .sun, #boot .sc .wn, #boot .sc .lp { animation: none; opacity: 1; } #boot .sc .sun { transform: none; } }
+      @media (prefers-reduced-motion: reduce) { #boot .sc .ln { animation: none; stroke-dashoffset: 0; } #boot .sc .wn { animation: none; opacity: 1; } }
     </style>
     <script>
       (function () {
@@ -119,9 +117,10 @@
   </head>
   <body>
     <div id="root"></div>
-    <div id="boot" aria-hidden="true"><div class="sc"><div class="sky"></div><div class="sun"></div>
-<svg viewBox="0 0 420 64" preserveAspectRatio="none"><g class="vl"><path d="M8 64V28h46v36z"/><path d="M62 64V16h54v48z"/><path d="M124 64V32h44v32z"/><path d="M176 64V20h52v44z"/><path d="M236 64V30h46v34z"/><path d="M290 64V18h54v46z"/><path d="M352 64V30h60v34z"/></g><rect class="wn" x="20" y="22" width="6" height="7" style="animation-delay:0.2s"/><rect class="wn" x="34" y="34" width="6" height="7" style="animation-delay:1.3s"/><rect class="wn" x="76" y="18" width="6" height="7" style="animation-delay:0.8s"/><rect class="wn" x="92" y="30" width="6" height="7" style="animation-delay:0.1s"/><rect class="wn" x="132" y="26" width="6" height="7" style="animation-delay:1.7s"/><rect class="wn" x="188" y="20" width="6" height="7" style="animation-delay:0.5s"/><rect class="wn" x="204" y="34" width="6" height="7" style="animation-delay:1.1s"/><rect class="wn" x="248" y="24" width="6" height="7" style="animation-delay:0.9s"/><rect class="wn" x="300" y="16" width="6" height="7" style="animation-delay:0.3s"/><rect class="wn" x="322" y="32" width="6" height="7" style="animation-delay:1.5s"/><rect class="wn" x="366" y="26" width="6" height="7" style="animation-delay:0.7s"/><g stroke="currentColor" stroke-width="0"><circle class="lp" cx="58" cy="44" r="3"/><circle class="lp" cx="120" cy="46" r="3" style="animation-delay:.15s"/><circle class="lp" cx="232" cy="44" r="3" style="animation-delay:.3s"/><circle class="lp" cx="348" cy="46" r="3" style="animation-delay:.45s"/></g></svg>
-<div class="gd"></div><div class="nm">البورادا · حي الفرسان</div></div><div class="bt"><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div id="boot" aria-hidden="true"><div class="sc"><div class="gr"></div>
+<svg viewBox="0 0 220 150"><path class="ln" d="M10 132H210M30 132V72L110 26L190 72V132M80 132V94H140V132"/><path class="ln ln2" d="M110 26V8M60 72H160M20 140H200"/><rect class="wn" x="94" y="102" width="16" height="30"/><rect class="wn" x="46" y="88" width="14" height="14" style="animation-delay:.12s"/><rect class="wn" x="160" y="88" width="14" height="14" style="animation-delay:.24s"/><rect class="wn" x="100" y="48" width="20" height="12" style="animation-delay:.36s"/></svg>
+<div class="nm"><b>البورادا</b>حي الفرسان · داهوم</div></div>
+    <div class="bt"><i></i><i></i><i></i><i></i><i></i></div></div>
     <script type="module" src="/main.jsx"></script>
   </body>
 </html>
