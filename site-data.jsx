@@ -664,6 +664,7 @@ function writeCachedCfg(theme, design) {
         ? { light: bannaaGround(lt, "light"), dark: bannaaGround(dk, "dark") }
         : { light: lt.bg, dark: dk.bg },
       fg: { light: lt.muted, dark: dk.muted },
+      ac: { light: lt.brass, dark: dk.brass },
       font: SKIN_FONTS[theme] || null,
       dfont: design === "bannaa" ? BANNAA_FONT : design === "fajr" ? FAJR_FONT : null,
     }));
