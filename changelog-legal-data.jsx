@@ -16,8 +16,8 @@ export const CHANGELOG = [
     version: "7.15.2",
     dateAr: "24 نوفمبر 2026",
     dateEn: "November 24, 2026",
-    ar: ["مؤشر التحميل عند أول فتح للصفحة صار يمشي مع التصميم والثيم: في «فجر» نوافذ صغيرة تضيء عشوائياً على خط الأفق، في «بنّاء» لبنات تتراص، وفي «نوفا» حلقة هادئة، كلها بألوان الطقم المعتمد (الخلفية واللون المميز) ومن أول لحظة قبل تحميل الموقع. مع تقليل الحركة يظهر ثابتاً."],
-    en: ["The first-load indicator now follows the design and theme: in Fajr, small windows light up at random along a horizon line; in Bannaa, bricks stack up; in Nova, a calm ring. All use the approved theme colors (background and accent) from the very first moment, before the site loads. With reduced motion it stays static."],
+    ar: ["مؤشر التحميل عند أول فتح للصفحة صار يمشي مع التصميم والثيم: في «فجر» شمس تشرق خلف صف فلل بنوافذ تضيء عشوائياً وأعمدة إنارة واسم الحي، في «بنّاء» لبنات تتراص، وفي «نوفا» حلقة هادئة، كلها بألوان الطقم المعتمد (الخلفية واللون المميز) ومن أول لحظة قبل تحميل الموقع. مع تقليل الحركة يظهر ثابتاً."],
+    en: ["The first-load indicator now follows the design and theme: in Fajr, a sun rises behind a row of villas with windows lighting at random, lamp posts and the district name; in Bannaa, bricks stack up; in Nova, a calm ring. All use the approved theme colors (background and accent) from the very first moment, before the site loads. With reduced motion it stays static."],
   },
   {
     version: "7.15.1",
