@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.15.3",
+    dateAr: "24 نوفمبر 2026",
+    dateEn: "November 24, 2026",
+    ar: ["مؤشر التحميل بتصميم «فجر» صار بيت ينبني قطعة قطعة (أرضية ← جدران ← سقف ← باب ← نوافذ تضيء ← عمود إنارة) بدون اسم المشروع، بألوان الطقم المعتمد."],
+    en: ["The Fajr first-load indicator is now a house that builds piece by piece (ground → walls → roof → door → windows light up → lamp post), without the project name, in the approved theme colors."],
+  },
+  {
     version: "7.15.2",
     dateAr: "24 نوفمبر 2026",
     dateEn: "November 24, 2026",
