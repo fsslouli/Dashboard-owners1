@@ -44,6 +44,18 @@ export function ALocked({ text }) {
   const T = useSystemTheme();
   return <div style={{ background: T.surface, border: `1px dashed ${T.line}`, borderRadius: 16, padding: 30, textAlign: "center" }}><ShieldAlert size={22} color={T.faint} style={{ marginBottom: 8 }} /><div style={{ fontSize: 13, color: T.muted }}>{text}</div></div>;
 }
+/* حقل نص متعدد الأسطر (الرد): فيه تلميح صيغة الردّين تحت الحقل */
+export function afieldArea(label, value, onChange, hint) {
+  const T = CURRENT_ADMIN_THEME;
+  return (
+    <div key={label}>
+      <label style={{ fontSize: 11, color: T.muted, display: "block", marginBottom: 4 }}>{label}</label>
+      <textarea value={value || ""} onChange={(e) => onChange(e.target.value)} rows={4} style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 9, border: `1px solid ${T.line}`, fontSize: 12.5, background: T.sunken, lineHeight: 1.8, resize: "vertical", fontFamily: "inherit" }} />
+      {hint && <div style={{ fontSize: 11, color: T.faint || T.muted, marginTop: 4, lineHeight: 1.8, whiteSpace: "pre-line" }}>{hint}</div>}
+    </div>
+  );
+}
+export const REPLY_HINT = "ردّان أو أكثر؟ ابدأ كل رد بسطر تاريخ مثل [2026-07] وافصل بينهم بسطر فيه --- فقط، وآخر رد هو الأحدث.\nمثال: [2026-07] ← نص الرد الأول ← --- ← [2026-08] ← نص الرد الثاني.";
 export function afieldInput(label, value, onChange, opts, listOpts) {
   const T = CURRENT_ADMIN_THEME;
   const listId = listOpts ? `dl-${label}`.replace(/[^a-zA-Z0-9\u0600-\u06FF]+/g, "-") : undefined;

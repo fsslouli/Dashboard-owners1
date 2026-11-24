@@ -23,6 +23,7 @@ import { DOC_BASE, DOC_COLORS, ZONES, hasEnText, hashPick, isDraftEn, trCat, trL
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { parseReplies, replyDateLabel } from "./reply-kit.js";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
 import { AlertTriangle, Calendar, Check, Clock, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, Users, X } from "lucide-react";
 
@@ -778,6 +779,11 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
   const ownName = r.owner && String(r.owner).trim() !== "غير محدد" ? trOwn(lang, r.owner) : "";
   const ownTitle = ownName && r.ownerTitle ? trOwnTitle(lang, r.ownerTitle) : "";
   const replyText = trReply(lang, r);
+  /* ردّان أو أكثر داخل خانة الرد (reply-kit.js): آخر كتلة = الأحدث. رد واحد بدون علامات يظهر كما كان */
+  const repBlocks = parseReplies(replyText);
+  const nRep = repBlocks.length;
+  const dateOf = (d) => replyDateLabel(d, (ym) => trMonth(lang, ym));
+  const lastDate = (nRep && dateOf(repBlocks[nRep - 1].date)) || trMonth(lang, r.month);
 
   const handleShare = async () => {
     const url = `${window.location.origin}${window.location.pathname}?note=${r.id}`;
@@ -845,7 +851,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
                 <div className="sh-vic">{r.sta === "معتمدة" ? <Check size={21} strokeWidth={2.6} /> : r.sta === "تم الرفض" ? <X size={21} strokeWidth={2.6} /> : <Clock size={20} strokeWidth={2.4} />}</div>
                 <div>
                   <b className="disp">{trSta(lang, r.sta)}</b>
-                  <span>{r.answered ? `${r.closed ? L("مقفل", "Closed") : L("رُدّ عليه", "Replied")} · ${trMonth(lang, r.month)}` : L("بانتظار الرد من فريق المشروع", "Awaiting the project team's reply")}</span>
+                  <span>{r.answered ? (r.closed ? `${L("مقفل", "Closed")} · ${lastDate}` : `${L("رُدّ عليه", "Replied")} · ${L("مفتوح للمتابعة", "open for follow-up")}`) : L("بانتظار الرد من فريق المشروع", "Awaiting the project team's reply")}</span>
                 </div>
               </div>
               <div className="sh-num mono disp">{String(r.id).padStart(2, "0")}</div>
@@ -853,7 +859,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
             <div className="sh-life">
               {[[L("استُلم", "Received"), true, ""],
                 [L("قيد الدراسة", "Under review"), true, ""],
-                [L("رُدّ عليه", "Replied"), !!r.answered, r.answered ? trMonth(lang, r.month) : ""],
+                [nRep > 1 ? L("ردّان", "Two replies") : L("رُدّ عليه", "Replied"), !!r.answered, r.answered ? lastDate : ""],
                 [L("مقفل", "Closed"), !!r.closed, ""]].map(([k, on, sub], i, all) => (
                 <div key={k} className={"sh-st" + (on ? " on" : "") + (on && !all[i + 1]?.[1] ? " now" : "")}>{k}<small>{sub || "\u00A0"}</small></div>
               ))}
@@ -869,17 +875,32 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
           </div>
           <TrNotice lang={lang} r={r} field="note" T={T} />
 
-          <div className="sh-lbl">{L("الرد", "Reply")}</div>
-          <div className="reply-box" style={{ borderRightColor: replyText ? sc : T.line }}>
-            <p className="sheet-reply" style={replyText ? undefined : { color: T.muted }}>{replyText || L("لا يوجد رد مسجّل بعد.", "No reply recorded yet.")}</p>
-            <TrNotice lang={lang} r={r} field="reply" T={T} />
-            {replyText && ownName && (
-              <div className="reply-sign">
-                <span>— {ownName}</span>
-                {ownTitle && <span className="cat-pill" style={{ color: T.brass, background: `${T.brass}16`, borderColor: `${T.brass}33` }}>{ownTitle}</span>}
+          <div className="sh-lbl">{nRep > 1 ? L("الردود", "Replies") : L("الرد", "Reply")}</div>
+          {nRep === 0 && (
+            <div className="reply-box" style={{ borderRightColor: T.line }}>
+              <p className="sheet-reply" style={{ color: T.muted }}>{L("لا يوجد رد مسجّل بعد.", "No reply recorded yet.")}</p>
+            </div>
+          )}
+          {repBlocks.map((b, i) => {
+            const last = i === nRep - 1;
+            return (
+              <div key={i} className={"reply-box" + (nRep > 1 && !last ? " rep-old" : "")} style={last ? { borderRightColor: sc } : undefined}>
+                {nRep > 1 && (
+                  <div className="rep-h">
+                    <span>{L(`الرد ${i + 1}`, `Reply ${i + 1}`)}{b.label ? ` · ${b.label}` : ""}{dateOf(b.date) ? ` · ${dateOf(b.date)}` : ""}</span>
+                  </div>
+                )}
+                <p className="sheet-reply">{b.text}</p>
+                {last && <TrNotice lang={lang} r={r} field="reply" T={T} />}
+                {last && ownName && !b.label && (
+                  <div className="reply-sign">
+                    <span>— {ownName}</span>
+                    {ownTitle && <span className="cat-pill" style={{ color: T.brass, background: `${T.brass}16`, borderColor: `${T.brass}33` }}>{ownTitle}</span>}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })}
 
           <AttachmentsBlock key={r.id} rows={attachments} lang={lang} T={T} />
 

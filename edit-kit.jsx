@@ -31,7 +31,7 @@ import { SiteCustomPanel, addCustomTab, deleteCustomTab, docName, toggleHiddenSe
 import { CUSTOM_TAB_ICONS, MAX_CUSTOM_TABS, hiddenSecsOf } from "./site-custom.js";
 import { useIdleSignOut, MfaGate } from "./security-kit.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, INQ_FIELDS_ADMIN, toDbBool, toYesNo, useSupaAuth, useSystemTheme } from "./admin-core.jsx";
-import { afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
+import { REPLY_HINT, afieldArea, afieldInput, canonicalizeRow } from "./admin-excel-utils.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { AInquiryTrail } from "./admin-trail-sync.jsx";
 import { SchedBtn } from "./schedule-kit.jsx";
@@ -440,7 +440,7 @@ function InquirySheet({ target, onClose }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
               {afieldInput(ADMIN_FIELD_LABEL.note, form.note, set("note"))}
               {afieldInput(ADMIN_FIELD_LABEL.note_en, form.note_en, set("note_en"))}
-              {afieldInput(ADMIN_FIELD_LABEL.reply, form.reply, set("reply"))}
+              {afieldArea(ADMIN_FIELD_LABEL.reply, form.reply, set("reply"), REPLY_HINT)}
             </div>
             {isNew ? (
               <div style={{ marginBottom: 14, fontSize: 12.5, color: T.muted, lineHeight: 1.9, border: `1px dashed ${T.line}`, borderRadius: 12, padding: "10px 12px" }}>

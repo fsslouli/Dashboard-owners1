@@ -3,7 +3,7 @@ import { AImportAudit } from "./admin-audit-tab.jsx";
 import { AMatchCheck } from "./admin-match-check.jsx";
 import { ADMIN_BLANK_INQ, ADMIN_FIELD_LABEL, ADMIN_TARGETS, INQ_FIELDS_ADMIN, REAL_BOOL_FIELDS, cmpVal, fmtAdminDate, isBlankCell, toDbBool, toMonthKey, toYesNo, useSystemTheme } from "./admin-core.jsx";
 import { kickTranslations, runAllTranslations } from "./label-i18n.js";
-import { ABadge, ASegmented, DiffChangeList, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
+import { ABadge, ASegmented, DiffChangeList, REPLY_HINT, afieldArea, afieldInput, canonicalizeRow, findNewColumnsAdmin, findNewValuesAdmin, readSheetWithMeta, textSimilarity } from "./admin-excel-utils.jsx";
 import { ProgressReadingsSync } from "./admin-sync-tab.jsx";
 import { AAttachmentsPanel, ATT_BUCKET } from "./attach-kit.jsx";
 import { supabase } from "./app-bootstrap.jsx";
@@ -794,7 +794,7 @@ export function ASyncTab({ inquiries, refreshInquiries, progress, refreshProgres
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
             {afieldInput(ADMIN_FIELD_LABEL.note, form.note, (v) => setForm((f) => ({ ...f, note: v })))}
             {afieldInput(ADMIN_FIELD_LABEL.note_en, form.note_en, (v) => setForm((f) => ({ ...f, note_en: v })))}
-            {afieldInput(ADMIN_FIELD_LABEL.reply, form.reply, (v) => setForm((f) => ({ ...f, reply: v })))}
+            {afieldArea(ADMIN_FIELD_LABEL.reply, form.reply, (v) => setForm((f) => ({ ...f, reply: v })), REPLY_HINT)}
           </div>
           {editing === "new" ? (
             <div style={{ marginBottom: 14, fontSize: 12.5, color: T.muted, lineHeight: 1.9, border: `1px dashed ${T.line}`, borderRadius: 12, padding: "10px 12px" }}>

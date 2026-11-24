@@ -1143,6 +1143,11 @@ export function PublicSite({ share = null, gate = null } = {}) {
 .sh-q{border:1px solid ${T.lineSoft};border-radius:13px;padding:13px 15px;}
 .sh-q .sheet-note{font-size:14.5px;line-height:2.05;}
 .sh-q.clamp .sheet-note{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.reply-box+.reply-box{margin-top:10px;}
+.reply-box.rep-old{background:transparent;border:1px solid ${T.lineSoft};border-right:3px solid ${T.line};}
+.reply-box.rep-old .sheet-reply{color:${T.muted};}
+.rep-h{display:flex;align-items:center;gap:8px;font-size:11.5px;color:${T.muted};margin-bottom:6px;}
+.rep-h em{font-style:normal;margin-inline-start:auto;color:var(--sc);}
 .sh-more{margin-top:8px;background:none;border:0;padding:2px 0;color:var(--sh-acc);font:600 12.5px inherit;font-family:inherit;cursor:pointer;}
 .sh-facts{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;}
 .sh-f{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid ${T.lineSoft};font-size:12px;background:${T.sunken};color:${T.paper};}
