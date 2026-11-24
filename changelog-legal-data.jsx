@@ -18,6 +18,8 @@ export const CHANGELOG = [
     dateEn: "November 24, 2026",
     ar: ["سجل التحديثات بالموقع العام صار يعرض أرقام الإصدارات وتواريخها فقط بدون تفاصيل، وتفاصيل التحديثات صارت داخل لوحة الإدارة (تبويب «سجل التحديثات»). وفي نفس التبويب خيار تتحكم به بما يشوفه الزائر: أرقام فقط (الافتراضي)، أو رقم الإصدار بدون زر، أو التفاصيل للجميع. وتفاصيل التحديثات ما تُحمَّل مع الموقع العام إلا لو اخترت «للجميع»."],
     en: ["The public update log now shows only version numbers and dates, without details; the update details now live in the admin panel (\"Update log\" tab). The same tab lets you choose what visitors see: numbers only (default), the version number without a button, or full details for everyone. The details are not even loaded with the public site unless you choose \"for everyone\"."],
+  },
+  {
     version: "7.15.3",
     dateAr: "24 نوفمبر 2026",
     dateEn: "November 24, 2026",
