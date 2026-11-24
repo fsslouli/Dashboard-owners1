@@ -1149,6 +1149,10 @@ export function PublicSite({ share = null, gate = null } = {}) {
 .rep-h{display:flex;align-items:center;gap:8px;font-size:11.5px;color:${T.muted};margin-bottom:6px;}
 .rep-h em{font-style:normal;margin-inline-start:auto;color:var(--sc);}
 .sh-more{margin-top:8px;background:none;border:0;padding:2px 0;color:var(--sh-acc);font:600 12.5px inherit;font-family:inherit;cursor:pointer;}
+.sh-meet{margin-top:14px;}
+.sh-mrow{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px dashed ${T.lineSoft};font-size:13px;}
+.sh-mrow b{font-weight:700;color:var(--sc);min-width:44px;}
+.sh-mrow small{margin-inline-start:auto;color:${T.muted};}
 .sh-facts{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;}
 .sh-f{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid ${T.lineSoft};font-size:12px;background:${T.sunken};color:${T.paper};}
 .sh-f svg{color:var(--sh-acc);}
