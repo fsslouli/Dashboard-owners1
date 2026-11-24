@@ -232,8 +232,9 @@ export function PublicSite({ share = null, gate = null } = {}) {
     const d = document.documentElement;
     d.style.setProperty("--boot-bg", pageBg);
     d.style.setProperty("--boot-fg", T.muted);
+    d.style.setProperty("--boot-ac", T.brass);
     d.style.colorScheme = resolved === "dark" ? "dark" : "light";
-  }, [cfgReady, pageBg, T.muted, resolved]);
+  }, [cfgReady, pageBg, T.muted, T.brass, resolved]);
 
   const hashTab = () => { try { const k = (window.location.hash || "").replace(/^#\/?/, ""); return PUBLIC_TAB_KEYS.includes(k) ? k : null; } catch { return null; } };
   const [tab, setTabRaw] = useState(() => (shareScope ? (SHARE_ORDER.find(tabOk) || "overview") : (hashTab() && tabOk(hashTab()) ? hashTab() : (guestTabs ? (SHARE_ORDER.find(tabOk) || "overview") : "overview"))));
