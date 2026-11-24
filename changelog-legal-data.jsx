@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.15.1",
+    dateAr: "24 نوفمبر 2026",
+    dateEn: "November 24, 2026",
+    ar: ["لوحة الاستفسار صارت تعرض «مسار الاجتماعات»: متى طُرح الاستفسار (أول اجتماع) ومتى نوقش بعدها، بتاريخ كل اجتماع. والردود المتعددة صار كل رد مربوط باجتماعه وتاريخه (مثل: الاجتماع الرابع ← السابع ← الثامن)، مع إضافة ردود الاجتماعات القديمة اللي كانت ناقصة. وإصلاح: عناوين الردود الطويلة كانت تظهر كنص خام، والمرحلة تكتب «٥ ردود» بدل «ردّان». بدون أي علامة «جديد» على الاستفسارات المعدّلة."],
+    en: ["The inquiry sheet now shows a \"Meetings trail\": when the inquiry was raised (first meeting) and when it was discussed afterwards, with each meeting's date. Multiple replies are now tied to their meeting and date (e.g. 4th → 7th → 8th), and earlier meeting replies that were missing were added. Fixes: long reply headings showed as raw text, and the stage tracker said \"Two replies\" instead of the actual count. No \"new\" mark appears on the updated inquiries."],
+  },
+  {
     version: "7.15.0",
     dateAr: "24 نوفمبر 2026",
     dateEn: "November 24, 2026",

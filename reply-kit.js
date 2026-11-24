@@ -17,7 +17,7 @@
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const latin = (s) => String(s == null ? "" : s).replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)));
 const SEP_RX = /^[ \t‎‏]*-{3,}[ \t‎‏]*$/;
-const MARK_RX = /^[ \t‎‏]*\[([^\]\n]{1,40})\][ \t‎‏]*$/;
+const MARK_RX = /^[ \t‎‏]*\[([^\]\n]{1,160})\][ \t‎‏]*$/;
 
 export const REPLY_SEP = "---";
 export const REPLY_DATE_RX = /^\d{4}-\d{2}(-\d{2})?$/;
@@ -84,4 +84,21 @@ export function checkReplyFormat(reply, replyEn) {
     else if (eb.some((b, i) => (b.date || "") !== (bl[i].date || ""))) out.push({ level: "low", code: "REPLY_EN_DATES", msg: "تواريخ كتل الترجمة غير مطابقة لتواريخ العربي" });
   }
   return out;
+}
+
+/* ── مسار الاجتماعات: كل استفسار يعرض متى طُرح (أول اجتماع) ومتى نوقش (الباقي) ── */
+export const MEETING_DATES = { 3: "2026-07-20", 4: "2026-08-13", 5: "2026-09-02", 6: "2026-09-17", 7: "2026-10-07", 8: "2026-11-12" };
+const ORD = { "الثالث": 3, "الرابع": 4, "الخامس": 5, "السادس": 6, "السابع": 7, "الثامن": 8, "التاسع": 9, "العاشر": 10 };
+export function meetingNo(name) {
+  const m = String(name || "").match(/(الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/);
+  return m ? ORD[m[1]] : 0;
+}
+/* names: مصفوفة أسماء الاجتماعات (بأي ترتيب) → مرتّبة زمنياً مع التاريخ، بدون تكرار */
+export function meetingTimeline(names) {
+  const seen = new Set();
+  return (Array.isArray(names) ? names : [])
+    .map((name) => ({ name, n: meetingNo(name) }))
+    .filter((x) => x.n && !seen.has(x.n) && seen.add(x.n))
+    .sort((a, b) => a.n - b.n)
+    .map((x) => ({ ...x, date: MEETING_DATES[x.n] || "" }));
 }

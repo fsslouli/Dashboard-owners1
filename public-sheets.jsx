@@ -23,7 +23,7 @@ import { DOC_BASE, DOC_COLORS, ZONES, hasEnText, hashPick, isDraftEn, trCat, trL
 import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { parseReplies, replyDateLabel } from "./reply-kit.js";
+import { meetingTimeline, parseReplies, replyDateLabel } from "./reply-kit.js";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
 import { AlertTriangle, Calendar, Check, Clock, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, Users, X } from "lucide-react";
 
@@ -783,6 +783,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
   const repBlocks = parseReplies(replyText);
   const nRep = repBlocks.length;
   const dateOf = (d) => replyDateLabel(d, (ym) => trMonth(lang, ym));
+  const mtl = meetingTimeline(r.meetings);
   const lastDate = (nRep && dateOf(repBlocks[nRep - 1].date)) || trMonth(lang, r.month);
 
   const handleShare = async () => {
@@ -859,12 +860,25 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
             <div className="sh-life">
               {[[L("استُلم", "Received"), true, ""],
                 [L("قيد الدراسة", "Under review"), true, ""],
-                [nRep > 1 ? L("ردّان", "Two replies") : L("رُدّ عليه", "Replied"), !!r.answered, r.answered ? lastDate : ""],
+                [nRep > 2 ? L(`${nRep} ردود`, `${nRep} replies`) : nRep === 2 ? L("ردّان", "Two replies") : L("رُدّ عليه", "Replied"), !!r.answered, r.answered ? lastDate : ""],
                 [L("مقفل", "Closed"), !!r.closed, ""]].map(([k, on, sub], i, all) => (
                 <div key={k} className={"sh-st" + (on ? " on" : "") + (on && !all[i + 1]?.[1] ? " now" : "")}>{k}<small>{sub || "\u00A0"}</small></div>
               ))}
             </div>
           </div>
+
+          {mtl.length > 0 && (
+            <div className="sh-meet">
+              <div className="sh-lbl">{L("مسار الاجتماعات", "Meetings trail")}</div>
+              {mtl.map((m, i) => (
+                <div key={m.n} className="sh-mrow">
+                  <b>{i === 0 ? L("طُرح", "Raised") : L("نوقش", "Discussed")}</b>
+                  <span>{trMeeting(lang, m.name)}</span>
+                  {m.date && <small>{dateOf(m.date)}</small>}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="sh-lbl">{L("الاستفسار والحل المقترح", "Inquiry & Proposed Solution")}</div>
           <div className={"sh-q" + (trNote(lang, r).length > 150 && !qOpen ? " clamp" : "")}>
