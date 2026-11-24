@@ -14,6 +14,7 @@ import { Paperclip, RefreshCw, Send, X } from "lucide-react";
 import { supabase } from "./app-bootstrap.jsx";
 import { useSystemTheme } from "./admin-core.jsx";
 import { aNoteStyle } from "./admin-excel-utils.jsx";
+import { replyPlain } from "./reply-kit.js";
 import { MONTH_AR } from "./site-data.jsx";
 
 const FN = "telegram-notify";
@@ -82,7 +83,7 @@ export function tplInquiries(rows, siteUrl) {
   list.forEach((r) => {
     L.push(`${r.id} | ${oneLine(r.loc) || "—"}${isClosed(r) ? "" : " (مفتوح)"}`);
     L.push(`❓ ${oneLine(r.note)}`);
-    L.push(oneLine(r.reply) ? `✅ ${oneLine(r.reply)}` : "⏳ بانتظار الرد");
+    L.push(oneLine(replyPlain(r.reply, "latest")) ? `✅ ${oneLine(replyPlain(r.reply, "latest"))}` : "⏳ بانتظار الرد");
     L.push("");
   });
   L.push(tgFooter(siteUrl));

@@ -14,6 +14,7 @@
    المستويات: blocker (أوقف واقرأ) ← high ← medium ← low
    المستوى ما يمنع الاعتماد — يُعرض بوضوح والقرار للمشرف.
    ═══════════════════════════════════════════════════════════ */
+import { checkReplyFormat } from "./reply-kit.js";
 
 /* ── ١. توحيد النص العربي ── */
 const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
@@ -291,6 +292,9 @@ export function auditLogic(rows = [], { existing = [], approved = {}, meta = {},
       add("low", "REPLY_NOT_ANSWERED", "فيه نص رد لكن تم الرد = لا", { ...at, field: "answered", suggest: "نعم" });
     if (!isBlank(row.reply) && isBlank(row.owner) && row.owner !== undefined)
       add("low", "REPLY_NO_OWNER", "فيه رد بلا مهندس مسؤول مسجّل", { ...at, field: "owner" });
+
+    /* ردّان أو أكثر بخانة الرد: [تاريخ] + فاصل --- (انظر reply-kit.js) */
+    checkReplyFormat(row.reply, row.reply_en).forEach((it) => add(it.level, it.code, it.msg, { ...at, field: it.code.startsWith("REPLY_EN") ? "reply_en" : "reply" }));
 
     const mk = toLatinDigits(row.month || "").trim();
     if (/^\d{4}-\d{2}$/.test(mk)) {

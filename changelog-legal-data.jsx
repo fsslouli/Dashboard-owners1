@@ -13,6 +13,13 @@
    بالأعلى برقم إصدار تالٍ حسب القاعدة أعلاه. لا تُعاد كتابة أو حذف الإصدارات السابقة. */
 export const CHANGELOG = [
   {
+    version: "7.15.0",
+    dateAr: "24 نوفمبر 2026",
+    dateEn: "November 24, 2026",
+    ar: ["شكل جديد للوحة الاستفسار: بطاقة نتيجة بالأعلى (معتمدة / غير معتمدة / قيد الدراسة) مع مسار مراحل الاستفسار (استُلم ← قيد الدراسة ← رُدّ عليه ← مقفل)، ثم الاستفسار فالرد بتوقيع المسؤول، والاستفسار الطويل يظهر منه ثلاثة أسطر مع «عرض كامل». ولو الاستفسار له ردّان أو أكثر يظهرون مرتبين بتاريخ كل رد والأحدث بالأسفل، وإذا انردّ عليه وما انقفل يكتب «مفتوح للمتابعة». الموقع والنموذج والفئة شارات صغيرة، وأزرار الإعجاب والمشاركة بشريط ثابت أسفل اللوحة."],
+    en: ["New inquiry sheet layout: a result card at the top (Approved / Not approved / Under review) with a stage tracker (Received → Under review → Replied → Closed), then the inquiry and the reply with the responder's signature; long inquiries show three lines with \"Show more\". Inquiries with two or more replies list them with each reply's date, newest last, and a replied-but-not-closed inquiry reads \"open for follow-up\". Location, model and category are small chips, and the like and share buttons sit in a fixed bar at the bottom."],
+  },
+  {
     version: "7.14.2",
     dateAr: "23 نوفمبر 2026",
     dateEn: "November 23, 2026",

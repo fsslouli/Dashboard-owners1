@@ -16,6 +16,7 @@
    منطق خالص بلا React ولا مكتبات: كاتب xlsx صغير (XML + ZIP بدون ضغط،
    نفس طريقة SheetJS الافتراضية) — فما تكبر حزمة اللوحة بمكتبة جديدة.
    ═══════════════════════════════════════════════════════════ */
+import { replyPlain } from "./reply-kit.js";
 
 const ORDINALS = [
   "", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر",
@@ -75,7 +76,7 @@ function rowValues(r, statusLabel) {
     B: r.model || "", C: r.loc || "", D: r.pri || "", E: r.note || "",
     F: statusLabel(r.status || ""),
     G: answered ? "تم الرد" : "بانتظار الرد",
-    H: r.reply || "", I: owner, J: owner ? String(r.owner_title || "").trim() : "",
+    H: replyPlain(r.reply, "latest"), I: owner, J: owner ? String(r.owner_title || "").trim() : "",
     K: monthSerial(mk), Ktext: monthSerial(mk) != null ? mk : "",
     L: isClosed(r) ? "مقفل" : "مفتوح",
   };

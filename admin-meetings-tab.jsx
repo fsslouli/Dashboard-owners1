@@ -11,6 +11,7 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, FileText, Plus, Printer, Trash
 import { supabase } from "./app-bootstrap.jsx";
 import { useNavLabels } from "./nav-labels-kit.jsx";
 import { AMeetingChipCard } from "./meeting-chip-kit.jsx";
+import { replyPlain } from "./reply-kit.js";
 
 const S = {
   wrap: { maxWidth: 900, margin: "0 auto", padding: "4px 0", color: "#1F2C35" },
@@ -42,7 +43,7 @@ function openPrint(meeting, byId, withResults) {
     const res = (meeting.results || {})[id] || {};
     const last = withResults
       ? `<td class="t">${esc(res.reply || "—")}${res.status ? `<div class="st">الحالة: ${esc(STATUS_AR[res.status] || res.status)}</div>` : ""}${res.close ? `<div class="st">أُقفل البند</div>` : ""}</td>`
-      : `<td class="t prev">${esc(r.reply || "بانتظار الرد")}</td>`;
+      : `<td class="t prev">${esc(replyPlain(r.reply, "latest") || "بانتظار الرد")}</td>`;
     return `<tr><td class="n">${id}</td><td>${esc(r.model)}</td><td>${esc(r.loc)}</td><td><b style="color:${PRI_COLOR[r.pri] || "#333"}">${esc(r.pri)}</b></td><td class="t">${esc(r.note)}</td>${last}</tr>`;
   }).join("")).join("");
   const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(meeting.title)} — ${withResults ? "المحضر" : "جدول الأعمال"}</title>

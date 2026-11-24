@@ -1112,6 +1112,47 @@ export function PublicSite({ share = null, gate = null } = {}) {
 .meta-row+.meta-row{border-top:1px solid ${T.lineSoft};}
 .meta-k{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:${T.muted};}
 .meta-v{font-size:13px;color:${T.paper};text-align:left;}
+/* لوحة الاستفسار (7.15.0): بطاقة نتيجة + مسار المراحل، الاستفسار ثم الرد، وشريط إجراءات ثابت */
+.sheet-detail{--sh-acc:var(--fj-dawn,${T.brass});}
+.sheet-detail .sheet-top{border-bottom:0;}
+.sheet-detail .sheet-body{padding-top:6px;}
+.sh-hero{position:relative;border:1px solid ${T.line};border-radius:14px;padding:20px 20px 16px;
+  background:
+   linear-gradient(var(--sh-acc),var(--sh-acc)) top 7px right 7px/14px 1.5px no-repeat,linear-gradient(var(--sh-acc),var(--sh-acc)) top 7px right 7px/1.5px 14px no-repeat,
+   linear-gradient(var(--sh-acc),var(--sh-acc)) bottom 7px left 7px/14px 1.5px no-repeat,linear-gradient(var(--sh-acc),var(--sh-acc)) bottom 7px left 7px/1.5px 14px no-repeat,
+   linear-gradient(160deg,color-mix(in srgb,var(--sc) 10%,${T.sunken}),${T.sunken});}
+.sh-hrow{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.sh-verdict{display:flex;align-items:center;gap:11px;min-width:0;}
+.sh-vic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--sc);color:${resolved === "dark" ? "#10181e" : "#fff"};flex:none;}
+.sh-verdict b{display:block;font-size:19px;line-height:1.25;color:var(--sc);}
+.sh-verdict span{font-size:12px;color:${T.muted};}
+.sh-num{font-size:46px;line-height:1;font-weight:700;color:${T.paper};opacity:.92;}
+.sh-life{display:flex;align-items:flex-start;margin-top:16px;padding-top:14px;border-top:1px dashed ${T.line};}
+.sh-st{flex:1;text-align:center;position:relative;font-size:11px;color:${T.faint};}
+.sh-st::before{content:"";display:block;width:10px;height:10px;margin:0 auto 7px;transform:rotate(45deg);border-radius:2px;background:${T.surface};box-shadow:inset 0 0 0 1.5px ${T.line};position:relative;z-index:1;}
+.sh-st::after{content:"";position:absolute;top:4.5px;inset-inline-start:calc(50% + 9px);inset-inline-end:calc(-50% + 9px);height:0;border-top:1.5px dashed ${T.line};}
+.sh-st:last-child::after{display:none;}
+.sh-st.on{color:${T.paper};}
+.sh-st.on::before{background:var(--sc);box-shadow:none;}
+.sh-st.on::after{border-top:1.5px solid var(--sc);}
+.sh-st.on:has(+ .sh-st:not(.on))::after{border-top:1.5px dashed ${T.line};}
+.sh-st.now::before{box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 30%,transparent);}
+.sh-st small{display:block;color:${T.muted};font-size:10.5px;margin-top:2px;}
+.sh-lbl{font-size:12px;color:${T.muted};margin:22px 0 9px;display:flex;align-items:center;gap:8px;}
+.sh-lbl::after{content:"";flex:1;border-top:1px dashed ${T.lineSoft};}
+.sh-q{border:1px solid ${T.lineSoft};border-radius:13px;padding:13px 15px;}
+.sh-q .sheet-note{font-size:14.5px;line-height:2.05;}
+.sh-q.clamp .sheet-note{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.reply-box+.reply-box{margin-top:10px;}
+.reply-box.rep-old{background:transparent;border:1px solid ${T.lineSoft};border-right:3px solid ${T.line};}
+.reply-box.rep-old .sheet-reply{color:${T.muted};}
+.rep-h{display:flex;align-items:center;gap:8px;font-size:11.5px;color:${T.muted};margin-bottom:6px;}
+.rep-h em{font-style:normal;margin-inline-start:auto;color:var(--sc);}
+.sh-more{margin-top:8px;background:none;border:0;padding:2px 0;color:var(--sh-acc);font:600 12.5px inherit;font-family:inherit;cursor:pointer;}
+.sh-facts{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;}
+.sh-f{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid ${T.lineSoft};font-size:12px;background:${T.sunken};color:${T.paper};}
+.sh-f svg{color:var(--sh-acc);}
+.sheet-dock{flex:none;display:flex;gap:8px;padding:11px 19px calc(13px + env(safe-area-inset-bottom));border-top:1px solid ${T.line};background:${T.surface};border-radius:0 0 inherit inherit;}
 
 /* تقدم التنفيذ */
 .gbar{position:relative;height:10px;border-radius:999px;background:${T.sunken};overflow:hidden;}
