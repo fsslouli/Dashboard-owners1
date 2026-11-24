@@ -16,8 +16,8 @@ export const CHANGELOG = [
     version: "7.15.3",
     dateAr: "24 نوفمبر 2026",
     dateEn: "November 24, 2026",
-    ar: ["مؤشر التحميل بتصميم «فجر» صار بيت ينبني قطعة قطعة (أرضية ← جدران ← سقف ← باب ← نوافذ تضيء ← عمود إنارة) بدون اسم المشروع، بألوان الطقم المعتمد."],
-    en: ["The Fajr first-load indicator is now a house that builds piece by piece (ground → walls → roof → door → windows light up → lamp post), without the project name, in the approved theme colors."],
+    ar: ["مؤشر التحميل بتصميم «فجر» صار بيت ينبني قطعة قطعة (أرضية ← جدران ← سقف ← باب ← نوافذ تضيء ← عمود إنارة) بدون اسم المشروع، بألوان الطقم المعتمد. وشاشة الانتظار تنفتح فور اكتمال التحميل بدون تأخير (تلاشٍ أسرع)، وجُرّبت بالنهاري والليلي."],
+    en: ["The Fajr first-load indicator is now a house that builds piece by piece (ground → walls → roof → door → windows light up → lamp post), without the project name, in the approved theme colors. The loading screen now opens the moment loading completes, with no delay (faster fade), checked in both day and night modes."],
   },
   {
     version: "7.15.2",
