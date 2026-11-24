@@ -24,7 +24,7 @@ import { useBackClose, useInView, usePrefersReduced } from "./site-hooks.jsx";
 import { CatPill, Chip, LangToggle, PartyPill, Select } from "./ui-atoms.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { bestYtPoster, createYtPlayer, fmtDuration, loadYouTubeApi, warmYouTube, ytPlainIframe, ytThumb, ytWatchUrl } from "./youtube-kit.js";
-import { AlertTriangle, Calendar, Check, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, Users, X } from "lucide-react";
+import { AlertTriangle, Calendar, Check, Clock, ChevronLeft, ChevronRight, Droplet, ExternalLink, Hash, History, Home, Layers, Play, RotateCcw, Ruler, Search, Share2, ShieldAlert, Sparkles, Tag, ThumbsDown, ThumbsUp, Users, X } from "lucide-react";
 
 /* 6.8.0 — شفافية الترجمة بالنسخة الإنجليزية: لو ما فيه ترجمة معتمدة بعد يظهر النص العربي الأصلي مع تنبيه
    (الترجمة الجديدة تنكتب «مسودة» بالمحرّك الداخلي وما تظهر إلا بعد اعتمادها من لوحة الإدارة) */
@@ -661,6 +661,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
   const { lang } = useLang();
   const L = (ar, en) => (lang === "en" ? en : ar);
   const [shareCopied, setShareCopied] = useState(false);
+  const [qOpen, setQOpen] = useState(false); // توسعة الاستفسار الطويل
   const [feedback, setFeedback] = useState(null); // "up" | "down" | null — محلي فقط للعرض، لا يُقرأ من القاعدة
   useBackClose(!!r, onClose);
 
@@ -701,7 +702,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [r, onClose, idx, navList]);
-  useEffect(() => { setShareCopied(false); setFeedback(null); }, [r]);
+  useEffect(() => { setShareCopied(false); setFeedback(null); setQOpen(false); }, [r]);
 
   /* ثبات الرأس أثناء التنقّل: كل استفسار يفتح من أعلاه بدل ما يرث موضع تمرير الاستفسار السابق،
      وخط خفيف أسفل الرأس يظهر لما يتمرّر المحتوى تحته */
@@ -816,7 +817,7 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
         <div className="sheet-grip" aria-hidden="true" onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}><i /></div>
         <div className="sheet-top" data-scrolled={scrolled ? "1" : "0"} onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}>
           <div className="sheet-tags">
-            <span className="mono sheet-id">{L("استفسار", "Inquiry")} {String(r.id).padStart(2, "0")}</span>
+            <span className="sheet-id">{L("استفسار", "Inquiry")}</span>
             <span className="tag" style={{ color: T.pri[r.pri] || T.muted }}>{trPri(lang, r.pri)}</span>
             <CatPill cat={r.cat} />
             <PartyPill party={r.party} />
@@ -838,15 +839,39 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
           </div>
         </div>
         <div className="sheet-body" ref={bodyRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
-          <div className="sec-lbl">{L("الاستفسار والحل المقترح", "Inquiry & Proposed Solution")}</div>
-          <p className="sheet-note">{trNote(lang, r)}</p>
+          <div className="sh-hero" style={{ "--sc": sc }}>
+            <div className="sh-hrow">
+              <div className="sh-verdict">
+                <div className="sh-vic">{r.sta === "معتمدة" ? <Check size={21} strokeWidth={2.6} /> : r.sta === "تم الرفض" ? <X size={21} strokeWidth={2.6} /> : <Clock size={20} strokeWidth={2.4} />}</div>
+                <div>
+                  <b className="disp">{trSta(lang, r.sta)}</b>
+                  <span>{r.answered ? `${r.closed ? L("مقفل", "Closed") : L("رُدّ عليه", "Replied")} · ${trMonth(lang, r.month)}` : L("بانتظار الرد من فريق المشروع", "Awaiting the project team's reply")}</span>
+                </div>
+              </div>
+              <div className="sh-num mono disp">{String(r.id).padStart(2, "0")}</div>
+            </div>
+            <div className="sh-life">
+              {[[L("استُلم", "Received"), true, ""],
+                [L("قيد الدراسة", "Under review"), true, ""],
+                [L("رُدّ عليه", "Replied"), !!r.answered, r.answered ? trMonth(lang, r.month) : ""],
+                [L("مقفل", "Closed"), !!r.closed, ""]].map(([k, on, sub], i, all) => (
+                <div key={k} className={"sh-st" + (on ? " on" : "") + (on && !all[i + 1]?.[1] ? " now" : "")}>{k}<small>{sub || "\u00A0"}</small></div>
+              ))}
+            </div>
+          </div>
+
+          <div className="sh-lbl">{L("الاستفسار والحل المقترح", "Inquiry & Proposed Solution")}</div>
+          <div className={"sh-q" + (trNote(lang, r).length > 150 && !qOpen ? " clamp" : "")}>
+            <p className="sheet-note">{trNote(lang, r)}</p>
+            {trNote(lang, r).length > 150 && (
+              <button className="sh-more" onClick={() => setQOpen((v) => !v)}>{qOpen ? L("إخفاء", "Show less") : L("عرض كامل", "Show more")}</button>
+            )}
+          </div>
           <TrNotice lang={lang} r={r} field="note" T={T} />
 
-          <div className="sec-lbl" style={{ marginTop: 24 }}>
-            {L("الرد", "Reply")} <span style={{ color: sc }}>· {trSta(lang, r.sta)}</span>
-          </div>
-          <div className="reply-box" style={{ borderRightColor: sc }}>
-            <p className="sheet-reply">{replyText || L("لا يوجد رد مسجّل.", "No reply recorded yet.")}</p>
+          <div className="sh-lbl">{L("الرد", "Reply")}</div>
+          <div className="reply-box" style={{ borderRightColor: replyText ? sc : T.line }}>
+            <p className="sheet-reply" style={replyText ? undefined : { color: T.muted }}>{replyText || L("لا يوجد رد مسجّل بعد.", "No reply recorded yet.")}</p>
             <TrNotice lang={lang} r={r} field="reply" T={T} />
             {replyText && ownName && (
               <div className="reply-sign">
@@ -858,50 +883,43 @@ export function Sheet({ r, navList, onJump, onClose, attachments, noShare = fals
 
           <AttachmentsBlock key={r.id} rows={attachments} lang={lang} T={T} />
 
-          <div className="meta-list">
-            {[[Tag, L("الفئة", "Category"), r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")],
-              ...(r.party ? [[Users, L("الجهة المختصة", "Responsible party"), trParty(lang, r.party)]] : []),
-              [Layers, L("الموقع", "Location"), trLoc(lang, r.loc)], [Home, L("النموذج", "Model"), trScope(lang, r.model)],
-              [Calendar, L("شهر الرد", "Reply Month"), trMonth(lang, r.month)], [Ruler, L("حالة الإغلاق", "Closure Status"), r.closed ? L("مقفل", "Closed") : L("مفتوح", "Open")],
-              [Droplet, L("حالة الرد", "Reply Status"), r.answered ? L("تم الرد", "Replied") : L("بانتظار الرد", "Awaiting reply")]].map(([Ic, k, v]) => (
-              <div key={k} className="meta-row">
-                <span className="meta-k"><Ic size={12} /> {k}</span>
-                <span className="meta-v">{v}</span>
-              </div>
+          <div className="sh-facts">
+            {[[Layers, trLoc(lang, r.loc)], [Home, trScope(lang, r.model)], [Tag, r.cat ? trCat(lang, r.cat) : L("غير مصنّف", "Uncategorized")]].map(([Ic, v]) => (
+              <span key={v} className="sh-f"><Ic size={13} /> {v}</span>
             ))}
           </div>
+        </div>
 
-          <div className="sheet-fb-row">
-            <button
-              className="fb-btn fb-up"
-              data-on={feedback === "up" ? "1" : "0"}
-              onClick={() => handleFeedback("up")}
-              aria-pressed={feedback === "up"}
-              aria-label={L("مفيد", "Helpful")}
-            >
-              <ThumbsUp size={19} strokeWidth={2.3} />
-            </button>
-            <button
-              className="fb-btn fb-down"
-              data-on={feedback === "down" ? "1" : "0"}
-              onClick={() => handleFeedback("down")}
-              aria-pressed={feedback === "down"}
-              aria-label={L("غير مفيد", "Not helpful")}
-            >
-              <ThumbsDown size={19} strokeWidth={2.3} />
-            </button>
+        <div className="sheet-dock">
+          <button
+            className="fb-btn fb-up"
+            data-on={feedback === "up" ? "1" : "0"}
+            onClick={() => handleFeedback("up")}
+            aria-pressed={feedback === "up"}
+            aria-label={L("مفيد", "Helpful")}
+          >
+            <ThumbsUp size={19} strokeWidth={2.3} />
+          </button>
+          <button
+            className="fb-btn fb-down"
+            data-on={feedback === "down" ? "1" : "0"}
+            onClick={() => handleFeedback("down")}
+            aria-pressed={feedback === "down"}
+            aria-label={L("غير مفيد", "Not helpful")}
+          >
+            <ThumbsDown size={19} strokeWidth={2.3} />
+          </button>
 
-            {!noShare && (
-              <button className="wide-btn share-host" style={{ margin: 0, flex: 1 }} onClick={handleShare}>
-                <Share2 size={14} /> {L("مشاركة الاستفسار", "Share Inquiry")}
-                {shareCopied && (
-                  <span className="copy-ok show">
-                    <Check size={13} /> {L("تم نسخ الرابط", "Link copied")}
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
+          {!noShare && (
+            <button className="wide-btn share-host" style={{ margin: 0, flex: 1 }} onClick={handleShare}>
+              <Share2 size={14} /> {L("مشاركة الاستفسار", "Share Inquiry")}
+              {shareCopied && (
+                <span className="copy-ok show">
+                  <Check size={13} /> {L("تم نسخ الرابط", "Link copied")}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
